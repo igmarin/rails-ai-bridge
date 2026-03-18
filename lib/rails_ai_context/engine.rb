@@ -8,6 +8,14 @@ module RailsAiContext
       Rails.application.config.rails_ai_context = RailsAiContext.configuration
     end
 
+    # Auto-mount MCP HTTP middleware when configured
+    initializer "rails_ai_context.middleware" do |app|
+      if RailsAiContext.configuration.auto_mount
+        require_relative "middleware"
+        app.middleware.use RailsAiContext::Middleware
+      end
+    end
+
     # Register Rake tasks
     rake_tasks do
       load File.expand_path("tasks/rails_ai_context.rake", __dir__)
