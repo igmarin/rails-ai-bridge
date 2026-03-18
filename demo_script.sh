@@ -8,7 +8,7 @@ echo 'Fetching gem metadata from https://rubygems.org...'
 sleep 0.3
 echo 'Resolving dependencies...'
 sleep 0.3
-echo 'Installing rails-ai-context 0.5.1'
+echo 'Installing rails-ai-context 0.5.2'
 echo ''
 sleep 1
 

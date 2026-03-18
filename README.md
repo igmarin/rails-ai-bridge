@@ -5,7 +5,7 @@
 [![CI](https://github.com/crisnahine/rails-ai-context/actions/workflows/ci.yml/badge.svg)](https://github.com/crisnahine/rails-ai-context/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-![Demo](demo.gif?v=0.5.1)
+![Demo](demo.gif?v=0.5.2)
 
 `rails-ai-context` automatically introspects your Rails application and exposes your models, routes, schema, controllers, views, jobs, gems, auth, API, tests, config, and conventions to AI assistants through the [Model Context Protocol (MCP)](https://modelcontextprotocol.io).
 

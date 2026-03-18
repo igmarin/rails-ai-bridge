@@ -12,7 +12,8 @@ module RailsAiContext
 
       def self.call(server_context: nil)
         conventions = cached_context[:conventions]
-        return text_response("Convention detection failed: #{conventions[:error]}") if conventions.is_a?(Hash) && conventions[:error]
+        return text_response("Convention detection not available. Add :conventions to introspectors.") unless conventions
+        return text_response("Convention detection failed: #{conventions[:error]}") if conventions[:error]
 
         lines = [ "# App Conventions & Architecture", "" ]
 

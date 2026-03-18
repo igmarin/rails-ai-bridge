@@ -12,6 +12,7 @@ module RailsAiContext
 
       def self.call(server_context: nil)
         data = cached_context[:config]
+        return text_response("Config introspection not available. Add :config to introspectors or use `config.preset = :full`.") unless data
         return text_response("Config introspection failed: #{data[:error]}") if data[:error]
 
         lines = [ "# Application Configuration", "" ]

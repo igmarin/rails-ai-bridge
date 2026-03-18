@@ -19,7 +19,8 @@ module RailsAiContext
 
       def self.call(model: nil, server_context: nil)
         models = cached_context[:models]
-        return text_response("Model introspection failed: #{models[:error]}") if models.is_a?(Hash) && models[:error]
+        return text_response("Model introspection not available. Add :models to introspectors.") unless models
+        return text_response("Model introspection failed: #{models[:error]}") if models[:error]
 
         unless model
           model_list = models.keys.sort.map { |m| "- #{m}" }.join("\n")

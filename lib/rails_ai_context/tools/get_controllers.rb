@@ -19,6 +19,7 @@ module RailsAiContext
 
       def self.call(controller: nil, server_context: nil)
         data = cached_context[:controllers]
+        return text_response("Controller introspection not available. Add :controllers to introspectors.") unless data
         return text_response("Controller introspection failed: #{data[:error]}") if data[:error]
 
         controllers = data[:controllers] || {}

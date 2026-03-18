@@ -20,6 +20,7 @@ module RailsAiContext
 
       def self.call(category: "all", server_context: nil)
         gems = cached_context[:gems]
+        return text_response("Gem introspection not available. Add :gems to introspectors.") unless gems
         return text_response("Gem introspection failed: #{gems[:error]}") if gems[:error]
 
         notable = gems[:notable_gems] || []

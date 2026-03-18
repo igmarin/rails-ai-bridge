@@ -19,6 +19,7 @@ module RailsAiContext
 
       def self.call(controller: nil, server_context: nil)
         routes = cached_context[:routes]
+        return text_response("Route introspection not available. Add :routes to introspectors.") unless routes
         return text_response("Route introspection failed: #{routes[:error]}") if routes[:error]
 
         by_controller = routes[:by_controller] || {}

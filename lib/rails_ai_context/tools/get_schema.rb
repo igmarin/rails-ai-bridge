@@ -29,6 +29,7 @@ module RailsAiContext
 
       def self.call(table: nil, format: "markdown", server_context: nil)
         schema = cached_context[:schema]
+        return text_response("Schema introspection not available. Add :schema to introspectors.") unless schema
         return text_response("Schema introspection not available: #{schema[:error]}") if schema[:error]
 
         tables = schema[:tables] || {}
