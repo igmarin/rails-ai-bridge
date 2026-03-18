@@ -32,7 +32,7 @@ module RailsAiContext
     def initialize
       @server_name         = "rails-ai-context"
       @server_version      = RailsAiContext::VERSION
-      @introspectors       = %i[schema models routes jobs gems conventions]
+      @introspectors       = %i[schema models routes jobs gems conventions stimulus]
       @excluded_paths      = %w[node_modules tmp log vendor .git]
       @auto_mount          = false
       @http_path           = "/mcp"

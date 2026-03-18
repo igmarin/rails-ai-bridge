@@ -55,6 +55,7 @@ require_relative "rails_ai_context/introspectors/route_introspector"
 require_relative "rails_ai_context/introspectors/job_introspector"
 require_relative "rails_ai_context/introspectors/gem_introspector"
 require_relative "rails_ai_context/introspectors/convention_detector"
+require_relative "rails_ai_context/introspectors/stimulus_introspector"
 
 # MCP Tools
 require_relative "rails_ai_context/tools/base_tool"

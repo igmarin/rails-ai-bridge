@@ -53,6 +53,7 @@ module RailsAiContext
       when :jobs        then Introspectors::JobIntrospector.new(app)
       when :gems        then Introspectors::GemIntrospector.new(app)
       when :conventions then Introspectors::ConventionDetector.new(app)
+      when :stimulus    then Introspectors::StimulusIntrospector.new(app)
       else
         raise ConfigurationError, "Unknown introspector: #{name}"
       end
