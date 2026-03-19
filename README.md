@@ -230,6 +230,24 @@ This gives AI assistants context about your frontend JavaScript alongside your b
 
 ---
 
+## Stack Compatibility
+
+Works with every Rails architecture — the gem auto-detects what's relevant:
+
+| Setup | Coverage | Notes |
+|-------|----------|-------|
+| Rails full-stack (ERB + Hotwire) | 27/27 | All introspectors relevant |
+| Rails + Inertia.js (React/Vue) | ~22/27 | Views/Turbo partially useful, backend fully covered |
+| Rails API + React/Next.js SPA | ~20/27 | Schema, models, routes, API, auth, jobs — all covered |
+| Rails API + mobile app | ~20/27 | Same as SPA — backend introspection is identical |
+| Rails engine (mountable gem) | ~15/27 | Core introspectors (schema, models, routes, gems) work |
+
+Introspectors that target frontend concerns (views, Turbo, Stimulus, assets) are less relevant for API-only apps, but they degrade gracefully — they simply report nothing when those features aren't present.
+
+> **Tip:** API-only apps can use the `:standard` preset (9 core introspectors) for faster introspection, or cherry-pick with `config.introspectors += %i[auth api]`. See [Configuration](#configuration).
+
+---
+
 ## Rake Tasks
 
 | Command | Description |
