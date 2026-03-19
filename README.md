@@ -61,13 +61,26 @@ rails generate rails_ai_context:install
 rails ai:context
 ```
 
-This creates:
-- `CLAUDE.md` — for Claude Code (with behavioral rules)
-- `.cursorrules` — for Cursor (compact rules format)
-- `.windsurfrules` — for Windsurf (compact rules format)
-- `.github/copilot-instructions.md` — for GitHub Copilot (task-oriented)
+This creates context files **and** split rule files for each AI assistant:
 
-Each file is tailored to the AI assistant's preferred format. **Commit these files.** Your entire team gets smarter AI assistance.
+```
+CLAUDE.md                                    # ≤150 lines (compact mode)
+.claude/rules/rails-schema.md                # Auto-loaded by Claude Code
+.claude/rules/rails-models.md                # Auto-loaded by Claude Code
+.cursorrules                                 # Legacy format (compact)
+.cursor/rules/rails-project.mdc              # Always-on project overview
+.cursor/rules/rails-models.mdc              # Auto-attaches in app/models/
+.cursor/rules/rails-controllers.mdc          # Auto-attaches in app/controllers/
+.windsurfrules                               # ≤5,800 chars (within 6K limit)
+.windsurf/rules/rails-context.md             # New rules format
+.github/copilot-instructions.md              # ≤500 lines (compact mode)
+.github/instructions/rails-models.instructions.md       # applyTo: app/models/
+.github/instructions/rails-controllers.instructions.md  # applyTo: app/controllers/
+```
+
+Each file is tailored to the AI assistant's preferred format and respects its size limits. **Commit these files.** Your entire team gets smarter AI assistance.
+
+> **Context modes:** The default `:compact` mode generates small, focused files that point to MCP tools for details. Use `rails ai:context:full` to dump everything into the files instead (good for small apps).
 
 ### 3. MCP Server
 
@@ -182,6 +195,29 @@ The gem exposes 9 tools via MCP that AI clients can call:
 
 All tools are **read-only** — they never modify your application or database.
 
+### Detail Levels & Pagination
+
+Tools support a `detail` parameter so AI assistants can start with an overview, then drill into specifics — critical for apps with hundreds of models or tables:
+
+| Detail Level | What it returns | Default limit |
+|-------------|-----------------|---------------|
+| `summary` | Names + counts (e.g. "users — 12 columns, 3 indexes") | 50 |
+| `standard` | Names + key details (e.g. column names and types) | 15 |
+| `full` | Everything including indexes, FKs, constraints | 5 |
+
+```
+# AI calls summary first to understand the landscape
+rails_get_schema(detail: "summary")
+
+# Then drills into a specific table
+rails_get_schema(table: "users")
+
+# Pagination for large schemas
+rails_get_schema(detail: "summary", limit: 20, offset: 40)
+```
+
+Schema and routes tools also support `limit` and `offset` for pagination. A configurable safety net (`max_tool_response_chars`, default 120K) truncates oversized responses with hints to use filters.
+
 ## MCP Resources
 
 In addition to tools, the gem registers MCP resources that AI clients can read directly:
@@ -239,12 +275,23 @@ In addition to tools, the gem registers MCP resources that AI clients can read d
 # config/initializers/rails_ai_context.rb
 RailsAiContext.configure do |config|
   # Introspector presets:
-  #   :standard — 8 core introspectors (default, fast)
+  #   :standard — 9 core introspectors (default, fast)
   #   :full     — all 26 introspectors (thorough)
   config.preset = :standard
 
   # Or cherry-pick on top of a preset:
   # config.introspectors += %i[views turbo auth api]
+
+  # Context mode for generated files (CLAUDE.md, .cursorrules, etc.)
+  # :compact — smart, ≤150 lines, references MCP tools (default)
+  # :full    — dumps everything into context files (good for small apps)
+  # config.context_mode = :compact
+
+  # Max lines for CLAUDE.md in compact mode
+  # config.claude_max_lines = 150
+
+  # Max response size for MCP tool results (safety net for large apps)
+  # config.max_tool_response_chars = 120_000
 
   # Exclude internal models from introspection
   config.excluded_models += %w[AdminUser InternalAuditLog]
@@ -289,13 +336,13 @@ This gives AI assistants context about your frontend JavaScript alongside your b
 
 ## Supported AI Assistants
 
-| AI Assistant | Context File | Format | Command |
-|--------------|-------------|--------|---------|
-| Claude Code | `CLAUDE.md` | Verbose + behavioral rules | `rails ai:context:claude` |
-| Cursor | `.cursorrules` | Compact imperative rules | `rails ai:context:cursor` |
-| Windsurf | `.windsurfrules` | Compact imperative rules | `rails ai:context:windsurf` |
-| GitHub Copilot | `.github/copilot-instructions.md` | Task-oriented GFM | `rails ai:context:copilot` |
-| JSON (generic) | `.ai-context.json` | Structured JSON | `rails ai:context:json` |
+| AI Assistant | Main File | Split Rules | Command |
+|--------------|-----------|------------|---------|
+| Claude Code | `CLAUDE.md` | `.claude/rules/*.md` | `rails ai:context:claude` |
+| Cursor | `.cursorrules` | `.cursor/rules/*.mdc` | `rails ai:context:cursor` |
+| Windsurf | `.windsurfrules` | `.windsurf/rules/*.md` | `rails ai:context:windsurf` |
+| GitHub Copilot | `.github/copilot-instructions.md` | `.github/instructions/*.instructions.md` | `rails ai:context:copilot` |
+| JSON (generic) | `.ai-context.json` | — | `rails ai:context:json` |
 
 ---
 
@@ -321,17 +368,20 @@ Introspectors that target frontend concerns (views, Turbo, Stimulus, assets) are
 
 | Command | Description |
 |---------|-------------|
-| `rails ai:context` | Generate all context files (skips unchanged) |
-| `rails ai:context:claude` | Generate CLAUDE.md only |
-| `rails ai:context:cursor` | Generate .cursorrules only |
-| `rails ai:context:windsurf` | Generate .windsurfrules only |
-| `rails ai:context:copilot` | Generate .github/copilot-instructions.md only |
+| `rails ai:context` | Generate all context files + split rules (skips unchanged) |
+| `rails ai:context:full` | Generate all files in full mode (dumps everything) |
+| `rails ai:context:claude` | Generate CLAUDE.md + .claude/rules/ |
+| `rails ai:context:cursor` | Generate .cursorrules + .cursor/rules/ |
+| `rails ai:context:windsurf` | Generate .windsurfrules + .windsurf/rules/ |
+| `rails ai:context:copilot` | Generate copilot-instructions.md + .github/instructions/ |
 | `rails ai:context:json` | Generate .ai-context.json only |
 | `rails ai:serve` | Start MCP server (stdio, for Claude Code) |
 | `rails ai:serve_http` | Start MCP server (HTTP, for remote clients) |
 | `rails ai:inspect` | Print introspection summary to stdout |
 | `rails ai:doctor` | Run diagnostics and report AI readiness score |
 | `rails ai:watch` | Watch for changes and auto-regenerate context files |
+
+> You can also override context mode via environment variable: `CONTEXT_MODE=full rails ai:context`
 
 > **zsh users:** The bracket syntax `rails ai:context_for[claude]` requires quoting in zsh (`rails 'ai:context_for[claude]'`). The named tasks above (`rails ai:context:claude`) work without quoting in any shell.
 

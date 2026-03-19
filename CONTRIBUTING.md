@@ -18,12 +18,12 @@ The test suite uses [Combustion](https://github.com/pat/combustion) to boot a mi
 
 ```
 lib/rails_ai_context/
-├── introspectors/     # One class per data source (schema, models, routes, etc.)
-├── tools/             # MCP tool definitions (one per introspector)
-├── serializers/       # Output formatters (markdown, JSON, context files)
+├── introspectors/     # 27 introspectors (schema, models, routes, etc.)
+├── tools/             # 9 MCP tools with detail levels and pagination
+├── serializers/       # Per-assistant formatters (claude, cursor, windsurf, copilot, JSON)
 ├── server.rb          # MCP server setup (stdio + HTTP)
 ├── engine.rb          # Rails Engine for auto-integration
-└── configuration.rb   # User-facing config options
+└── configuration.rb   # User-facing config (presets, context_mode, limits)
 ```
 
 ## Adding a New Introspector
