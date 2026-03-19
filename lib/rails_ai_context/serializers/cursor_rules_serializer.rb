@@ -22,6 +22,7 @@ module RailsAiContext
         skipped = []
 
         files = {
+          "rails-engineering.mdc" => render_engineering_rule,
           "rails-project.mdc" => render_project_rule,
           "rails-models.mdc" => render_models_rule,
           "rails-controllers.mdc" => render_controllers_rule,
@@ -43,6 +44,21 @@ module RailsAiContext
       end
 
       private
+
+      # Always-on engineering essentials (paired with rails-mcp-tools.mdc).
+      def render_engineering_rule
+        show_ov = SharedAssistantGuidance.overrides_file_exists_and_nonempty?
+        body = SharedAssistantGuidance.cursor_engineering_mdc_body_lines(show_overrides_pointer: show_ov)
+        (
+          [
+            "---",
+            "description: \"Rails engineering rules — strong params, auth, performance, security\"",
+            "alwaysApply: true",
+            "---",
+            ""
+          ] + body
+        ).join("\n")
+      end
 
       # Always-on project overview rule (<50 lines)
       def render_project_rule
@@ -66,17 +82,15 @@ module RailsAiContext
         models = context[:models]
         lines << "- Models: #{models.size}" if models.is_a?(Hash) && !models[:error]
 
-        routes = context[:routes]
-        if routes && !routes[:error]
-          lines << "- Routes: #{routes[:total_routes]}"
-        end
+        rline = ContextSummary.routes_stack_line(context)
+        lines << rline if rline
 
         gems = context[:gems]
         if gems.is_a?(Hash) && !gems[:error]
           notable = gems[:notable_gems] || gems[:notable] || gems[:detected] || []
           grouped = notable.group_by { |g| g[:category]&.to_s || "other" }
-          grouped.each do |cat, gem_list|
-            lines << "- #{cat}: #{gem_list.map { |g| g[:name] }.join(', ')}"
+          grouped.first(4).each do |cat, gem_list|
+            lines << "- #{cat}: #{gem_list.map { |g| g[:name] }.first(6).join(', ')}#{', ...' if gem_list.size > 6}"
           end
         end
 
@@ -86,7 +100,7 @@ module RailsAiContext
         end
 
         lines << ""
-        lines << "MCP tools available — see rails-mcp-tools.mdc for full reference."
+        lines << "Engineering rules: rails-engineering.mdc. MCP tools: rails-mcp-tools.mdc."
         lines << "Always call with detail:\"summary\" first, then drill into specifics."
 
         lines.join("\n")

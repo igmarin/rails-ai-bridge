@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Overrides stub** — `config/rails_ai_context/overrides.md` from install is a one-line `<!-- rails-ai-context:omit-merge -->` marker; it is **not** merged into Copilot/Codex until removed, avoiding committed placeholder noise. Added `overrides.md.example` with a real outline; engineering rules now point teams at overrides + example.
+
+### Added
+
+- **`RailsAiContext::Serializers::SharedAssistantGuidance`** — shared engineering rules, Rails performance pattern examples, optional **`config/rails_ai_context/overrides.md`** merge into compact Copilot + Codex, and Cursor `rails-engineering.mdc` body.
+- **Cursor `rails-engineering.mdc`** — `alwaysApply: true` engineering essentials + pointers to full `copilot-instructions.md` / `AGENTS.md` and MCP rules.
+- **Configuration** — `assistant_overrides_path`, `copilot_compact_model_list_limit` (default 5), `codex_compact_model_list_limit` (default 3); `0` lists no model names (MCP-only pointer).
+- **Install generator** — creates `config/rails_ai_context/overrides.md` template when missing.
+
+### Fixed
+
+- **Consistent controller counts in compact output** — stack summaries now use the controller introspector for the primary count (matching `# Controllers (N)` in split rules). When routing lists more names than `app/controllers` classes, both figures are shown.
+
+### Changed
+
+- **Compact guidance** — `CLAUDE.md`, Copilot compact instructions, and `AGENTS.md` include a short performance/security baseline and explicit note that generated files are snapshots; `.codex/README.md` documents re-merging team rules.
+- **Copilot compact** — `.github/copilot-instructions.md` now leads with actionable **Engineering rules** (strong params, auth, query performance, security inputs, testing) before stack inventory; MCP section notes path-scoped duplicates under `.github/instructions/` and `.cursor/rules/`.
+- **Copilot / Codex / `.cursorrules` order** — engineering rules first, then stack, optional repo-specific section, performance baseline + **Rails patterns** subsection, trimmed model names, then MCP (Codex: `AGENTS.md` matches this flow).
+- **Legacy `.cursorrules`** — same ordering as Copilot compact; model list uses `copilot_compact_model_list_limit`.
+- **`rails-project.mdc`** — uses `ContextSummary.routes_stack_line`; caps gem categories shown; references `rails-engineering.mdc`.
+
+## [0.8.0] - 2026-03-19
+
+### Added
+
+- **OpenAI Codex support** via `AGENTS.md`, `.codex/README.md`, and `rails ai:context:codex`.
+- **Codex serializer integration** in the context file pipeline so `format: :all` now includes Codex output.
+
+### Fixed
+
+- **`rails_search_code` invalid regex handling** — the Ruby fallback path now returns a controlled error response instead of raising `RegexpError`.
+
+### Changed
+
+- **Fork metadata** — gemspec, `server.json`, README, CONTRIBUTING, SECURITY, and CODE_OF_CONDUCT now point to the maintained fork instead of upstream operational contacts.
+- **Security documentation** — clarified that MCP tools are read-only but may still expose sensitive application structure, especially over HTTP transport.
+- **Internal review summary** — translated `resume.md` to English and updated it to reflect the current fork, Codex support, compatibility notes, and security posture.
+
 ## [0.7.1] - 2026-03-19
 
 ### Added

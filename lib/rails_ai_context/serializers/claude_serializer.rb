@@ -29,6 +29,7 @@ module RailsAiContext
         lines.concat(render_key_models)
         lines.concat(render_notable_gems)
         lines.concat(render_architecture)
+        lines.concat(render_performance_security_baseline)
         lines.concat(render_mcp_guide)
         lines.concat(render_conventions)
         lines.concat(render_commands)
@@ -68,11 +69,8 @@ module RailsAiContext
           lines << "- Models: #{models.size}"
         end
 
-        routes = context[:routes]
-        if routes && !routes[:error]
-          ctrl_count = (routes[:by_controller] || {}).keys.size
-          lines << "- Routes: #{routes[:total_routes]} across #{ctrl_count} controllers"
-        end
+        line = ContextSummary.routes_stack_line(context)
+        lines << line if line
 
         auth = context[:auth]
         if auth.is_a?(Hash) && !auth[:error]
@@ -156,6 +154,10 @@ module RailsAiContext
         patterns.first(8).each { |p| lines << "- #{p}" }
         lines << ""
         lines
+      end
+
+      def render_performance_security_baseline
+        ContextSummary.compact_performance_security_section + [ "" ]
       end
 
       def render_mcp_guide # rubocop:disable Metrics/MethodLength

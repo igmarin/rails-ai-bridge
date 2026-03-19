@@ -10,6 +10,7 @@ module RailsAiContext
 
       FORMAT_MAP = {
         claude:    "CLAUDE.md",
+        codex:     "AGENTS.md",
         cursor:    ".cursorrules",
         windsurf:  ".windsurfrules",
         copilot:   ".github/copilot-instructions.md",
@@ -63,6 +64,7 @@ module RailsAiContext
         case fmt
         when :json     then JsonSerializer.new(context).call
         when :claude   then ClaudeSerializer.new(context).call
+        when :codex    then CodexSerializer.new(context).call
         when :cursor   then RulesSerializer.new(context).call
         when :windsurf then WindsurfSerializer.new(context).call
         when :copilot  then CopilotSerializer.new(context).call
@@ -73,6 +75,12 @@ module RailsAiContext
       def generate_split_rules(formats, output_dir, written, skipped)
         if formats.include?(:claude)
           result = ClaudeRulesSerializer.new(context).call(output_dir)
+          written.concat(result[:written])
+          skipped.concat(result[:skipped])
+        end
+
+        if formats.include?(:codex)
+          result = CodexSupportSerializer.new(context).call(output_dir)
           written.concat(result[:written])
           skipped.concat(result[:skipped])
         end

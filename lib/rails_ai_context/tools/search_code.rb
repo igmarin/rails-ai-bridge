@@ -125,6 +125,8 @@ module RailsAiContext
         end
 
         results
+      rescue RegexpError => e
+        [ { file: "error", line_number: 0, content: "Invalid pattern: #{e.message}" } ]
       end
 
       private_class_method def self.parse_rg_output(output, root)

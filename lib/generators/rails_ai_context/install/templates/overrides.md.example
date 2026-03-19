@@ -1,0 +1,31 @@
+# Repo-specific AI guidance (example)
+
+Copy this file to `overrides.md` **or** edit `overrides.md` directly.
+
+1. Open `config/rails_ai_context/overrides.md`.
+2. **Delete the entire first line** (`<!-- rails-ai-context:omit-merge -->`). While that line is present, the gem **does not** merge this file into Copilot/Codex output (avoids committing placeholder noise).
+3. Replace the content below with real team rules, then run `rails ai:context`.
+
+---
+
+## Suggested sections (replace with your own)
+
+### Hot / large tables
+
+- Name tables that must never be full-scanned in HTTP requests.
+- Required indexes for new filters or `ORDER BY` on high-volume tables.
+- Batch vs interactive patterns (e.g. use background jobs for backfills).
+
+### Authorization and scoping
+
+- Tenant/org scoping rules; PII fields; audit or compliance constraints.
+- API vs HTML controller expectations.
+
+### Testing
+
+- Minimum spec types for certain changes (e.g. request spec for API endpoints).
+- Feature flags or contract tests if applicable.
+
+### Performance / infrastructure
+
+- Read replicas, caching layers, known slow endpoints.

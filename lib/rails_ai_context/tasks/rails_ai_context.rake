@@ -4,6 +4,7 @@ ASSISTANT_TABLE = <<~TABLE
   AI Assistant       Context File                          Command
   --                 --                                    --
   Claude Code        CLAUDE.md + .claude/rules/            rails ai:context:claude
+  OpenAI Codex       AGENTS.md + .codex/README.md          rails ai:context:codex
   Cursor             .cursorrules + .cursor/rules/         rails ai:context:cursor
   Windsurf           .windsurfrules + .windsurf/rules/     rails ai:context:windsurf
   GitHub Copilot     .github/copilot-instructions.md       rails ai:context:copilot
@@ -43,7 +44,7 @@ namespace :ai do
     puts ASSISTANT_TABLE
   end
 
-  desc "Generate AI context in a specific format (claude, cursor, windsurf, copilot, json)"
+  desc "Generate AI context in a specific format (claude, codex, cursor, windsurf, copilot, json)"
   task :context_for, [ :format ] => :environment do |_t, args|
     require "rails_ai_context"
 
@@ -59,7 +60,7 @@ namespace :ai do
   end
 
   namespace :context do
-    { claude: "CLAUDE.md", cursor: ".cursorrules", windsurf: ".windsurfrules",
+    { claude: "CLAUDE.md", codex: "AGENTS.md", cursor: ".cursorrules", windsurf: ".windsurfrules",
       copilot: ".github/copilot-instructions.md", json: ".ai-context.json" }.each do |fmt, file|
       desc "Generate #{file} context file"
       task fmt => :environment do

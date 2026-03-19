@@ -20,10 +20,15 @@ RSpec.describe RailsAiContext::Serializers::CursorRulesSerializer do
       result = described_class.new(context).call(dir)
       expect(result[:written]).not_to be_empty
 
+      eng = File.read(File.join(dir, ".cursor", "rules", "rails-engineering.mdc"))
+      expect(eng).to include("alwaysApply: true")
+      expect(eng).to include("Engineering essentials")
+      expect(eng).to include("strong params")
+
       project_rule = File.read(File.join(dir, ".cursor", "rules", "rails-project.mdc"))
       expect(project_rule).to start_with("---")
       expect(project_rule).to include("alwaysApply: true")
-      expect(project_rule).to include("MCP tools")
+      expect(project_rule).to include("rails-engineering.mdc")
     end
   end
 

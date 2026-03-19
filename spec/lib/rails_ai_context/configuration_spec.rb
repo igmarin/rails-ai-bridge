@@ -14,6 +14,9 @@ RSpec.describe RailsAiContext::Configuration do
     expect(config.context_mode).to eq(:compact)
     expect(config.claude_max_lines).to eq(150)
     expect(config.max_tool_response_chars).to eq(120_000)
+    expect(config.assistant_overrides_path).to be_nil
+    expect(config.copilot_compact_model_list_limit).to eq(5)
+    expect(config.codex_compact_model_list_limit).to eq(3)
   end
 
   it "defaults to standard preset" do

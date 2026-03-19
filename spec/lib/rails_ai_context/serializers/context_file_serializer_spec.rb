@@ -11,8 +11,8 @@ RSpec.describe RailsAiContext::Serializers::ContextFileSerializer do
         allow(RailsAiContext.configuration).to receive(:output_dir_for).and_return(dir)
         serializer = described_class.new(context, format: :all)
         result = serializer.call
-        # 5 main files + split rules (claude/rules, cursor/rules, windsurf/rules, github/instructions)
-        expect(result[:written].size).to be >= 5
+        # Main files + split rules/support files for all supported assistants.
+        expect(result[:written].size).to be >= 6
         expect(result[:skipped]).to be_empty
       end
     end
@@ -76,6 +76,16 @@ RSpec.describe RailsAiContext::Serializers::ContextFileSerializer do
         result = serializer.call
         copilot_instructions = result[:written].select { |f| f.include?(".github/instructions/") }
         expect(copilot_instructions).not_to be_empty
+      end
+    end
+
+    it "generates AGENTS.md and .codex support file when writing codex format" do
+      Dir.mktmpdir do |dir|
+        allow(RailsAiContext.configuration).to receive(:output_dir_for).and_return(dir)
+        serializer = described_class.new(context, format: :codex)
+        result = serializer.call
+        expect(result[:written].any? { |f| f.end_with?("AGENTS.md") }).to be true
+        expect(result[:written].any? { |f| f.include?(".codex/README.md") }).to be true
       end
     end
 

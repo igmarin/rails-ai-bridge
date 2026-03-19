@@ -5,8 +5,8 @@ require_relative "lib/rails_ai_context/version"
 Gem::Specification.new do |spec|
   spec.name          = "rails-ai-context"
   spec.version       = RailsAiContext::VERSION
-  spec.authors       = [ "crisnahine" ]
-  spec.email         = [ "crisjosephnahine@gmail.com" ]
+  spec.authors       = [ "Ismael Marin" ]
+  spec.email         = [ "ismael.marin@gmail.com" ]
 
   spec.summary       = "Auto-expose Rails app structure to AI via MCP (Model Context Protocol) — zero config."
   spec.description   = <<~DESC
@@ -17,7 +17,7 @@ Gem::Specification.new do |spec|
     any MCP-compatible AI tool. Zero configuration required.
   DESC
 
-  spec.homepage      = "https://github.com/crisnahine/rails-ai-context"
+  spec.homepage      = "https://github.com/igmarin/rails-ai-context"
   spec.license       = "MIT"
 
   spec.required_ruby_version = ">= 3.2.0"
@@ -27,7 +27,6 @@ Gem::Specification.new do |spec|
   spec.metadata["changelog_uri"]     = "#{spec.homepage}/blob/main/CHANGELOG.md"
   spec.metadata["documentation_uri"] = "#{spec.homepage}#readme"
   spec.metadata["bug_tracker_uri"]   = "#{spec.homepage}/issues"
-  spec.metadata["funding_uri"]       = "https://github.com/sponsors/crisnahine"
   spec.metadata["rubygems_mfa_required"] = "true"
 
   spec.post_install_message = <<~MSG

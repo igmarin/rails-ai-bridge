@@ -28,7 +28,7 @@ module RailsAiContext
         lines << ""
         lines << "Rails #{context[:rails_version]} | Ruby #{context[:ruby_version]}"
         lines << ""
-
+        lines.concat(SharedAssistantGuidance.compact_engineering_rules_lines)
         # Stack overview
         lines << "## Stack"
         schema = context[:schema]
@@ -37,10 +37,8 @@ module RailsAiContext
         models = context[:models]
         lines << "- Models: #{models.size}" if models.is_a?(Hash) && !models[:error]
 
-        routes = context[:routes]
-        if routes && !routes[:error]
-          lines << "- Routes: #{routes[:total_routes]} across #{(routes[:by_controller] || {}).size} controllers"
-        end
+        line = ContextSummary.routes_stack_line(context)
+        lines << line if line
 
         # Gems by category
         gems = context[:gems]
@@ -52,20 +50,10 @@ module RailsAiContext
         end
 
         lines << ""
+        lines.concat(SharedAssistantGuidance.repo_specific_guidance_section_lines)
 
-        # Models — Copilot gets more detail (up to 25 with associations)
-        if models.is_a?(Hash) && !models[:error] && models.any?
-          lines << "## Models (#{models.size})"
-          models.keys.sort.first(25).each do |name|
-            data = models[name]
-            assocs = (data[:associations] || []).first(3).map { |a| "#{a[:type]} :#{a[:name]}" }.join(", ")
-            line = "- **#{name}**"
-            line += " — #{assocs}" unless assocs.empty?
-            lines << line
-          end
-          lines << "- _...#{models.size - 25} more_" if models.size > 25
-          lines << ""
-        end
+        SharedAssistantGuidance.performance_security_and_rails_examples_lines.each { |l| lines << l }
+        lines << ""
 
         # Architecture
         conv = context[:conventions]
@@ -79,6 +67,9 @@ module RailsAiContext
             lines << ""
           end
         end
+
+        append_compact_copilot_models_section(lines, models)
+
 
         # MCP tools
         lines << "## MCP Tool Reference"
@@ -119,6 +110,8 @@ module RailsAiContext
         lines << "- `rails_get_conventions` — architecture patterns, directory structure"
         lines << "- `rails_search_code(pattern:\"regex\", file_type:\"rb\", max_results:20)` — codebase search"
         lines << ""
+        lines << "_The same MCP reference also appears under `.github/instructions/rails-mcp-tools.instructions.md` and `.cursor/rules/rails-mcp-tools.mdc` for path-scoped clients._"
+        lines << ""
 
         # Conventions
         lines << "## Conventions"
@@ -128,6 +121,27 @@ module RailsAiContext
         lines << ""
 
         lines.join("\n")
+      end
+
+      def append_compact_copilot_models_section(lines, models)
+        return unless models.is_a?(Hash) && !models[:error] && models.any?
+
+        limit = RailsAiContext.configuration.copilot_compact_model_list_limit.to_i
+        lines << "## Models (#{models.size} total)"
+        if limit <= 0
+          lines << "- _No model names listed here — use `rails_get_model_details(detail:\"summary\")` for the full list._"
+        else
+          models.keys.sort.first(limit).each do |name|
+            data = models[name]
+            assocs = (data[:associations] || []).first(3).map { |a| "#{a[:type]} :#{a[:name]}" }.join(", ")
+            line = "- **#{name}**"
+            line += " — #{assocs}" unless assocs.empty?
+            lines << line
+          end
+          remainder = models.size - limit
+          lines << "- _...#{remainder} more — use `rails_get_model_details(detail:\"summary\")`._" if remainder.positive?
+        end
+        lines << ""
       end
     end
 

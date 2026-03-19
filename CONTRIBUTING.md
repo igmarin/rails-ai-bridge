@@ -5,7 +5,7 @@ Thanks for your interest in contributing! This guide covers everything you need 
 ## Development Setup
 
 ```bash
-git clone https://github.com/crisnahine/rails-ai-context.git
+git clone https://github.com/igmarin/rails-ai-context.git
 cd rails-ai-context
 bundle install
 bundle exec rspec
@@ -68,7 +68,7 @@ bundle exec rubocop --parallel # Lint check
 
 ## Reporting Bugs
 
-Open an issue at https://github.com/crisnahine/rails-ai-context/issues with:
+Open an issue at https://github.com/igmarin/rails-ai-context/issues with:
 - Ruby and Rails versions
 - Gem version
 - Steps to reproduce

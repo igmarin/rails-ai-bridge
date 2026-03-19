@@ -44,6 +44,15 @@ module RailsAiContext
     # Max characters for any single MCP tool response (safety net)
     attr_accessor :max_tool_response_chars
 
+    # Optional markdown merged into Copilot / Codex compact output (+config/rails_ai_context/overrides.md+ when +nil+)
+    attr_accessor :assistant_overrides_path
+
+    # Max model names listed in compact Copilot instructions (0 = MCP pointer only)
+    attr_accessor :copilot_compact_model_list_limit
+
+    # Max model names in compact AGENTS.md (0 = MCP pointer only)
+    attr_accessor :codex_compact_model_list_limit
+
     def initialize
       @server_name         = "rails-ai-context"
       @server_version      = RailsAiContext::VERSION
@@ -64,6 +73,9 @@ module RailsAiContext
       @context_mode             = :compact
       @claude_max_lines         = 150
       @max_tool_response_chars  = 120_000
+      @assistant_overrides_path = nil
+      @copilot_compact_model_list_limit = 5
+      @codex_compact_model_list_limit   = 3
     end
 
     def preset=(name)

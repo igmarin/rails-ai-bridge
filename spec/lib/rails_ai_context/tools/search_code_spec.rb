@@ -39,5 +39,14 @@ RSpec.describe RailsAiContext::Tools::SearchCode do
       text = result.content.first[:text]
       expect(text).to include("No results found")
     end
+
+    it "returns a friendly error for invalid regex in Ruby fallback mode" do
+      allow(described_class).to receive(:ripgrep_available?).and_return(false)
+
+      result = described_class.call(pattern: "(")
+      text = result.content.first[:text]
+
+      expect(text).to include("Invalid pattern")
+    end
   end
 end
