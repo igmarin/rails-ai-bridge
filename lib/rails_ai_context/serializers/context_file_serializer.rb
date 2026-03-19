@@ -4,6 +4,7 @@ module RailsAiContext
   module Serializers
     # Orchestrates writing context files to disk in various formats.
     # Supports: CLAUDE.md, .cursorrules, .windsurfrules, .github/copilot-instructions.md, JSON
+    # Also generates split rule files for AI tools that support them.
     class ContextFileSerializer
       attr_reader :context, :format
 
@@ -50,6 +51,9 @@ module RailsAiContext
           end
         end
 
+        # Generate split rule files for all AI tools that support them
+        generate_split_rules(formats, output_dir, written, skipped)
+
         { written: written, skipped: skipped }
       end
 
@@ -59,9 +63,36 @@ module RailsAiContext
         case fmt
         when :json     then JsonSerializer.new(context).call
         when :claude   then ClaudeSerializer.new(context).call
-        when :cursor, :windsurf then RulesSerializer.new(context).call
+        when :cursor   then RulesSerializer.new(context).call
+        when :windsurf then WindsurfSerializer.new(context).call
         when :copilot  then CopilotSerializer.new(context).call
         else MarkdownSerializer.new(context).call
+        end
+      end
+
+      def generate_split_rules(formats, output_dir, written, skipped)
+        if formats.include?(:claude)
+          result = ClaudeRulesSerializer.new(context).call(output_dir)
+          written.concat(result[:written])
+          skipped.concat(result[:skipped])
+        end
+
+        if formats.include?(:cursor)
+          result = CursorRulesSerializer.new(context).call(output_dir)
+          written.concat(result[:written])
+          skipped.concat(result[:skipped])
+        end
+
+        if formats.include?(:windsurf)
+          result = WindsurfRulesSerializer.new(context).call(output_dir)
+          written.concat(result[:written])
+          skipped.concat(result[:skipped])
+        end
+
+        if formats.include?(:copilot)
+          result = CopilotInstructionsSerializer.new(context).call(output_dir)
+          written.concat(result[:written])
+          skipped.concat(result[:skipped])
         end
       end
     end

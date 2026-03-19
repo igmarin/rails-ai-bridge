@@ -3,9 +3,9 @@
 ASSISTANT_TABLE = <<~TABLE
   AI Assistant       Context File                          Command
   --                 --                                    --
-  Claude Code        CLAUDE.md                             rails ai:context:claude
-  Cursor             .cursorrules                          rails ai:context:cursor
-  Windsurf           .windsurfrules                        rails ai:context:windsurf
+  Claude Code        CLAUDE.md + .claude/rules/            rails ai:context:claude
+  Cursor             .cursorrules + .cursor/rules/         rails ai:context:cursor
+  Windsurf           .windsurfrules + .windsurf/rules/     rails ai:context:windsurf
   GitHub Copilot     .github/copilot-instructions.md       rails ai:context:copilot
   JSON (generic)     .ai-context.json                      rails ai:context:json
 TABLE
@@ -15,10 +15,20 @@ def print_result(result)
   result[:skipped].each { |f| puts "  ⏭️  #{f} (unchanged)" }
 end
 
+def apply_context_mode_override
+  if ENV["CONTEXT_MODE"]
+    mode = ENV["CONTEXT_MODE"].to_sym
+    RailsAiContext.configuration.context_mode = mode
+    puts "📐 Context mode: #{mode}"
+  end
+end
+
 namespace :ai do
   desc "Generate AI context files (CLAUDE.md, .cursorrules, .windsurfrules, .github/copilot-instructions.md)"
   task context: :environment do
     require "rails_ai_context"
+
+    apply_context_mode_override
 
     puts "🔍 Introspecting #{Rails.application.class.module_parent_name}..."
 
@@ -37,6 +47,8 @@ namespace :ai do
   task :context_for, [ :format ] => :environment do |_t, args|
     require "rails_ai_context"
 
+    apply_context_mode_override
+
     format = (args[:format] || ENV["FORMAT"] || "claude").to_sym
     puts "🔍 Introspecting #{Rails.application.class.module_parent_name}..."
 
@@ -53,6 +65,8 @@ namespace :ai do
       task fmt => :environment do
         require "rails_ai_context"
 
+        apply_context_mode_override
+
         puts "🔍 Introspecting #{Rails.application.class.module_parent_name}..."
         puts "📝 Writing #{file}..."
         result = RailsAiContext.generate_context(format: fmt)
@@ -61,6 +75,20 @@ namespace :ai do
         puts ""
         puts "Tip: Run `rails ai:context` to generate all formats at once."
       end
+    end
+
+    desc "Generate AI context files in full mode (dumps everything)"
+    task full: :environment do
+      require "rails_ai_context"
+
+      RailsAiContext.configuration.context_mode = :full
+      puts "🔍 Introspecting #{Rails.application.class.module_parent_name} (full mode)..."
+      puts "📝 Writing context files..."
+      result = RailsAiContext.generate_context(format: :all)
+
+      print_result(result)
+      puts ""
+      puts "Done! Full context files generated (all details included)."
     end
   end
 

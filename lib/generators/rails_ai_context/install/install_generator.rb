@@ -41,6 +41,17 @@ module RailsAiContext
             # Paths to exclude from code search
             # config.excluded_paths += %w[vendor/bundle]
 
+            # Context mode for generated files (CLAUDE.md, .cursorrules, etc.)
+            # :compact — smart, ≤150 lines, references MCP tools for details (default)
+            # :full    — dumps everything into context files (good for small apps <30 models)
+            # config.context_mode = :compact
+
+            # Max lines for CLAUDE.md in compact mode
+            # config.claude_max_lines = 150
+
+            # Max response size for MCP tool results (chars). Safety net for large apps.
+            # config.max_tool_response_chars = 120_000
+
             # Auto-mount HTTP MCP endpoint at /mcp
             # config.auto_mount = false
             # config.http_path  = "/mcp"
@@ -96,17 +107,21 @@ module RailsAiContext
         say "  rails ai:serve           # Start MCP server (stdio)"
         say "  rails ai:inspect         # Print introspection summary"
         say ""
-        say "Supported AI assistants:", :yellow
-        say "  Claude Code        → CLAUDE.md                        (rails ai:context:claude)"
-        say "  Cursor             → .cursorrules                     (rails ai:context:cursor)"
-        say "  Windsurf           → .windsurfrules                   (rails ai:context:windsurf)"
-        say "  GitHub Copilot     → .github/copilot-instructions.md  (rails ai:context:copilot)"
+        say "Generated files per AI tool:", :yellow
+        say "  Claude Code    → CLAUDE.md + .claude/rules/*.md"
+        say "  Cursor         → .cursorrules + .cursor/rules/*.mdc"
+        say "  Windsurf       → .windsurfrules + .windsurf/rules/*.md"
+        say "  GitHub Copilot → .github/copilot-instructions.md + .github/instructions/*.instructions.md"
         say ""
         say "MCP auto-discovery:", :yellow
         say "  .mcp.json is auto-detected by Claude Code and Cursor."
         say "  No manual MCP config needed — just open your project."
         say ""
-        say "Commit CLAUDE.md, .cursorrules, and .mcp.json so your team benefits!", :green
+        say "Context modes:", :yellow
+        say "  rails ai:context         # compact mode (default, smart for any app size)"
+        say "  rails ai:context:full    # full dump (good for small apps)"
+        say ""
+        say "Commit context files and .mcp.json so your team benefits!", :green
       end
     end
   end

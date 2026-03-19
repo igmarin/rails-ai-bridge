@@ -33,12 +33,31 @@ RSpec.describe RailsAiContext::Serializers::ClaudeSerializer do
   describe "#call" do
     subject(:output) { described_class.new(context).call }
 
-    it "includes Claude-specific header" do
-      expect(output).to include("Claude Code")
+    context "in compact mode (default)" do
+      it "includes AI Context header" do
+        expect(output).to include("AI Context")
+      end
+
+      it "includes MCP tools section" do
+        expect(output).to include("MCP tools")
+      end
+
+      it "includes rules section" do
+        expect(output).to include("## Rules")
+      end
     end
 
-    it "includes behavioral rules section" do
-      expect(output).to include("## Behavioral Rules")
+    context "in full mode" do
+      before { RailsAiContext.configuration.context_mode = :full }
+      after { RailsAiContext.configuration.context_mode = :compact }
+
+      it "includes Claude-specific header" do
+        expect(output).to include("Claude Code")
+      end
+
+      it "includes behavioral rules section" do
+        expect(output).to include("## Behavioral Rules")
+      end
     end
   end
 end
@@ -61,8 +80,19 @@ RSpec.describe RailsAiContext::Serializers::CopilotSerializer do
   describe "#call" do
     subject(:output) { described_class.new(context).call }
 
-    it "uses Copilot-specific header" do
-      expect(output).to include("Copilot Instructions")
+    context "in compact mode (default)" do
+      it "uses Copilot-specific header" do
+        expect(output).to include("Copilot Context")
+      end
+    end
+
+    context "in full mode" do
+      before { RailsAiContext.configuration.context_mode = :full }
+      after { RailsAiContext.configuration.context_mode = :compact }
+
+      it "uses Copilot Instructions header" do
+        expect(output).to include("Copilot Instructions")
+      end
     end
   end
 end
