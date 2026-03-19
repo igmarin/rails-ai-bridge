@@ -62,21 +62,43 @@ rails generate rails_ai_context:install
 rails ai:context
 ```
 
-This creates context files **and** split rule files for each AI assistant:
+This generates **17 files** — context files and split rule files for each AI assistant:
 
 ```
-CLAUDE.md                                    # ≤150 lines (compact mode)
-.claude/rules/rails-schema.md                # Auto-loaded by Claude Code
-.claude/rules/rails-models.md                # Auto-loaded by Claude Code
-.cursorrules                                 # Legacy format (compact)
-.cursor/rules/rails-project.mdc              # Always-on project overview
-.cursor/rules/rails-models.mdc              # Auto-attaches in app/models/
-.cursor/rules/rails-controllers.mdc          # Auto-attaches in app/controllers/
-.windsurfrules                               # ≤5,800 chars (within 6K limit)
-.windsurf/rules/rails-context.md             # New rules format
-.github/copilot-instructions.md              # ≤500 lines (compact mode)
-.github/instructions/rails-models.instructions.md       # applyTo: app/models/
-.github/instructions/rails-controllers.instructions.md  # applyTo: app/controllers/
+your-rails-app/
+│
+├── 🟣 Claude Code
+│   ├── CLAUDE.md                                         ≤150 lines (compact)
+│   └── .claude/rules/
+│       ├── rails-schema.md                               table listing
+│       ├── rails-models.md                               model listing
+│       └── rails-mcp-tools.md                            full tool reference
+│
+├── 🟢 Cursor
+│   ├── .cursorrules                                      legacy compat (compact)
+│   └── .cursor/rules/
+│       ├── rails-project.mdc                             alwaysApply: true
+│       ├── rails-models.mdc                              globs: app/models/**
+│       ├── rails-controllers.mdc                         globs: app/controllers/**
+│       └── rails-mcp-tools.mdc                           alwaysApply: true
+│
+├── 🔵 Windsurf
+│   ├── .windsurfrules                                    ≤5,800 chars (6K limit)
+│   └── .windsurf/rules/
+│       ├── rails-context.md                              project overview
+│       └── rails-mcp-tools.md                            tool reference
+│
+├── 🟠 GitHub Copilot
+│   ├── .github/copilot-instructions.md                   ≤500 lines (compact)
+│   └── .github/instructions/
+│       ├── rails-models.instructions.md                  applyTo: app/models/**
+│       ├── rails-controllers.instructions.md             applyTo: app/controllers/**
+│       └── rails-mcp-tools.instructions.md               applyTo: **/*
+│
+├── 📋 Generic
+│   └── .ai-context.json                                  full JSON (programmatic)
+│
+└── .mcp.json                                             MCP auto-discovery
 ```
 
 Each file is tailored to the AI assistant's preferred format and respects its size limits. **Commit these files.** Your entire team gets smarter AI assistance.
