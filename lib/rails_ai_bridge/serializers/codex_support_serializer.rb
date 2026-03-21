@@ -50,13 +50,13 @@ module RailsAiBridge
 
           ## Suggested workflow
 
-          1. Run `rails ai:context` (or `rails ai:context:codex`) after significant schema or architecture changes — a single full run keeps counts consistent across CLAUDE.md, Cursor rules, and Copilot files.
+          1. Run `rails ai:bridge` (or `rails ai:bridge:codex`) after significant schema or architecture changes — a single full run keeps counts consistent across CLAUDE.md, Cursor rules, and Copilot files.
           2. In Codex, prefer the `rails_*` MCP tools over guessing application structure.
           3. Start with `detail:"summary"` and drill down only where needed.
 
           ## Team rules
 
-          Generated files are **snapshots**. For repo-specific rules (hot tables, auth scoping, required specs), use `config/rails_ai_bridge/overrides.md`: remove the first-line `<!-- rails-ai-bridge:omit-merge -->` stub so content is merged into `AGENTS.md` and Copilot. See `overrides.md.example`. Alternatively re-merge curated guidance after each `rails ai:context`.
+          Generated files are **snapshots**. For repo-specific rules (hot tables, auth scoping, required specs), use `config/rails_ai_bridge/overrides.md`: remove the first-line `<!-- rails-ai-bridge:omit-merge -->` stub so content is merged into `AGENTS.md` and Copilot. See `overrides.md.example`. Alternatively re-merge curated guidance after each `rails ai:bridge`.
         MD
       end
     end

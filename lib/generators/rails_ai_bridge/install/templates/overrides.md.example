@@ -4,7 +4,7 @@ Copy this file to `overrides.md` **or** edit `overrides.md` directly.
 
 1. Open `config/rails_ai_bridge/overrides.md`.
 2. **Delete the entire first line** (`<!-- rails-ai-bridge:omit-merge -->`). While that line is present, the gem **does not** merge this file into Copilot/Codex output (avoids committing placeholder noise).
-3. Replace the content below with real team rules, then run `rails ai:context`.
+3. Replace the content below with real team rules, then run `rails ai:bridge`.
 
 ---
 

@@ -124,9 +124,9 @@ module RailsAiBridge
     def check_context_files
       claude_path = File.join(app.root, "CLAUDE.md")
       if File.exist?(claude_path)
-        Check.new(name: "Context files", status: :pass, message: "CLAUDE.md exists", fix: nil)
+        Check.new(name: "Bridge files", status: :pass, message: "CLAUDE.md exists", fix: nil)
       else
-        Check.new(name: "Context files", status: :warn, message: "No context files generated yet", fix: "Run `rails ai:context` to generate them")
+        Check.new(name: "Bridge files", status: :warn, message: "No bridge files generated yet", fix: "Run `rails ai:bridge` to generate them")
       end
     end
 

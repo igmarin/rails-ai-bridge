@@ -497,7 +497,7 @@ module RailsAiBridge
       def footer
         <<~MD
           ---
-          _This context file is auto-generated. Run `rails ai:context` to regenerate._
+          _This context file is auto-generated. Run `rails ai:bridge` to regenerate._
         MD
       end
     end

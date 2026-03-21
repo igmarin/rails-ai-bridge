@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module RailsAiBridge
-  # File system watcher that regenerates context files when key files change.
+  # File system watcher that regenerates bridge files when key files change.
   # Requires the `listen` gem (optional dependency).
   class Watcher
     DEBOUNCE_SECONDS = 2
@@ -64,7 +64,7 @@ module RailsAiBridge
 
       @last_fingerprint = Fingerprinter.compute(app)
 
-      $stderr.puts "[rails-ai-bridge] Changes detected, regenerating context files..."
+      $stderr.puts "[rails-ai-bridge] Changes detected, regenerating bridge files..."
       result = RailsAiBridge.generate_context(format: :all)
       result[:written].each { |f| $stderr.puts "  Updated: #{f}" }
       result[:skipped].each { |f| $stderr.puts "  Unchanged: #{f}" }

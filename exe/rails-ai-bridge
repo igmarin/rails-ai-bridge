@@ -20,9 +20,9 @@ module RailsAiBridge
       RailsAiBridge.start_mcp_server(transport: transport)
     end
 
-    desc "context", "Generate AI context files"
+    desc "bridge", "Generate AI bridge files"
     option :format, type: :string, default: "all", desc: "Format: claude, cursor, windsurf, copilot, json, all"
-    def context
+    def bridge
       boot_rails!
       require "rails_ai_bridge"
 

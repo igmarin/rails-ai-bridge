@@ -33,7 +33,7 @@
 ```bash
 bundle add rails-ai-bridge
 rails generate rails_ai_bridge:install
-rails ai:context
+rails ai:bridge
 ```
 
 This creates:
@@ -52,8 +52,8 @@ gem "rails-ai-bridge"
 bundle install
 rails generate rails_ai_bridge:install
 
-# Generate context files
-rails ai:context
+# Generate bridge files
+rails ai:bridge
 
 # Verify everything works
 rails ai:doctor
@@ -65,7 +65,7 @@ rails ai:doctor
 2. Creates `config/initializers/rails_ai_bridge.rb` with commented defaults
 3. Creates `config/rails_ai_bridge/overrides.md` (stub) and `overrides.md.example` when absent — remove the omit-merge line from `overrides.md` before real rules are merged
 4. Adds `.ai-context.json` to `.gitignore` (JSON cache — markdown files should be committed)
-5. Generates all context files
+5. Generates all bridge files
 
 ---
 
@@ -76,7 +76,7 @@ The gem has two context modes that control how much data goes into the generated
 ### Compact mode (default)
 
 ```bash
-rails ai:context
+rails ai:bridge
 ```
 
 - CLAUDE.md ≤150 lines
@@ -89,9 +89,9 @@ rails ai:context
 ### Full mode
 
 ```bash
-rails ai:context:full
+rails ai:bridge:full
 # or
-CONTEXT_MODE=full rails ai:context
+CONTEXT_MODE=full rails ai:bridge
 ```
 
 - Dumps everything into context files (schema, all models, all routes, etc.)
@@ -102,16 +102,16 @@ CONTEXT_MODE=full rails ai:context
 
 ```bash
 # Full dump for Claude only, compact for everything else
-CONTEXT_MODE=full rails ai:context:claude
+CONTEXT_MODE=full rails ai:bridge:claude
 
 # Full dump for Cursor only
-CONTEXT_MODE=full rails ai:context:cursor
+CONTEXT_MODE=full rails ai:bridge:cursor
 
 # Full dump for Windsurf only (still respects 6K char limit)
-CONTEXT_MODE=full rails ai:context:windsurf
+CONTEXT_MODE=full rails ai:bridge:windsurf
 
 # Full dump for Copilot only
-CONTEXT_MODE=full rails ai:context:copilot
+CONTEXT_MODE=full rails ai:bridge:copilot
 ```
 
 ### Set mode in configuration
@@ -127,7 +127,7 @@ end
 
 ## Generated Files
 
-`rails ai:context` generates **18+ files** across all AI assistants (counts include Codex and split rules).
+`rails ai:bridge` generates **18+ files** across all AI assistants (counts include Codex and split rules).
 
 ### Claude Code (4 files)
 
@@ -178,7 +178,7 @@ Commit **all files except `.ai-context.json`** (which is gitignored). This gives
 
 ### Repo-specific guidance (`config/rails_ai_bridge/overrides.md`)
 
-Optional markdown **merged verbatim** into compact `.github/copilot-instructions.md` and `AGENTS.md` under **Repo-specific guidance** when you run `rails ai:context` — **only after** you remove the install stub’s first line: `<!-- rails-ai-bridge:omit-merge -->`. While that line is the first non-empty line in the file, the gem treats overrides as inactive (no placeholder noise in generated files).
+Optional markdown **merged verbatim** into compact `.github/copilot-instructions.md` and `AGENTS.md` under **Repo-specific guidance** when you run `rails ai:bridge` — **only after** you remove the install stub’s first line: `<!-- rails-ai-bridge:omit-merge -->`. While that line is the first non-empty line in the file, the gem treats overrides as inactive (no placeholder noise in generated files).
 
 - Use **`overrides.md.example`** as a starting outline (that file is never merged).
 - Override path: `config.assistant_overrides_path` (relative to `Rails.root` or absolute).
@@ -194,18 +194,18 @@ The same engineering baseline intentionally appears in Copilot, Codex, and Curso
 
 | Command | Mode | Format | Description |
 |---------|------|--------|-------------|
-| `rails ai:context` | compact | all | Generate all context files |
-| `rails ai:context:full` | full | all | Generate all files in full mode |
-| `rails ai:context:claude` | compact | Claude | CLAUDE.md + .claude/rules/ |
-| `rails ai:context:codex` | compact | Codex | AGENTS.md + .codex/README.md |
-| `rails ai:context:cursor` | compact | Cursor | .cursorrules + .cursor/rules/ |
-| `rails ai:context:windsurf` | compact | Windsurf | .windsurfrules + .windsurf/rules/ |
-| `rails ai:context:copilot` | compact | Copilot | copilot-instructions.md + .github/instructions/ |
-| `rails ai:context:json` | — | JSON | .ai-context.json |
-| `CONTEXT_MODE=full rails ai:context:claude` | full | Claude | Full dump for Claude only |
-| `CONTEXT_MODE=full rails ai:context:cursor` | full | Cursor | Full dump for Cursor only |
-| `CONTEXT_MODE=full rails ai:context:windsurf` | full | Windsurf | Full dump for Windsurf only |
-| `CONTEXT_MODE=full rails ai:context:copilot` | full | Copilot | Full dump for Copilot only |
+| `rails ai:bridge` | compact | all | Generate all bridge files |
+| `rails ai:bridge:full` | full | all | Generate all files in full mode |
+| `rails ai:bridge:claude` | compact | Claude | CLAUDE.md + .claude/rules/ |
+| `rails ai:bridge:codex` | compact | Codex | AGENTS.md + .codex/README.md |
+| `rails ai:bridge:cursor` | compact | Cursor | .cursorrules + .cursor/rules/ |
+| `rails ai:bridge:windsurf` | compact | Windsurf | .windsurfrules + .windsurf/rules/ |
+| `rails ai:bridge:copilot` | compact | Copilot | copilot-instructions.md + .github/instructions/ |
+| `rails ai:bridge:json` | — | JSON | .ai-context.json |
+| `CONTEXT_MODE=full rails ai:bridge:claude` | full | Claude | Full dump for Claude only |
+| `CONTEXT_MODE=full rails ai:bridge:cursor` | full | Cursor | Full dump for Cursor only |
+| `CONTEXT_MODE=full rails ai:bridge:windsurf` | full | Windsurf | Full dump for Windsurf only |
+| `CONTEXT_MODE=full rails ai:bridge:copilot` | full | Copilot | Full dump for Copilot only |
 
 ### MCP server
 
@@ -222,11 +222,11 @@ The same engineering baseline intentionally appears in Copilot, Codex, and Curso
 | `rails ai:watch` | Watch for file changes and auto-regenerate context files. Requires `listen` gem. |
 | `rails ai:inspect` | Print introspection summary to stdout. Useful for debugging. |
 
-### Legacy command
+### Bracket syntax
 
 ```bash
-rails 'ai:context_for[claude]'   # Requires quoting in zsh
-rails ai:context:claude           # Use this instead (no quoting needed)
+rails 'ai:bridge_for[claude]'    # Requires quoting in zsh
+rails ai:bridge:claude           # Use this instead (no quoting needed)
 ```
 
 ---
@@ -552,7 +552,7 @@ Keep HTTP bound to `127.0.0.1` unless you add your own network and authenticatio
 
 This fork adds Codex support through `AGENTS.md` and `.codex/README.md`.
 
-- Run `rails ai:context:codex` to regenerate Codex guidance.
+- Run `rails ai:bridge:codex` to regenerate Codex guidance.
 - Commit `AGENTS.md` for shared repository instructions.
 - Keep personal Codex preferences in `~/.codex/AGENTS.md`.
 
