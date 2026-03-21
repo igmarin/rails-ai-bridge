@@ -1,24 +1,24 @@
-# CLAUDE.md — rails-ai-context development guide
+# CLAUDE.md — rails-ai-bridge development guide
 
 This is a Ruby gem that auto-introspects Rails applications and exposes their
 structure to AI assistants via the Model Context Protocol (MCP).
 
 ## Architecture
 
-- `lib/rails_ai_context.rb` — Main entry point, public API (Zeitwerk autoloaded)
-- `lib/rails_ai_context/configuration.rb` — User-facing config with presets (:standard, :full)
-- `lib/rails_ai_context/introspector.rb` — Orchestrates sub-introspectors
-- `lib/rails_ai_context/introspectors/` — 27 introspectors (schema, models, routes, jobs, gems, conventions, stimulus, database_stats, controllers, views, turbo, i18n, config, active_storage, action_text, auth, api, tests, rake_tasks, assets, devops, action_mailbox, migrations, seeds, middleware, engines, multi_database)
-- `lib/rails_ai_context/tools/` — 9 MCP tools using the official mcp SDK
-- `lib/rails_ai_context/serializers/` — Output formatters (claude, claude_rules, cursor_rules, windsurf, windsurf_rules, copilot, copilot_instructions, rules, markdown, JSON)
-- `lib/rails_ai_context/resources.rb` — MCP resources (static data AI clients read directly)
-- `lib/rails_ai_context/server.rb` — MCP server configuration (stdio + HTTP transports)
-- `lib/rails_ai_context/middleware.rb` — Rack middleware for auto-mounting MCP HTTP endpoint
-- `lib/rails_ai_context/fingerprinter.rb` — SHA256 file fingerprinting for cache invalidation
-- `lib/rails_ai_context/doctor.rb` — Diagnostic checks and AI readiness scoring
-- `lib/rails_ai_context/watcher.rb` — File watcher for auto-regenerating context files
-- `lib/rails_ai_context/engine.rb` — Rails Engine for auto-integration
-- `lib/generators/rails_ai_context/install/` — Install generator (creates .mcp.json, initializer, context files)
+- `lib/rails_ai_bridge.rb` — Main entry point, public API (Zeitwerk autoloaded)
+- `lib/rails_ai_bridge/configuration.rb` — User-facing config with presets (:standard, :full)
+- `lib/rails_ai_bridge/introspector.rb` — Orchestrates sub-introspectors
+- `lib/rails_ai_bridge/introspectors/` — 27 introspectors (schema, models, routes, jobs, gems, conventions, stimulus, database_stats, controllers, views, turbo, i18n, config, active_storage, action_text, auth, api, tests, rake_tasks, assets, devops, action_mailbox, migrations, seeds, middleware, engines, multi_database)
+- `lib/rails_ai_bridge/tools/` — 9 MCP tools using the official mcp SDK
+- `lib/rails_ai_bridge/serializers/` — Output formatters (claude, claude_rules, cursor_rules, windsurf, windsurf_rules, copilot, copilot_instructions, rules, markdown, JSON)
+- `lib/rails_ai_bridge/resources.rb` — MCP resources (static data AI clients read directly)
+- `lib/rails_ai_bridge/server.rb` — MCP server configuration (stdio + HTTP transports)
+- `lib/rails_ai_bridge/middleware.rb` — Rack middleware for auto-mounting MCP HTTP endpoint
+- `lib/rails_ai_bridge/fingerprinter.rb` — SHA256 file fingerprinting for cache invalidation
+- `lib/rails_ai_bridge/doctor.rb` — Diagnostic checks and AI readiness scoring
+- `lib/rails_ai_bridge/watcher.rb` — File watcher for auto-regenerating context files
+- `lib/rails_ai_bridge/engine.rb` — Rails Engine for auto-integration
+- `lib/generators/rails_ai_bridge/install/` — Install generator (creates .mcp.json, initializer, context files)
 
 ## Key Design Decisions
 
@@ -38,7 +38,7 @@ structure to AI assistants via the Model Context Protocol (MCP).
 ## Testing
 
 ```bash
-bundle exec rspec           # Run specs (348 examples)
+bundle exec rspec           # Run specs (364 examples)
 bundle exec rubocop         # Lint
 ```
 

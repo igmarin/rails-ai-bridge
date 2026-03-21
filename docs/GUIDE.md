@@ -1,6 +1,6 @@
-# rails-ai-context — Complete Guide
+# rails-ai-bridge — Complete Guide
 
-> Full documentation for the forked [rails-ai-context](https://github.com/igmarin/rails-ai-context).
+> Full documentation for [rails-ai-bridge](https://github.com/igmarin/rails-ai-bridge).
 > For a quick overview, see the [README](../README.md).
 
 ---
@@ -31,14 +31,14 @@
 ### New project
 
 ```bash
-bundle add rails-ai-context
-rails generate rails_ai_context:install
+bundle add rails-ai-bridge
+rails generate rails_ai_bridge:install
 rails ai:context
 ```
 
 This creates:
-1. `config/initializers/rails_ai_context.rb` — configuration file
-2. `config/rails_ai_context/overrides.md` — stub (omit-merge line); `overrides.md.example` — outline (not merged)
+1. `config/initializers/rails_ai_bridge.rb` — configuration file
+2. `config/rails_ai_bridge/overrides.md` — stub (omit-merge line); `overrides.md.example` — outline (not merged)
 3. `.mcp.json` — MCP auto-discovery for MCP-capable clients
 4. Assistant-specific context files — including `AGENTS.md` for Codex
 
@@ -46,11 +46,11 @@ This creates:
 
 ```bash
 # Add to Gemfile
-gem "rails-ai-context"
+gem "rails-ai-bridge"
 
 # Install
 bundle install
-rails generate rails_ai_context:install
+rails generate rails_ai_bridge:install
 
 # Generate context files
 rails ai:context
@@ -62,8 +62,8 @@ rails ai:doctor
 ### What the install generator does
 
 1. Creates `.mcp.json` in project root (MCP auto-discovery)
-2. Creates `config/initializers/rails_ai_context.rb` with commented defaults
-3. Creates `config/rails_ai_context/overrides.md` (stub) and `overrides.md.example` when absent — remove the omit-merge line from `overrides.md` before real rules are merged
+2. Creates `config/initializers/rails_ai_bridge.rb` with commented defaults
+3. Creates `config/rails_ai_bridge/overrides.md` (stub) and `overrides.md.example` when absent — remove the omit-merge line from `overrides.md` before real rules are merged
 4. Adds `.ai-context.json` to `.gitignore` (JSON cache — markdown files should be committed)
 5. Generates all context files
 
@@ -117,8 +117,8 @@ CONTEXT_MODE=full rails ai:context:copilot
 ### Set mode in configuration
 
 ```ruby
-# config/initializers/rails_ai_context.rb
-RailsAiContext.configure do |config|
+# config/initializers/rails_ai_bridge.rb
+RailsAiBridge.configure do |config|
   config.context_mode = :full  # or :compact (default)
 end
 ```
@@ -176,9 +176,9 @@ end
 
 Commit **all files except `.ai-context.json`** (which is gitignored). This gives your entire team AI-assisted context automatically.
 
-### Repo-specific guidance (`config/rails_ai_context/overrides.md`)
+### Repo-specific guidance (`config/rails_ai_bridge/overrides.md`)
 
-Optional markdown **merged verbatim** into compact `.github/copilot-instructions.md` and `AGENTS.md` under **Repo-specific guidance** when you run `rails ai:context` — **only after** you remove the install stub’s first line: `<!-- rails-ai-context:omit-merge -->`. While that line is the first non-empty line in the file, the gem treats overrides as inactive (no placeholder noise in generated files).
+Optional markdown **merged verbatim** into compact `.github/copilot-instructions.md` and `AGENTS.md` under **Repo-specific guidance** when you run `rails ai:context` — **only after** you remove the install stub’s first line: `<!-- rails-ai-bridge:omit-merge -->`. While that line is the first non-empty line in the file, the gem treats overrides as inactive (no placeholder noise in generated files).
 
 - Use **`overrides.md.example`** as a starting outline (that file is never merged).
 - Override path: `config.assistant_overrides_path` (relative to `Rails.root` or absolute).
@@ -476,7 +476,7 @@ The install generator creates `.mcp.json` in your project root:
 ```json
 {
   "mcpServers": {
-    "rails-ai-context": {
+    "rails-ai-bridge": {
       "command": "bundle",
       "args": ["exec", "rails", "ai:serve"]
     }
@@ -491,7 +491,7 @@ The install generator creates `.mcp.json` in your project root:
 Auto-discovered via `.mcp.json`. Or add manually:
 
 ```bash
-claude mcp add rails-ai-context -- bundle exec rails ai:serve
+claude mcp add rails-ai-bridge -- bundle exec rails ai:serve
 ```
 
 ### Claude Desktop
@@ -501,7 +501,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
 ```json
 {
   "mcpServers": {
-    "rails-ai-context": {
+    "rails-ai-bridge": {
       "command": "bundle",
       "args": ["exec", "rails", "ai:serve"],
       "cwd": "/path/to/your/rails/app"
@@ -517,7 +517,7 @@ Auto-discovered via `.mcp.json`. Or add manually in **Cursor Settings > MCP**:
 ```json
 {
   "mcpServers": {
-    "rails-ai-context": {
+    "rails-ai-bridge": {
       "command": "bundle",
       "args": ["exec", "rails", "ai:serve"],
       "cwd": "/path/to/your/rails/app"
@@ -538,7 +538,7 @@ rails ai:serve_http
 Or auto-mount inside your Rails app (no separate process):
 
 ```ruby
-RailsAiContext.configure do |config|
+RailsAiBridge.configure do |config|
   config.auto_mount = true
   config.http_path  = "/mcp"   # default
   config.http_port  = 6029     # default
@@ -563,8 +563,8 @@ Both transports are **read-only** — they expose the same 9 tools and never mod
 ## Configuration — All Options
 
 ```ruby
-# config/initializers/rails_ai_context.rb
-RailsAiContext.configure do |config|
+# config/initializers/rails_ai_bridge.rb
+RailsAiBridge.configure do |config|
   # --- Introspectors ---
 
   # Presets: :standard (9 core, default) or :full (all 27)
@@ -589,8 +589,8 @@ RailsAiContext.configure do |config|
   # Max response size for tool results (safety net)
   config.max_tool_response_chars = 120_000
 
-  # Optional markdown merged into compact Copilot + Codex (default: config/rails_ai_context/overrides.md)
-  # config.assistant_overrides_path = "config/rails_ai_context/overrides.md"
+  # Optional markdown merged into compact Copilot + Codex (default: config/rails_ai_bridge/overrides.md)
+  # config.assistant_overrides_path = "config/rails_ai_bridge/overrides.md"
 
   # Model names shown in compact copilot-instructions / AGENTS / .cursorrules (0 = MCP pointer only)
   # config.copilot_compact_model_list_limit = 5
@@ -634,8 +634,8 @@ end
 | `http_path` | String | `"/mcp"` | HTTP endpoint path |
 | `http_bind` | String | `"127.0.0.1"` | HTTP bind address |
 | `http_port` | Integer | `6029` | HTTP server port |
-| `server_name` | String | `"rails-ai-context"` | MCP server name |
-| `assistant_overrides_path` | String | `nil` → `config/rails_ai_context/overrides.md` | Markdown merged into compact Copilot + Codex |
+| `server_name` | String | `"rails-ai-bridge"` | MCP server name |
+| `assistant_overrides_path` | String | `nil` → `config/rails_ai_bridge/overrides.md` | Markdown merged into compact Copilot + Codex |
 | `copilot_compact_model_list_limit` | Integer | `5` | Max model rows in copilot-instructions / `.cursorrules` (`0` = none) |
 | `codex_compact_model_list_limit` | Integer | `3` | Max model rows in `AGENTS.md` (`0` = none) |
 

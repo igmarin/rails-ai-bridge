@@ -1,11 +1,11 @@
-# Internal Review Summary: `rails-ai-context` Fork
+# Internal Review Summary: `rails-ai-bridge` Fork
 
-Reviewed repository: `igmarin/rails-ai-context`  
+Reviewed repository: `igmarin/rails-ai-bridge`  
 Review date: **2026-03-18**
 
 ## 1. What this gem does
 
-`rails-ai-context` is a Rails engine/gem that introspects a host Rails application and exposes that structure to AI coding tools.
+`rails-ai-bridge` is a Rails engine/gem that introspects a host Rails application and exposes that structure to AI coding tools.
 
 It does this in two ways:
 

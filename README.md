@@ -1,57 +1,92 @@
-# rails-ai-context
+# rails-ai-bridge
 
-**Turn any Rails app into an AI-ready codebase — one gem install.**
+> **The fastest way to give AI assistants deep, live knowledge of your Rails app.**
 
-[![Gem Version](https://badge.fury.io/rb/rails-ai-context.svg)](https://rubygems.org/gems/rails-ai-context)
-[![CI](https://github.com/igmarin/rails-ai-context/actions/workflows/ci.yml/badge.svg)](https://github.com/igmarin/rails-ai-context/actions)
+**One command. Zero config. ~95% fewer tokens** (vs. dumping full schema/context into the prompt — see [Token savings](#token-savings) for the documented scenario).
+
+[![Gem Version](https://badge.fury.io/rb/rails-ai-bridge.svg)](https://rubygems.org/gems/rails-ai-bridge)
+[![CI](https://github.com/igmarin/rails-ai-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/igmarin/rails-ai-bridge/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
 
-## Why?
+## The problem
 
-This repository is a fork of the original `crisnahine/rails-ai-context`, maintained by Ismael Marin to add Codex support and fork-specific hardening while preserving the gem's Rails MCP workflow.
+You open Claude Code, Cursor, or Codex and ask it to add a feature. It generates code that ignores your schema, your Devise setup, your existing enums, and the conventions already in your app.
 
-You open Claude Code, Cursor, Copilot, or Codex and ask: *"Add a draft status to posts with a scheduled publish date."*
+**rails-ai-bridge fixes this permanently** by introspecting your Rails app and exposing that structure through compact, assistant-specific files plus a **live MCP server** with read-only `rails_*` tools ([Model Context Protocol](https://modelcontextprotocol.io)).
 
-The AI doesn't know your schema, your Devise setup, your Sidekiq jobs, or that `Post` already has an `enum :status`. It generates generic code that doesn't match your app.
-
-**rails-ai-context fixes this.** It auto-introspects your entire Rails app and feeds everything to your AI assistant — schema, models, routes, controllers, jobs, gems, auth, API, tests, config, and conventions — through the [Model Context Protocol (MCP)](https://modelcontextprotocol.io).
-
-**No configuration. No manual tool definitions.** Install this fork from GitHub (see Quick Start), then run the generator.
-
-> **[Full Guide](docs/GUIDE.md)** — complete documentation with every command, parameter, and configuration option.
+> **[Full Guide](docs/GUIDE.md)** — every command, option, and MCP parameter.
 
 ---
 
-## Quick Start
+## How it works
 
-This fork is installed from GitHub (the `rails-ai-context` gem on RubyGems still points at the upstream release line).
+```mermaid
+flowchart LR
+  app[Rails_app]
+  intro[Introspectors]
+  mcp[MCP_server]
+  clients[AI_clients]
+  app --> intro --> mcp --> clients
+```
+
+1. **Up to 27 introspectors** scan schema, models, routes, controllers, jobs, gems, conventions, and more (preset `:standard` runs 9 core ones by default; `:full` runs all).
+2. **`rails ai:context`** writes bounded context files for Claude, Cursor, Copilot, Codex, Windsurf, and JSON.
+3. **`rails ai:serve`** exposes **9 MCP tools** so assistants pull detail on demand (`detail: "summary"` first, then drill down).
+
+---
+
+## Quick start
+
+**From RubyGems** (once published):
 
 ```bash
-bundle add rails-ai-context --github=igmarin/rails-ai-context
-rails generate rails_ai_context:install
+bundle add rails-ai-bridge
+rails generate rails_ai_bridge:install
 rails ai:context
 ```
 
-Alternatively, add to your `Gemfile`:
+**From GitHub** (before or alongside RubyGems):
 
-```ruby
-gem "rails-ai-context", github: "igmarin/rails-ai-context"
+```bash
+bundle add rails-ai-bridge --github=igmarin/rails-ai-bridge
+rails generate rails_ai_bridge:install
+rails ai:context
 ```
 
-Then run `bundle install`, the generator, and `rails ai:context` as above.
+Or add to your `Gemfile`:
 
-That's it. Your AI assistant now understands your entire Rails app.
+```ruby
+gem "rails-ai-bridge", github: "igmarin/rails-ai-bridge"
+```
 
-The install generator creates `.mcp.json` for MCP-capable clients, and `rails ai:context` now generates `AGENTS.md` for Codex-aware workflows.
+Then `bundle install`, run the generator, and `rails ai:context` as above.
+
+Optional: `gem install rails-ai-bridge` installs the gem into your Ruby environment; you still add it to the app’s `Gemfile` for a Rails project.
+
+The install generator creates **`.mcp.json`** (MCP auto-discovery) and generates **`AGENTS.md`** (and other assistant files) when you run `rails ai:context`.
 
 ### Verify the integration in *your* Rails app
 
 1. **`bundle install` must finish cleanly** — until it does, `bundle exec rails -T` and `rails ai:serve` (from `.mcp.json`) cannot be verified. Merging this gem to `main` does not fix a broken or incomplete bundle on the host app.
 2. **Regenerate in one shot** — run `rails ai:context` (not only a single format) so route/controller summaries stay consistent across `CLAUDE.md`, `.cursor/rules/`, and `.github/instructions/`.
-3. **Keep team-specific rules** — generated files are snapshots. Use **`config/rails_ai_context/overrides.md`** for org-specific constraints (merged only after you **delete the first-line** `<!-- rails-ai-context:omit-merge -->` stub). Until then, the gem does not inject placeholder text into Copilot/Codex. See **`overrides.md.example`** for an outline. Alternatively re-merge into generated files after each `rails ai:context` (see `.codex/README.md`).
-4. **Tune list sizes** — `RailsAiContext.configure { |c| c.copilot_compact_model_list_limit = 5 }` (and `codex_compact_model_list_limit`); set `0` to list no model names and point only to MCP.
+3. **Keep team-specific rules** — generated files are snapshots. Use **`config/rails_ai_bridge/overrides.md`** for org-specific constraints (merged only after you **delete the first-line** `<!-- rails-ai-bridge:omit-merge -->` stub). Until then, the gem does not inject placeholder text into Copilot/Codex. See **`overrides.md.example`** for an outline. Alternatively re-merge into generated files after each `rails ai:context` (see `.codex/README.md`).
+4. **Tune list sizes** — `RailsAiBridge.configure { |c| c.copilot_compact_model_list_limit = 5 }` (and `codex_compact_model_list_limit`); set `0` to list no model names and point only to MCP.
+
+---
+
+## Why rails-ai-bridge over alternatives?
+
+| | **rails-ai-bridge** | **[rails-mcp-server](https://github.com/maquina-app/rails-mcp-server)** | **Manual context** |
+| --- | --- | --- | --- |
+| Zero config | Yes — Railtie + install generator | No — per-project `projects.yml` | No |
+| Token optimization | Yes — compact files + `detail:"summary"` workflow ([metrics](#token-savings)) | Varies | No |
+| Codex-oriented repo files | Yes — `AGENTS.md`, `.codex/README.md` | No | DIY |
+| Live MCP tools | Yes — 9 read-only `rails_*` tools | Yes | No |
+| Auto-introspection | Yes — up to **27** domains (`:full`) | No — server points at projects you configure | DIY |
+
+*Comparison reflects typical documented setups; verify against each project before treating any row as absolute.*
 
 ---
 
@@ -176,7 +211,7 @@ rails_get_model_details(model: "User")
 
 A safety net (`max_tool_response_chars`, default 120K) truncates oversized responses with hints to use filters.
 
-### Token Savings
+### Token savings
 
 The summary-first approach dramatically reduces AI token consumption — especially for large apps:
 
@@ -202,7 +237,7 @@ That's **~95% fewer tokens** for the same understanding. The AI gets a compact o
 
 The install generator creates `.mcp.json` for MCP-capable clients. Claude Code and Cursor can auto-detect it, while Codex can use the generated `AGENTS.md` plus your local Codex configuration.
 
-This fork keeps [`server.json`](server.json) aligned to the fork repository metadata. It intentionally does **not** advertise a packaged registry asset until a fork-specific release artifact exists.
+This project keeps [`server.json`](server.json) aligned with GitHub metadata for MCP registry packaging when you choose to publish a release artifact.
 
 To start manually: `rails ai:serve`
 
@@ -214,7 +249,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
 ```json
 {
   "mcpServers": {
-    "rails-ai-context": {
+    "rails-ai-bridge": {
       "command": "bundle",
       "args": ["exec", "rails", "ai:serve"],
       "cwd": "/path/to/your/rails/app"
@@ -234,7 +269,7 @@ rails ai:serve_http  # Starts at http://127.0.0.1:6029/mcp
 Or auto-mount inside your Rails app:
 
 ```ruby
-RailsAiContext.configure do |config|
+RailsAiBridge.configure do |config|
   config.auto_mount = true
   config.http_path  = "/mcp"
 end
@@ -247,7 +282,7 @@ Security note: keep the HTTP transport bound to `127.0.0.1` unless you add your 
 
 ## Codex Setup
 
-Codex support in this fork is centered on **`AGENTS.md`** at the repository root.
+Codex support is centered on **`AGENTS.md`** at the repository root.
 
 - Run `rails ai:context:codex` to regenerate `AGENTS.md` and `.codex/README.md`.
 - Keep `AGENTS.md` committed so Codex sees project-specific instructions.
@@ -259,8 +294,8 @@ Codex support in this fork is centered on **`AGENTS.md`** at the repository root
 ## Configuration
 
 ```ruby
-# config/initializers/rails_ai_context.rb
-RailsAiContext.configure do |config|
+# config/initializers/rails_ai_bridge.rb
+RailsAiBridge.configure do |config|
   # Presets: :standard (9 introspectors, default) or :full (all 27)
   config.preset = :standard
 
@@ -360,7 +395,7 @@ The gem parses `db/schema.rb` as text when no database is connected. Works in CI
 
 ## vs. Other Ruby MCP Projects
 
-| Project | Approach | rails-ai-context |
+| Project | Approach | rails-ai-bridge |
 |---------|----------|-----------------|
 | [Official Ruby SDK](https://github.com/modelcontextprotocol/ruby-sdk) | Low-level protocol library | We **use** this as our foundation |
 | [fast-mcp](https://github.com/yjacquin/fast-mcp) | Generic MCP framework | We're a **product** — zero-config Rails introspection |
@@ -371,13 +406,24 @@ The gem parses `db/schema.rb` as text when no database is connected. Works in CI
 ## Contributing
 
 ```bash
-git clone https://github.com/igmarin/rails-ai-context.git
-cd rails-ai-context && bundle install
-bundle exec rspec       # 350 examples
+git clone https://github.com/igmarin/rails-ai-bridge.git
+cd rails-ai-bridge && bundle install
+bundle exec rspec       # 364 examples
 bundle exec rubocop     # Lint
 ```
 
-Bug reports and pull requests for this fork are handled at [github.com/igmarin/rails-ai-context](https://github.com/igmarin/rails-ai-context).
+Bug reports and pull requests for this fork are handled at [github.com/igmarin/rails-ai-bridge](https://github.com/igmarin/rails-ai-bridge).
+
+## Acknowledgments & Origins
+
+This gem ships as **rails-ai-bridge** (Ruby **`RailsAiBridge`**, version **1.0.0**). Earlier iterations of the same codebase were distributed as `rails-ai-context`.
+
+RailsMCP evolved from 
+[crisnahine/rails-ai-context](https://github.com/crisnahine/rails-ai-context),
+an excellent foundation for Rails MCP integration.
+This project extends that work with Codex support,
+smart token optimization, and a different long-term direction.
+All original commits and contributors are preserved in the git history.
 
 ## License
 
