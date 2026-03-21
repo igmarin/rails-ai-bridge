@@ -21,6 +21,13 @@ module RailsAiBridge
     # Whether to auto-mount the MCP HTTP endpoint
     attr_accessor :auto_mount
 
+    # Allow +auto_mount+ in production (default: false). Requires a non-empty MCP token.
+    attr_accessor :allow_auto_mount_in_production
+
+    # Bearer token for HTTP MCP (+Authorization: Bearer+). Ignored when blank (no auth).
+    # +ENV["RAILS_AI_BRIDGE_MCP_TOKEN"]+ overrides this when set.
+    attr_accessor :http_mcp_token
+
     # HTTP transport settings
     attr_accessor :http_path, :http_bind, :http_port
 
@@ -53,12 +60,20 @@ module RailsAiBridge
     # Max model names in compact AGENTS.md (0 = MCP pointer only)
     attr_accessor :codex_compact_model_list_limit
 
+    # Extra file extensions allowed for +rails_search_code+ (+file_type+), merged with the gem default allowlist
+    attr_accessor :search_code_allowed_file_types
+
+    # When true, +credentials_keys+ appears in config introspection / +rails://config+ resource
+    attr_accessor :expose_credentials_key_names
+
     def initialize
       @server_name         = "rails-ai-bridge"
       @server_version      = RailsAiBridge::VERSION
       @introspectors       = PRESETS[:standard].dup
       @excluded_paths      = %w[node_modules tmp log vendor .git]
       @auto_mount          = false
+      @allow_auto_mount_in_production = false
+      @http_mcp_token      = nil
       @http_path           = "/mcp"
       @http_bind           = "127.0.0.1"
       @http_port           = 6029
@@ -76,6 +91,8 @@ module RailsAiBridge
       @assistant_overrides_path = nil
       @copilot_compact_model_list_limit = 5
       @codex_compact_model_list_limit   = 3
+      @search_code_allowed_file_types   = []
+      @expose_credentials_key_names     = false
     end
 
     def preset=(name)

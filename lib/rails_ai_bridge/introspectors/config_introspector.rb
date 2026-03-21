@@ -12,15 +12,18 @@ module RailsAiBridge
       end
 
       def call
-        {
+        result = {
           cache_store: detect_cache_store,
           session_store: detect_session_store,
           timezone: app.config.time_zone.to_s,
           middleware_stack: extract_middleware,
           initializers: extract_initializers,
-          credentials_keys: extract_credentials_keys,
           current_attributes: detect_current_attributes
         }
+        if RailsAiBridge.configuration.expose_credentials_key_names
+          result[:credentials_keys] = extract_credentials_keys
+        end
+        result
       rescue => e
         { error: e.message }
       end

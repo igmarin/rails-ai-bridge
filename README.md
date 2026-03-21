@@ -271,11 +271,16 @@ Or auto-mount inside your Rails app:
 ```ruby
 RailsAiBridge.configure do |config|
   config.auto_mount = true
+  config.http_mcp_token = "generate-a-long-random-secret" # or ENV["RAILS_AI_BRIDGE_MCP_TOKEN"]
+  # Production only: explicit opt-in + token required (see SECURITY.md)
+  # config.allow_auto_mount_in_production = true
   config.http_path  = "/mcp"
 end
 ```
 
-Security note: keep the HTTP transport bound to `127.0.0.1` unless you add your own network and authentication controls. The tools are read-only, but they can still expose sensitive application structure.
+Clients must send `Authorization: Bearer <token>` when a token is configured.
+
+Security note: keep the HTTP transport bound to `127.0.0.1` unless you add your own network and authentication controls. The tools are read-only, but they can still expose sensitive application structure. In **production**, `rails ai:serve_http` and `auto_mount` require a configured MCP token; `auto_mount` also requires `allow_auto_mount_in_production = true`.
 </details>
 
 ---
@@ -329,6 +334,10 @@ end
 | `excluded_models` | internal Rails models | Models to skip during introspection |
 | `excluded_paths` | `node_modules tmp log vendor .git` | Paths excluded from code search |
 | `auto_mount` | `false` | Auto-mount HTTP MCP endpoint |
+| `allow_auto_mount_in_production` | `false` | Allow `auto_mount` in production (requires MCP token) |
+| `http_mcp_token` | `nil` | Bearer token for HTTP MCP; `ENV["RAILS_AI_BRIDGE_MCP_TOKEN"]` overrides when set |
+| `search_code_allowed_file_types` | `[]` | Extra extensions allowed for `rails_search_code` `file_type` |
+| `expose_credentials_key_names` | `false` | Include `credentials_keys` in config introspection / `rails://config` |
 | `http_path` | `"/mcp"` | HTTP endpoint path |
 | `http_port` | `6029` | HTTP server port |
 | `cache_ttl` | `30` | Cache TTL in seconds |
@@ -416,7 +425,7 @@ Bug reports and pull requests for this fork are handled at [github.com/igmarin/r
 
 ## Acknowledgments & Origins
 
-This gem ships as **rails-ai-bridge** (Ruby **`RailsAiBridge`**, version **1.0.0**). Earlier iterations of the same codebase were distributed as `rails-ai-context`.
+This gem ships as **rails-ai-bridge** (Ruby **`RailsAiBridge`**, version **1.1.0**). Earlier iterations of the same codebase were distributed as `rails-ai-context`.
 
 RailsMCP evolved from 
 [crisnahine/rails-ai-context](https://github.com/crisnahine/rails-ai-context),

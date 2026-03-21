@@ -4,14 +4,42 @@ require "spec_helper"
 
 RSpec.describe RailsAiBridge::Tools::SearchCode do
   describe ".call" do
+    around do |example|
+      saved = RailsAiBridge.configuration.search_code_allowed_file_types.dup
+      example.run
+    ensure
+      RailsAiBridge.configuration.search_code_allowed_file_types = saved
+    end
+
     it "rejects invalid file_type with special characters" do
       result = described_class.call(pattern: "test", file_type: "rb;rm -rf /")
       text = result.content.first[:text]
       expect(text).to include("Invalid file_type")
     end
 
-    it "accepts valid alphanumeric file_type" do
+    it "rejects file_type not on the allowlist (e.g. secrets-friendly extensions)" do
+      %w[key pem env p12].each do |ext|
+        result = described_class.call(pattern: "test", file_type: ext)
+        text = result.content.first[:text]
+        expect(text).to include("Invalid file_type"), "expected #{ext} to be rejected"
+      end
+    end
+
+    it "rejects alphanumeric file_type that is not allowed (e.g. txt)" do
+      result = described_class.call(pattern: "test", file_type: "txt")
+      text = result.content.first[:text]
+      expect(text).to include("Invalid file_type")
+    end
+
+    it "accepts allowlisted file_type" do
       result = described_class.call(pattern: "class", file_type: "rb")
+      text = result.content.first[:text]
+      expect(text).not_to include("Invalid file_type")
+    end
+
+    it "accepts file_type added via config.search_code_allowed_file_types" do
+      RailsAiBridge.configuration.search_code_allowed_file_types = %w[md]
+      result = described_class.call(pattern: "heading", file_type: "md")
       text = result.content.first[:text]
       expect(text).not_to include("Invalid file_type")
     end

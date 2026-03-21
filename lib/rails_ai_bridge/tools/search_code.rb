@@ -10,6 +10,10 @@ module RailsAiBridge
 
       MAX_RESULTS_CAP = 100
 
+      # Default extensions for +file_type+ and for unrestricted search (no +file_type+).
+      # Extend with +config.search_code_allowed_file_types+.
+      DEFAULT_ALLOWED_FILE_TYPES = %w[rb erb js ts jsx tsx yml yaml json].freeze
+
       input_schema(
         properties: {
           pattern: {
@@ -22,7 +26,7 @@ module RailsAiBridge
           },
           file_type: {
             type: "string",
-            description: "Filter by file extension (e.g. 'rb', 'js', 'erb'). Default: all files."
+            description: "Filter by allowed file extension (e.g. 'rb', 'js', 'erb'). Default: allowlisted source types only. Extra types: config.search_code_allowed_file_types."
           },
           max_results: {
             type: "integer",
@@ -37,10 +41,10 @@ module RailsAiBridge
       def self.call(pattern:, path: nil, file_type: nil, max_results: 30, server_context: nil)
         root = Rails.root.to_s
 
-        # Validate file_type to prevent injection
-        if file_type && !file_type.match?(/\A[a-zA-Z0-9]+\z/)
-          return text_response("Invalid file_type: must contain only alphanumeric characters.")
-        end
+        normalized_type = normalize_and_validate_file_type(file_type)
+        return normalized_type if normalized_type.is_a?(MCP::Tool::Response)
+
+        file_type = normalized_type
 
         # Cap max_results
         max_results = [ max_results.to_i, MAX_RESULTS_CAP ].min
@@ -80,6 +84,36 @@ module RailsAiBridge
         text_response("#{header}#{output}#{footer}")
       end
 
+      private_class_method def self.allowed_search_file_types
+        extras = RailsAiBridge.configuration.search_code_allowed_file_types.map do |x|
+          x.to_s.downcase.strip.delete_prefix(".").gsub(/[^a-z0-9]/, "")
+        end.reject(&:empty?)
+
+        (DEFAULT_ALLOWED_FILE_TYPES + extras).uniq
+      end
+
+      private_class_method def self.normalize_and_validate_file_type(file_type)
+        return nil if file_type.nil? || file_type.to_s.strip.empty?
+
+        normalized = file_type.to_s.downcase.strip.delete_prefix(".")
+        unless normalized.match?(/\A[a-z0-9]+\z/)
+          return text_response("Invalid file_type: use only a single safe extension (letters and digits).")
+        end
+
+        unless allowed_search_file_types.include?(normalized)
+          allowed = allowed_search_file_types.sort.join(", ")
+          return text_response("Invalid file_type: #{file_type.inspect} is not allowed. Allowed: #{allowed}")
+        end
+
+        normalized
+      end
+
+      private_class_method def self.append_ripgrep_secret_excludes(cmd)
+        %w[key pem p12 pfx crt].each { |ext| cmd << "--glob" << "!*.#{ext}" }
+        cmd << "--glob" << "!.env"
+        cmd << "--glob" << "!.env.*"
+      end
+
       private_class_method def self.ripgrep_available?
         @rg_available ||= system("which rg > /dev/null 2>&1")
       end
@@ -91,8 +125,14 @@ module RailsAiBridge
           cmd << "--glob=!#{p}"
         end
 
+        append_ripgrep_secret_excludes(cmd)
+
         if file_type
           cmd.push("--type-add", "custom:*.#{file_type}", "--type", "custom")
+        else
+          allowed_search_file_types.each do |ext|
+            cmd << "--glob" << "*.#{ext}"
+          end
         end
 
         cmd << pattern
@@ -104,15 +144,33 @@ module RailsAiBridge
         [ { file: "error", line_number: 0, content: e.message } ]
       end
 
+      private_class_method def self.ruby_glob_for(search_path, file_type)
+        if file_type
+          File.join(search_path, "**", "*.#{file_type}")
+        else
+          exts = allowed_search_file_types.uniq.join(",")
+          File.join(search_path, "**", "*.{#{exts}}")
+        end
+      end
+
+      private_class_method def self.skip_secret_file?(relative, basename)
+        bn = basename.to_s
+        return true if bn.match?(/\A\.env/i)
+        return true if bn.end_with?(".key", ".pem", ".p12", ".pfx", ".crt")
+
+        false
+      end
+
       private_class_method def self.search_with_ruby(pattern, search_path, file_type, max_results, root)
         results = []
         regex = Regexp.new(pattern, Regexp::IGNORECASE)
-        glob = file_type ? "**/*.#{file_type}" : "**/*.{rb,js,erb,yml,yaml,json}"
+        glob = ruby_glob_for(search_path, file_type)
         excluded = RailsAiBridge.configuration.excluded_paths
 
-        Dir.glob(File.join(search_path, glob)).each do |file|
+        Dir.glob(glob).each do |file|
           relative = file.sub("#{root}/", "")
           next if excluded.any? { |ex| relative.start_with?(ex) }
+          next if skip_secret_file?(relative, File.basename(file))
 
           File.readlines(file).each_with_index do |line, idx|
             if line.match?(regex)

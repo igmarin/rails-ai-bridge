@@ -26,9 +26,21 @@ This fork is maintained by **Ismael Marin**. If you discover a security vulnerab
 - All MCP tools are **read-only** and never modify your application or database.
 - Code search (`rails_search_code`) uses `Open3.capture2` with array arguments to prevent shell injection.
 - File paths are validated against path traversal attacks, and invalid regex input now returns a controlled tool response in the Ruby fallback path.
-- Credentials and secret values are **never** exposed — only key names are introspected.
+- Search is limited to an **allowlisted set of file extensions** by default; arbitrary extensions (e.g. `key`, `pem`, `env`) are rejected. See `config.search_code_allowed_file_types` to extend the list.
+- Credential **values** are never exposed. Top-level **key names** from encrypted credentials are omitted from introspection and the `rails://config` resource by default; set `config.expose_credentials_key_names = true` only if you accept that metadata exposure.
 - The gem does not make any outbound network requests.
 - The main risk is **information exposure**, not mutation: schema names, routes, controller structure, and code excerpts may still be sensitive in some environments.
+
+## HTTP MCP authentication
+
+- Set `config.http_mcp_token` and/or `ENV["RAILS_AI_BRIDGE_MCP_TOKEN"]` (**ENV overrides** the config value when set).
+- When a token is configured, clients must send `Authorization: Bearer <token>` to the HTTP MCP endpoint (`auto_mount` or `rails ai:serve_http`).
+- When no token is configured, HTTP MCP is **unauthenticated** (backward compatible for local use); **set a token** before exposing the port beyond localhost.
+
+## Production
+
+- `config.auto_mount = true` in **production** raises at boot unless **both** `config.allow_auto_mount_in_production = true` and a non-empty MCP token are set.
+- `rails ai:serve_http` in **production** requires a non-empty MCP token (config or ENV).
 
 ## Operational Security Guidance
 

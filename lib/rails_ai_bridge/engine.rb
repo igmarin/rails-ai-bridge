@@ -10,6 +10,8 @@ module RailsAiBridge
 
     # Auto-mount MCP HTTP middleware when configured
     initializer "rails_ai_bridge.middleware" do |app|
+      RailsAiBridge.validate_auto_mount_configuration!
+
       if RailsAiBridge.configuration.auto_mount
         require_relative "middleware"
         app.middleware.use RailsAiBridge::Middleware
