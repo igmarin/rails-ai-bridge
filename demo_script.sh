@@ -42,7 +42,7 @@ printf '  \033[1;32mAI Readiness Score: 92/100\033[0m\n'
 echo ''
 sleep 1
 
-printf '\033[1;36m$\033[0m rails ai:context\n'
+printf '\033[1;36m$\033[0m rails ai:bridge\n'
 echo ''
 sleep 0.2
 echo '  ✅ CLAUDE.md'

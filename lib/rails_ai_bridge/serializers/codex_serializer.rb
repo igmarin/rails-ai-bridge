@@ -142,7 +142,7 @@ module RailsAiBridge
       def footer
         <<~MD
           ---
-          _Auto-generated. Run `rails ai:context:codex` to regenerate._
+          _Auto-generated. Run `rails ai:bridge:codex` to regenerate._
         MD
       end
     end

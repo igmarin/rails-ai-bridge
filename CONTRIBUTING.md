@@ -81,7 +81,7 @@ Pre-flight checklist:
 1. **Name availability** — Confirm `rails-ai-bridge` is available (or owned by you) on [RubyGems](https://rubygems.org/gems/rails-ai-bridge).
 2. **Version** — `lib/rails_ai_bridge/version.rb` must match the Git tag (release workflow expects `v#{VERSION}`).
 3. **Changelog** — Add a `## [x.y.z]` section in `CHANGELOG.md` (release notes are extracted from it in CI).
-4. **Build locally** — `gem build rails-ai-bridge.gemspec` and smoke-test in a dummy Rails app (`rails generate rails_ai_bridge:install`, `rails ai:context`, `rails ai:serve`).
+4. **Build locally** — `gem build rails-ai-bridge.gemspec` and smoke-test in a dummy Rails app (`rails generate rails_ai_bridge:install`, `rails ai:bridge`, `rails ai:serve`).
 5. **MFA** — RubyGems account must have MFA; `spec.metadata["rubygems_mfa_required"]` is already `"true"`.
 6. **Trusted publishing** — Prefer [OIDC trusted publishing](https://guides.rubygems.org/trusted-publishing/) with the existing `rubygems/release-gem@v1` workflow; configure the gem owner on RubyGems to trust this repository/workflow.
 7. **Secrets** — Avoid API keys in the repo; rely on trusted publishing or short-lived CI secrets.

@@ -7,7 +7,7 @@ module RailsAiBridge
     class InstallGenerator < Rails::Generators::Base
       source_root File.expand_path("templates", __dir__)
 
-      desc "Install rails-ai-bridge: creates initializer, MCP config, and generates initial context files."
+      desc "Install rails-ai-bridge: creates initializer, MCP config, and generates initial bridge files."
 
       def create_mcp_config
         create_file ".mcp.json", JSON.pretty_generate({
@@ -114,7 +114,7 @@ module RailsAiBridge
 
       def generate_context_files
         say ""
-        say "Generating AI context files...", :yellow
+        say "Generating AI bridge files...", :yellow
 
         if Rails.application
           require "rails_ai_bridge"
@@ -122,7 +122,7 @@ module RailsAiBridge
           files = RailsAiBridge.generate_context(format: :all)
           files.each { |f| say "  Created #{f}", :green }
         else
-          say "  Skipped (Rails app not fully loaded). Run `rails ai:context` after install.", :yellow
+          say "  Skipped (Rails app not fully loaded). Run `rails ai:bridge` after install.", :yellow
         end
       end
 
@@ -133,10 +133,10 @@ module RailsAiBridge
         say "=" * 50, :cyan
         say ""
         say "Quick start:", :yellow
-        say "  rails ai:context         # Generate all context files"
-        say "  rails ai:context:claude   # Generate CLAUDE.md only"
-        say "  rails ai:context:codex    # Generate AGENTS.md only"
-        say "  rails ai:context:cursor   # Generate .cursorrules only"
+        say "  rails ai:bridge         # Generate all bridge files"
+        say "  rails ai:bridge:claude   # Generate CLAUDE.md only"
+        say "  rails ai:bridge:codex    # Generate AGENTS.md only"
+        say "  rails ai:bridge:cursor   # Generate .cursorrules only"
         say "  rails ai:serve           # Start MCP server (stdio)"
         say "  rails ai:inspect         # Print introspection summary"
         say ""
@@ -151,15 +151,15 @@ module RailsAiBridge
         say "  .mcp.json is auto-detected by Claude Code and Cursor."
         say "  No manual MCP config needed — just open your project."
         say ""
-        say "Context modes:", :yellow
-        say "  rails ai:context         # compact mode (default, smart for any app size)"
-        say "  rails ai:context:full    # full dump (good for small apps)"
+        say "Bridge modes:", :yellow
+        say "  rails ai:bridge         # compact mode (default, smart for any app size)"
+        say "  rails ai:bridge:full    # full dump (good for small apps)"
         say ""
         say "Repo-specific Copilot/Codex rules:", :yellow
         say "  Edit config/rails_ai_bridge/overrides.md — remove the first-line omit-merge comment to enable merge."
         say "  See overrides.md.example for a suggested outline."
         say ""
-        say "Commit context files and .mcp.json so your team benefits!", :green
+        say "Commit bridge files and .mcp.json so your team benefits!", :green
       end
     end
   end

@@ -32,8 +32,8 @@ Gem::Specification.new do |spec|
   spec.post_install_message = <<~MSG
     rails-ai-bridge installed! Quick start:
       rails generate rails_ai_bridge:install
-      rails ai:context         # generate context files (compact mode)
-      rails ai:context:full    # full dump (good for small apps)
+      rails ai:bridge          # generate bridge files (compact mode)
+      rails ai:bridge:full     # full dump (good for small apps)
       rails ai:serve           # start MCP server for Claude Code / Cursor
   MSG
 

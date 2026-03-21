@@ -119,7 +119,7 @@ This fork now adds initial Codex support through:
 
 - `AGENTS.md` generation
 - `.codex/README.md` helper output
-- `rails ai:context:codex`
+- `rails ai:bridge:codex`
 
 ### Why this design makes sense
 

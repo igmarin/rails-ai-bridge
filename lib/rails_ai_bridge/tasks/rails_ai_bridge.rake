@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
 ASSISTANT_TABLE = <<~TABLE
-  AI Assistant       Context File                          Command
+  AI Assistant       Bridge File                           Command
   --                 --                                    --
-  Claude Code        CLAUDE.md + .claude/rules/            rails ai:context:claude
-  OpenAI Codex       AGENTS.md + .codex/README.md          rails ai:context:codex
-  Cursor             .cursorrules + .cursor/rules/         rails ai:context:cursor
-  Windsurf           .windsurfrules + .windsurf/rules/     rails ai:context:windsurf
-  GitHub Copilot     .github/copilot-instructions.md       rails ai:context:copilot
-  JSON (generic)     .ai-context.json                      rails ai:context:json
+  Claude Code        CLAUDE.md + .claude/rules/            rails ai:bridge:claude
+  OpenAI Codex       AGENTS.md + .codex/README.md          rails ai:bridge:codex
+  Cursor             .cursorrules + .cursor/rules/         rails ai:bridge:cursor
+  Windsurf           .windsurfrules + .windsurf/rules/     rails ai:bridge:windsurf
+  GitHub Copilot     .github/copilot-instructions.md       rails ai:bridge:copilot
+  JSON (generic)     .ai-context.json                      rails ai:bridge:json
 TABLE
 
 def print_result(result)
@@ -25,15 +25,15 @@ def apply_context_mode_override
 end
 
 namespace :ai do
-  desc "Generate AI context files (CLAUDE.md, .cursorrules, .windsurfrules, .github/copilot-instructions.md)"
-  task context: :environment do
+  desc "Generate AI bridge files (CLAUDE.md, .cursorrules, .windsurfrules, .github/copilot-instructions.md)"
+  task bridge: :environment do
     require "rails_ai_bridge"
 
     apply_context_mode_override
 
     puts "🔍 Introspecting #{Rails.application.class.module_parent_name}..."
 
-    puts "📝 Writing context files..."
+    puts "📝 Writing bridge files..."
     result = RailsAiBridge.generate_context(format: :all)
 
     print_result(result)
@@ -44,8 +44,8 @@ namespace :ai do
     puts ASSISTANT_TABLE
   end
 
-  desc "Generate AI context in a specific format (claude, codex, cursor, windsurf, copilot, json)"
-  task :context_for, [ :format ] => :environment do |_t, args|
+  desc "Generate AI bridge output in a specific format (claude, codex, cursor, windsurf, copilot, json)"
+  task :bridge_for, [ :format ] => :environment do |_t, args|
     require "rails_ai_bridge"
 
     apply_context_mode_override
@@ -53,16 +53,16 @@ namespace :ai do
     format = (args[:format] || ENV["FORMAT"] || "claude").to_sym
     puts "🔍 Introspecting #{Rails.application.class.module_parent_name}..."
 
-    puts "📝 Writing #{format} context file..."
+    puts "📝 Writing #{format} bridge file..."
     result = RailsAiBridge.generate_context(format: format)
 
     print_result(result)
   end
 
-  namespace :context do
+  namespace :bridge do
     { claude: "CLAUDE.md", codex: "AGENTS.md", cursor: ".cursorrules", windsurf: ".windsurfrules",
       copilot: ".github/copilot-instructions.md", json: ".ai-context.json" }.each do |fmt, file|
-      desc "Generate #{file} context file"
+      desc "Generate #{file} bridge file"
       task fmt => :environment do
         require "rails_ai_bridge"
 
@@ -74,22 +74,22 @@ namespace :ai do
 
         print_result(result)
         puts ""
-        puts "Tip: Run `rails ai:context` to generate all formats at once."
+        puts "Tip: Run `rails ai:bridge` to generate all formats at once."
       end
     end
 
-    desc "Generate AI context files in full mode (dumps everything)"
+    desc "Generate AI bridge files in full mode (dumps everything)"
     task full: :environment do
       require "rails_ai_bridge"
 
       RailsAiBridge.configuration.context_mode = :full
       puts "🔍 Introspecting #{Rails.application.class.module_parent_name} (full mode)..."
-      puts "📝 Writing context files..."
+      puts "📝 Writing bridge files..."
       result = RailsAiBridge.generate_context(format: :all)
 
       print_result(result)
       puts ""
-      puts "Done! Full context files generated (all details included)."
+      puts "Done! Full bridge files generated (all details included)."
     end
   end
 
@@ -148,10 +148,10 @@ namespace :ai do
     puts ""
     puts ASSISTANT_TABLE
     puts ""
-    puts "Run `rails ai:context` to generate context files."
+    puts "Run `rails ai:bridge` to generate bridge files."
   end
 
-  desc "Watch for changes and auto-regenerate context files (requires listen gem)"
+  desc "Watch for changes and auto-regenerate bridge files (requires listen gem)"
   task watch: :environment do
     require "rails_ai_bridge"
 

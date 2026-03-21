@@ -32,7 +32,7 @@ flowchart LR
 ```
 
 1. **Up to 27 introspectors** scan schema, models, routes, controllers, jobs, gems, conventions, and more (preset `:standard` runs 9 core ones by default; `:full` runs all).
-2. **`rails ai:context`** writes bounded context files for Claude, Cursor, Copilot, Codex, Windsurf, and JSON.
+2. **`rails ai:bridge`** writes bounded bridge files for Claude, Cursor, Copilot, Codex, Windsurf, and JSON.
 3. **`rails ai:serve`** exposes **9 MCP tools** so assistants pull detail on demand (`detail: "summary"` first, then drill down).
 
 ---
@@ -44,7 +44,7 @@ flowchart LR
 ```bash
 bundle add rails-ai-bridge
 rails generate rails_ai_bridge:install
-rails ai:context
+rails ai:bridge
 ```
 
 **From GitHub** (before or alongside RubyGems):
@@ -52,7 +52,7 @@ rails ai:context
 ```bash
 bundle add rails-ai-bridge --github=igmarin/rails-ai-bridge
 rails generate rails_ai_bridge:install
-rails ai:context
+rails ai:bridge
 ```
 
 Or add to your `Gemfile`:
@@ -61,17 +61,17 @@ Or add to your `Gemfile`:
 gem "rails-ai-bridge", github: "igmarin/rails-ai-bridge"
 ```
 
-Then `bundle install`, run the generator, and `rails ai:context` as above.
+Then `bundle install`, run the generator, and `rails ai:bridge` as above.
 
 Optional: `gem install rails-ai-bridge` installs the gem into your Ruby environment; you still add it to the app’s `Gemfile` for a Rails project.
 
-The install generator creates **`.mcp.json`** (MCP auto-discovery) and generates **`AGENTS.md`** (and other assistant files) when you run `rails ai:context`.
+The install generator creates **`.mcp.json`** (MCP auto-discovery) and generates **`AGENTS.md`** (and other assistant files) when you run `rails ai:bridge`.
 
 ### Verify the integration in *your* Rails app
 
 1. **`bundle install` must finish cleanly** — until it does, `bundle exec rails -T` and `rails ai:serve` (from `.mcp.json`) cannot be verified. Merging this gem to `main` does not fix a broken or incomplete bundle on the host app.
-2. **Regenerate in one shot** — run `rails ai:context` (not only a single format) so route/controller summaries stay consistent across `CLAUDE.md`, `.cursor/rules/`, and `.github/instructions/`.
-3. **Keep team-specific rules** — generated files are snapshots. Use **`config/rails_ai_bridge/overrides.md`** for org-specific constraints (merged only after you **delete the first-line** `<!-- rails-ai-bridge:omit-merge -->` stub). Until then, the gem does not inject placeholder text into Copilot/Codex. See **`overrides.md.example`** for an outline. Alternatively re-merge into generated files after each `rails ai:context` (see `.codex/README.md`).
+2. **Regenerate in one shot** — run `rails ai:bridge` (not only a single format) so route/controller summaries stay consistent across `CLAUDE.md`, `.cursor/rules/`, and `.github/instructions/`.
+3. **Keep team-specific rules** — generated files are snapshots. Use **`config/rails_ai_bridge/overrides.md`** for org-specific constraints (merged only after you **delete the first-line** `<!-- rails-ai-bridge:omit-merge -->` stub). Until then, the gem does not inject placeholder text into Copilot/Codex. See **`overrides.md.example`** for an outline. Alternatively re-merge into generated files after each `rails ai:bridge` (see `.codex/README.md`).
 4. **Tune list sizes** — `RailsAiBridge.configure { |c| c.copilot_compact_model_list_limit = 5 }` (and `codex_compact_model_list_limit`); set `0` to list no model names and point only to MCP.
 
 ---
@@ -92,7 +92,7 @@ The install generator creates **`.mcp.json`** (MCP auto-discovery) and generates
 
 ## What Gets Generated
 
-`rails ai:context` generates assistant-specific files tailored to each AI workflow:
+`rails ai:bridge` generates assistant-specific files tailored to each AI workflow:
 
 ```
 your-rails-app/
@@ -137,7 +137,7 @@ your-rails-app/
 
 Each file respects the AI tool's format and size limits. **Commit these files** so the same project guidance is available to your whole team.
 
-> Use `rails ai:context:full` to dump everything into the files (good for small apps <30 models).
+> Use `rails ai:bridge:full` to dump everything into the files (good for small apps <30 models).
 
 ---
 
@@ -289,7 +289,7 @@ Security note: keep the HTTP transport bound to `127.0.0.1` unless you add your 
 
 Codex support is centered on **`AGENTS.md`** at the repository root.
 
-- Run `rails ai:context:codex` to regenerate `AGENTS.md` and `.codex/README.md`.
+- Run `rails ai:bridge:codex` to regenerate `AGENTS.md` and `.codex/README.md`.
 - Keep `AGENTS.md` committed so Codex sees project-specific instructions.
 - Keep personal preferences in `~/.codex/AGENTS.md`; use the repository `AGENTS.md` for shared guidance.
 - When Codex is connected to the generated MCP server, prefer the `rails_*` tools and start with `detail:"summary"`.
@@ -365,13 +365,13 @@ Frontend introspectors (views, Turbo, Stimulus, assets) degrade gracefully — t
 
 | Command | Description |
 |---------|-------------|
-| `rails ai:context` | Generate all context files (skips unchanged) |
-| `rails ai:context:full` | Generate all files in full mode (dumps everything) |
-| `rails ai:context:claude` | Generate Claude Code files only |
-| `rails ai:context:codex` | Generate Codex files only (`AGENTS.md` + `.codex/README.md`) |
-| `rails ai:context:cursor` | Generate Cursor files only |
-| `rails ai:context:windsurf` | Generate Windsurf files only |
-| `rails ai:context:copilot` | Generate Copilot files only |
+| `rails ai:bridge` | Generate all bridge files (skips unchanged) |
+| `rails ai:bridge:full` | Generate all files in full mode (dumps everything) |
+| `rails ai:bridge:claude` | Generate Claude Code files only |
+| `rails ai:bridge:codex` | Generate Codex files only (`AGENTS.md` + `.codex/README.md`) |
+| `rails ai:bridge:cursor` | Generate Cursor files only |
+| `rails ai:bridge:windsurf` | Generate Windsurf files only |
+| `rails ai:bridge:copilot` | Generate Copilot files only |
 | `rails ai:serve` | Start MCP server (stdio) |
 | `rails ai:serve_http` | Start MCP server (HTTP) |
 | `rails ai:doctor` | Run diagnostics and AI readiness score (0-100) |
@@ -380,10 +380,10 @@ Frontend introspectors (views, Turbo, Stimulus, assets) degrade gracefully — t
 
 > **Context modes:**
 > ```bash
-> rails ai:context                              # compact (default) — all formats
-> rails ai:context:full                         # full dump — all formats
-> CONTEXT_MODE=full rails ai:context:claude     # full dump — Claude only
-> CONTEXT_MODE=full rails ai:context:cursor     # full dump — Cursor only
+> rails ai:bridge                               # compact (default) — all formats
+> rails ai:bridge:full                          # full dump — all formats
+> CONTEXT_MODE=full rails ai:bridge:claude      # full dump — Claude only
+> CONTEXT_MODE=full rails ai:bridge:cursor      # full dump — Cursor only
 > ```
 
 ---
