@@ -65,6 +65,8 @@ module RailsAiBridge
     end
 
     def start_http(server)
+      RailsAiBridge.validate_http_mcp_server_in_production!
+
       config = RailsAiBridge.configuration
       transport = MCP::Server::Transports::StreamableHTTPTransport.new(server)
 
@@ -90,6 +92,10 @@ module RailsAiBridge
         end
 
         request = Rack::Request.new(env)
+        unless McpHttpAuth.authorized_request?(request)
+          return McpHttpAuth.unauthorized_rack_response
+        end
+
         transport.handle_request(request)
       end
     end

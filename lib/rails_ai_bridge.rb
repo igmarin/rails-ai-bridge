@@ -17,22 +17,36 @@ module RailsAiBridge
     # Global configuration
     attr_writer :configuration
 
+    # Returns the mutable gem configuration object.
+    #
+    # @return [RailsAiBridge::Configuration] current configuration instance
     def configuration
       @configuration ||= Configuration.new
     end
 
+    # Yields the global configuration for mutation.
+    #
+    # @yieldparam configuration [RailsAiBridge::Configuration] mutable config object
+    # @return [void]
     def configure
       yield(configuration)
     end
 
     # Quick access to introspect the current Rails app
-    # Returns a hash of all discovered context
+    # Returns a hash of all discovered context.
+    #
+    # @param app [Rails::Application, nil] app to introspect, defaults to Rails.application
+    # @return [Hash] introspection payload with enabled sections
     def introspect(app = nil)
       app ||= Rails.application
       Introspector.new(app).call
     end
 
     # Generate context files (CLAUDE.md, .cursorrules, etc.)
+    #
+    # @param app [Rails::Application, nil] app to introspect, defaults to Rails.application
+    # @param format [Symbol] output format (:all, :claude, :cursor, :windsurf, :copilot, :json, :codex)
+    # @return [Hash{Symbol => Array<String>}] files grouped under +:written+ and +:skipped+
     def generate_context(app = nil, format: :all)
       app ||= Rails.application
       context = introspect(app)
@@ -40,9 +54,46 @@ module RailsAiBridge
     end
 
     # Start the MCP server programmatically
+    #
+    # @param app [Rails::Application, nil] app to serve, defaults to Rails.application
+    # @param transport [Symbol] transport type (:stdio or :http)
+    # @return [void]
+    # @raise [RailsAiBridge::ConfigurationError] when HTTP transport is unsafe in production
     def start_mcp_server(app = nil, transport: :stdio)
       app ||= Rails.application
       Server.new(app, transport: transport).start
+    end
+
+    # Raises {ConfigurationError} if +auto_mount+ is enabled in production without explicit opt-in and token.
+    #
+    # @return [void]
+    # @raise [RailsAiBridge::ConfigurationError] when production auto-mount safety requirements are not met
+    def validate_auto_mount_configuration!
+      cfg = configuration
+      return unless cfg.auto_mount
+      return unless Rails.env.production?
+
+      unless cfg.allow_auto_mount_in_production
+        raise ConfigurationError,
+              "rails_ai_bridge: auto_mount is disabled in production unless you set allow_auto_mount_in_production = true"
+      end
+
+      return if McpHttpAuth.effective_http_mcp_token.present?
+
+      raise ConfigurationError,
+            "rails_ai_bridge: auto_mount in production requires http_mcp_token or ENV['#{McpHttpAuth::TOKEN_ENV_KEY}']"
+    end
+
+    # Raises {ConfigurationError} when starting the standalone HTTP MCP server in production without a token.
+    #
+    # @return [void]
+    # @raise [RailsAiBridge::ConfigurationError] when production HTTP MCP starts without a token
+    def validate_http_mcp_server_in_production!
+      return unless Rails.env.production?
+      return if McpHttpAuth.effective_http_mcp_token.present?
+
+      raise ConfigurationError,
+            "rails_ai_bridge: HTTP MCP in production requires http_mcp_token or ENV['#{McpHttpAuth::TOKEN_ENV_KEY}']"
     end
   end
 end

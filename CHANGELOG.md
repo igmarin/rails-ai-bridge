@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-03-20
+
+### Security
+
+- **HTTP MCP authentication** — Optional Bearer token via `config.http_mcp_token` or `ENV["RAILS_AI_BRIDGE_MCP_TOKEN"]` (ENV wins when set). When a token is configured, `auto_mount` and `rails ai:serve_http` require `Authorization: Bearer <token>`.
+- **Production guards** — `config.auto_mount = true` in production raises at boot unless `config.allow_auto_mount_in_production = true` and a non-empty MCP token is set. `rails ai:serve_http` in production requires a token.
+- **`rails_search_code` allowlist** — `file_type` must be an allowed extension (default: `rb`, `erb`, `js`, `ts`, `jsx`, `tsx`, `yml`, `yaml`, `json`). Extra extensions: `config.search_code_allowed_file_types`. Unrestricted search uses only those extensions; ripgrep/Ruby paths also exclude common secret filenames (e.g. `.env*`, `*.key`, `*.pem`).
+- **Credentials metadata** — `credentials_keys` is omitted from config introspection and the `rails://config` MCP resource unless `config.expose_credentials_key_names = true`.
+
 ## [1.0.0] - 2026-03-18
 
 ### Changed

@@ -8,6 +8,13 @@ RSpec.describe RailsAiBridge::Introspectors::ConfigIntrospector do
   describe "#call" do
     subject(:result) { introspector.call }
 
+    around do |example|
+      saved = RailsAiBridge.configuration.expose_credentials_key_names
+      example.run
+    ensure
+      RailsAiBridge.configuration.expose_credentials_key_names = saved
+    end
+
     it "returns cache store as a known value" do
       expect(result[:cache_store]).to be_a(String)
       expect(result[:cache_store]).not_to be_empty
@@ -36,7 +43,13 @@ RSpec.describe RailsAiBridge::Introspectors::ConfigIntrospector do
       end
     end
 
-    it "returns credentials keys as array" do
+    it "does not expose credentials_keys by default" do
+      RailsAiBridge.configuration.expose_credentials_key_names = false
+      expect(result).not_to have_key(:credentials_keys)
+    end
+
+    it "returns credentials keys as array when expose_credentials_key_names is true" do
+      RailsAiBridge.configuration.expose_credentials_key_names = true
       expect(result[:credentials_keys]).to be_an(Array)
     end
 

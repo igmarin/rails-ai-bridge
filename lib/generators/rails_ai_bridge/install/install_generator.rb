@@ -61,8 +61,11 @@ module RailsAiBridge
             # config.copilot_compact_model_list_limit = 5
             # config.codex_compact_model_list_limit = 3
 
-            # Auto-mount HTTP MCP endpoint at /mcp
+            # Auto-mount HTTP MCP endpoint at /mcp (see SECURITY.md — production needs token + explicit opt-in)
             # config.auto_mount = false
+            # config.allow_auto_mount_in_production = false
+            # config.http_mcp_token = "generate-a-long-random-secret"
+            # ENV["RAILS_AI_BRIDGE_MCP_TOKEN"] overrides http_mcp_token when set
             # config.http_path  = "/mcp"
             # config.http_port  = 6029
           end

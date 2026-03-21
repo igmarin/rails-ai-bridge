@@ -10,6 +10,10 @@ RSpec.describe RailsAiBridge::Configuration do
     expect(config.http_port).to eq(6029)
     expect(config.http_bind).to eq("127.0.0.1")
     expect(config.auto_mount).to eq(false)
+    expect(config.allow_auto_mount_in_production).to eq(false)
+    expect(config.http_mcp_token).to be_nil
+    expect(config.search_code_allowed_file_types).to eq([])
+    expect(config.expose_credentials_key_names).to eq(false)
     expect(config.cache_ttl).to eq(30)
     expect(config.context_mode).to eq(:compact)
     expect(config.claude_max_lines).to eq(150)

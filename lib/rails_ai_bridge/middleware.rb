@@ -19,6 +19,10 @@ module RailsAiBridge
 
       if env["PATH_INFO"] == path || env["PATH_INFO"] == "#{path}/"
         request = Rack::Request.new(env)
+        unless McpHttpAuth.authorized_request?(request)
+          return McpHttpAuth.unauthorized_rack_response
+        end
+
         transport.handle_request(request)
       else
         @app.call(env)
