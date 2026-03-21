@@ -7,28 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- **Overrides stub** — `config/rails_ai_context/overrides.md` from install is a one-line `<!-- rails-ai-context:omit-merge -->` marker; it is **not** merged into Copilot/Codex until removed, avoiding committed placeholder noise. Added `overrides.md.example` with a real outline; engineering rules now point teams at overrides + example.
-
-### Added
-
-- **`RailsAiContext::Serializers::SharedAssistantGuidance`** — shared engineering rules, Rails performance pattern examples, optional **`config/rails_ai_context/overrides.md`** merge into compact Copilot + Codex, and Cursor `rails-engineering.mdc` body.
-- **Cursor `rails-engineering.mdc`** — `alwaysApply: true` engineering essentials + pointers to full `copilot-instructions.md` / `AGENTS.md` and MCP rules.
-- **Configuration** — `assistant_overrides_path`, `copilot_compact_model_list_limit` (default 5), `codex_compact_model_list_limit` (default 3); `0` lists no model names (MCP-only pointer).
-- **Install generator** — creates `config/rails_ai_context/overrides.md` template when missing.
-
-### Fixed
-
-- **Consistent controller counts in compact output** — stack summaries now use the controller introspector for the primary count (matching `# Controllers (N)` in split rules). When routing lists more names than `app/controllers` classes, both figures are shown.
+## [1.0.0] - 2026-03-18
 
 ### Changed
 
-- **Compact guidance** — `CLAUDE.md`, Copilot compact instructions, and `AGENTS.md` include a short performance/security baseline and explicit note that generated files are snapshots; `.codex/README.md` documents re-merging team rules.
-- **Copilot compact** — `.github/copilot-instructions.md` now leads with actionable **Engineering rules** (strong params, auth, query performance, security inputs, testing) before stack inventory; MCP section notes path-scoped duplicates under `.github/instructions/` and `.cursor/rules/`.
-- **Copilot / Codex / `.cursorrules` order** — engineering rules first, then stack, optional repo-specific section, performance baseline + **Rails patterns** subsection, trimmed model names, then MCP (Codex: `AGENTS.md` matches this flow).
-- **Legacy `.cursorrules`** — same ordering as Copilot compact; model list uses `copilot_compact_model_list_limit`.
-- **`rails-project.mdc`** — uses `ContextSummary.routes_stack_line`; caps gem categories shown; references `rails-engineering.mdc`.
+- **First release as `rails-ai-bridge`** — Ruby gem and GitHub project renamed from `rails-ai-context`; public constant namespace is **`RailsAiBridge`**. Install with `rails generate rails_ai_bridge:install`. Host paths: `config/initializers/rails_ai_bridge.rb`, `config/rails_ai_bridge/overrides.md`, `.mcp.json` server key `rails-ai-bridge`, CLI `exe/rails-ai-bridge`. **Breaking:** no compatibility shim for the old gem name or paths.
+
+### Added
+
+- **`RailsAiBridge::Serializers::SharedAssistantGuidance`** — shared engineering rules, Rails performance pattern examples, optional **`config/rails_ai_bridge/overrides.md`** merge into compact Copilot + Codex, and Cursor `rails-engineering.mdc` body.
+- **Cursor `rails-engineering.mdc`** — `alwaysApply: true` engineering essentials + pointers to full `copilot-instructions.md` / `AGENTS.md` and MCP rules.
+- **Configuration** — `assistant_overrides_path`, `copilot_compact_model_list_limit` (default 5), `codex_compact_model_list_limit` (default 3); `0` lists no model names (MCP-only pointer).
+- **Install generator** — creates `config/rails_ai_bridge/overrides.md` stub and `overrides.md.example` when missing.
+
+### Fixed
+
+- **Overrides stub** — install stub uses `<!-- rails-ai-bridge:omit-merge -->`; overrides are **not** merged into Copilot/Codex until that line is removed.
+- **Consistent controller counts in compact output** — stack summaries use the controller introspector for the primary count (aligned with split rules); when routing lists more controller names than `app/controllers` classes, both counts are shown.
+
+### Changed
+
+- **Compact guidance** — `CLAUDE.md`, Copilot compact instructions, and `AGENTS.md` include a performance/security baseline and note that generated files are snapshots; `.codex/README.md` documents re-merging team rules.
+- **Copilot compact** — `.github/copilot-instructions.md` leads with **Engineering rules** before stack inventory; MCP section notes path-scoped files under `.github/instructions/` and `.cursor/rules/`.
+- **Copilot / Codex / `.cursorrules` order** — engineering rules → stack → optional repo-specific → performance + **Rails patterns** → trimmed models → MCP.
+- **Legacy `.cursorrules`** — same ordering; model list uses `copilot_compact_model_list_limit`.
+- **`rails-project.mdc`** — uses `ContextSummary.routes_stack_line`; caps gem categories; references `rails-engineering.mdc`.
 
 ## [0.8.0] - 2026-03-19
 
@@ -206,7 +209,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - `rails ai:context_for[claude]` failing in zsh due to bracket glob interpretation
-- Double introspection in `ai:context` and `ai:context_for` tasks (removed unused `RailsAiContext.introspect` calls)
+- Double introspection in `ai:context` and `ai:context_for` tasks (removed unused `RailsAiBridge.introspect` calls)
 
 ## [0.1.0] - 2026-03-18
 
@@ -222,8 +225,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 6 MCP tools: `rails_get_schema`, `rails_get_routes`, `rails_get_model_details`, `rails_get_gems`, `rails_search_code`, `rails_get_conventions`
 - Context file generation: CLAUDE.md, .cursorrules, .windsurfrules, .github/copilot-instructions.md, JSON
 - Rails Engine with Railtie auto-setup
-- Install generator (`rails generate rails_ai_context:install`)
+- Install generator (`rails generate rails_ai_bridge:install`)
 - Rake tasks: `ai:context`, `ai:serve`, `ai:serve_http`, `ai:inspect`
-- CLI executable: `rails-ai-context serve|context|inspect`
+- CLI executable: `rails-ai-bridge serve|context|inspect`
 - Stdio + Streamable HTTP transport support via official mcp SDK
 - CI matrix: Ruby 3.2/3.3/3.4 × Rails 7.1/7.2/8.0

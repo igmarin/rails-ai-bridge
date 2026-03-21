@@ -2,13 +2,13 @@
 # Simulated demo output for VHS recording
 clear
 
-printf '\033[1;36m$\033[0m bundle add rails-ai-context\n'
+printf '\033[1;36m$\033[0m bundle add rails-ai-bridge\n'
 sleep 0.3
 echo 'Fetching gem metadata from https://rubygems.org...'
 sleep 0.3
 echo 'Resolving dependencies...'
 sleep 0.3
-echo 'Installing rails-ai-context 0.7.1'
+echo 'Installing rails-ai-bridge 0.7.1'
 echo ''
 sleep 1
 

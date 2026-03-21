@@ -6,7 +6,7 @@ Combustion.initialize! :active_record, :action_controller do
   config.eager_load = false
 end
 
-require "rails_ai_context"
+require "rails_ai_bridge"
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|

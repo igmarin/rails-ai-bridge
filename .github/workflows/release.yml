@@ -62,7 +62,7 @@ jobs:
       - name: Verify tag matches gem version
         run: |
           TAG_VERSION="${GITHUB_REF#refs/tags/v}"
-          GEM_VERSION=$(ruby -r ./lib/rails_ai_context/version -e "puts RailsAiContext::VERSION")
+          GEM_VERSION=$(ruby -r ./lib/rails_ai_bridge/version -e "puts RailsAiBridge::VERSION")
           if [ "$TAG_VERSION" != "$GEM_VERSION" ]; then
             echo "::error::Tag version ($TAG_VERSION) does not match gem version ($GEM_VERSION)"
             exit 1
@@ -73,7 +73,7 @@ jobs:
         uses: rubygems/release-gem@v1
 
       - name: Build gem for release asset
-        run: gem build rails-ai-context.gemspec
+        run: gem build rails-ai-bridge.gemspec
 
       - name: Create GitHub Release
         env:

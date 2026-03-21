@@ -1,12 +1,12 @@
-# Contributing to rails-ai-context
+# Contributing to rails-ai-bridge
 
 Thanks for your interest in contributing! This guide covers everything you need to get started.
 
 ## Development Setup
 
 ```bash
-git clone https://github.com/igmarin/rails-ai-context.git
-cd rails-ai-context
+git clone https://github.com/igmarin/rails-ai-bridge.git
+cd rails-ai-bridge
 bundle install
 bundle exec rspec
 bundle exec rubocop --parallel
@@ -17,7 +17,7 @@ The test suite uses [Combustion](https://github.com/pat/combustion) to boot a mi
 ## Project Structure
 
 ```
-lib/rails_ai_context/
+lib/rails_ai_bridge/
 ├── introspectors/     # 27 introspectors (schema, models, routes, etc.)
 ├── tools/             # 9 MCP tools with detail levels and pagination
 ├── serializers/       # Per-assistant formatters (claude, cursor, windsurf, copilot, JSON)
@@ -28,19 +28,19 @@ lib/rails_ai_context/
 
 ## Adding a New Introspector
 
-1. Create `lib/rails_ai_context/introspectors/your_introspector.rb` (auto-loaded by Zeitwerk)
+1. Create `lib/rails_ai_bridge/introspectors/your_introspector.rb` (auto-loaded by Zeitwerk)
 2. Implement `#initialize(app)` and `#call` → returns a Hash (never raises)
-3. Register it in `lib/rails_ai_context/introspector.rb` (the `INTROSPECTOR_MAP`)
+3. Register it in `lib/rails_ai_bridge/introspector.rb` (the `INTROSPECTOR_MAP`)
 4. Add the key to the appropriate preset(s) in `Configuration::PRESETS` (`:standard` for core, `:full` for all)
-5. Write specs in `spec/lib/rails_ai_context/your_introspector_spec.rb`
+5. Write specs in `spec/lib/rails_ai_bridge/your_introspector_spec.rb`
 
 ## Adding a New MCP Tool
 
-1. Create `lib/rails_ai_context/tools/your_tool.rb` inheriting from `BaseTool` (auto-loaded by Zeitwerk)
+1. Create `lib/rails_ai_bridge/tools/your_tool.rb` inheriting from `BaseTool` (auto-loaded by Zeitwerk)
 2. Define `tool_name`, `description`, `input_schema`, and `annotations`
 3. Implement `def self.call(...)` returning `text_response(string)`
 4. Register in `Server::TOOLS`
-5. Write specs in `spec/lib/rails_ai_context/tools/your_tool_spec.rb`
+5. Write specs in `spec/lib/rails_ai_bridge/tools/your_tool_spec.rb`
 
 ## Code Style
 
@@ -68,8 +68,22 @@ bundle exec rubocop --parallel # Lint check
 
 ## Reporting Bugs
 
-Open an issue at https://github.com/igmarin/rails-ai-context/issues with:
+Open an issue at https://github.com/igmarin/rails-ai-bridge/issues with:
 - Ruby and Rails versions
 - Gem version
 - Steps to reproduce
 - Expected vs actual behavior
+
+## Releasing to RubyGems (maintainers)
+
+Pre-flight checklist:
+
+1. **Name availability** — Confirm `rails-ai-bridge` is available (or owned by you) on [RubyGems](https://rubygems.org/gems/rails-ai-bridge).
+2. **Version** — `lib/rails_ai_bridge/version.rb` must match the Git tag (release workflow expects `v#{VERSION}`).
+3. **Changelog** — Add a `## [x.y.z]` section in `CHANGELOG.md` (release notes are extracted from it in CI).
+4. **Build locally** — `gem build rails-ai-bridge.gemspec` and smoke-test in a dummy Rails app (`rails generate rails_ai_bridge:install`, `rails ai:context`, `rails ai:serve`).
+5. **MFA** — RubyGems account must have MFA; `spec.metadata["rubygems_mfa_required"]` is already `"true"`.
+6. **Trusted publishing** — Prefer [OIDC trusted publishing](https://guides.rubygems.org/trusted-publishing/) with the existing `rubygems/release-gem@v1` workflow; configure the gem owner on RubyGems to trust this repository/workflow.
+7. **Secrets** — Avoid API keys in the repo; rely on trusted publishing or short-lived CI secrets.
+8. **MCP registry** — If you publish `server.json` to the MCP registry, coordinate the `name` field (`io.github.igmarin/rails-ai-bridge`) with registry requirements.
+9. **Post-release** — Verify `bundle add rails-ai-bridge` from RubyGems and that badges in the README resolve.

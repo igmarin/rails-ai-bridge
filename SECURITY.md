@@ -11,7 +11,7 @@
 
 ## Reporting a Vulnerability
 
-This fork is maintained by **Ismael Marin**. If you discover a security vulnerability in this fork of `rails-ai-context`, please report it responsibly:
+This fork is maintained by **Ismael Marin**. If you discover a security vulnerability in this fork of `rails-ai-bridge`, please report it responsibly:
 
 1. **Do NOT open a public GitHub issue.**
 2. Email **ismael.marin@gmail.com** with:
