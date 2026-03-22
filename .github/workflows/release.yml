@@ -46,12 +46,25 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     name: Publish to RubyGems
+    # Must match Trusted Publishing on rubygems.org (same repo + this workflow file).
+    permissions:
+      contents: write
+      id-token: write
 
     steps:
+      # OIDC: required for rubygems.org to accept pushes from this workflow.
+      # Repository variable RUBYGEMS_OIDC_ROLE = trusted publisher role id (NOT an API key; use Variables, not Secrets).
+      # If this fails, copy the current role from: RubyGems → gem → Settings → Trusted publishing
+      - name: Configure RubyGems OIDC credentials
+        uses: rubygems/configure-rubygems-credentials@main
+        with:
+          role-to-assume: ${{ vars.RUBYGEMS_OIDC_ROLE }}
+
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           fetch-tags: true
+          persist-credentials: false
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
