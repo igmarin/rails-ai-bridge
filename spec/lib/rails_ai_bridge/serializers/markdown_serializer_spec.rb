@@ -34,6 +34,14 @@ RSpec.describe RailsAiBridge::Serializers::ClaudeSerializer do
     subject(:output) { described_class.new(context).call }
 
     context "in compact mode (default)" do
+      around do |example|
+        original_context_mode = RailsAiBridge.configuration.context_mode
+        RailsAiBridge.configuration.context_mode = :compact
+        example.run
+      ensure
+        RailsAiBridge.configuration.context_mode = original_context_mode
+      end
+
       it "includes AI Context header" do
         expect(output).to include("AI Context")
       end
@@ -48,8 +56,13 @@ RSpec.describe RailsAiBridge::Serializers::ClaudeSerializer do
     end
 
     context "in full mode" do
-      before { RailsAiBridge.configuration.context_mode = :full }
-      after { RailsAiBridge.configuration.context_mode = :compact }
+      around do |example|
+        original_context_mode = RailsAiBridge.configuration.context_mode
+        RailsAiBridge.configuration.context_mode = :full
+        example.run
+      ensure
+        RailsAiBridge.configuration.context_mode = original_context_mode
+      end
 
       it "includes Claude-specific header" do
         expect(output).to include("Claude Code")
@@ -81,14 +94,27 @@ RSpec.describe RailsAiBridge::Serializers::CopilotSerializer do
     subject(:output) { described_class.new(context).call }
 
     context "in compact mode (default)" do
+      around do |example|
+        original_context_mode = RailsAiBridge.configuration.context_mode
+        RailsAiBridge.configuration.context_mode = :compact
+        example.run
+      ensure
+        RailsAiBridge.configuration.context_mode = original_context_mode
+      end
+
       it "uses Copilot-specific header" do
         expect(output).to include("Copilot Context")
       end
     end
 
     context "in full mode" do
-      before { RailsAiBridge.configuration.context_mode = :full }
-      after { RailsAiBridge.configuration.context_mode = :compact }
+      around do |example|
+        original_context_mode = RailsAiBridge.configuration.context_mode
+        RailsAiBridge.configuration.context_mode = :full
+        example.run
+      ensure
+        RailsAiBridge.configuration.context_mode = original_context_mode
+      end
 
       it "uses Copilot Instructions header" do
         expect(output).to include("Copilot Instructions")

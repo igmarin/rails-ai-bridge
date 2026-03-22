@@ -13,3 +13,5 @@ spec/internal/log/
 
 # MCP Registry auth tokens
 .mcpregistry_*
+.DS_Store
+vendor/
