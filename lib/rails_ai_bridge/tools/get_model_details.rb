@@ -23,7 +23,7 @@ module RailsAiBridge
       annotations(read_only_hint: true, destructive_hint: false, idempotent_hint: true, open_world_hint: false)
 
       def self.call(model: nil, detail: "standard", server_context: nil)
-        models = cached_context[:models]
+        models = cached_section(:models)
         return text_response("Model introspection not available. Add :models to introspectors.") unless models
         return text_response("Model introspection failed: #{models[:error]}") if models[:error]
 

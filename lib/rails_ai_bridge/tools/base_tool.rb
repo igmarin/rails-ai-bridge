@@ -20,23 +20,19 @@ module RailsAiBridge
 
         # Cache introspection results with TTL + fingerprint invalidation
         def cached_context
-          now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-          ttl = RailsAiBridge.configuration.cache_ttl
+          ContextProvider.fetch(rails_app)
+        end
 
-          if @cached_context && (now - @cache_timestamp) < ttl && !Fingerprinter.changed?(rails_app, @cache_fingerprint)
-            return @cached_context
-          end
-
-          @cached_context = RailsAiBridge.introspect
-          @cache_timestamp = now
-          @cache_fingerprint = Fingerprinter.compute(rails_app)
-          @cached_context
+        # Returns a single introspection section via the shared context provider.
+        #
+        # @param section [Symbol] introspector key
+        # @return [Object, nil] section payload
+        def cached_section(section)
+          ContextProvider.fetch_section(section, rails_app)
         end
 
         def reset_cache!
-          @cached_context = nil
-          @cache_timestamp = nil
-          @cache_fingerprint = nil
+          ContextProvider.reset!
         end
 
         # Helper: wrap text in an MCP::Tool::Response with safety-net truncation

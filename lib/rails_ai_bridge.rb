@@ -36,10 +36,11 @@ module RailsAiBridge
     # Returns a hash of all discovered context.
     #
     # @param app [Rails::Application, nil] app to introspect, defaults to Rails.application
+    # @param only [Array<Symbol>, nil] optional subset of introspector keys to run
     # @return [Hash] introspection payload with enabled sections
-    def introspect(app = nil)
+    def introspect(app = nil, only: nil)
       app ||= Rails.application
-      Introspector.new(app).call
+      Introspector.new(app).call(only: only)
     end
 
     # Generate context files (CLAUDE.md, .cursorrules, etc.)

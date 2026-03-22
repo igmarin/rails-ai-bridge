@@ -20,8 +20,8 @@ RSpec.describe RailsAiBridge::Tools::GetControllers do
           strong_params: %w[title body]
         }
       }
-      allow(described_class).to receive(:cached_context).and_return({
-        controllers: { controllers: controllers }
+      allow(described_class).to receive(:cached_section).with(:controllers).and_return({
+        controllers: controllers
       })
     end
 
@@ -61,7 +61,7 @@ RSpec.describe RailsAiBridge::Tools::GetControllers do
     end
 
     it "handles missing controllers gracefully" do
-      allow(described_class).to receive(:cached_context).and_return({})
+      allow(described_class).to receive(:cached_section).with(:controllers).and_return(nil)
       result = described_class.call(detail: "summary")
       text = result.content.first[:text]
       expect(text).to include("not available")

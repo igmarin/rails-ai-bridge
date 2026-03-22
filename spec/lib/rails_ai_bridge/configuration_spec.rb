@@ -21,6 +21,9 @@ RSpec.describe RailsAiBridge::Configuration do
     expect(config.assistant_overrides_path).to be_nil
     expect(config.copilot_compact_model_list_limit).to eq(5)
     expect(config.codex_compact_model_list_limit).to eq(3)
+    expect(config.additional_introspectors).to eq({})
+    expect(config.additional_tools).to eq([])
+    expect(config.additional_resources).to eq({})
   end
 
   it "defaults to standard preset" do
@@ -68,6 +71,32 @@ RSpec.describe RailsAiBridge::Configuration do
       config.introspectors += %i[views turbo]
       expect(config.introspectors).to include(:views, :turbo)
       expect(config.introspectors.size).to eq(11)
+    end
+  end
+
+  describe "extensibility registries" do
+    it "allows registering an additional introspector" do
+      config.additional_introspectors[:custom] = Class.new
+
+      expect(config.additional_introspectors.keys).to include(:custom)
+    end
+
+    it "allows registering additional MCP tools" do
+      tool_class = Class.new
+      config.additional_tools << tool_class
+
+      expect(config.additional_tools).to include(tool_class)
+    end
+
+    it "allows registering additional resources" do
+      config.additional_resources["rails://custom"] = {
+        name: "Custom",
+        description: "Custom resource",
+        mime_type: "application/json",
+        key: :custom
+      }
+
+      expect(config.additional_resources).to have_key("rails://custom")
     end
   end
 

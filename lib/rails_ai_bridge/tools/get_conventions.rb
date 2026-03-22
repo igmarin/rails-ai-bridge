@@ -11,7 +11,7 @@ module RailsAiBridge
       annotations(read_only_hint: true, destructive_hint: false, idempotent_hint: true, open_world_hint: false)
 
       def self.call(server_context: nil)
-        conventions = cached_context[:conventions]
+        conventions = cached_section(:conventions)
         return text_response("Convention detection not available. Add :conventions to introspectors.") unless conventions
         return text_response("Convention detection failed: #{conventions[:error]}") if conventions[:error]
 

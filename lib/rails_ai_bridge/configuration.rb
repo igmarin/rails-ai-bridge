@@ -66,6 +66,15 @@ module RailsAiBridge
     # When true, +credentials_keys+ appears in config introspection / +rails://config+ resource
     attr_accessor :expose_credentials_key_names
 
+    # Optional custom introspectors keyed by symbol name.
+    attr_accessor :additional_introspectors
+
+    # Optional custom MCP tools appended to the built-in tool list.
+    attr_accessor :additional_tools
+
+    # Optional custom MCP resources merged with built-in resources.
+    attr_accessor :additional_resources
+
     def initialize
       @server_name         = "rails-ai-bridge"
       @server_version      = RailsAiBridge::VERSION
@@ -93,6 +102,9 @@ module RailsAiBridge
       @codex_compact_model_list_limit   = 3
       @search_code_allowed_file_types   = []
       @expose_credentials_key_names     = false
+      @additional_introspectors         = {}
+      @additional_tools                 = []
+      @additional_resources             = {}
     end
 
     def preset=(name)

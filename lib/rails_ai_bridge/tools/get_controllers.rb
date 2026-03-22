@@ -23,7 +23,7 @@ module RailsAiBridge
       annotations(read_only_hint: true, destructive_hint: false, idempotent_hint: true, open_world_hint: false)
 
       def self.call(controller: nil, detail: "standard", server_context: nil)
-        data = cached_context[:controllers]
+        data = cached_section(:controllers)
         return text_response("Controller introspection not available. Add :controllers to introspectors.") unless data
         return text_response("Controller introspection failed: #{data[:error]}") if data[:error]
 

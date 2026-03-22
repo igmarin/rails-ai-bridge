@@ -21,9 +21,9 @@ RSpec.describe RailsAiBridge::Tools::GetRoutes do
           { verb: "GET", path: "/api/v1/items", action: "index", name: "api_v1_items" }
         ]
       }
-      allow(described_class).to receive(:cached_context).and_return({
-        routes: { total_routes: 6, by_controller: by_controller, api_namespaces: [ "api/v1" ] }
-      })
+      allow(described_class).to receive(:cached_section).with(:routes).and_return(
+        { total_routes: 6, by_controller: by_controller, api_namespaces: [ "api/v1" ] }
+      )
     end
 
     it "returns summary with route counts per controller" do
@@ -71,7 +71,7 @@ RSpec.describe RailsAiBridge::Tools::GetRoutes do
     end
 
     it "handles missing routes gracefully" do
-      allow(described_class).to receive(:cached_context).and_return({})
+      allow(described_class).to receive(:cached_section).with(:routes).and_return(nil)
       result = described_class.call(detail: "summary")
       text = result.content.first[:text]
       expect(text).to include("not available")

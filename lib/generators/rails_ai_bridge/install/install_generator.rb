@@ -23,13 +23,16 @@ module RailsAiBridge
       end
 
       def create_initializer
+        standard_count = RailsAiBridge::Configuration::PRESETS[:standard].size
+        full_count = RailsAiBridge::Configuration::PRESETS[:full].size
+
         create_file "config/initializers/rails_ai_bridge.rb", <<~RUBY
           # frozen_string_literal: true
 
           RailsAiBridge.configure do |config|
             # Introspector preset:
-            #   :standard — 8 core introspectors (schema, models, routes, jobs, gems, conventions, controllers, tests)
-            #   :full     — all 21 introspectors (adds views, turbo, auth, API, config, assets, devops, etc.)
+            #   :standard — #{standard_count} core introspectors (schema, models, routes, jobs, gems, conventions, controllers, tests, migrations)
+            #   :full     — all #{full_count} introspectors (adds views, turbo, auth, API, config, assets, devops, etc.)
             # config.preset = :standard
 
             # Or cherry-pick individual introspectors:
@@ -118,9 +121,9 @@ module RailsAiBridge
 
         if Rails.application
           require "rails_ai_bridge"
-          context = RailsAiBridge.introspect
-          files = RailsAiBridge.generate_context(format: :all)
-          files.each { |f| say "  Created #{f}", :green }
+          result = RailsAiBridge.generate_context(format: :all)
+          result[:written].each { |file| say "  Created #{file}", :green }
+          result[:skipped].each { |file| say "  Unchanged #{file}", :blue }
         else
           say "  Skipped (Rails app not fully loaded). Run `rails ai:bridge` after install.", :yellow
         end
