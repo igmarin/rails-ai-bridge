@@ -447,9 +447,16 @@ The gem parses `db/schema.rb` as text when no database is connected. Works in CI
 ```bash
 git clone https://github.com/igmarin/rails-ai-bridge.git
 cd rails-ai-bridge && bundle install
-bundle exec rspec       # 364 examples
+bundle exec rspec       # runs the full suite; SimpleCov runs locally by default
 bundle exec rubocop     # Lint
 ```
+
+### Test coverage (SimpleCov)
+
+- Running `bundle exec rspec` locally enables **SimpleCov** and enforces **at least 80% line coverage** across `lib/**/*.rb` (see [`spec/simplecov_helper.rb`](spec/simplecov_helper.rb)).
+- After the run, open **`coverage/index.html`** in a browser for a per-file report (`coverage/` is gitignored).
+- CI runs coverage enforcement on **one matrix job** (Ruby **3.3** + Rails **8.0**) with `COVERAGE=true` and uploads the HTML report as a workflow artifact for inspection on PRs.
+- For a **prioritized backlog of files below 80%** (refreshed after substantive test work), see [`docs/COVERAGE.md`](docs/COVERAGE.md).
 
 Bug reports and pull requests for this fork are handled at [github.com/igmarin/rails-ai-bridge](https://github.com/igmarin/rails-ai-bridge).
 

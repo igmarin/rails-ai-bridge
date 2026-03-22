@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "simplecov_helper"
+
 require "combustion"
 
 Combustion.initialize! :active_record, :action_controller do

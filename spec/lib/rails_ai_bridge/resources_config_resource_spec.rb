@@ -77,6 +77,17 @@ RSpec.describe RailsAiBridge::Resources do
       expect(json["file"]).to eq("clipboard_controller.js")
     end
 
+    it "decodes namespaced model resource identifiers" do
+      allow(RailsAiBridge::ContextProvider).to receive(:fetch_section).with(:models).and_return({
+        "Admin::User" => { table_name: "admin_users" }
+      })
+
+      rows = described_class.send(:handle_read, { uri: "rails://models/Admin%3A%3AUser" })
+      json = JSON.parse(rows.first[:text])
+
+      expect(json["table_name"]).to eq("admin_users")
+    end
+
     it "reads a specific view resource from app/views" do
       Dir.mktmpdir do |dir|
         FileUtils.mkdir_p(File.join(dir, "app/views/users"))
@@ -90,6 +101,12 @@ RSpec.describe RailsAiBridge::Resources do
         expect(json["path"]).to eq("users/index.html.erb")
         expect(json["renders"]).to include("form")
       end
+    end
+
+    it "raises for unknown resources" do
+      expect do
+        described_class.send(:handle_read, { uri: "rails://unknown/resource" })
+      end.to raise_error(RuntimeError, "Unknown resource: rails://unknown/resource")
     end
   end
 end

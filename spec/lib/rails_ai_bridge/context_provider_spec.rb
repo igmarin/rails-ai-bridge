@@ -15,6 +15,16 @@ RSpec.describe RailsAiBridge::ContextProvider do
     described_class.reset!
   end
 
+  describe ".reset!" do
+    it "reinitializes the synchronization mutex used by the cache" do
+      described_class.reset!
+
+      mutex = described_class.instance_variable_get(:@mutex)
+
+      expect(mutex).to be_a(Mutex)
+    end
+  end
+
   describe ".fetch" do
     it "builds context on first request" do
       allow(RailsAiBridge).to receive(:introspect).with(app).and_return(context)

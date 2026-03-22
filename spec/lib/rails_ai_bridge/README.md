@@ -31,3 +31,7 @@ The current architecture relies on tests around:
 - shared HTTP transport behavior via `HttpTransportApp`
 
 If you change one of those boundaries, update the corresponding spec first.
+
+## Coverage threshold and gaps
+
+The suite enforces **80% line coverage** via SimpleCov (see [`spec/simplecov_helper.rb`](../../simplecov_helper.rb)). For how to list files under the threshold and a living action backlog, see [`docs/COVERAGE.md`](../../../docs/COVERAGE.md).

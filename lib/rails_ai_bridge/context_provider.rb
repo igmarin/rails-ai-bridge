@@ -5,6 +5,7 @@ module RailsAiBridge
   # This keeps all runtime reads aligned behind one explicit boundary.
   class ContextProvider
     @cache = Hash.new { |hash, key| hash[key] = { sections: {} } }
+    @mutex = Mutex.new
 
     class << self
       # Returns the latest introspection snapshot for the given app, reusing a
@@ -13,15 +14,17 @@ module RailsAiBridge
       # @param app [Rails::Application] application to introspect
       # @return [Hash] introspection payload
       def fetch(app = Rails.application)
-        cached = cache[cache_key(app)]
-        return rebuild(app) unless cached[:full]
+        mutex.synchronize do
+          cached = cache[cache_key(app)]
+          return rebuild(app) unless cached[:full]
 
-        current_fingerprint = Fingerprinter.snapshot(app)
-        if ttl_valid?(cached[:full]) && current_fingerprint == cached[:full][:fingerprint]
-          return cached[:full][:context]
+          current_fingerprint = Fingerprinter.snapshot(app)
+          if ttl_valid?(cached[:full]) && current_fingerprint == cached[:full][:fingerprint]
+            return cached[:full][:context]
+          end
+
+          rebuild(app, fingerprint: current_fingerprint)
         end
-
-        rebuild(app, fingerprint: current_fingerprint)
       end
 
       # Returns a single introspection section using a dedicated cache entry for
@@ -31,33 +34,43 @@ module RailsAiBridge
       # @param app [Rails::Application] application to introspect
       # @return [Object, nil] requested section payload
       def fetch_section(section, app = Rails.application)
-        key = cache_key(app)
-        cached = cache[key]
-        current_fingerprint = Fingerprinter.snapshot(app)
+        mutex.synchronize do
+          key = cache_key(app)
+          cached = cache[key]
+          current_fingerprint = Fingerprinter.snapshot(app)
 
-        full = cached[:full]
-        if full && ttl_valid?(full) && current_fingerprint == full[:fingerprint]
-          return full[:context][section]
+          full = cached[:full]
+          if full && ttl_valid?(full) && current_fingerprint == full[:fingerprint]
+            return full[:context][section]
+          end
+
+          section_entry = cached[:sections][section]
+          if section_entry && ttl_valid?(section_entry) && current_fingerprint == section_entry[:fingerprint]
+            return section_entry[:context]
+          end
+
+          rebuild_section(section, app, fingerprint: current_fingerprint)
         end
-
-        section_entry = cached[:sections][section]
-        if section_entry && ttl_valid?(section_entry) && current_fingerprint == section_entry[:fingerprint]
-          return section_entry[:context]
-        end
-
-        rebuild_section(section, app, fingerprint: current_fingerprint)
       end
 
       # Clears all cached snapshots.
       #
       # @return [void]
       def reset!
-        @cache = Hash.new { |hash, key| hash[key] = { sections: {} } }
+        @cache = build_cache_store
+        @mutex = Mutex.new
       end
 
       private
 
-      attr_reader :cache
+      attr_reader :cache, :mutex
+
+      # Builds the default cache structure for full snapshots and per-section entries.
+      #
+      # @return [Hash]
+      def build_cache_store
+        Hash.new { |hash, key| hash[key] = { sections: {} } }
+      end
 
       def rebuild(app, fingerprint: nil)
         context = RailsAiBridge.introspect(app)

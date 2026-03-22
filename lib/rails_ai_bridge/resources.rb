@@ -139,31 +139,59 @@ module RailsAiBridge
 
       def handle_read(params)
         uri = params[:uri]
+        payload = resolve_resource_payload(uri)
 
-        if uri == "rails://bridge/meta"
-          content = JSON.pretty_generate(bridge_metadata)
-          [ { uri: uri, mime_type: "application/json", text: content } ]
-        elsif resource_definitions.key?(uri)
-          key = resource_definitions[uri][:key]
-          content = JSON.pretty_generate(ContextProvider.fetch_section(key) || {})
-          [ { uri: uri, mime_type: "application/json", text: content } ]
-        elsif (match = uri.match(%r{\Arails://models/(.+)\z}))
-          model_name = match[1]
-          models = ContextProvider.fetch_section(:models) || {}
-          data = models[model_name] || { error: "Model '#{model_name}' not found" }
-          content = JSON.pretty_generate(data)
-          [ { uri: uri, mime_type: "application/json", text: content } ]
-        elsif (match = uri.match(%r{\Arails://views/(.+)\z}))
-          path = CGI.unescape(match[1])
-          content = JSON.pretty_generate(read_view_resource(path))
-          [ { uri: uri, mime_type: "application/json", text: content } ]
-        elsif (match = uri.match(%r{\Arails://stimulus/(.+)\z}))
-          name = CGI.unescape(match[1])
-          content = JSON.pretty_generate(read_stimulus_resource(name))
-          [ { uri: uri, mime_type: "application/json", text: content } ]
-        else
-          raise "Unknown resource: #{uri}"
-        end
+        raise "Unknown resource: #{uri}" unless payload
+
+        json_resource(uri, payload)
+      end
+
+      # Resolves the payload for a concrete MCP resource URI.
+      #
+      # @param uri [String] resource URI requested by the client
+      # @return [Object, nil] serializable payload, or +nil+ when no resolver matches
+      def resolve_resource_payload(uri)
+        read_static_resource(uri) || read_templated_resource(uri)
+      end
+
+      def read_static_resource(uri)
+        return bridge_metadata if uri == "rails://bridge/meta"
+
+        definition = resource_definitions[uri]
+        return unless definition
+
+        ContextProvider.fetch_section(definition[:key]) || {}
+      end
+
+      def read_templated_resource(uri)
+        read_model_resource(uri) ||
+          read_view_template_resource(uri) ||
+          read_stimulus_template_resource(uri)
+      end
+
+      def read_model_resource(uri)
+        match = uri.match(%r{\Arails://models/(.+)\z})
+        return unless match
+
+        model_name = CGI.unescape(match[1])
+        models = ContextProvider.fetch_section(:models) || {}
+        models[model_name] || { error: "Model '#{model_name}' not found" }
+      end
+
+      def read_view_template_resource(uri)
+        match = uri.match(%r{\Arails://views/(.+)\z})
+        return unless match
+
+        path = CGI.unescape(match[1])
+        read_view_resource(path)
+      end
+
+      def read_stimulus_template_resource(uri)
+        match = uri.match(%r{\Arails://stimulus/(.+)\z})
+        return unless match
+
+        name = CGI.unescape(match[1])
+        read_stimulus_resource(name)
       end
 
       def bridge_metadata
@@ -196,6 +224,16 @@ module RailsAiBridge
         data = ContextProvider.fetch_section(:stimulus) || {}
         controllers = Array(data[:controllers])
         controllers.find { |entry| entry[:name].to_s.casecmp?(name) } || { error: "Stimulus controller '#{name}' not found" }
+      end
+
+      # Formats a JSON MCP resource response payload for the requested URI.
+      #
+      # @param uri [String] resource URI being served
+      # @param payload [Object] serializable content returned to the client
+      # @return [Array<Hash>] MCP resource response rows
+      def json_resource(uri, payload)
+        content = JSON.pretty_generate(payload)
+        [ { uri: uri, mime_type: "application/json", text: content } ]
       end
     end
   end

@@ -4,13 +4,12 @@ require "spec_helper"
 
 RSpec.describe RailsAiBridge::Tools::BaseTool do
   describe ".text_response truncation" do
-    before do
-      @original_max = RailsAiBridge.configuration.max_tool_response_chars
+    around do |example|
+      original_max = RailsAiBridge.configuration.max_tool_response_chars
       RailsAiBridge.configuration.max_tool_response_chars = 100
-    end
-
-    after do
-      RailsAiBridge.configuration.max_tool_response_chars = @original_max
+      example.run
+    ensure
+      RailsAiBridge.configuration.max_tool_response_chars = original_max
     end
 
     it "truncates responses exceeding max chars" do
@@ -33,6 +32,14 @@ RSpec.describe RailsAiBridge::Tools::BaseTool do
       result = described_class.text_response(long_text)
       text = result.content.first[:text]
       expect(text).to include('detail:"summary"')
+    end
+
+    it "keeps the final response within the configured limit" do
+      long_text = "x" * 200
+      result = described_class.text_response(long_text)
+      text = result.content.first[:text]
+
+      expect(text.length).to be <= 100
     end
   end
 end

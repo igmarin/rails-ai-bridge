@@ -31,6 +31,9 @@ module RailsAiBridge
           ContextProvider.fetch_section(section, rails_app)
         end
 
+        # Clears the shared introspection cache used by MCP tools.
+        #
+        # @return [void]
         def reset_cache!
           ContextProvider.reset!
         end
@@ -39,8 +42,13 @@ module RailsAiBridge
         def text_response(text)
           max = RailsAiBridge.configuration.max_tool_response_chars
           if max && text.length > max
-            truncated = text[0...max]
-            truncated += "\n\n---\n_Response truncated (#{text.length} chars). Use `detail:\"summary\"` for an overview, or filter by a specific item (e.g. `table:\"users\"`)._"
+            suffix = "\n\n---\n_Response truncated (#{text.length} chars). Use `detail:\"summary\"` for an overview, or filter by a specific item (e.g. `table:\"users\"`)._"
+            available_chars = max - suffix.length
+            truncated = if available_chars.positive?
+              "#{text[0...available_chars]}#{suffix}"
+            else
+              suffix[0...max]
+            end
             MCP::Tool::Response.new([ { type: "text", text: truncated } ])
           else
             MCP::Tool::Response.new([ { type: "text", text: text } ])
