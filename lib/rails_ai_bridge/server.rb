@@ -25,6 +25,10 @@ module RailsAiBridge
       @transport_type = transport
     end
 
+    def tool_classes
+      TOOLS + RailsAiBridge.configuration.additional_tools
+    end
+
     # Build and return the configured MCP::Server instance
     def build
       config = RailsAiBridge.configuration
@@ -32,7 +36,7 @@ module RailsAiBridge
       server = MCP::Server.new(
         name: config.server_name,
         version: config.server_version,
-        tools: TOOLS
+        tools: tool_classes
       )
 
       Resources.register(server)
@@ -60,7 +64,7 @@ module RailsAiBridge
       transport = MCP::Server::Transports::StdioTransport.new(server)
       # Log to stderr so we don't pollute the JSON-RPC channel on stdout
       $stderr.puts "[rails-ai-bridge] MCP server started (stdio transport)"
-      $stderr.puts "[rails-ai-bridge] Tools: #{TOOLS.map { |t| t.tool_name }.join(', ')}"
+      $stderr.puts "[rails-ai-bridge] Tools: #{tool_classes.map { |t| t.tool_name }.join(', ')}"
       transport.open
     end
 
@@ -74,7 +78,7 @@ module RailsAiBridge
       rack_app = build_rack_app(transport, config.http_path)
 
       $stderr.puts "[rails-ai-bridge] MCP server starting on #{config.http_bind}:#{config.http_port}#{config.http_path}"
-      $stderr.puts "[rails-ai-bridge] Tools: #{TOOLS.map { |t| t.tool_name }.join(', ')}"
+      $stderr.puts "[rails-ai-bridge] Tools: #{tool_classes.map { |t| t.tool_name }.join(', ')}"
 
       require "rackup"
       Rackup::Handler.default.run(rack_app, Host: config.http_bind, Port: config.http_port)
@@ -85,19 +89,7 @@ module RailsAiBridge
     end
 
     def build_rack_app(transport, path)
-      lambda do |env|
-        # Only handle requests at the configured MCP path
-        unless env["PATH_INFO"] == path || env["PATH_INFO"] == "#{path}/"
-          return [ 404, { "Content-Type" => "application/json" }, [ '{"error":"Not found"}' ] ]
-        end
-
-        request = Rack::Request.new(env)
-        unless McpHttpAuth.authorized_request?(request)
-          return McpHttpAuth.unauthorized_rack_response
-        end
-
-        transport.handle_request(request)
-      end
+      HttpTransportApp.build(transport: transport, path: path)
     end
   end
 end

@@ -21,4 +21,29 @@ RSpec.describe RailsAiBridge::Resources do
       expect(json).not_to have_key("credentials_keys")
     end
   end
+
+  describe "additional resources" do
+    around do |example|
+      saved_resources = RailsAiBridge.configuration.additional_resources.dup
+      example.run
+    ensure
+      RailsAiBridge.configuration.additional_resources = saved_resources
+    end
+
+    it "reads configured custom resources through the shared context provider" do
+      RailsAiBridge.configuration.additional_resources["rails://custom"] = {
+        name: "Custom",
+        description: "Custom resource",
+        mime_type: "application/json",
+        key: :custom
+      }
+      allow(RailsAiBridge::ContextProvider).to receive(:fetch_section).with(:custom).and_return({ "value" => 7 })
+
+      rows = described_class.send(:handle_read, { uri: "rails://custom" })
+      json = JSON.parse(rows.first[:text])
+
+      expect(json).to eq({ "value" => 7 })
+      expect(RailsAiBridge::ContextProvider).to have_received(:fetch_section).with(:custom)
+    end
+  end
 end

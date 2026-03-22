@@ -13,8 +13,9 @@ module RailsAiBridge
 
     # Run all configured introspectors and return unified context hash
     #
-    # @return [Hash] complete application context
-    def call
+    # @param only [Array<Symbol>, nil] optional subset of introspectors to execute
+    # @return [Hash] complete application context or metadata + requested sections
+    def call(only: nil)
       context = {
         app_name: app_name,
         ruby_version: RUBY_VERSION,
@@ -24,7 +25,7 @@ module RailsAiBridge
         generator: "rails-ai-bridge v#{RailsAiBridge::VERSION}"
       }
 
-      config.introspectors.each do |name|
+      selected_introspectors(only).each do |name|
         introspector = resolve_introspector(name)
         context[name] = introspector.call
       rescue => e
@@ -37,6 +38,36 @@ module RailsAiBridge
 
     private
 
+    BUILTIN_INTROSPECTORS = {
+      schema: Introspectors::SchemaIntrospector,
+      models: Introspectors::ModelIntrospector,
+      routes: Introspectors::RouteIntrospector,
+      jobs: Introspectors::JobIntrospector,
+      gems: Introspectors::GemIntrospector,
+      conventions: Introspectors::ConventionDetector,
+      stimulus: Introspectors::StimulusIntrospector,
+      database_stats: Introspectors::DatabaseStatsIntrospector,
+      controllers: Introspectors::ControllerIntrospector,
+      views: Introspectors::ViewIntrospector,
+      turbo: Introspectors::TurboIntrospector,
+      i18n: Introspectors::I18nIntrospector,
+      config: Introspectors::ConfigIntrospector,
+      active_storage: Introspectors::ActiveStorageIntrospector,
+      action_text: Introspectors::ActionTextIntrospector,
+      auth: Introspectors::AuthIntrospector,
+      api: Introspectors::ApiIntrospector,
+      tests: Introspectors::TestIntrospector,
+      rake_tasks: Introspectors::RakeTaskIntrospector,
+      assets: Introspectors::AssetPipelineIntrospector,
+      devops: Introspectors::DevOpsIntrospector,
+      action_mailbox: Introspectors::ActionMailboxIntrospector,
+      migrations: Introspectors::MigrationIntrospector,
+      seeds: Introspectors::SeedsIntrospector,
+      middleware: Introspectors::MiddlewareIntrospector,
+      engines: Introspectors::EngineIntrospector,
+      multi_database: Introspectors::MultiDatabaseIntrospector
+    }.freeze
+
     def app_name
       if app.class.respond_to?(:module_parent_name)
         app.class.module_parent_name
@@ -45,38 +76,18 @@ module RailsAiBridge
       end
     end
 
+    def selected_introspectors(only)
+      names = Array(only).compact
+      return config.introspectors if names.empty?
+
+      names
+    end
+
     def resolve_introspector(name)
-      case name
-      when :schema      then Introspectors::SchemaIntrospector.new(app)
-      when :models      then Introspectors::ModelIntrospector.new(app)
-      when :routes      then Introspectors::RouteIntrospector.new(app)
-      when :jobs        then Introspectors::JobIntrospector.new(app)
-      when :gems        then Introspectors::GemIntrospector.new(app)
-      when :conventions then Introspectors::ConventionDetector.new(app)
-      when :stimulus       then Introspectors::StimulusIntrospector.new(app)
-      when :database_stats then Introspectors::DatabaseStatsIntrospector.new(app)
-      when :controllers    then Introspectors::ControllerIntrospector.new(app)
-      when :views          then Introspectors::ViewIntrospector.new(app)
-      when :turbo          then Introspectors::TurboIntrospector.new(app)
-      when :i18n           then Introspectors::I18nIntrospector.new(app)
-      when :config         then Introspectors::ConfigIntrospector.new(app)
-      when :active_storage then Introspectors::ActiveStorageIntrospector.new(app)
-      when :action_text    then Introspectors::ActionTextIntrospector.new(app)
-      when :auth           then Introspectors::AuthIntrospector.new(app)
-      when :api            then Introspectors::ApiIntrospector.new(app)
-      when :tests          then Introspectors::TestIntrospector.new(app)
-      when :rake_tasks     then Introspectors::RakeTaskIntrospector.new(app)
-      when :assets         then Introspectors::AssetPipelineIntrospector.new(app)
-      when :devops         then Introspectors::DevOpsIntrospector.new(app)
-      when :action_mailbox then Introspectors::ActionMailboxIntrospector.new(app)
-      when :migrations      then Introspectors::MigrationIntrospector.new(app)
-      when :seeds           then Introspectors::SeedsIntrospector.new(app)
-      when :middleware       then Introspectors::MiddlewareIntrospector.new(app)
-      when :engines         then Introspectors::EngineIntrospector.new(app)
-      when :multi_database  then Introspectors::MultiDatabaseIntrospector.new(app)
-      else
-        raise ConfigurationError, "Unknown introspector: #{name}"
-      end
+      introspector_class = config.additional_introspectors[name] || BUILTIN_INTROSPECTORS[name]
+      raise ConfigurationError, "Unknown introspector: #{name}" unless introspector_class
+
+      introspector_class.new(app)
     end
   end
 end

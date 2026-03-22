@@ -31,7 +31,7 @@ module RailsAiBridge
       annotations(read_only_hint: true, destructive_hint: false, idempotent_hint: true, open_world_hint: false)
 
       def self.call(controller: nil, detail: "standard", limit: nil, offset: 0, server_context: nil)
-        routes = cached_context[:routes]
+        routes = cached_section(:routes)
         return text_response("Route introspection not available. Add :routes to introspectors.") unless routes
         return text_response("Route introspection failed: #{routes[:error]}") if routes[:error]
 

@@ -27,6 +27,15 @@ RSpec.describe "MCP Tool Integration" do
   describe "MCP::Server" do
     let(:server) { RailsAiBridge::Server.new(Rails.application).build }
 
+    around do |example|
+      original_tools = RailsAiBridge.configuration.additional_tools.dup
+      original_resources = RailsAiBridge.configuration.additional_resources.dup
+      example.run
+    ensure
+      RailsAiBridge.configuration.additional_tools = original_tools
+      RailsAiBridge.configuration.additional_resources = original_resources
+    end
+
     it "builds with all tools registered" do
       expect(server.tools.size).to eq(9)
       expect(server.tools.keys).to contain_exactly(
@@ -55,6 +64,38 @@ RSpec.describe "MCP Tool Integration" do
         "rails://migrations",
         "rails://engines"
       )
+    end
+
+    it "registers additional tools from configuration" do
+      extra_tool = Class.new(RailsAiBridge::Tools::BaseTool) do
+        tool_name "rails_extra_tool"
+        description "Extra tool for testing"
+        input_schema(type: "object", properties: {})
+
+        def self.call(**)
+          text_response("ok")
+        end
+      end
+
+      RailsAiBridge.configuration.additional_tools << extra_tool
+
+      built = RailsAiBridge::Server.new(Rails.application).build
+
+      expect(built.tools).to have_key("rails_extra_tool")
+    end
+
+    it "registers additional resources from configuration" do
+      RailsAiBridge.configuration.additional_resources["rails://custom"] = {
+        name: "Custom",
+        description: "Custom resource",
+        mime_type: "application/json",
+        key: :custom
+      }
+
+      built = RailsAiBridge::Server.new(Rails.application).build
+      uris = built.resources.map(&:uri)
+
+      expect(uris).to include("rails://custom")
     end
   end
 end

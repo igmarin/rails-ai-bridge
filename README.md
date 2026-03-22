@@ -35,6 +35,17 @@ flowchart LR
 2. **`rails ai:bridge`** writes bounded bridge files for Claude, Cursor, Copilot, Codex, Windsurf, and JSON.
 3. **`rails ai:serve`** exposes **9 MCP tools** so assistants pull detail on demand (`detail: "summary"` first, then drill down).
 
+### Folder guides
+
+For contributors, key folders now include local `README.md` guides:
+
+- [`lib/rails_ai_bridge/README.md`](lib/rails_ai_bridge/README.md)
+- [`lib/rails_ai_bridge/introspectors/README.md`](lib/rails_ai_bridge/introspectors/README.md)
+- [`lib/rails_ai_bridge/tools/README.md`](lib/rails_ai_bridge/tools/README.md)
+- [`lib/rails_ai_bridge/serializers/README.md`](lib/rails_ai_bridge/serializers/README.md)
+- [`lib/generators/rails_ai_bridge/README.md`](lib/generators/rails_ai_bridge/README.md)
+- [`spec/lib/rails_ai_bridge/README.md`](spec/lib/rails_ai_bridge/README.md)
+
 ---
 
 ## Quick start
@@ -338,10 +349,35 @@ end
 | `http_mcp_token` | `nil` | Bearer token for HTTP MCP; `ENV["RAILS_AI_BRIDGE_MCP_TOKEN"]` overrides when set |
 | `search_code_allowed_file_types` | `[]` | Extra extensions allowed for `rails_search_code` `file_type` |
 | `expose_credentials_key_names` | `false` | Include `credentials_keys` in config introspection / `rails://config` |
+| `additional_introspectors` | `{}` | Optional custom introspector classes keyed by symbol |
+| `additional_tools` | `[]` | Optional MCP tool classes appended to the built-in toolset |
+| `additional_resources` | `{}` | Optional MCP resources merged with the built-in `rails://...` resources |
 | `http_path` | `"/mcp"` | HTTP endpoint path |
 | `http_port` | `6029` | HTTP server port |
 | `cache_ttl` | `30` | Cache TTL in seconds |
 </details>
+
+### Extending the built-ins
+
+If you need host-app or companion-gem extensions, register them explicitly in the initializer:
+
+```ruby
+RailsAiBridge.configure do |config|
+  config.additional_introspectors[:billing] = MyCompany::BillingIntrospector
+  config.introspectors << :billing
+
+  config.additional_tools << MyCompany::Tools::GetBillingContext
+
+  config.additional_resources["rails://billing"] = {
+    name: "Billing",
+    description: "Billing-specific AI context",
+    mime_type: "application/json",
+    key: :billing
+  }
+end
+```
+
+Built-in MCP tools and resources now read through a shared runtime context provider, so tool calls and `rails://...` resource reads stay aligned to the same cached snapshot.
 
 ---
 

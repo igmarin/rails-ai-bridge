@@ -19,7 +19,7 @@ RSpec.describe RailsAiBridge::Tools::GetModelDetails do
           validations: []
         }
       }
-      allow(described_class).to receive(:cached_context).and_return({ models: models })
+      allow(described_class).to receive(:cached_section).with(:models).and_return(models)
     end
 
     it "returns names only with detail:summary" do
@@ -60,7 +60,7 @@ RSpec.describe RailsAiBridge::Tools::GetModelDetails do
     end
 
     it "handles missing models gracefully" do
-      allow(described_class).to receive(:cached_context).and_return({})
+      allow(described_class).to receive(:cached_section).with(:models).and_return(nil)
       result = described_class.call(detail: "summary")
       text = result.content.first[:text]
       expect(text).to include("not available")

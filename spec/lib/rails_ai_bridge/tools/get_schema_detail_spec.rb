@@ -14,9 +14,9 @@ RSpec.describe RailsAiBridge::Tools::GetSchema do
           foreign_keys: []
         }
       end
-      allow(described_class).to receive(:cached_context).and_return({
-        schema: { adapter: "postgresql", tables: tables, total_tables: 50 }
-      })
+      allow(described_class).to receive(:cached_section).with(:schema).and_return(
+        { adapter: "postgresql", tables: tables, total_tables: 50 }
+      )
     end
 
     it "returns compact summary with detail:summary" do
@@ -56,16 +56,14 @@ RSpec.describe RailsAiBridge::Tools::GetSchema do
     end
 
     it "handles missing schema gracefully" do
-      allow(described_class).to receive(:cached_context).and_return({})
+      allow(described_class).to receive(:cached_section).with(:schema).and_return(nil)
       result = described_class.call(detail: "summary")
       text = result.content.first[:text]
       expect(text).to include("not available")
     end
 
     it "handles schema error gracefully" do
-      allow(described_class).to receive(:cached_context).and_return({
-        schema: { error: "no database" }
-      })
+      allow(described_class).to receive(:cached_section).with(:schema).and_return({ error: "no database" })
       result = described_class.call(detail: "summary")
       text = result.content.first[:text]
       expect(text).to include("no database")

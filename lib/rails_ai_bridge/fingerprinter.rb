@@ -28,7 +28,7 @@ module RailsAiBridge
     ].freeze
 
     class << self
-      def compute(app)
+      def snapshot(app)
         root = app.root.to_s
         digest = Digest::SHA256.new
 
@@ -49,8 +49,12 @@ module RailsAiBridge
         digest.hexdigest
       end
 
+      def compute(app)
+        snapshot(app)
+      end
+
       def changed?(app, previous)
-        compute(app) != previous
+        snapshot(app) != previous
       end
     end
   end

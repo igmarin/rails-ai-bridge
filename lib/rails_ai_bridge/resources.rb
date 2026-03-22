@@ -64,10 +64,14 @@ module RailsAiBridge
     }.freeze
 
     class << self
+      def resource_definitions
+        STATIC_RESOURCES.merge(RailsAiBridge.configuration.additional_resources)
+      end
+
       def register(server)
         require "json"
 
-        resources = STATIC_RESOURCES.map do |uri, meta|
+        resources = resource_definitions.map do |uri, meta|
           MCP::Resource.new(
             uri: uri,
             name: meta[:name],
@@ -96,15 +100,14 @@ module RailsAiBridge
 
       def handle_read(params)
         uri = params[:uri]
-        context = RailsAiBridge.introspect
 
-        if STATIC_RESOURCES.key?(uri)
-          key = STATIC_RESOURCES[uri][:key]
-          content = JSON.pretty_generate(context[key] || {})
+        if resource_definitions.key?(uri)
+          key = resource_definitions[uri][:key]
+          content = JSON.pretty_generate(ContextProvider.fetch_section(key) || {})
           [ { uri: uri, mime_type: "application/json", text: content } ]
         elsif (match = uri.match(%r{\Arails://models/(.+)\z}))
           model_name = match[1]
-          models = context[:models] || {}
+          models = ContextProvider.fetch_section(:models) || {}
           data = models[model_name] || { error: "Model '#{model_name}' not found" }
           content = JSON.pretty_generate(data)
           [ { uri: uri, mime_type: "application/json", text: content } ]

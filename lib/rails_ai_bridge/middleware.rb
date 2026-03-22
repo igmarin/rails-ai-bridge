@@ -18,12 +18,7 @@ module RailsAiBridge
       path = config.http_path
 
       if env["PATH_INFO"] == path || env["PATH_INFO"] == "#{path}/"
-        request = Rack::Request.new(env)
-        unless McpHttpAuth.authorized_request?(request)
-          return McpHttpAuth.unauthorized_rack_response
-        end
-
-        transport.handle_request(request)
+        rack_app.call(env)
       else
         @app.call(env)
       end
@@ -38,6 +33,10 @@ module RailsAiBridge
           MCP::Server::Transports::StreamableHTTPTransport.new(server)
         end
       end
+    end
+
+    def rack_app
+      @rack_app ||= HttpTransportApp.build(transport: transport, path: RailsAiBridge.configuration.http_path)
     end
   end
 end

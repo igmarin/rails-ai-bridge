@@ -5,6 +5,15 @@ require "spec_helper"
 RSpec.describe RailsAiBridge::Introspector do
   let(:introspector) { described_class.new(Rails.application) }
 
+  around do |example|
+    original_introspectors = RailsAiBridge.configuration.introspectors.dup
+    original_additional = RailsAiBridge.configuration.additional_introspectors.dup
+    example.run
+  ensure
+    RailsAiBridge.configuration.introspectors = original_introspectors
+    RailsAiBridge.configuration.additional_introspectors = original_additional
+  end
+
   describe "#call" do
     it "returns a complete context hash" do
       result = introspector.call
@@ -41,6 +50,23 @@ RSpec.describe RailsAiBridge::Introspector do
         expect(schema[:tables]).to have_key("users")
         expect(schema[:tables]).to have_key("posts")
       end
+    end
+
+    it "supports configured custom introspectors" do
+      custom_introspector = Class.new do
+        def initialize(_app); end
+
+        def call
+          { custom: true }
+        end
+      end
+
+      RailsAiBridge.configuration.additional_introspectors[:custom] = custom_introspector
+      RailsAiBridge.configuration.introspectors = [ :custom ]
+
+      result = introspector.call
+
+      expect(result[:custom]).to eq({ custom: true })
     end
   end
 end

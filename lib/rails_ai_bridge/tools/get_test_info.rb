@@ -11,7 +11,7 @@ module RailsAiBridge
       annotations(read_only_hint: true, destructive_hint: false, idempotent_hint: true, open_world_hint: false)
 
       def self.call(server_context: nil)
-        data = cached_context[:tests]
+        data = cached_section(:tests)
         return text_response("Test introspection not available. Add :tests to introspectors.") unless data
         return text_response("Test introspection failed: #{data[:error]}") if data[:error]
 

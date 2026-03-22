@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Shared runtime context provider** — MCP tools and `rails://...` resources now read through `RailsAiBridge::ContextProvider`, keeping cache invalidation and snapshot semantics aligned across both entry points.
+- **Explicit extension registries** — `config.additional_introspectors`, `config.additional_tools`, and `config.additional_resources` allow host apps or companion gems to extend the built-ins without patching core constants.
+- **HTTP transport Rack builder** — `RailsAiBridge::HttpTransportApp` centralizes HTTP MCP request handling for both standalone server mode and middleware auto-mount.
+- **Section-level context reads** — `ContextProvider.fetch_section` and `BaseTool.cached_section` let single-section tools avoid rebuilding or materializing the full snapshot path when unnecessary.
+- **Folder-level contributor docs** — key runtime folders now include local `README.md` guides for structure, boundaries, and extension points.
+- **Extensibility integration coverage** — specs now prove that a custom introspector, tool, and resource can be registered and used together from the host app configuration surface.
+
+### Changed
+
+- **Install generator messages** — the install flow now reports created vs unchanged files correctly and the generated initializer comments reflect the current preset sizes.
+- **Fingerprint reuse on invalidation** — context refresh reuses a single fingerprint snapshot per fetch cycle instead of scanning twice when cached context becomes stale.
+
+### Fixed
+
+- **Install generator output bug** — `generate_context` results are no longer iterated as raw hash pairs during install-time file generation.
+
 ## [1.1.0] - 2026-03-20
 
 ### Security
