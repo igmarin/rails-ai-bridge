@@ -2,7 +2,7 @@
 
 > **The fastest way to give AI assistants deep, live knowledge of your Rails app.**
 
-**One command. Zero config. ~95% fewer tokens** (vs. dumping full schema/context into the prompt — see [Token savings](#token-savings) for the documented scenario).
+**One command. Zero config. Better app awareness for AI assistants** through compact project files and live MCP tools.
 
 [![Gem Version](https://badge.fury.io/rb/rails-ai-bridge.svg)](https://rubygems.org/gems/rails-ai-bridge)
 [![CI](https://github.com/igmarin/rails-ai-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/igmarin/rails-ai-bridge/actions)
@@ -92,7 +92,7 @@ The install generator creates **`.mcp.json`** (MCP auto-discovery) and generates
 | | **rails-ai-bridge** | **[rails-mcp-server](https://github.com/maquina-app/rails-mcp-server)** | **Manual context** |
 | --- | --- | --- | --- |
 | Zero config | Yes — Railtie + install generator | No — per-project `projects.yml` | No |
-| Token optimization | Yes — compact files + `detail:"summary"` workflow ([metrics](#token-savings)) | Varies | No |
+| Token optimization | Yes — compact files + `detail:"summary"` workflow | Varies | No |
 | Codex-oriented repo files | Yes — `AGENTS.md`, `.codex/README.md` | No | DIY |
 | Live MCP tools | Yes — 9 read-only `rails_*` tools | Yes | No |
 | Auto-introspection | Yes — up to **27** domains (`:full`) | No — server points at projects you configure | DIY |
@@ -222,25 +222,19 @@ rails_get_model_details(model: "User")
 
 A safety net (`max_tool_response_chars`, default 120K) truncates oversized responses with hints to use filters.
 
-### Token savings
+### Early real-world observations
 
-The summary-first approach dramatically reduces AI token consumption — especially for large apps:
+Early project-level trials suggest the biggest improvement is not always dramatic token reduction by itself. In several runs, `rails-ai-bridge` led to faster, more focused responses even when total token usage only dropped modestly.
 
-| Metric | Without gem | Full dump (v0.6) | Smart mode (v0.7+) |
-|--------|-------------|------------------|---------------------|
-| Context file | 0 tokens | ~15,000 tokens | ~1,500 tokens |
-| Schema lookup | manual copy-paste | ~45,000 tokens (all tables) | ~800 tokens (summary) |
-| Drill into 1 table | manual copy-paste | included above | ~400 tokens |
-| **2-call workflow** | **error-prone** | **~60,000 tokens** | **~2,700 tokens** |
+This is expected: compact assistant-specific files and the summary-first MCP workflow reduce orientation overhead, help the model navigate the codebase earlier, and improve the quality of the initial context.
 
-That's **~95% fewer tokens** for the same understanding. The AI gets a compact overview first, then only loads what it actually needs — you pay for precision, not bulk.
+Observed benefits so far:
+- Less exploratory reading before the assistant reaches the relevant files
+- Faster first useful response in Cursor and Windsurf trials
+- Similar or slightly better answer quality with clearer project grounding
+- More predictable drill-down via `detail:"summary"` first, then focused lookups
 
-**How it saves:**
-- Compact context files load ≤150 lines instead of thousands
-- `detail:"summary"` gives the AI the full landscape in ~800 tokens
-- Specific lookups (`table:`, `model:`, `controller:`) return only what's needed
-- Pagination prevents dumping hundreds of tables/routes at once
-- Split rule files only activate in relevant directories (e.g., model rules load only when editing `app/models/`)
+Results will vary by client, model, project size, and task type. More formal benchmarks are still in progress.
 
 ---
 
