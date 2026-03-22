@@ -19,14 +19,22 @@ module RailsAiBridge
       check_context_files
       check_mcp_buildable
       check_ripgrep
+      check_view_mcp_tool
+      check_stimulus_mcp_tool
+      check_bridge_metadata
     ].freeze
 
     attr_reader :app
 
+    # @param app [Rails::Application, nil] application to inspect
+    # @return [void]
     def initialize(app = nil)
       @app = app || Rails.application
     end
 
+    # Runs all diagnostic checks and computes a readiness score.
+    #
+    # @return [Hash] diagnostic result with `:checks` and `:score`
     def run
       results = CHECKS.map { |check| send(check) }
       score = compute_score(results)
@@ -145,6 +153,52 @@ module RailsAiBridge
       end
     end
 
+    def check_view_mcp_tool
+      return Check.new(name: "View MCP tool", status: :pass, message: "No view files detected; view MCP tool not required", fix: nil) unless view_files_present?
+
+      unless RailsAiBridge.configuration.introspectors.include?(:views)
+        return Check.new(
+          name: "View MCP tool",
+          status: :warn,
+          message: "Views detected but :views introspector is disabled",
+          fix: "Enable it with `RailsAiBridge.configure { |c| c.introspectors |= [:views] }`"
+        )
+      end
+
+      if tool_registered?("rails_get_view")
+        Check.new(name: "View MCP tool", status: :pass, message: "rails_get_view available for view inspection", fix: nil)
+      else
+        Check.new(name: "View MCP tool", status: :fail, message: "rails_get_view is not registered", fix: "Register `RailsAiBridge::Tools::GetView` in the MCP server")
+      end
+    end
+
+    def check_stimulus_mcp_tool
+      return Check.new(name: "Stimulus MCP tool", status: :pass, message: "No Stimulus controllers detected; stimulus MCP tool not required", fix: nil) unless stimulus_files_present?
+
+      unless RailsAiBridge.configuration.introspectors.include?(:stimulus)
+        return Check.new(
+          name: "Stimulus MCP tool",
+          status: :warn,
+          message: "Stimulus controllers detected but :stimulus introspector is disabled",
+          fix: "Enable it with `RailsAiBridge.configure { |c| c.introspectors |= [:stimulus] }`"
+        )
+      end
+
+      if tool_registered?("rails_get_stimulus")
+        Check.new(name: "Stimulus MCP tool", status: :pass, message: "rails_get_stimulus available for Hotwire UI inspection", fix: nil)
+      else
+        Check.new(name: "Stimulus MCP tool", status: :fail, message: "rails_get_stimulus is not registered", fix: "Register `RailsAiBridge::Tools::GetStimulus` in the MCP server")
+      end
+    end
+
+    def check_bridge_metadata
+      if RailsAiBridge::Resources.resource_definitions.key?("rails://bridge/meta")
+        Check.new(name: "Bridge metadata", status: :pass, message: "rails://bridge/meta available for bridge diagnostics", fix: nil)
+      else
+        Check.new(name: "Bridge metadata", status: :fail, message: "rails://bridge/meta resource is missing", fix: "Register the bridge metadata resource in `RailsAiBridge::Resources`")
+      end
+    end
+
     def compute_score(results)
       total = results.size * 10
       earned = results.sum do |check|
@@ -155,6 +209,20 @@ module RailsAiBridge
         end
       end
       ((earned.to_f / total) * 100).round
+    end
+
+    def tool_registered?(tool_name)
+      (RailsAiBridge::Server::TOOLS + RailsAiBridge.configuration.additional_tools).any? { |tool| tool.tool_name == tool_name }
+    end
+
+    def view_files_present?
+      dir = File.join(app.root, "app/views")
+      Dir.exist?(dir) && Dir.glob(File.join(dir, "**/*")).reject { |path| File.directory?(path) }.any?
+    end
+
+    def stimulus_files_present?
+      dir = File.join(app.root, "app/javascript/controllers")
+      Dir.exist?(dir) && Dir.glob(File.join(dir, "**/*_controller.{js,ts}")).any?
     end
   end
 end

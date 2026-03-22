@@ -17,7 +17,9 @@ module RailsAiBridge
       Tools::GetConventions,
       Tools::GetControllers,
       Tools::GetConfig,
-      Tools::GetTestInfo
+      Tools::GetTestInfo,
+      Tools::GetView,
+      Tools::GetStimulus
     ].freeze
 
     def initialize(app, transport: :stdio)

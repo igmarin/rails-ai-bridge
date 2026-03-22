@@ -31,13 +31,31 @@ RSpec.describe RailsAiBridge::Doctor do
       expect(names).to include("Controllers", "Views", "I18n", "Tests")
     end
 
-    it "runs 12 total checks" do
-      expect(result[:checks].size).to eq(12)
+    it "includes context quality checks for UI stacks and bridge metadata" do
+      names = result[:checks].map(&:name)
+      expect(names).to include("View MCP tool", "Stimulus MCP tool", "Bridge metadata")
+    end
+
+    it "runs 15 total checks" do
+      expect(result[:checks].size).to eq(15)
     end
 
     it "checks MCP server buildability" do
       mcp_check = result[:checks].find { |c| c.name == "MCP server" }
       expect(mcp_check.status).to eq(:pass)
+    end
+
+    it "warns when views exist but the views introspector is disabled" do
+      saved = RailsAiBridge.configuration.introspectors.dup
+      RailsAiBridge.configuration.introspectors -= [ :views ]
+
+      current = doctor.run
+      check = current[:checks].find { |c| c.name == "View MCP tool" }
+
+      expect(check.status).to eq(:warn)
+      expect(check.message).to include(":views")
+    ensure
+      RailsAiBridge.configuration.introspectors = saved
     end
 
     it "all checks have a name and message" do

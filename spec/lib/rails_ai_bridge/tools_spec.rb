@@ -37,7 +37,7 @@ RSpec.describe "MCP Tool Integration" do
     end
 
     it "builds with all tools registered" do
-      expect(server.tools.size).to eq(9)
+      expect(server.tools.size).to eq(11)
       expect(server.tools.keys).to contain_exactly(
         "rails_get_schema",
         "rails_get_routes",
@@ -47,13 +47,16 @@ RSpec.describe "MCP Tool Integration" do
         "rails_get_conventions",
         "rails_get_controllers",
         "rails_get_config",
-        "rails_get_test_info"
+        "rails_get_test_info",
+        "rails_get_view",
+        "rails_get_stimulus"
       )
     end
 
     it "registers static resources" do
       uris = server.resources.map(&:uri)
       expect(uris).to contain_exactly(
+        "rails://bridge/meta",
         "rails://schema",
         "rails://routes",
         "rails://conventions",
@@ -62,7 +65,9 @@ RSpec.describe "MCP Tool Integration" do
         "rails://config",
         "rails://tests",
         "rails://migrations",
-        "rails://engines"
+        "rails://engines",
+        "rails://views",
+        "rails://stimulus"
       )
     end
 

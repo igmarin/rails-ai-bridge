@@ -46,4 +46,50 @@ RSpec.describe RailsAiBridge::Resources do
       expect(RailsAiBridge::ContextProvider).to have_received(:fetch_section).with(:custom)
     end
   end
+
+  describe "bridge resources" do
+    it "exposes bridge metadata" do
+      allow(RailsAiBridge::ContextProvider).to receive(:fetch).and_return({
+        app_name: "Dummy",
+        generated_at: "2026-03-21T00:00:00Z",
+        schema: {}
+      })
+
+      rows = described_class.send(:handle_read, { uri: "rails://bridge/meta" })
+      json = JSON.parse(rows.first[:text])
+
+      expect(json["bridge_version"]).to eq(RailsAiBridge::VERSION)
+      expect(json["available_tools"]).to include("rails_get_schema")
+      expect(json["enabled_introspectors"]).to include("schema")
+    end
+
+    it "reads a specific stimulus controller resource" do
+      allow(RailsAiBridge::ContextProvider).to receive(:fetch_section).with(:stimulus).and_return({
+        controllers: [
+          { name: "clipboard", file: "clipboard_controller.js", targets: [ "source" ] }
+        ]
+      })
+
+      rows = described_class.send(:handle_read, { uri: "rails://stimulus/clipboard" })
+      json = JSON.parse(rows.first[:text])
+
+      expect(json["name"]).to eq("clipboard")
+      expect(json["file"]).to eq("clipboard_controller.js")
+    end
+
+    it "reads a specific view resource from app/views" do
+      Dir.mktmpdir do |dir|
+        FileUtils.mkdir_p(File.join(dir, "app/views/users"))
+        File.write(File.join(dir, "app/views/users/index.html.erb"), "<%= render 'form' %>")
+
+        allow(Rails).to receive(:root).and_return(Pathname.new(dir))
+
+        rows = described_class.send(:handle_read, { uri: "rails://views/users/index.html.erb" })
+        json = JSON.parse(rows.first[:text])
+
+        expect(json["path"]).to eq("users/index.html.erb")
+        expect(json["renders"]).to include("form")
+      end
+    end
+  end
 end
