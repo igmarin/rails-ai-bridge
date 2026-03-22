@@ -46,12 +46,17 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     name: Publish to RubyGems
+    # Must match Trusted Publishing on rubygems.org (same repo + this workflow file).
+    permissions:
+      contents: write
+      id-token: write
 
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           fetch-tags: true
+          persist-credentials: false
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
@@ -69,11 +74,18 @@ jobs:
           fi
           echo "Version verified: $GEM_VERSION"
 
-      - name: Push to RubyGems
-        uses: rubygems/release-gem@v1
+      # rubygems/release-gem@v1 runs configure-rubygems-credentials again WITHOUT role-to-assume → "No trusted publisher".
+      # We configure OIDC explicitly, then build + push (no rake release: tag already exists).
+      # Repository variable RUBYGEMS_OIDC_ROLE = role id from RubyGems → Trusted publishing (Variables, not Secrets).
+      - name: Configure RubyGems OIDC credentials
+        uses: rubygems/configure-rubygems-credentials@v1.0.0
+        with:
+          role-to-assume: ${{ vars.RUBYGEMS_OIDC_ROLE }}
 
-      - name: Build gem for release asset
-        run: gem build rails-ai-bridge.gemspec
+      - name: Build and push gem to RubyGems.org
+        run: |
+          gem build rails-ai-bridge.gemspec
+          gem push rails-ai-bridge-*.gem
 
       - name: Create GitHub Release
         env:
