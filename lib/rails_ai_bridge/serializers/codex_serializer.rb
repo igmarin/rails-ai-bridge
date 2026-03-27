@@ -33,26 +33,9 @@ module RailsAiBridge
         lines << ""
         lines << "Codex reads this file before starting work in this repository."
         lines << ""
+        lines.concat(SharedAssistantGuidance.intro_snapshot_lines(context))
         lines.concat(SharedAssistantGuidance.compact_engineering_rules_lines)
 
-        lines << "## Project overview"
-        lines << "- App: #{context[:app_name]}"
-        lines << "- Stack: Rails #{context[:rails_version]} | Ruby #{context[:ruby_version]}"
-
-        schema = context[:schema]
-        if schema && !schema[:error]
-          lines << "- Database: #{schema[:adapter]} (#{schema[:total_tables]} tables)"
-        end
-
-        models = context[:models]
-        if models.is_a?(Hash) && !models[:error]
-          lines << "- Models: #{models.size}"
-        end
-
-        line = ContextSummary.routes_stack_line(context)
-        lines << line if line
-
-        lines << ""
         lines << "## Working agreements"
         lines << "- Prefer the MCP tools over guessing the Rails structure."
         lines << "- Start with `detail:\"summary\"`, then drill into specifics."
@@ -64,7 +47,7 @@ module RailsAiBridge
         SharedAssistantGuidance.performance_security_and_rails_examples_lines.each { |l| lines << l }
         lines << ""
 
-        append_compact_codex_models_section(lines, models)
+        append_compact_codex_models_section(lines, context[:models])
 
         conv = context[:conventions]
         if conv.is_a?(Hash) && !conv[:error]

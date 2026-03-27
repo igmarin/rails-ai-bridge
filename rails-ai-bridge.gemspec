@@ -5,7 +5,7 @@ require_relative "lib/rails_ai_bridge/version"
 Gem::Specification.new do |spec|
   spec.name          = "rails-ai-bridge"
   spec.version       = RailsAiBridge::VERSION
-  spec.authors       = [ "Ismael Marin" ]
+  spec.authors       = [ "Ismael G Marin Cabrera" ]
   spec.email         = [ "ismael.marin@gmail.com" ]
 
   spec.summary       = "Give AI assistants deep, live knowledge of your Rails app via MCP."
@@ -30,11 +30,22 @@ Gem::Specification.new do |spec|
   spec.metadata["rubygems_mfa_required"] = "true"
 
   spec.post_install_message = <<~MSG
-    rails-ai-bridge installed! Quick start:
+    rails-ai-bridge installed!
+
+    Recommended: keep the gem in :development so production bundles stay lean:
+      group :development do
+        gem "rails-ai-bridge"
+      end
+    Without :development, Bundler also installs it for production unless you exclude the group.
+
+    Quick start:
       rails generate rails_ai_bridge:install
-      rails ai:bridge          # generate bridge files (compact mode)
-      rails ai:bridge:full     # full dump (good for small apps)
-      rails ai:serve           # start MCP server for Claude Code / Cursor
+      rails ai:bridge              # respects config/rails_ai_bridge/install.yml
+      rails ai:bridge:all          # every format, including JSON
+      rails ai:bridge:full         # full context dump (small apps)
+      rails ai:serve               # MCP server (stdio) for Claude / Cursor
+
+    HTTP auto_mount is off by default — read SECURITY.md before exposing /mcp.
   MSG
 
   spec.files = Dir.chdir(__dir__) do
@@ -62,4 +73,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "yard", "~> 0.9"
   spec.add_development_dependency "combustion", "~> 1.4" # Test Rails engines in isolation
   spec.add_development_dependency "simplecov", "~> 0.22"
+  # Optional at runtime: host apps need `gem "listen"` for `rails ai:watch` (see Watcher).
+  spec.add_development_dependency "listen", "~> 3.9"
 end

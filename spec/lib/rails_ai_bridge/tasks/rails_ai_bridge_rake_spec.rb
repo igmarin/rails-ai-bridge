@@ -35,8 +35,14 @@ RSpec.describe "rails_ai_bridge rake tasks" do
     rake[name].invoke(*args)
   end
 
-  it "invokes ai:bridge with the aggregate format" do
+  it "invokes ai:bridge with install selection (install.yml or default)" do
     invoke_task("ai:bridge")
+
+    expect(RailsAiBridge).to have_received(:generate_context).with(format: :install)
+  end
+
+  it "invokes ai:bridge:all with every format" do
+    invoke_task("ai:bridge:all")
 
     expect(RailsAiBridge).to have_received(:generate_context).with(format: :all)
   end

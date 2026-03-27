@@ -2,12 +2,17 @@
 
 module RailsAiBridge
   module Serializers
-    # Orchestrates writing context files to disk in various formats.
-    # Supports: CLAUDE.md, .cursorrules, .windsurfrules, .github/copilot-instructions.md, JSON
-    # Also generates split rule files for AI tools that support them.
+    # Writes compact (or full) assistant context files under {Rails.root} or +config.output_dir+.
+    #
+    # Dispatches to format-specific serializers and, for Copilot, merges into a managed HTML comment region
+    # so host edits outside that block are preserved. Also emits “split” rule files (.claude/rules/, etc.)
+    # when the primary format for that assistant is included in the run.
+    #
+    # @see AssistantFormatsPreference
     class ContextFileSerializer
       attr_reader :context, :format
 
+      # Maps logical format keys to a single top-level filename under the output directory.
       FORMAT_MAP = {
         claude:    "CLAUDE.md",
         codex:     "AGENTS.md",
@@ -17,15 +22,25 @@ module RailsAiBridge
         json:      ".ai-context.json"
       }.freeze
 
+      # Start marker for gem-managed Copilot markdown (see {#write_copilot_with_merge}).
+      COPILOT_MANAGED_BEGIN = "<!-- rails-ai-bridge:begin managed -->"
+      # End marker for gem-managed Copilot markdown.
+      COPILOT_MANAGED_END = "<!-- rails-ai-bridge:end managed -->"
+      # Matches one managed block for replacement.
+      COPILOT_MANAGED_BLOCK = /#{Regexp.escape(COPILOT_MANAGED_BEGIN)}.*?#{Regexp.escape(COPILOT_MANAGED_END)}/m
+
+      # @param context [Hash] introspection snapshot passed to format serializers
+      # @param format [Symbol, Array<Symbol>] +:all+, a single key from {FORMAT_MAP}, or an array of keys
       def initialize(context, format: :all)
         @context = context
         @format  = format
       end
 
-      # Write context files, skipping unchanged ones.
-      # @return [Hash] { written: [paths], skipped: [paths] }
+      # Writes requested files and split rules, skipping byte-identical paths.
+      #
+      # @return [Hash{Symbol => Array<String>}] +:written+ and +:skipped+ file paths
       def call
-        formats = format == :all ? FORMAT_MAP.keys : Array(format)
+        formats = normalize_format_list(@format)
         output_dir = RailsAiBridge.configuration.output_dir_for(Rails.application)
         written = []
         skipped = []
@@ -38,13 +53,13 @@ module RailsAiBridge
           end
 
           filepath = File.join(output_dir, filename)
-
-          # Ensure subdirectory exists (e.g. .github/)
           FileUtils.mkdir_p(File.dirname(filepath))
 
           content = serialize(fmt)
 
-          if File.exist?(filepath) && File.read(filepath) == content
+          if fmt == :copilot
+            write_copilot_with_merge(filepath, content, written, skipped)
+          elsif File.exist?(filepath) && File.read(filepath) == content
             skipped << filepath
           else
             File.write(filepath, content)
@@ -52,7 +67,6 @@ module RailsAiBridge
           end
         end
 
-        # Generate split rule files for all AI tools that support them
         generate_split_rules(formats, output_dir, written, skipped)
 
         { written: written, skipped: skipped }
@@ -60,6 +74,71 @@ module RailsAiBridge
 
       private
 
+      # @param format [Object]
+      # @raise [ArgumentError] when an unknown format key appears in an array
+      # @return [Array<Symbol>]
+      def normalize_format_list(format)
+        case format
+        when :all
+          FORMAT_MAP.keys
+        when Array
+          list = format.map(&:to_sym).uniq
+          unknown = list - FORMAT_MAP.keys
+          raise ArgumentError, "Unknown format(s): #{unknown.join(", ")}" if unknown.any?
+
+          list
+        else
+          [ format ].flatten.map(&:to_sym)
+        end
+      end
+
+      # @param inner_markdown [String]
+      # @return [String]
+      def wrap_copilot_managed(inner_markdown)
+        "#{COPILOT_MANAGED_BEGIN}\n#{inner_markdown.to_s.strip}\n#{COPILOT_MANAGED_END}\n"
+      end
+
+      # Updates +copilot-instructions.md+ by replacing the managed block, or skips/warns per +RAILS_AI_BRIDGE_COPILOT_MERGE+.
+      #
+      # @param filepath [String]
+      # @param inner_content [String] serialized Copilot body (without managed markers)
+      # @param written [Array<String>] mutated with path if written
+      # @param skipped [Array<String>] mutated with path if skipped
+      # @return [void]
+      def write_copilot_with_merge(filepath, inner_content, written, skipped)
+        wrapped = wrap_copilot_managed(inner_content)
+        mode = ENV.fetch("RAILS_AI_BRIDGE_COPILOT_MERGE", "").to_s.downcase
+
+        if File.exist?(filepath)
+          existing = File.read(filepath)
+          if existing.match?(COPILOT_MANAGED_BLOCK)
+            updated = existing.sub(COPILOT_MANAGED_BLOCK, wrapped.strip)
+          elsif mode == "overwrite"
+            updated = wrapped
+          elsif mode == "skip"
+            warn "[rails-ai-bridge] Skipping #{filepath} (no managed markers; RAILS_AI_BRIDGE_COPILOT_MERGE=skip)."
+            skipped << filepath
+            return
+          else
+            warn "[rails-ai-bridge] Skipping #{filepath}: existing file has no #{COPILOT_MANAGED_BEGIN}/END managed block. " \
+                 "Set RAILS_AI_BRIDGE_COPILOT_MERGE=overwrite to replace, or wrap your file manually."
+            skipped << filepath
+            return
+          end
+        else
+          updated = wrapped
+        end
+
+        if File.exist?(filepath) && File.read(filepath) == updated
+          skipped << filepath
+        else
+          File.write(filepath, updated)
+          written << filepath
+        end
+      end
+
+      # @param fmt [Symbol]
+      # @return [String]
       def serialize(fmt)
         case fmt
         when :json     then JsonSerializer.new(context).call
@@ -72,6 +151,11 @@ module RailsAiBridge
         end
       end
 
+      # @param formats [Array<Symbol>]
+      # @param output_dir [String]
+      # @param written [Array<String>]
+      # @param skipped [Array<String>]
+      # @return [void]
       def generate_split_rules(formats, output_dir, written, skipped)
         if formats.include?(:claude)
           result = ClaudeRulesSerializer.new(context).call(output_dir)

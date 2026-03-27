@@ -1,13 +1,42 @@
 # frozen_string_literal: true
 
 module RailsAiBridge
+  # Holds user-facing options for introspection presets, exclusions, MCP HTTP, and context generation.
+  #
+  # Presets ({PRESETS}) set the base +introspectors+ list; {#disabled_introspection_categories} and
+  # {#preset=} refine what runs. {#effective_introspectors} is what the introspector and MCP layer use.
+  #
+  # @see Introspector
+  # @see RailsAiBridge.configuration
   class Configuration
+    # Named introspector lists for {#preset=}.
+    #
+    # @return [Hash<Symbol, Array<Symbol>>]
     PRESETS = {
       standard: %i[schema models routes jobs gems conventions controllers tests migrations],
       full: %i[schema models routes jobs gems conventions stimulus controllers views turbo
                i18n config active_storage action_text auth api tests rake_tasks assets
-               devops action_mailbox migrations seeds middleware engines multi_database]
+               devops action_mailbox migrations seeds middleware engines multi_database],
+      # Same introspector set as :standard; use for large apps that want MCP-first model/schema detail (tune list limits in the initializer).
+      large_monolith: %i[schema models routes jobs gems conventions controllers tests migrations],
+      # Minimal disk/MCP surface: no schema, models, or migrations introspection (add them back if you need domain tools).
+      regulated: %i[routes jobs gems conventions controllers tests]
     }.freeze
+
+    # Product-level categories that subtract introspectors from the active preset (see +#effective_introspectors+).
+    #
+    # @return [Hash<Symbol, Array<Symbol>>]
+    INTROSPECTION_CATEGORY_INTROSPECTORS = {
+      domain_metadata: %i[schema models migrations],
+      persistence_surface: %i[schema models],
+      api_surface: %i[api],
+      ui_stack: %i[views stimulus turbo i18n]
+    }.freeze
+
+    # Order for {#inferred_preset_name}: more specific presets before subsets (e.g. :large_monolith vs :standard).
+    #
+    # @return [Array<Symbol>]
+    PRESET_INFERENCE_ORDER = %i[regulated large_monolith full standard].freeze
 
     # MCP server settings
     attr_accessor :server_name, :server_version
@@ -36,6 +65,12 @@ module RailsAiBridge
 
     # Models/tables to exclude from introspection
     attr_accessor :excluded_models
+
+    # Table names to skip in schema/model introspection (exact match or glob with +*+, e.g. +"secrets_*"+).
+    attr_accessor :excluded_tables
+
+    # Category keys from {INTROSPECTION_CATEGORY_INTROSPECTORS} to remove from the active preset at runtime.
+    attr_accessor :disabled_introspection_categories
 
     # TTL in seconds for cached introspection (default: 30)
     attr_accessor :cache_ttl
@@ -75,6 +110,9 @@ module RailsAiBridge
     # Optional custom MCP resources merged with built-in resources.
     attr_accessor :additional_resources
 
+    # Initializes defaults (standard preset, compact mode, common +excluded_models+, empty exclusions).
+    #
+    # @return [void]
     def initialize
       @server_name         = "rails-ai-bridge"
       @server_version      = RailsAiBridge::VERSION
@@ -93,6 +131,8 @@ module RailsAiBridge
         ActionText::RichText ActionText::EncryptedRichText
         ActionMailbox::InboundEmail ActionMailbox::Record
       ]
+      @excluded_tables                    = []
+      @disabled_introspection_categories  = []
       @cache_ttl                = 30
       @context_mode             = :compact
       @claude_max_lines         = 150
@@ -107,12 +147,53 @@ module RailsAiBridge
       @additional_resources             = {}
     end
 
+    # Replaces +introspectors+ with the list for the given preset name.
+    #
+    # @param name [Symbol, String] one of {PRESETS} keys
+    # @raise [ArgumentError] when the preset is unknown
+    # @return [void]
     def preset=(name)
       name = name.to_sym
       raise ArgumentError, "Unknown preset: #{name}. Valid presets: #{PRESETS.keys.join(", ")}" unless PRESETS.key?(name)
       @introspectors = PRESETS[name].dup
     end
 
+    # Introspectors after removing any disabled by {#disabled_introspection_categories}.
+    #
+    # @return [Array<Symbol>]
+    def effective_introspectors
+      disabled = @disabled_introspection_categories.flat_map do |c|
+        INTROSPECTION_CATEGORY_INTROSPECTORS[c.to_sym] || []
+      end.uniq
+      @introspectors.reject { |i| disabled.include?(i) }
+    end
+
+    # Whether a logical table name matches any +excluded_tables+ pattern (exact or glob).
+    #
+    # @param table_name [String, nil]
+    # @return [Boolean]
+    def excluded_table?(table_name)
+      return false if table_name.nil? || table_name.to_s.empty?
+
+      @excluded_tables.any? { |pat| ExclusionHelper.table_pattern_match?(pat.to_s, table_name.to_s) }
+    end
+
+    # Best-effort preset label when +introspectors+ exactly match a known preset; otherwise +:custom+.
+    #
+    # @return [Symbol] a key from {PRESETS} if the sorted list matches, else +:custom+
+    def inferred_preset_name
+      sorted = introspectors.sort
+      self.class::PRESET_INFERENCE_ORDER.each do |key|
+        list = self.class::PRESETS[key]
+        return key if list && sorted == list.sort
+      end
+      :custom
+    end
+
+    # Root-relative or absolute output directory for generated files.
+    #
+    # @param app [Rails::Application]
+    # @return [String] filesystem path
     def output_dir_for(app)
       @output_dir || app.root.to_s
     end

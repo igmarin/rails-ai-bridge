@@ -48,3 +48,17 @@ This fork is maintained by **Ismael Marin**. If you discover a security vulnerab
 - If you enable HTTP transport, keep it bound to `127.0.0.1` unless you add your own network isolation and authentication controls.
 - Do **not** expose `auto_mount` on public or shared production surfaces without an explicit threat model review.
 - Treat generated files such as `AGENTS.md`, `CLAUDE.md`, `.cursorrules`, and `.ai-context.json` as internal engineering documentation.
+
+## Copilot instructions file (`.github/copilot-instructions.md`)
+
+Regeneration wraps **gem-managed** content in HTML comment markers. Content **outside** those markers is left untouched when the markers already exist. If you have an **older** repo file **without** markers, `rails ai:bridge` **skips** overwriting that file by default so manual guidance is not destroyed. To replace the entire file from generated output, set:
+
+`RAILS_AI_BRIDGE_COPILOT_MERGE=overwrite`
+
+To skip writing Copilot instructions when you would otherwise overwrite:
+
+`RAILS_AI_BRIDGE_COPILOT_MERGE=skip`
+
+## Presets, exclusions, and MCP
+
+`rails_get_schema`, `rails_get_model_details`, and other tools build on the same introspection pipeline as `rails ai:bridge`. When you use **`config.excluded_tables`**, **`config.excluded_models`**, **`config.disabled_introspection_categories`**, or presets such as **`:regulated`**, treat the HTTP/stdio MCP surface with the **same data-classification assumptions** as your committed context files: the tools remain read-only but can still reveal structure you chose to omit from markdown.

@@ -21,7 +21,8 @@ module RailsAiBridge
     end
 
     desc "bridge", "Generate AI bridge files"
-    option :format, type: :string, default: "all", desc: "Format: claude, cursor, windsurf, copilot, json, all"
+    option :format, type: :string, default: "install",
+                     desc: "install (default, respects install.yml), all, claude, cursor, windsurf, copilot, json, codex"
     def bridge
       boot_rails!
       require "rails_ai_bridge"

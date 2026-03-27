@@ -66,6 +66,29 @@ RSpec.describe RailsAiBridge::Configuration do
       expect { config.preset = :unknown }.to raise_error(ArgumentError, /Unknown preset/)
     end
 
+    it "sets large_monolith preset to standard-shaped introspector list" do
+      config.preset = :large_monolith
+      expect(config.introspectors).to eq(described_class::PRESETS[:standard])
+    end
+
+    it "sets regulated preset without schema, models, or migrations" do
+      config.preset = :regulated
+      expect(config.introspectors).not_to include(:schema, :models, :migrations)
+      expect(config.introspectors).to include(:routes, :controllers)
+    end
+
+    it "effective_introspectors subtracts disabled categories" do
+      config.preset = :standard
+      config.disabled_introspection_categories << :domain_metadata
+      expect(config.effective_introspectors).not_to include(:schema, :models, :migrations)
+    end
+
+    it "excluded_table? matches globs" do
+      config.excluded_tables << "secrets_*"
+      expect(config.excluded_table?("secrets_raw")).to be true
+      expect(config.excluded_table?("users")).to be false
+    end
+
     it "allows adding introspectors after preset" do
       config.preset = :standard
       config.introspectors += %i[views turbo]

@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Install preferences** — `config/rails_ai_bridge/install.yml` controls which formats `rails ai:bridge` regenerates; `rails ai:bridge:all` writes every format including JSON.
+- **Presets and categories** — optional `:large_monolith` and `:regulated` presets plus `disabled_introspection_categories` for product-level introspector groups; `excluded_tables` (with glob `*`) aligns schema/model output for files and MCP.
+- **Copilot merge policy** — managed HTML-comment region in `.github/copilot-instructions.md` with `RAILS_AI_BRIDGE_COPILOT_MERGE` (`overwrite` / `skip`) documented in SECURITY.
+- **Stub override warning** — visible warning when `overrides.md` still has the install `omit-merge` marker.
 - **Shared runtime context provider** — MCP tools and `rails://...` resources now read through `RailsAiBridge::ContextProvider`, keeping cache invalidation and snapshot semantics aligned across both entry points.
 - **Explicit extension registries** — `config.additional_introspectors`, `config.additional_tools`, and `config.additional_resources` allow host apps or companion gems to extend the built-ins without patching core constants.
 - **HTTP transport Rack builder** — `RailsAiBridge::HttpTransportApp` centralizes HTTP MCP request handling for both standalone server mode and middleware auto-mount.
@@ -18,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Documentation and install UX** — README / GUIDE emphasize `:development` install, HTTP `/mcp` risk, `install.yml`, and JSON workflow; `post_install_message` reinforces the same.
+- **Install generator** — `--assistants`, `--non-interactive`, HTTP security block in initializer, and initial `generate_context(format: :install)`.
 - **Install generator messages** — the install flow now reports created vs unchanged files correctly and the generated initializer comments reflect the current preset sizes.
 - **Fingerprint reuse on invalidation** — context refresh reuses a single fingerprint snapshot per fetch cycle instead of scanning twice when cached context becomes stale.
 

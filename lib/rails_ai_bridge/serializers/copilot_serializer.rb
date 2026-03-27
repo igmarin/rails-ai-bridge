@@ -26,8 +26,7 @@ module RailsAiBridge
         lines = []
         lines << "# #{context[:app_name]} — Copilot Context"
         lines << ""
-        lines << "Rails #{context[:rails_version]} | Ruby #{context[:ruby_version]}"
-        lines << ""
+        lines.concat(SharedAssistantGuidance.intro_snapshot_lines(context))
         lines.concat(SharedAssistantGuidance.compact_engineering_rules_lines)
         # Stack overview
         lines << "## Stack"
@@ -70,48 +69,7 @@ module RailsAiBridge
 
         append_compact_copilot_models_section(lines, models)
 
-
-        # MCP tools
-        lines << "## MCP Tool Reference"
-        lines << ""
-        lines << "This project has MCP tools for live introspection."
-        lines << "**Always start with `detail:\"summary\"`, then drill into specifics.**"
-        lines << ""
-        lines << "### Detail levels (schema, routes, models, controllers)"
-        lines << "- `summary` — names + counts (default limit: 50)"
-        lines << "- `standard` — names + key details (default limit: 15, this is the default)"
-        lines << "- `full` — everything including indexes, FKs (default limit: 5)"
-        lines << ""
-        lines << "### rails_get_schema"
-        lines << "Params: `table`, `detail`, `limit`, `offset`, `format`"
-        lines << "- `rails_get_schema(detail:\"summary\")` — all tables with column counts"
-        lines << "- `rails_get_schema(table:\"users\")` — full detail for one table"
-        lines << "- `rails_get_schema(detail:\"summary\", limit:20, offset:40)` — paginate"
-        lines << ""
-        lines << "### rails_get_model_details"
-        lines << "Params: `model`, `detail`"
-        lines << "- `rails_get_model_details(detail:\"summary\")` — list all model names"
-        lines << "- `rails_get_model_details(model:\"User\")` — associations, validations, scopes, enums"
-        lines << ""
-        lines << "### rails_get_routes"
-        lines << "Params: `controller`, `detail`, `limit`, `offset`"
-        lines << "- `rails_get_routes(detail:\"summary\")` — route counts per controller"
-        lines << "- `rails_get_routes(controller:\"users\")` — routes for one controller"
-        lines << ""
-        lines << "### rails_get_controllers"
-        lines << "Params: `controller`, `detail`"
-        lines << "- `rails_get_controllers(detail:\"summary\")` — names + action counts"
-        lines << "- `rails_get_controllers(controller:\"UsersController\")` — actions, filters, params"
-        lines << ""
-        lines << "### Other tools"
-        lines << "- `rails_get_config` — cache store, session, timezone, middleware"
-        lines << "- `rails_get_test_info` — test framework, factories/fixtures, CI config"
-        lines << "- `rails_get_gems` — notable gems categorized by function"
-        lines << "- `rails_get_conventions` — architecture patterns, directory structure"
-        lines << "- `rails_search_code(pattern:\"regex\", file_type:\"rb\", max_results:20)` — codebase search"
-        lines << ""
-        lines << "_The same MCP reference also appears under `.github/instructions/rails-mcp-tools.instructions.md` and `.cursor/rules/rails-mcp-tools.mdc` for path-scoped clients._"
-        lines << ""
+        lines.concat(SharedAssistantGuidance.compact_copilot_mcp_tool_reference_lines)
 
         # Conventions
         lines << "## Conventions"

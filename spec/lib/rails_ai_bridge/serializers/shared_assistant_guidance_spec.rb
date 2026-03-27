@@ -35,10 +35,12 @@ RSpec.describe RailsAiBridge::Serializers::SharedAssistantGuidance do
   end
 
   describe ".repo_specific_guidance_section_lines" do
-    it "is empty without overrides" do
+    it "suggests overrides when the file does not exist yet" do
       Dir.mktmpdir do |dir|
         allow(Rails.application).to receive(:root).and_return(Pathname.new(dir))
-        expect(described_class.repo_specific_guidance_section_lines).to eq([])
+        lines = described_class.repo_specific_guidance_section_lines
+        expect(lines.join).to include("Repo-specific guidance")
+        expect(lines.join).to include("overrides.md")
       end
     end
 

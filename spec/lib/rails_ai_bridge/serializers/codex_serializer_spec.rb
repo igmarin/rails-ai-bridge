@@ -12,6 +12,7 @@ RSpec.describe RailsAiBridge::Serializers::CodexSerializer do
         app_name: "App",
         rails_version: "8.0",
         ruby_version: "3.3.10",
+        environment: "test",
         schema: { adapter: "postgresql", total_tables: 10 },
         models: { "User" => { associations: [ { type: "has_many", name: "posts" } ], validations: [] } },
         routes: { total_routes: 50, by_controller: { "users" => [] } },
@@ -22,7 +23,11 @@ RSpec.describe RailsAiBridge::Serializers::CodexSerializer do
 
       expect(output).to include("Codex")
       expect(output).to include("AGENTS.md")
-      expect(output.index("Engineering rules")).to be < output.index("Project overview")
+      expect(output).to include("This repository (from introspection)")
+      eng = output.index("General engineering guidance")
+      agree = output.index("Working agreements")
+      expect(eng).to be < agree
+      expect(output).to include("This is not your team policy file")
       expect(output).to include("rails_get_schema")
       expect(output).to include('detail:"summary"')
       expect(output).to include("User")

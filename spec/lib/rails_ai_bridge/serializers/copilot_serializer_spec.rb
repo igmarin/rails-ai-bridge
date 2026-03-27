@@ -9,7 +9,7 @@ RSpec.describe RailsAiBridge::Serializers::CopilotSerializer do
 
     it "generates compact output with MCP tool references" do
       context = {
-        app_name: "App", rails_version: "8.0", ruby_version: "3.4",
+        app_name: "App", rails_version: "8.0", ruby_version: "3.4", environment: "test",
         schema: { adapter: "postgresql", total_tables: 10 },
         models: { "User" => { associations: [ { type: "has_many", name: "posts" } ], validations: [] } },
         routes: { total_routes: 50, by_controller: { "users" => [] } },
@@ -18,10 +18,11 @@ RSpec.describe RailsAiBridge::Serializers::CopilotSerializer do
 
       output = described_class.new(context).call
       expect(output).to include("Copilot Context")
+      expect(output).to include("This repository (from introspection)")
       expect(output).to include("MCP tools")
       expect(output).to include("rails_get_schema")
       expect(output).to include("Performance & security (baseline)")
-      expect(output).to include("Engineering rules (read first)")
+      expect(output).to include("General engineering guidance (rails-ai-bridge baseline)")
       expect(output).to include("strong parameters")
       expect(output).to include("N+1")
       expect(output).to include("Rails patterns")

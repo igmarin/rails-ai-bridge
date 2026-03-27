@@ -1,10 +1,24 @@
 # frozen_string_literal: true
 
 module RailsAiBridge
-  # File system watcher that regenerates bridge files when key files change.
-  # Requires the `listen` gem (optional dependency).
+  # Watches a fixed set of project directories and regenerates bridge files when the
+  # {Fingerprinter} detects a meaningful change.
+  #
+  # Depends on the +listen+ gem, which is **not** a runtime dependency of rails-ai-bridge: add
+  # +gem "listen", group: :development+ to the **host application** (or rely on Rails’ default
+  # development group, which often includes it). The gem declares +listen+ only as a
+  # development dependency for maintainers and CI.
+  #
+  # @see Fingerprinter
+  # @see RailsAiBridge.generate_context
   class Watcher
+    # Reserved interval (seconds) for future debouncing; regeneration is currently gated by
+    # fingerprint comparison in {#handle_change}.
     DEBOUNCE_SECONDS = 2
+
+    # Subpaths under +Rails.root+ passed to +Listen+. Only existing directories are watched.
+    #
+    # @return [Array<String>]
     WATCH_PATTERNS = %w[
       app/models
       app/controllers
@@ -15,13 +29,22 @@ module RailsAiBridge
       db
     ].freeze
 
+    # @return [Rails::Application]
     attr_reader :app
 
+    # @param app [Rails::Application, nil] defaults to +Rails.application+
     def initialize(app = nil)
       @app = app || Rails.application
       @last_fingerprint = Fingerprinter.compute(@app)
     end
 
+    # Starts +Listen+ on {WATCH_PATTERNS}, then blocks in a sleep loop until SIGINT (+Interrupt+).
+    #
+    # Calls {RailsAiBridge.generate_context} with +format: :install+ when the fingerprint changes.
+    #
+    # @return [void] may return early when no watchable directories exist
+    # @note On missing +listen+, prints to stderr and calls +exit(1)+.
+    # @note This method does not return normally unless no directories are watchable.
     def start
       require "listen"
 
@@ -59,13 +82,16 @@ module RailsAiBridge
 
     private
 
+    # Regenerates context when {Fingerprinter.changed?} is true; updates the cached fingerprint.
+    #
+    # @return [void]
     def handle_change
       return unless Fingerprinter.changed?(app, @last_fingerprint)
 
       @last_fingerprint = Fingerprinter.compute(app)
 
       $stderr.puts "[rails-ai-bridge] Changes detected, regenerating bridge files..."
-      result = RailsAiBridge.generate_context(format: :all)
+      result = RailsAiBridge.generate_context(format: :install)
       result[:written].each { |f| $stderr.puts "  Updated: #{f}" }
       result[:skipped].each { |f| $stderr.puts "  Unchanged: #{f}" }
     rescue => e

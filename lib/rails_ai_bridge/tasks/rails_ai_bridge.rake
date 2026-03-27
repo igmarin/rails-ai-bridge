@@ -25,7 +25,7 @@ def apply_context_mode_override
 end
 
 namespace :ai do
-  desc "Generate AI bridge files (CLAUDE.md, .cursorrules, .windsurfrules, .github/copilot-instructions.md)"
+  desc "Generate AI bridge files (respects config/rails_ai_bridge/install.yml when present; otherwise all formats)"
   task bridge: :environment do
     require "rails_ai_bridge"
 
@@ -33,13 +33,14 @@ namespace :ai do
 
     puts "🔍 Introspecting #{Rails.application.class.module_parent_name}..."
 
-    puts "📝 Writing bridge files..."
-    result = RailsAiBridge.generate_context(format: :all)
+    puts "📝 Writing bridge files (selection from install.yml if configured)..."
+    result = RailsAiBridge.generate_context(format: :install)
 
     print_result(result)
     puts ""
     puts "Done! Your AI assistants now understand your Rails app."
     puts "Commit these files so your whole team benefits."
+    puts "Run `rails ai:bridge:all` to regenerate every format including JSON (ignores install.yml)."
     puts ""
     puts ASSISTANT_TABLE
   end
@@ -60,6 +61,21 @@ namespace :ai do
   end
 
   namespace :bridge do
+    desc "Generate every bridge format (including JSON), ignoring install.yml"
+    task all: :environment do
+      require "rails_ai_bridge"
+
+      apply_context_mode_override
+
+      puts "🔍 Introspecting #{Rails.application.class.module_parent_name}..."
+      puts "📝 Writing all bridge files..."
+      result = RailsAiBridge.generate_context(format: :all)
+
+      print_result(result)
+      puts ""
+      puts "Done! All formats written."
+    end
+
     { claude: "CLAUDE.md", codex: "AGENTS.md", cursor: ".cursorrules", windsurf: ".windsurfrules",
       copilot: ".github/copilot-instructions.md", json: ".ai-context.json" }.each do |fmt, file|
       desc "Generate #{file} bridge file"
@@ -74,7 +90,7 @@ namespace :ai do
 
         print_result(result)
         puts ""
-        puts "Tip: Run `rails ai:bridge` to generate all formats at once."
+        puts "Tip: Run `rails ai:bridge` for your install.yml selection, or `rails ai:bridge:all` for every format."
       end
     end
 

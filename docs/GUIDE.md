@@ -28,31 +28,46 @@
 
 ## Installation
 
+**Recommendation:** add **rails-ai-bridge** to the **`development`** group so production bundles do not include the gem unless you choose to:
+
+```ruby
+group :development do
+  gem "rails-ai-bridge"
+end
+```
+
+Top-level `gem "rails-ai-bridge"` is resolved for **all** groups (including production) under a normal `bundle install`.
+
 ### New project
 
 ```bash
-bundle add rails-ai-bridge
+bundle add rails-ai-bridge --group development
 rails generate rails_ai_bridge:install
 rails ai:bridge
 ```
 
 This creates:
-1. `config/initializers/rails_ai_bridge.rb` — configuration file
-2. `config/rails_ai_bridge/overrides.md` — stub (omit-merge line); `overrides.md.example` — outline (not merged)
-3. `.mcp.json` — MCP auto-discovery for MCP-capable clients
-4. Assistant-specific context files — including `AGENTS.md` for Codex
+1. `config/initializers/rails_ai_bridge.rb` — configuration file (see **HTTP SECURITY** comments for `/mcp`)
+2. `config/rails_ai_bridge/install.yml` — which assistant formats `rails ai:bridge` regenerates by default
+3. `config/rails_ai_bridge/overrides.md` — stub (omit-merge line); `overrides.md.example` — outline (not merged)
+4. `.mcp.json` — MCP auto-discovery for MCP-capable clients
+5. Assistant-specific context files — including `AGENTS.md` for Codex
 
 ### Existing project
 
-```bash
-# Add to Gemfile
-gem "rails-ai-bridge"
+```ruby
+# Gemfile — development group recommended
+group :development do
+  gem "rails-ai-bridge"
+end
+```
 
+```bash
 # Install
 bundle install
 rails generate rails_ai_bridge:install
 
-# Generate bridge files
+# Regenerate files listed in install.yml (default after install)
 rails ai:bridge
 
 # Verify everything works
@@ -62,10 +77,17 @@ rails ai:doctor
 ### What the install generator does
 
 1. Creates `.mcp.json` in project root (MCP auto-discovery)
-2. Creates `config/initializers/rails_ai_bridge.rb` with commented defaults
-3. Creates `config/rails_ai_bridge/overrides.md` (stub) and `overrides.md.example` when absent — remove the omit-merge line from `overrides.md` before real rules are merged
-4. Adds `.ai-context.json` to `.gitignore` (JSON cache — markdown files should be committed)
-5. Generates all bridge files
+2. Creates `config/initializers/rails_ai_bridge.rb` with commented defaults and a prominent HTTP `/mcp` security block
+3. Creates `config/rails_ai_bridge/install.yml` listing assistant formats (from `--assistants` or interactive prompt; `--non-interactive` uses a safe default set)
+4. Creates `config/rails_ai_bridge/overrides.md` (stub) and `overrides.md.example` when absent — remove the omit-merge line from `overrides.md` before real rules are merged
+5. Adds `.ai-context.json` to `.gitignore` (JSON cache — markdown files should be committed)
+6. Runs `rails ai:bridge` once using the `install.yml` selection
+
+### `install.yml` vs `rails ai:bridge:all`
+
+- **`rails ai:bridge`** — regenerates only the formats listed under `config/rails_ai_bridge/install.yml` (fast day-to-day workflow).
+- **`rails ai:bridge:all`** — regenerates **every** format in one run, including **JSON** (`.ai-context.json`), regardless of `install.yml`. Use for CI, onboarding, or when you temporarily need every artifact.
+- **`rails ai:bridge:json`** — writes `.ai-context.json` only; add `json` to `install.yml` if you want it on every `rails ai:bridge`.
 
 ---
 
@@ -78,6 +100,8 @@ The gem has two context modes that control how much data goes into the generated
 ```bash
 rails ai:bridge
 ```
+
+- Respects `config/rails_ai_bridge/install.yml` for which assistant files to touch (see [Installation](#installation)).
 
 - CLAUDE.md ≤150 lines
 - .windsurfrules ≤5,800 characters
@@ -127,7 +151,7 @@ end
 
 ## Generated Files
 
-`rails ai:bridge` generates **18+ files** across all AI assistants (counts include Codex and split rules).
+With **`rails ai:bridge:all`**, the gem can produce **18+ files** across assistants (counts include Codex and split rules). A normal **`rails ai:bridge`** only touches the subset configured in `config/rails_ai_bridge/install.yml`.
 
 ### Claude Code (4 files)
 
@@ -161,7 +185,7 @@ end
 
 | File | Purpose | Notes |
 |------|---------|-------|
-| `.github/copilot-instructions.md` | Repo-wide instructions | ≤500 lines in compact mode. Order: engineering rules → stack → optional `overrides.md` → performance + Rails patterns → short model list → MCP. |
+| `.github/copilot-instructions.md` | Repo-wide instructions | ≤500 lines in compact mode. Gem-managed content is wrapped in HTML comment markers so human text outside the block survives regeneration (see [SECURITY.md](../SECURITY.md)). |
 | `.github/instructions/rails-models.instructions.md` | Model context | `applyTo: app/models/**/*.rb` — loaded when editing models. |
 | `.github/instructions/rails-controllers.instructions.md` | Controller context | `applyTo: app/controllers/**/*.rb` — loaded when editing controllers. |
 | `.github/instructions/rails-mcp-tools.instructions.md` | MCP tool reference | `applyTo: **/*` — loaded everywhere. |
@@ -178,7 +202,9 @@ Commit **all files except `.ai-context.json`** (which is gitignored). This gives
 
 ### Repo-specific guidance (`config/rails_ai_bridge/overrides.md`)
 
-Optional markdown **merged verbatim** into compact `.github/copilot-instructions.md` and `AGENTS.md` under **Repo-specific guidance** when you run `rails ai:bridge` — **only after** you remove the install stub’s first line: `<!-- rails-ai-bridge:omit-merge -->`. While that line is the first non-empty line in the file, the gem treats overrides as inactive (no placeholder noise in generated files).
+Optional markdown **merged verbatim** into compact `.github/copilot-instructions.md` and `AGENTS.md` under **Repo-specific guidance** when you run `rails ai:bridge` — **only after** you remove the install stub’s first line: `<!-- rails-ai-bridge:omit-merge -->`. While that line is the first non-empty line in the file, the gem treats overrides as inactive (no placeholder noise in generated files), and generation may **warn** that the stub is still active.
+
+For Copilot, if `.github/copilot-instructions.md` exists **without** gem markers, `rails ai:bridge` **skips** overwriting it unless you set `RAILS_AI_BRIDGE_COPILOT_MERGE=overwrite` (or `skip` to never write that file). See [SECURITY.md](../SECURITY.md).
 
 - Use **`overrides.md.example`** as a starting outline (that file is never merged).
 - Override path: `config.assistant_overrides_path` (relative to `Rails.root` or absolute).
@@ -194,8 +220,9 @@ The same engineering baseline intentionally appears in Copilot, Codex, and Curso
 
 | Command | Mode | Format | Description |
 |---------|------|--------|-------------|
-| `rails ai:bridge` | compact | all | Generate all bridge files |
-| `rails ai:bridge:full` | full | all | Generate all files in full mode |
+| `rails ai:bridge` | compact | `install.yml` | Regenerate formats listed in `config/rails_ai_bridge/install.yml` |
+| `rails ai:bridge:all` | compact | all | Regenerate every assistant format + JSON (ignores `install.yml`) |
+| `rails ai:bridge:full` | full | all | Full context mode — writes **every** format (including JSON), same as compact `ai:bridge:all` but with `context_mode: :full` |
 | `rails ai:bridge:claude` | compact | Claude | CLAUDE.md + .claude/rules/ |
 | `rails ai:bridge:codex` | compact | Codex | AGENTS.md + .codex/README.md |
 | `rails ai:bridge:cursor` | compact | Cursor | .cursorrules + .cursor/rules/ |
@@ -567,8 +594,11 @@ Both transports are **read-only** — they expose the same 9 tools and never mod
 RailsAiBridge.configure do |config|
   # --- Introspectors ---
 
-  # Presets: :standard (9 core, default) or :full (all 27)
+  # Presets: :standard (9 core, default), :full (27), :large_monolith (MCP-first tuning), :regulated (minimal domain on disk)
   config.preset = :standard
+
+  # Subtract product-level groups from whatever the preset enables (see "Introspection categories" below)
+  # config.disabled_introspection_categories += %i[domain_metadata persistence_surface]
 
   # Cherry-pick on top of a preset
   config.introspectors += %i[views turbo auth api]
@@ -601,8 +631,9 @@ RailsAiBridge.configure do |config|
 
   # --- Exclusions ---
 
-  # Models to skip during introspection
+  # Models / tables to skip during introspection (tables: string name or glob with *)
   config.excluded_models += %w[AdminUser InternalAuditLog]
+  # config.excluded_tables += %w[user_secrets sensitive_*]
 
   # Paths to exclude from code search
   config.excluded_paths += %w[vendor/bundle]
@@ -621,13 +652,15 @@ end
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `preset` | Symbol | `:standard` | Introspector preset (`:standard` or `:full`) |
-| `introspectors` | Array | 9 core symbols | Which introspectors to run |
+| `preset` | Symbol | `:standard` | `:standard`, `:full`, `:large_monolith`, `:regulated` |
+| `disabled_introspection_categories` | Array | `[]` | Keys such as `:domain_metadata` that remove groups of introspectors (see below) |
+| `introspectors` | Array | from preset | Which introspectors to run (after preset + categories); use for advanced cherry-pick |
 | `context_mode` | Symbol | `:compact` | `:compact` or `:full` |
 | `claude_max_lines` | Integer | `150` | Max lines for CLAUDE.md in compact mode |
 | `max_tool_response_chars` | Integer | `120_000` | Safety cap for MCP tool responses |
 | `cache_ttl` | Integer | `30` | Cache TTL in seconds for introspection results |
 | `excluded_models` | Array | internal Rails models | Models to skip |
+| `excluded_tables` | Array | `[]` | Tables omitted from schema/model introspection (generated files **and** MCP tools) |
 | `excluded_paths` | Array | `node_modules tmp log vendor .git` | Paths excluded from code search |
 | `output_dir` | String | `nil` (Rails.root) | Where to write context files |
 | `auto_mount` | Boolean | `false` | Auto-mount HTTP MCP endpoint |
@@ -689,6 +722,33 @@ Includes all standard introspectors plus:
 ```ruby
 config.preset = :full
 ```
+
+### Optional presets: `:large_monolith` and `:regulated`
+
+- **`:large_monolith`** — same introspector *set* as `:standard`; intended for big apps that pair compact static files with MCP-first detail (tune `copilot_compact_model_list_limit` / `codex_compact_model_list_limit` in the initializer).
+- **`:regulated`** — runs a **smaller** introspector list (no `schema`, `models`, or `migrations` in the preset definition). Disk output and MCP tools share the same **`effective_introspectors`**; configuring this preset reduces both.
+
+Names are reflected in compact “intro snapshot” lines so assistants can tell which profile is active.
+
+### Introspection categories (`disabled_introspection_categories`)
+
+Instead of memorizing raw introspector symbols, you can disable **product-level** groups. Each key removes the listed introspectors from the active preset at runtime (union of all selected categories):
+
+| Category | Introspectors removed |
+|----------|------------------------|
+| `:domain_metadata` | `schema`, `models`, `migrations` |
+| `:persistence_surface` | `schema`, `models` |
+| `:api_surface` | `api` |
+| `:ui_stack` | `views`, `stimulus`, `turbo`, `i18n` |
+
+Example:
+
+```ruby
+config.preset = :standard
+config.disabled_introspection_categories << :domain_metadata
+```
+
+Advanced users can still use `config.introspectors +=` / `config.preset = :full` as before.
 
 ### Cherry-picking introspectors
 

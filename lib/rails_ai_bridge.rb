@@ -46,12 +46,33 @@ module RailsAiBridge
     # Generate context files (CLAUDE.md, .cursorrules, etc.)
     #
     # @param app [Rails::Application, nil] app to introspect, defaults to Rails.application
-    # @param format [Symbol] output format (:all, :claude, :cursor, :windsurf, :copilot, :json, :codex)
+    # @param format [Symbol, Array<Symbol>] output format (+:all+, +:install+, +:claude+, …, or an array from install.yml)
     # @return [Hash{Symbol => Array<String>}] files grouped under +:written+ and +:skipped+
     def generate_context(app = nil, format: :all)
       app ||= Rails.application
+      warn_stubbed_assistant_overrides
       context = introspect(app)
-      Serializers::ContextFileSerializer.new(context, format: format).call
+      Serializers::ContextFileSerializer.new(context, format: resolve_generate_format(format)).call
+    end
+
+    # @param format [Object]
+    # @return [Symbol, Array<Symbol>]
+    def resolve_generate_format(format)
+      case format
+      when :install
+        prefs = AssistantFormatsPreference.formats_for_default_bridge_task
+        prefs.nil? ? :all : prefs
+      else
+        format
+      end
+    end
+
+    # @return [void]
+    def warn_stubbed_assistant_overrides
+      return unless Serializers::SharedAssistantGuidance.overrides_stub_active?
+
+      warn "[rails-ai-bridge] config/rails_ai_bridge/overrides.md is still the install stub (remove the first-line " \
+           "<!-- rails-ai-bridge:omit-merge --> marker so team rules merge into Copilot/Codex output)."
     end
 
     # Start the MCP server programmatically

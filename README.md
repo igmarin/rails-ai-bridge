@@ -31,8 +31,8 @@ flowchart LR
   app --> intro --> mcp --> clients
 ```
 
-1. **Up to 27 introspectors** scan schema, models, routes, controllers, jobs, gems, conventions, and more (preset `:standard` runs 9 core ones by default; `:full` runs all).
-2. **`rails ai:bridge`** writes bounded bridge files for Claude, Cursor, Copilot, Codex, Windsurf, and JSON.
+1. **Up to 27 introspectors** scan schema, models, routes, controllers, jobs, gems, conventions, and more (preset `:standard` runs 9 core ones by default; optional `:large_monolith` / `:regulated` tweak scope; `:full` runs all).
+2. **`rails ai:bridge`** writes bounded bridge files according to **`config/rails_ai_bridge/install.yml`** (from the generator). **`rails ai:bridge:all`** writes Claude, Codex, Cursor, Windsurf, Copilot, and **JSON** in one go.
 3. **`rails ai:serve`** exposes **9 MCP tools** so assistants pull detail on demand (`detail: "summary"` first, then drill down).
 
 ### Folder guides
@@ -50,10 +50,20 @@ For contributors, key folders now include local `README.md` guides:
 
 ## Quick start
 
+**Recommended:** put **rails-ai-bridge** in the **`development`** group so production images and `bundle install --without development` workflows do not ship the gem to production unless you want it there:
+
+```ruby
+group :development do
+  gem "rails-ai-bridge"
+end
+```
+
+A top-level `gem "rails-ai-bridge"` (outside `:development`) is installed for **all** groups, including production, when Bundler resolves the default set — fine if you deliberately need it in prod, but most apps should not.
+
 **From RubyGems** (once published):
 
 ```bash
-bundle add rails-ai-bridge
+bundle add rails-ai-bridge --group development
 rails generate rails_ai_bridge:install
 rails ai:bridge
 ```
@@ -61,27 +71,21 @@ rails ai:bridge
 **From GitHub** (before or alongside RubyGems):
 
 ```bash
-bundle add rails-ai-bridge --github=igmarin/rails-ai-bridge
+bundle add rails-ai-bridge --group development --github=igmarin/rails-ai-bridge
 rails generate rails_ai_bridge:install
 rails ai:bridge
 ```
 
-Or add to your `Gemfile`:
-
-```ruby
-gem "rails-ai-bridge", github: "igmarin/rails-ai-bridge"
-```
-
-Then `bundle install`, run the generator, and `rails ai:bridge` as above.
+Or add the `gem` line inside `:development` in your `Gemfile`, then `bundle install`, run the generator, and `rails ai:bridge`.
 
 Optional: `gem install rails-ai-bridge` installs the gem into your Ruby environment; you still add it to the app’s `Gemfile` for a Rails project.
 
-The install generator creates **`.mcp.json`** (MCP auto-discovery) and generates **`AGENTS.md`** (and other assistant files) when you run `rails ai:bridge`.
+The install generator creates **`.mcp.json`**, **`config/rails_ai_bridge/install.yml`** (which assistants `rails ai:bridge` regenerates by default), and runs an initial `rails ai:bridge`. Use **`rails ai:bridge:all`** to regenerate **every** format (including JSON), ignoring `install.yml`.
 
 ### Verify the integration in *your* Rails app
 
 1. **`bundle install` must finish cleanly** — until it does, `bundle exec rails -T` and `rails ai:serve` (from `.mcp.json`) cannot be verified. Merging this gem to `main` does not fix a broken or incomplete bundle on the host app.
-2. **Regenerate in one shot** — run `rails ai:bridge` (not only a single format) so route/controller summaries stay consistent across `CLAUDE.md`, `.cursor/rules/`, and `.github/instructions/`.
+2. **Regenerate the set you use** — run `rails ai:bridge` so files listed in `install.yml` stay consistent. Use `rails ai:bridge:all` when you need every format (including `.ai-context.json`) in one shot, e.g. CI or a full team refresh.
 3. **Keep team-specific rules** — generated files are snapshots. Use **`config/rails_ai_bridge/overrides.md`** for org-specific constraints (merged only after you **delete the first-line** `<!-- rails-ai-bridge:omit-merge -->` stub). Until then, the gem does not inject placeholder text into Copilot/Codex. See **`overrides.md.example`** for an outline. Alternatively re-merge into generated files after each `rails ai:bridge` (see `.codex/README.md`).
 4. **Tune list sizes** — `RailsAiBridge.configure { |c| c.copilot_compact_model_list_limit = 5 }` (and `codex_compact_model_list_limit`); set `0` to list no model names and point only to MCP.
 
@@ -301,13 +305,22 @@ Codex support is centered on **`AGENTS.md`** at the repository root.
 
 ---
 
+## JSON snapshot (`.ai-context.json`)
+
+`rails ai:bridge:json` writes structured context for scripts or CI. It is **not** part of the default `install.yml` selection unless you add `json` there. Use **`rails ai:bridge:all`** when you want JSON alongside every markdown artifact in one command.
+
+---
+
 ## Configuration
 
 ```ruby
 # config/initializers/rails_ai_bridge.rb
 RailsAiBridge.configure do |config|
-  # Presets: :standard (9 introspectors, default) or :full (all 27)
+  # Presets: :standard (default), :full (all 27), :large_monolith, :regulated
   config.preset = :standard
+
+  # Product-level groups to subtract from the preset (see GUIDE for mapping)
+  # config.disabled_introspection_categories += %i[domain_metadata]
 
   # Cherry-pick on top of a preset
   # config.introspectors += %i[views turbo auth api]
@@ -315,8 +328,9 @@ RailsAiBridge.configure do |config|
   # Context mode: :compact (≤150 lines, default) or :full (dump everything)
   # config.context_mode = :compact
 
-  # Exclude models from introspection
+  # Exclude models / tables from schema + model introspection (tables: exact or glob with *)
   config.excluded_models += %w[AdminUser InternalAuditLog]
+  # config.excluded_tables += %w[credit_cards raw_pii_*]
 
   # Exclude paths from code search
   config.excluded_paths += %w[vendor/bundle]
@@ -331,12 +345,14 @@ end
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `preset` | `:standard` | Introspector preset (`:standard` or `:full`) |
-| `introspectors` | 9 core | Array of introspector symbols |
+| `preset` | `:standard` | `:standard`, `:full`, `:large_monolith`, or `:regulated` |
+| `disabled_introspection_categories` | `[]` | Subtract introspector groups (`:domain_metadata`, `:persistence_surface`, `:api_surface`, `:ui_stack`) |
+| `introspectors` | from preset | Array of introspector symbols (`effective_introspectors` applies preset + categories) |
 | `context_mode` | `:compact` | `:compact` (≤150 lines) or `:full` (dump everything) |
 | `claude_max_lines` | `150` | Max lines for CLAUDE.md in compact mode |
 | `max_tool_response_chars` | `120_000` | Safety cap for MCP tool responses |
 | `excluded_models` | internal Rails models | Models to skip during introspection |
+| `excluded_tables` | `[]` | Table names to omit (glob with `*`) — applies to files **and** MCP schema/model tools |
 | `excluded_paths` | `node_modules tmp log vendor .git` | Paths excluded from code search |
 | `auto_mount` | `false` | Auto-mount HTTP MCP endpoint |
 | `allow_auto_mount_in_production` | `false` | Allow `auto_mount` in production (requires MCP token) |

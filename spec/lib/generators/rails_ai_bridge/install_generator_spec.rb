@@ -20,12 +20,15 @@ RSpec.describe RailsAiBridge::Generators::InstallGenerator do
 
       expect(content).to include(":standard — 9 core introspectors")
       expect(content).to include(":full     — all 26 introspectors")
+      expect(content).to include(":regulated")
+      expect(content).to include("SECURITY CRITICAL")
+      expect(content).to include("RAILS_AI_BRIDGE_MCP_TOKEN")
     end
   end
 
   describe "#generate_context_files" do
     it "reports written and skipped files separately" do
-      allow(RailsAiBridge).to receive(:generate_context).and_return({
+      allow(RailsAiBridge).to receive(:generate_context).with(format: :install).and_return({
         written: [ "CLAUDE.md" ],
         skipped: [ ".cursorrules" ]
       })

@@ -13,12 +13,83 @@ module RailsAiBridge
       # First line of +overrides.md+ while in stub mode — file is not merged until removed.
       OMIT_MERGE_FIRST_LINE = /\A<!--\s*rails-ai-bridge:omit-merge\s*-->\z/i
 
+      # Snapshot block for compact AGENTS.md / Copilot: high-level facts from the last introspection run.
+      #
+      # Composes a fixed heading plus one line per stack, preset, schema/models (when present), routes, and MCP hint.
+      #
+      # @param context [Hash] introspection snapshot (+:environment+, +:rails_version+, +:schema+, +:models+, …)
+      # @return [Array<String>] markdown lines ending with a trailing blank line
+      def intro_snapshot_lines(context)
+        intro_snapshot_heading_lines + intro_snapshot_metric_lines(context) + [ "" ]
+      end
+
+      # Markdown lines for the compact Copilot primary document: full MCP tool cheat sheet (+##+ / +###+ headings).
+      #
+      # Kept here so +CopilotSerializer+ stays orchestration-only; wording matches split Copilot instruction files.
+      #
+      # @return [Array<String>]
+      def compact_copilot_mcp_tool_reference_lines
+        [
+          "## MCP Tool Reference",
+          "",
+          "This project has MCP tools for live introspection.",
+          "**Always start with `detail:\"summary\"`, then drill into specifics.**",
+          "",
+          "### Detail levels (schema, routes, models, controllers)",
+          "- `summary` — names + counts (default limit: 50)",
+          "- `standard` — names + key details (default limit: 15, this is the default)",
+          "- `full` — everything including indexes, FKs (default limit: 5)",
+          "",
+          "### rails_get_schema",
+          "Params: `table`, `detail`, `limit`, `offset`, `format`",
+          "- `rails_get_schema(detail:\"summary\")` — all tables with column counts",
+          "- `rails_get_schema(table:\"users\")` — full detail for one table",
+          "- `rails_get_schema(detail:\"summary\", limit:20, offset:40)` — paginate",
+          "",
+          "### rails_get_model_details",
+          "Params: `model`, `detail`",
+          "- `rails_get_model_details(detail:\"summary\")` — list all model names",
+          "- `rails_get_model_details(model:\"User\")` — associations, validations, scopes, enums",
+          "",
+          "### rails_get_routes",
+          "Params: `controller`, `detail`, `limit`, `offset`",
+          "- `rails_get_routes(detail:\"summary\")` — route counts per controller",
+          "- `rails_get_routes(controller:\"users\")` — routes for one controller",
+          "",
+          "### rails_get_controllers",
+          "Params: `controller`, `detail`",
+          "- `rails_get_controllers(detail:\"summary\")` — names + action counts",
+          "- `rails_get_controllers(controller:\"UsersController\")` — actions, filters, params",
+          "",
+          "### Other tools",
+          "- `rails_get_config` — cache store, session, timezone, middleware",
+          "- `rails_get_test_info` — test framework, factories/fixtures, CI config",
+          "- `rails_get_gems` — notable gems categorized by function",
+          "- `rails_get_conventions` — architecture patterns, directory structure",
+          "- `rails_search_code(pattern:\"regex\", file_type:\"rb\", max_results:20)` — codebase search",
+          "",
+          "_The same MCP reference also appears under `.github/instructions/rails-mcp-tools.instructions.md` and `.cursor/rules/rails-mcp-tools.mdc` for path-scoped clients._",
+          ""
+        ]
+      end
+
+      # @return [Boolean] +true+ when +overrides.md+ exists but is not mergeable (install stub).
+      def overrides_stub_active?
+        path = resolved_assistant_overrides_path
+        return false unless path && File.file?(path)
+
+        body = File.read(path)
+        return false if body.strip.empty?
+
+        !mergeable_override_content?(body)
+      end
+
       # @return [Array<String>] markdown lines including heading and trailing blank line
       def compact_engineering_rules_lines
         [
-          "## Engineering rules (read first)",
+          "## General engineering guidance (rails-ai-bridge baseline)",
           "",
-          "Defaults for this codebase unless existing files clearly show a different pattern.",
+          "_Baseline Rails practices for any app. Team-specific hot tables, auth boundaries, and compliance belong in `config/rails_ai_bridge/overrides.md`._",
           "",
           "### Controllers & strong parameters",
           "- Permit attributes explicitly; never pass raw `params` into `Model.new`, `update`, or `assign_attributes`.",
@@ -134,17 +205,38 @@ module RailsAiBridge
         end
       end
 
-      # @return [Array<String>] section to splice after stack; empty if no overrides
+      # @return [Array<String>] merged team rules, stub notice, or optional pointer
       def repo_specific_guidance_section_lines
         body = read_assistant_overrides
-        return [] unless body
+        if body
+          return [
+            "## Repo-specific guidance",
+            "",
+            body,
+            ""
+          ]
+        end
 
-        [
-          "## Repo-specific guidance",
-          "",
-          body,
-          ""
-        ]
+        if overrides_stub_active?
+          return [
+            "## Repo-specific guidance",
+            "",
+            "_Inactive: `config/rails_ai_bridge/overrides.md` still has the `<!-- rails-ai-bridge:omit-merge -->` marker as the first non-empty line. Remove it to merge team rules here._",
+            ""
+          ]
+        end
+
+        path = resolved_assistant_overrides_path
+        if path && !File.file?(path)
+          return [
+            "## Repo-specific guidance",
+            "",
+            "_Optional: add `config/rails_ai_bridge/overrides.md` for internal constraints (use `overrides.md.example` as a template)._",
+            ""
+          ]
+        end
+
+        []
       end
 
       # Baseline bullets plus concrete Rails patterns for large data.
@@ -153,6 +245,59 @@ module RailsAiBridge
       def performance_security_and_rails_examples_lines
         ContextSummary.compact_performance_security_section + rails_performance_examples_lines
       end
+
+      def intro_snapshot_heading_lines
+        [
+          "## This repository (from introspection)",
+          "_Generated by rails-ai-bridge. This is not your team policy file — see **Repo-specific guidance** below._",
+          ""
+        ]
+      end
+      private_class_method :intro_snapshot_heading_lines
+
+      def intro_snapshot_metric_lines(context)
+        cfg = RailsAiBridge.configuration
+        lines = []
+        lines << intro_snapshot_stack_bullet(context)
+        lines << intro_snapshot_preset_bullet(cfg)
+        lines.concat(intro_snapshot_schema_model_bullets(context))
+        rline = ContextSummary.routes_stack_line(context)
+        lines << rline if rline
+        lines << intro_snapshot_mcp_hint_bullet
+        lines
+      end
+      private_class_method :intro_snapshot_metric_lines
+
+      def intro_snapshot_stack_bullet(context)
+        env = context[:environment].to_s
+        env = "unknown" if env.empty?
+        "- **Stack:** Rails #{context[:rails_version]} | Ruby #{context[:ruby_version]} | #{env}"
+      end
+      private_class_method :intro_snapshot_stack_bullet
+
+      def intro_snapshot_preset_bullet(cfg)
+        "- **Preset:** `#{cfg.inferred_preset_name}` (#{cfg.effective_introspectors.size} introspectors; category exclusions applied)"
+      end
+      private_class_method :intro_snapshot_preset_bullet
+
+      def intro_snapshot_schema_model_bullets(context)
+        out = []
+        schema = context[:schema]
+        if schema.is_a?(Hash) && !schema[:error]
+          out << "- **Database:** #{schema[:adapter]} — #{schema[:total_tables]} tables (after `excluded_tables`)"
+        end
+        models = context[:models]
+        if models.is_a?(Hash) && !models[:error]
+          out << "- **Models:** #{models.size} (after exclusions)"
+        end
+        out
+      end
+      private_class_method :intro_snapshot_schema_model_bullets
+
+      def intro_snapshot_mcp_hint_bullet
+        "- **MCP:** start with `rails_get_routes` + `detail:\"summary\"`, then `rails_get_schema` / `rails_get_model_details`."
+      end
+      private_class_method :intro_snapshot_mcp_hint_bullet
     end
   end
 end

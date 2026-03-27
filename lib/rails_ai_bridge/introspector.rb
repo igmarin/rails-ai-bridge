@@ -78,7 +78,7 @@ module RailsAiBridge
 
     def selected_introspectors(only)
       names = Array(only).compact
-      return config.introspectors if names.empty?
+      return config.effective_introspectors if names.empty?
 
       names
     end
