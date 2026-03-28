@@ -21,13 +21,17 @@ These are **priorities** for code that lands under `lib/rails_ai_bridge/mcp/` an
 
 ## Done vs upcoming (snapshot)
 
-Already in tree (check `CHANGELOG.md`): `Mcp::HttpAuth`, `BearerToken`, `Jwt`, `config.mcp`, `authorize`, production validations, resolver/JWT error handling, `:bearer_token` boot guard, optional **in-process IP rate limit** on the MCP HTTP path (`Mcp::HttpRateLimiter`, `HttpTransportApp`).
+Already in tree (check `CHANGELOG.md`): `Mcp::HttpAuth`, `BearerToken`, `Jwt`, `config.mcp`, `authorize`, production validations, resolver/JWT error handling, `:bearer_token` boot guard, **in-process IP rate limit** (`Mcp::HttpRateLimiter`), **`mode` / `security_profile` implicit limits**, optional **JSON HTTP access lines** (`Mcp::HttpStructuredLog`, `config.mcp.http_log_json`).
 
-**Typical next slices:** structured logging, `security_profile` presets, release **2.0.0** consolidation (README upgrading, version bump, generator template).
+**Next (this track):** any follow-ups to MCP HTTP (e.g. log sampling, metrics hooks) as needed.
+
+**Separate plan (before a major release):** improve **generated context & assistant UX** — see [roadmap-context-assistants.md](roadmap-context-assistants.md). A **2.0.0** (or similar) release is **deferred** until after that work and maintainer-ready communication; it is not a current milestone on this MCP roadmap.
 
 ## References
 
+- [docs/roadmaps.md](roadmaps.md) — quick progress tables for both tracks (contributor-facing)
 - [docs/GUIDE.md](GUIDE.md) — MCP HTTP configuration
+- [docs/roadmap-context-assistants.md](roadmap-context-assistants.md) — IDE / context file improvements (pre–major release)
 - [SECURITY.md](../SECURITY.md) — threat model and production notes
 - [UPGRADING.md](../UPGRADING.md) — breaking / new config knobs
 - Contributor skills (Cursor / team): **`rails-principles-and-boundaries`**, **`yard-documentation`** — use both for MCP/auth work; they are intentionally paired in section 2 above.

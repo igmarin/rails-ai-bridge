@@ -35,3 +35,17 @@ Inside `RailsAiBridge.configure`:
 - `config.mcp.authorize` — optional `->(context, request) { truthy }` after successful auth; returning falsey yields HTTP 403 on the MCP path.
 
 See [docs/GUIDE.md](docs/GUIDE.md) for full MCP HTTP documentation.
+
+## MCP HTTP `mode`, `security_profile`, and rate limits
+
+When `config.mcp.rate_limit_max_requests` is **`nil`**, the gem may apply an **implicit** per-IP ceiling from `security_profile` (`:strict` / `:balanced` / `:relaxed`), unless `mode` suppresses it:
+
+- **`dev`** — no implicit limit.
+- **`hybrid`** (default) — implicit limit only when `Rails.env.production?` is true.
+- **`production`** — implicit limit in every Rails environment (useful to mimic prod throttling locally).
+
+Set **`config.mcp.rate_limit_max_requests = 0`** to **disable** limiting entirely (including implicit). A **positive integer** always overrides the profile.
+
+## MCP HTTP structured logging
+
+`config.mcp.http_log_json = true` emits **one JSON line per MCP HTTP response** (`msg` key `rails_ai_bridge.mcp.http`, plus `event`, `http_status`, `path`, `client_ip`, and `request_id` when present). Tokens and full Rack `env` are not logged. This flag is read **on each request** (unlike the rate-limit snapshot at `HttpTransportApp.build`).

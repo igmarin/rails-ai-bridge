@@ -10,12 +10,18 @@ RSpec.describe RailsAiBridge::HttpTransportApp do
     saved_authz = RailsAiBridge.configuration.mcp.authorize
     saved_rl_max = RailsAiBridge.configuration.mcp.rate_limit_max_requests
     saved_rl_win = RailsAiBridge.configuration.mcp.rate_limit_window_seconds
+    saved_mode = RailsAiBridge.configuration.mcp.mode
+    saved_profile = RailsAiBridge.configuration.mcp.security_profile
+    saved_log = RailsAiBridge.configuration.mcp.http_log_json
     example.run
   ensure
     RailsAiBridge.configuration.http_mcp_token = saved_token
     RailsAiBridge.configuration.mcp.authorize = saved_authz
     RailsAiBridge.configuration.mcp.rate_limit_max_requests = saved_rl_max
     RailsAiBridge.configuration.mcp.rate_limit_window_seconds = saved_rl_win
+    RailsAiBridge.configuration.mcp.mode = saved_mode
+    RailsAiBridge.configuration.mcp.security_profile = saved_profile
+    RailsAiBridge.configuration.mcp.http_log_json = saved_log
   end
 
   describe ".build" do
@@ -37,6 +43,17 @@ RSpec.describe RailsAiBridge::HttpTransportApp do
 
       expect(status).to eq(401)
       expect(headers["WWW-Authenticate"]).to include("Bearer")
+    end
+
+    it "emits structured JSON log on 401 when http_log_json is enabled" do
+      RailsAiBridge.configuration.http_mcp_token = "secret"
+      RailsAiBridge.configuration.mcp.http_log_json = true
+      expect(Rails.logger).to receive(:info) do |line|
+        expect(JSON.parse(line)["event"]).to eq("unauthorized")
+      end
+      app = described_class.build(transport: transport, path: "/mcp")
+
+      app.call(Rack::MockRequest.env_for("/mcp", method: "POST"))
     end
 
     it "returns 429 when rate limit is exceeded before auth" do

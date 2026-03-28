@@ -678,18 +678,32 @@ RailsAiBridge.configure do |config|
   # Opt-in: in production, boot fails if no token / ENV / token_resolver / jwt_decoder (see UPGRADING.md)
   # config.mcp.require_auth_in_production = true
 
-  # Optional: per-IP sliding window inside this Ruby process (429 + Retry-After); nil/0 disables
+  # HTTP MCP mode (implicit rate limit when max is nil — see below)
+  # config.mcp.mode = :hybrid       # default: implicit limit only in Rails.env.production?
+  # config.mcp.mode = :dev          # never apply implicit limit from security_profile
+  # config.mcp.mode = :production   # always apply implicit limit from security_profile (even in dev)
+
+  # Implicit ceilings when rate_limit_max_requests is nil (requests per rate_limit_window_seconds, per IP)
+  # config.mcp.security_profile = :strict    # 60 per window (default window 60s)
+  # config.mcp.security_profile = :balanced  # 300 per window (default)
+  # config.mcp.security_profile = :relaxed   # 1200 per window
+
+  # Explicit override: positive integer = cap; 0 = off (disables implicit profile too)
   # config.mcp.rate_limit_max_requests = 300
-  # config.mcp.rate_limit_window_seconds = 60
+  # config.mcp.rate_limit_window_seconds = 60   # <= 0 falls back to 60
+
+  # One JSON log line per MCP HTTP response (path, client_ip, event, http_status); default off
+  # config.mcp.http_log_json = true
 end
 ```
 
 With `token_resolver` or JWT, successful auth sets `env["rails_ai_bridge.mcp.context"]` to the returned object or payload hash (not `:static_bearer`).
 
-**Rate limit:** When `rate_limit_max_requests` is a positive integer, the MCP HTTP Rack app counts requests per `request.ip` in a sliding window of `rate_limit_window_seconds` (default `60`; values `<= 0` fall back to `60`). Excess requests get **429** JSON (`Too Many Requests`) before Bearer auth runs. Limits are **not** shared across multiple processes or servers—see [SECURITY.md](../SECURITY.md).
+**Rate limit:** The effective cap is `config.mcp.effective_http_rate_limit_max_requests` (used by `HttpTransportApp`). A **positive** `rate_limit_max_requests` always wins. **`0`** turns limiting off. **`nil`** uses `security_profile` defaults **unless** `mode` suppresses them: **`dev`** never applies an implicit limit; **`hybrid`** applies them only when `Rails.env.production?` is true; **`production`** always applies them. Defaults: `:strict` → 60, `:balanced` → 300, `:relaxed` → 1200 requests per `rate_limit_window_seconds` (default `60`; values `<= 0` fall back to `60`). Excess requests get **429** before Bearer auth. Limits are **not** shared across processes or servers—see [SECURITY.md](../SECURITY.md).
 
 - **Client IP:** The limiter uses Rack’s `request.ip` (same rules as your app behind a reverse proxy). Configure **trusted proxies** in Rails (`config.action_dispatch.trusted_proxies` / `request.remote_ip`) so `X-Forwarded-For` is not spoofed from the public internet.
-- **When settings apply:** `HttpTransportApp.build` snapshots `rate_limit_*` when the Rack app is built (e.g. middleware memoizes that app). Changing `config.mcp.rate_limit_*` at runtime does not affect an already-built app until it is rebuilt (e.g. full restart).
+- **When rate-limit settings apply:** `HttpTransportApp.build` snapshots the **limiter** from `effective_http_rate_limit_max_requests` / `effective_http_rate_limit_window_seconds` at build time (e.g. middleware memoizes the app). Changing `rate_limit_*`, `mode`, or `security_profile` at runtime does not change an already-built app until restart/rebuild.
+- **Structured logging:** `http_log_json` is read **on each request** (no rebuild needed). Lines include `client_ip`; do not enable log forwarding to untrusted sinks without reviewing retention—see [SECURITY.md](../SECURITY.md).
 
 ### Options reference
 

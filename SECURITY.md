@@ -39,6 +39,7 @@ This fork is maintained by **Ismael Marin**. If you discover a security vulnerab
 - When **no** auth mechanism is configured, HTTP MCP is **unauthenticated** (backward compatible for local use); configure one of the above before exposing the port beyond localhost.
 - **Misconfiguration:** setting `strategy` to `:bearer_token` without a `token_resolver` and without a static MCP token causes **boot failure** (`ConfigurationError`) so the endpoint cannot start in an accidentally open state.
 - **Rate limiting:** optional `config.mcp.rate_limit_max_requests` is an **in-memory, per-process** sliding window keyed by client IP (as seen by `request.ip`). It is **not** shared across Puma workers or hosts. Empty per-IP buckets are dropped after timestamps expire to avoid unbounded growth from **idle** IPs; an attacker can still force **many distinct IPs within the window** (or spoof forwarded IPs if proxies are misconfigured), so treat this as a light guard—use a reverse proxy, WAF, or `rack-attack` for strict quotas.
+- **MCP HTTP JSON logs:** when `config.mcp.http_log_json` is enabled, log lines include **`client_ip`** and path; treat log sinks like any operational data store (retention, access control).
 
 ## Production
 

@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Optional in-process MCP HTTP rate limit** — `config.mcp.rate_limit_max_requests` and `config.mcp.rate_limit_window_seconds` throttle requests per client IP (via `Rack::Request#ip`) before auth; JSON **429** with optional `Retry-After`. Per Ruby process only; `nil` / `0` max disables.
+- **`Mcp::HttpStructuredLog`** — opt-in `config.mcp.http_log_json`: one JSON line per MCP HTTP response (`event`, `http_status`, `path`, `client_ip`, optional `request_id`); no Bearer tokens logged.
+- **Optional in-process MCP HTTP rate limit** — per client IP (via `Rack::Request#ip`) before auth; JSON **429** with optional `Retry-After`. Per Ruby process. Explicit **`0`** disables; **`nil`** uses `security_profile` unless `mode` suppresses (`dev` off; `hybrid` only in `Rails.env.production?`; `production` always on). Profiles: `:strict` 60, `:balanced` 300, `:relaxed` 1200 per window (default window `60`s, `<= 0` → `60`).
 - **`RailsAiBridge::Mcp` HTTP auth layer** — `Mcp::HttpAuth.authenticate`, `Mcp::AuthResult`, and `Mcp::Auth::Strategies::BearerToken` orchestrate static Bearer secrets (same digest-compare behavior as before). `McpHttpAuth.authorized_request?` delegates to `Mcp::HttpAuth`; successful static-token auth sets `env["rails_ai_bridge.mcp.context"]` to `:static_bearer`.
 - **`Mcp::Auth::Strategies::Jwt`** — `config.mcp.auth.jwt_decoder = ->(token) { ... }` with `strategy :jwt` or auto when decoder is set; no JWT gem dependency in the bridge (host supplies decode). Decoder exceptions → `:decode_error` (401), not 500.
 - **`config.mcp`** — `RailsAiBridge::Mcp::Settings` via `configuration.mcp`: `auth_configure` for `token_resolver` / `jwt_decoder` / `strategy`, optional `authorize` hook (HTTP 403 when falsey after auth), `require_auth_in_production` (boot check in production when no auth mechanism). `RailsAiBridge.mcp_auth_mechanism_configured?` includes static token, resolver, or JWT decoder for production HTTP / auto_mount guards.
@@ -28,7 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **MCP HTTP rate limit** — Per-IP buckets with no timestamps left in the window are removed from the in-memory table to limit growth from idle clients; GUIDE / SECURITY clarify `request.ip` / trusted proxies, snapshot-at-`build` behavior, and many-IP abuse. `Retry-After` still uses a `60`s window when `rate_limit_window_seconds` is not positive.
+- **MCP HTTP rate limit** — Per-IP buckets with no timestamps left in the window are removed from the in-memory table to limit growth from idle clients; GUIDE / SECURITY / UPGRADING document `mode`, `security_profile`, implicit `nil` max, snapshot-at-`build` for the limiter vs live `http_log_json`. `Retry-After` still uses a `60`s window when `rate_limit_window_seconds` is not positive.
+- **MCP HTTP polish** — `mode` / `security_profile` nil-safe (default to `:hybrid` / `:balanced`); structured log `event` serialized as string; YARD clarifies limiter snapshot vs per-request `http_log_json`.
 - **MCP docs** — GUIDE / SECURITY / UPGRADING cover Rack `env` PII risk, `nil` vs `false` from resolvers/decoders, and `:bearer_token` boot validation.
 - **CONTRIBUTING** — note to always use `bundle exec rspec` (bare `rspec` can hit `Combustion::Bundler` / wrong gem set).
 - **Documentation and install UX** — README / GUIDE emphasize `:development` install, HTTP `/mcp` risk, `install.yml`, and JSON workflow; `post_install_message` reinforces the same.
