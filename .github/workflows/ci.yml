@@ -38,7 +38,7 @@ jobs:
 
       - name: Upload coverage HTML
         if: matrix.ruby == '3.3' && matrix.rails == '8.0'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-ruby-3.3-rails-8.0
           path: coverage/
