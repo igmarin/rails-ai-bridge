@@ -648,6 +648,49 @@ RailsAiBridge.configure do |config|
 end
 ```
 
+Static Bearer validation is implemented by `RailsAiBridge::Mcp::HttpAuth`, which delegates to a small strategy layer. When `config.http_mcp_token` or `ENV["RAILS_AI_BRIDGE_MCP_TOKEN"]` is set and the client sends a matching `Authorization: Bearer` token, Rack `env["rails_ai_bridge.mcp.context"]` is set to `:static_bearer` for that request.
+
+**Rack context and PII:** On success, `env["rails_ai_bridge.mcp.context"]` holds the object or JWT payload your resolver/decoder returned. Treat it as **potentially sensitive** (user ids, emails, roles). Do not log the whole `env` in production middleware; use targeted fields if you must log.
+
+**Invalid tokens:** `token_resolver` and `jwt_decoder` should return **`nil`** for invalid or unknown tokens. Returning **`false`** is also treated as failure (401). Avoid returning `false` to mean “invalid” when `nil` is clearer.
+
+**Boot validation:** If you set `a.strategy = :bearer_token`, you **must** also set `a.token_resolver` **or** configure `http_mcp_token` / `ENV["RAILS_AI_BRIDGE_MCP_TOKEN"]`. Otherwise Rails raises `ConfigurationError` at boot—otherwise the HTTP MCP endpoint would be unauthenticated.
+
+**Extended configuration** (same initializer):
+
+```ruby
+RailsAiBridge.configure do |config|
+  config.mcp.auth_configure do |a|
+    # Pick one primary style (see resolution order in Mcp::HttpAuth):
+    # a.strategy = :static_bearer  # shared secret only (http_mcp_token / ENV)
+    # a.strategy = :bearer_token    # requires token_resolver OR static token (enforced at boot)
+    # a.strategy = :jwt             # jwt_decoder (any gem inside your lambda)
+    # a.strategy = nil              # auto: jwt_decoder if set, else token_resolver, else static token
+
+    a.token_resolver = ->(token) { User.find_by(api_token: token) } # StandardError → :resolver_error, not 500
+    # a.jwt_decoder = ->(token) { JWT.decode(token, key, true, { algorithm: "HS256" }).first rescue nil }
+    # StandardError from decoder → :decode_error (401), not 500
+  end
+
+  # Optional: avoid raising—return boolean; exceptions become 500
+  config.mcp.authorize = ->(context, request) { context.present? }
+
+  # Opt-in: in production, boot fails if no token / ENV / token_resolver / jwt_decoder (see UPGRADING.md)
+  # config.mcp.require_auth_in_production = true
+
+  # Optional: per-IP sliding window inside this Ruby process (429 + Retry-After); nil/0 disables
+  # config.mcp.rate_limit_max_requests = 300
+  # config.mcp.rate_limit_window_seconds = 60
+end
+```
+
+With `token_resolver` or JWT, successful auth sets `env["rails_ai_bridge.mcp.context"]` to the returned object or payload hash (not `:static_bearer`).
+
+**Rate limit:** When `rate_limit_max_requests` is a positive integer, the MCP HTTP Rack app counts requests per `request.ip` in a sliding window of `rate_limit_window_seconds` (default `60`; values `<= 0` fall back to `60`). Excess requests get **429** JSON (`Too Many Requests`) before Bearer auth runs. Limits are **not** shared across multiple processes or servers—see [SECURITY.md](../SECURITY.md).
+
+- **Client IP:** The limiter uses Rack’s `request.ip` (same rules as your app behind a reverse proxy). Configure **trusted proxies** in Rails (`config.action_dispatch.trusted_proxies` / `request.remote_ip`) so `X-Forwarded-For` is not spoofed from the public internet.
+- **When settings apply:** `HttpTransportApp.build` snapshots `rate_limit_*` when the Rack app is built (e.g. middleware memoizes that app). Changing `config.mcp.rate_limit_*` at runtime does not affect an already-built app until it is rebuilt (e.g. full restart).
+
 ### Options reference
 
 | Option | Type | Default | Description |

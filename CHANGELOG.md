@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Optional in-process MCP HTTP rate limit** — `config.mcp.rate_limit_max_requests` and `config.mcp.rate_limit_window_seconds` throttle requests per client IP (via `Rack::Request#ip`) before auth; JSON **429** with optional `Retry-After`. Per Ruby process only; `nil` / `0` max disables.
+- **`RailsAiBridge::Mcp` HTTP auth layer** — `Mcp::HttpAuth.authenticate`, `Mcp::AuthResult`, and `Mcp::Auth::Strategies::BearerToken` orchestrate static Bearer secrets (same digest-compare behavior as before). `McpHttpAuth.authorized_request?` delegates to `Mcp::HttpAuth`; successful static-token auth sets `env["rails_ai_bridge.mcp.context"]` to `:static_bearer`.
+- **`Mcp::Auth::Strategies::Jwt`** — `config.mcp.auth.jwt_decoder = ->(token) { ... }` with `strategy :jwt` or auto when decoder is set; no JWT gem dependency in the bridge (host supplies decode). Decoder exceptions → `:decode_error` (401), not 500.
+- **`config.mcp`** — `RailsAiBridge::Mcp::Settings` via `configuration.mcp`: `auth_configure` for `token_resolver` / `jwt_decoder` / `strategy`, optional `authorize` hook (HTTP 403 when falsey after auth), `require_auth_in_production` (boot check in production when no auth mechanism). `RailsAiBridge.mcp_auth_mechanism_configured?` includes static token, resolver, or JWT decoder for production HTTP / auto_mount guards.
+- **`McpHttpAuth.forbidden_rack_response`** — JSON 403 for failed authorization after successful authentication.
+- **`UPGRADING.md`** — starting notes for MCP config and `require_auth_in_production`.
 - **Install preferences** — `config/rails_ai_bridge/install.yml` controls which formats `rails ai:bridge` regenerates; `rails ai:bridge:all` writes every format including JSON.
 - **Presets and categories** — optional `:large_monolith` and `:regulated` presets plus `disabled_introspection_categories` for product-level introspector groups; `excluded_tables` (with glob `*`) aligns schema/model output for files and MCP.
 - **Copilot merge policy** — managed HTML-comment region in `.github/copilot-instructions.md` with `RAILS_AI_BRIDGE_COPILOT_MERGE` (`overwrite` / `skip`) documented in SECURITY.
@@ -22,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **MCP HTTP rate limit** — Per-IP buckets with no timestamps left in the window are removed from the in-memory table to limit growth from idle clients; GUIDE / SECURITY clarify `request.ip` / trusted proxies, snapshot-at-`build` behavior, and many-IP abuse. `Retry-After` still uses a `60`s window when `rate_limit_window_seconds` is not positive.
+- **MCP docs** — GUIDE / SECURITY / UPGRADING cover Rack `env` PII risk, `nil` vs `false` from resolvers/decoders, and `:bearer_token` boot validation.
+- **CONTRIBUTING** — note to always use `bundle exec rspec` (bare `rspec` can hit `Combustion::Bundler` / wrong gem set).
 - **Documentation and install UX** — README / GUIDE emphasize `:development` install, HTTP `/mcp` risk, `install.yml`, and JSON workflow; `post_install_message` reinforces the same.
 - **Install generator** — `--assistants`, `--non-interactive`, HTTP security block in initializer, and initial `generate_context(format: :install)`.
 - **Install generator messages** — the install flow now reports created vs unchanged files correctly and the generated initializer comments reflect the current preset sizes.
@@ -29,6 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`strategy :bearer_token` misconfiguration** — Boot raises `ConfigurationError` when `:bearer_token` is set without `token_resolver` and without static `http_mcp_token` / env token, avoiding an accidentally open HTTP MCP endpoint.
+- **Resolver / JWT `false` return** — `token_resolver` or `jwt_decoder` returning `false` is treated as auth failure (`:unauthorized`), same as `nil`.
+- **`config.mcp.auth.token_resolver` errors** — Exceptions raised inside the resolver lambda are rescued; HTTP MCP auth returns a failed `AuthResult` with `:resolver_error` instead of bubbling a 500.
 - **Install generator output bug** — `generate_context` results are no longer iterated as raw hash pairs during install-time file generation.
 
 ## [1.1.0] - 2026-03-20

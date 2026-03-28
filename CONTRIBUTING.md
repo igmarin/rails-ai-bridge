@@ -14,6 +14,8 @@ bundle exec rubocop --parallel
 
 The test suite uses [Combustion](https://github.com/pat/combustion) to boot a minimal Rails app in `spec/internal/`. No external database required — tests run against an in-memory SQLite database.
 
+**Always run tests with `bundle exec rspec`.** Invoking plain `rspec` from your PATH can load the wrong gem set and fail at boot with errors such as `uninitialized constant Combustion::Bundler`.
+
 ## Project Structure
 
 ```
@@ -57,6 +59,8 @@ bundle exec rspec              # Full test suite
 bundle exec rspec spec/lib/    # Just lib specs
 bundle exec rubocop --parallel # Lint check
 ```
+
+Do not rely on bare `rspec`; see the note under Development Setup above.
 
 ## Pull Request Process
 

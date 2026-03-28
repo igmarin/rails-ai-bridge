@@ -33,14 +33,17 @@ This fork is maintained by **Ismael Marin**. If you discover a security vulnerab
 
 ## HTTP MCP authentication
 
-- Set `config.http_mcp_token` and/or `ENV["RAILS_AI_BRIDGE_MCP_TOKEN"]` (**ENV overrides** the config value when set).
-- When a token is configured, clients must send `Authorization: Bearer <token>` to the HTTP MCP endpoint (`auto_mount` or `rails ai:serve_http`).
-- When no token is configured, HTTP MCP is **unauthenticated** (backward compatible for local use); **set a token** before exposing the port beyond localhost.
+- **Shared secret:** set `config.http_mcp_token` and/or `ENV["RAILS_AI_BRIDGE_MCP_TOKEN"]` (**ENV overrides** the config value when set). Clients send `Authorization: Bearer <token>`.
+- **Custom resolver / JWT:** you can instead configure `config.mcp.auth.token_resolver` or `config.mcp.auth.jwt_decoder` (see [docs/GUIDE.md](docs/GUIDE.md)); clients still use a Bearer header; the gem does not ship a JWT library—you verify and decode inside your lambda.
+- **Rack env context:** after a successful auth, `env["rails_ai_bridge.mcp.context"]` may contain **PII or claims** (e.g. JWT payload). Do not dump full Rack `env` to logs or APM; treat this key like session-derived data.
+- When **no** auth mechanism is configured, HTTP MCP is **unauthenticated** (backward compatible for local use); configure one of the above before exposing the port beyond localhost.
+- **Misconfiguration:** setting `strategy` to `:bearer_token` without a `token_resolver` and without a static MCP token causes **boot failure** (`ConfigurationError`) so the endpoint cannot start in an accidentally open state.
+- **Rate limiting:** optional `config.mcp.rate_limit_max_requests` is an **in-memory, per-process** sliding window keyed by client IP (as seen by `request.ip`). It is **not** shared across Puma workers or hosts. Empty per-IP buckets are dropped after timestamps expire to avoid unbounded growth from **idle** IPs; an attacker can still force **many distinct IPs within the window** (or spoof forwarded IPs if proxies are misconfigured), so treat this as a light guard—use a reverse proxy, WAF, or `rack-attack` for strict quotas.
 
 ## Production
 
-- `config.auto_mount = true` in **production** raises at boot unless **both** `config.allow_auto_mount_in_production = true` and a non-empty MCP token are set.
-- `rails ai:serve_http` in **production** requires a non-empty MCP token (config or ENV).
+- `config.auto_mount = true` in **production** raises at boot unless **both** `config.allow_auto_mount_in_production = true` and an MCP auth mechanism is configured (shared token, `token_resolver`, or `jwt_decoder`).
+- `rails ai:serve_http` in **production** requires the same class of auth configuration (not necessarily a static shared secret).
 
 ## Operational Security Guidance
 

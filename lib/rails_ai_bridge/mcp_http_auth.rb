@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "digest"
-
 module RailsAiBridge
   # Shared HTTP MCP authentication for {Middleware} and {Server} Rack apps.
   # When +http_mcp_token+ or +ENV["RAILS_AI_BRIDGE_MCP_TOKEN"]+ is set, requests must send
@@ -34,22 +32,7 @@ module RailsAiBridge
     # @param request [Rack::Request] request to validate
     # @return [Boolean] true when auth is not configured or the Bearer token matches
     def authorized_request?(request)
-      return true unless http_mcp_auth_configured?
-
-      auth = request.get_header("HTTP_AUTHORIZATION")
-      return false if auth.blank?
-
-      match = auth.match(/\ABearer\s+(.+)\z/i)
-      return false unless match
-
-      received = match[1].to_s.strip
-      expected = effective_http_mcp_token.to_s
-      return false if received.blank? || expected.blank?
-
-      ActiveSupport::SecurityUtils.secure_compare(
-        Digest::SHA256.hexdigest(received),
-        Digest::SHA256.hexdigest(expected)
-      )
+      Mcp::HttpAuth.authenticate(request).success?
     end
 
     # Builds a Rack-compatible unauthorized response for HTTP MCP endpoints.
@@ -63,6 +46,32 @@ module RailsAiBridge
           "WWW-Authenticate" => 'Bearer realm="rails-ai-bridge-mcp"'
         },
         [ '{"error":"Unauthorized"}' ]
+      ]
+    end
+
+    # Rack 403 after authentication succeeded but {RailsAiBridge::Configuration#mcp} +authorize+ rejected.
+    #
+    # @return [Array<(Integer, Hash{String => String}, Array<String>)>]
+    def forbidden_rack_response
+      [
+        403,
+        { "Content-Type" => "application/json" },
+        [ '{"error":"Forbidden"}' ]
+      ]
+    end
+
+    # JSON 429 when the MCP HTTP rate limiter rejects a request.
+    #
+    # @param retry_after [Integer, nil] optional +Retry-After+ header value in seconds
+    # @return [Array<(Integer, Hash{String => String}, Array<String>)>]
+    def rate_limited_rack_response(retry_after: nil)
+      headers = { "Content-Type" => "application/json" }
+      headers["Retry-After"] = retry_after.to_s if retry_after&.positive?
+
+      [
+        429,
+        headers,
+        [ '{"error":"Too Many Requests"}' ]
       ]
     end
   end

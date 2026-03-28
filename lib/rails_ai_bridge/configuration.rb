@@ -110,6 +110,13 @@ module RailsAiBridge
     # Optional custom MCP resources merged with built-in resources.
     attr_accessor :additional_resources
 
+    # Nested MCP HTTP auth / policy settings ({RailsAiBridge::Mcp::Settings}).
+    #
+    # @return [RailsAiBridge::Mcp::Settings]
+    def mcp
+      @mcp ||= Mcp::Settings.new
+    end
+
     # Initializes defaults (standard preset, compact mode, common +excluded_models+, empty exclusions).
     #
     # @return [void]

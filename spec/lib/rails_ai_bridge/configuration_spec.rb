@@ -26,6 +26,11 @@ RSpec.describe RailsAiBridge::Configuration do
     expect(config.additional_resources).to eq({})
   end
 
+  it "memoizes mcp settings" do
+    expect(config.mcp).to be(config.mcp)
+    expect(config.mcp).to be_a(RailsAiBridge::Mcp::Settings)
+  end
+
   it "defaults to standard preset" do
     expect(config.introspectors).to eq(described_class::PRESETS[:standard])
   end

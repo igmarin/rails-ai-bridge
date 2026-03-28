@@ -8,6 +8,14 @@ module RailsAiBridge
       Rails.application.config.rails_ai_bridge = RailsAiBridge.configuration
     end
 
+    initializer "rails_ai_bridge.mcp_strategy", after: "rails_ai_bridge.setup" do
+      RailsAiBridge.validate_mcp_strategy_configuration!
+    end
+
+    initializer "rails_ai_bridge.mcp_require_auth", after: "rails_ai_bridge.mcp_strategy" do
+      RailsAiBridge.validate_mcp_require_auth_in_production!
+    end
+
     # Auto-mount MCP HTTP middleware when configured
     initializer "rails_ai_bridge.middleware" do |app|
       RailsAiBridge.validate_auto_mount_configuration!

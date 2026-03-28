@@ -100,10 +100,11 @@ module RailsAiBridge
               "rails_ai_bridge: auto_mount is disabled in production unless you set allow_auto_mount_in_production = true"
       end
 
-      return if McpHttpAuth.effective_http_mcp_token.present?
+      return if mcp_auth_mechanism_configured?
 
       raise ConfigurationError,
-            "rails_ai_bridge: auto_mount in production requires http_mcp_token or ENV['#{McpHttpAuth::TOKEN_ENV_KEY}']"
+            "rails_ai_bridge: auto_mount in production requires http_mcp_token or ENV['#{McpHttpAuth::TOKEN_ENV_KEY}'], " \
+            "config.mcp.auth.token_resolver, or config.mcp.auth.jwt_decoder"
     end
 
     # Raises {ConfigurationError} when starting the standalone HTTP MCP server in production without a token.
@@ -112,10 +113,50 @@ module RailsAiBridge
     # @raise [RailsAiBridge::ConfigurationError] when production HTTP MCP starts without a token
     def validate_http_mcp_server_in_production!
       return unless Rails.env.production?
-      return if McpHttpAuth.effective_http_mcp_token.present?
+      return if mcp_auth_mechanism_configured?
 
       raise ConfigurationError,
-            "rails_ai_bridge: HTTP MCP in production requires http_mcp_token or ENV['#{McpHttpAuth::TOKEN_ENV_KEY}']"
+            "rails_ai_bridge: HTTP MCP in production requires http_mcp_token or ENV['#{McpHttpAuth::TOKEN_ENV_KEY}'], " \
+            "config.mcp.auth.token_resolver, or config.mcp.auth.jwt_decoder"
+    end
+
+    # True when static MCP token, +token_resolver+, or +jwt_decoder+ is configured.
+    #
+    # @return [Boolean]
+    def mcp_auth_mechanism_configured?
+      McpHttpAuth.http_mcp_auth_configured? ||
+        configuration.mcp.auth.token_resolver.present? ||
+        configuration.mcp.auth.jwt_decoder.present?
+    end
+
+    # Raises when +strategy == :bearer_token+ but neither +token_resolver+ nor static MCP token is configured.
+    #
+    # @return [void]
+    # @raise [RailsAiBridge::ConfigurationError]
+    def validate_mcp_strategy_configuration!
+      a = configuration.mcp.auth
+      return unless a.strategy == :bearer_token
+      return if a.token_resolver.present?
+      return if McpHttpAuth.http_mcp_auth_configured?
+
+      raise ConfigurationError,
+            "rails_ai_bridge: strategy :bearer_token requires config.mcp.auth.token_resolver or " \
+            "http_mcp_token / ENV['#{McpHttpAuth::TOKEN_ENV_KEY}']. Otherwise HTTP MCP would be unauthenticated. See UPGRADING.md."
+    end
+
+    # Raises when +config.mcp.require_auth_in_production+ is +true+ in production and no MCP auth mechanism exists.
+    #
+    # @return [void]
+    # @raise [RailsAiBridge::ConfigurationError]
+    def validate_mcp_require_auth_in_production!
+      return unless Rails.env.production?
+      return unless configuration.mcp.require_auth_in_production
+      return if mcp_auth_mechanism_configured?
+
+      raise ConfigurationError,
+            "rails_ai_bridge: MCP auth cannot be disabled in production (require_auth_in_production is true). " \
+            "Set http_mcp_token, ENV['#{McpHttpAuth::TOKEN_ENV_KEY}'], config.mcp.auth.token_resolver, or " \
+            "config.mcp.auth.jwt_decoder. See UPGRADING.md."
     end
   end
 end
