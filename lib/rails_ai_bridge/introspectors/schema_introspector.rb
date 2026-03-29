@@ -5,10 +5,11 @@ module RailsAiBridge
     # Extracts database schema information including tables, columns,
     # indexes, and foreign keys from the Rails application.
     class SchemaIntrospector
-      attr_reader :app
+      attr_reader :app, :config
 
       def initialize(app)
-        @app = app
+        @app    = app
+        @config = RailsAiBridge.configuration
       end
 
       # @return [Hash] database schema context
@@ -42,7 +43,10 @@ module RailsAiBridge
       end
 
       def table_names
-        @table_names ||= connection.tables.reject { |t| t.start_with?("ar_internal_metadata", "schema_migrations") }
+        @table_names ||= begin
+          names = connection.tables.reject { |t| t.start_with?("ar_internal_metadata", "schema_migrations") }
+          names.reject { |t| config.excluded_table?(t) }
+        end
       end
 
       def extract_tables

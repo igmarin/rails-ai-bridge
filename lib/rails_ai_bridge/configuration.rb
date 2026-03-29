@@ -6,7 +6,17 @@ module RailsAiBridge
       standard: %i[schema models routes jobs gems conventions controllers tests migrations],
       full: %i[schema models routes jobs gems conventions stimulus controllers views turbo
                i18n config active_storage action_text auth api tests rake_tasks assets
-               devops action_mailbox migrations seeds middleware engines multi_database]
+               devops action_mailbox migrations seeds middleware engines multi_database],
+      # Minimal surface: no schema, models, or migrations introspection (for regulated/sensitive apps).
+      regulated: %i[routes jobs gems conventions controllers tests]
+    }.freeze
+
+    # Product-level categories that subtract introspectors from the active preset (see +#effective_introspectors+).
+    INTROSPECTION_CATEGORY_INTROSPECTORS = {
+      domain_metadata: %i[schema models migrations],
+      persistence_surface: %i[schema models],
+      api_surface: %i[api],
+      ui_stack: %i[views stimulus turbo i18n]
     }.freeze
 
     # MCP server settings
@@ -36,6 +46,12 @@ module RailsAiBridge
 
     # Models/tables to exclude from introspection
     attr_accessor :excluded_models
+
+    # Table names to skip in schema/model introspection (exact match or glob with +*+, e.g. +"secrets_*"+).
+    attr_accessor :excluded_tables
+
+    # Category keys from {INTROSPECTION_CATEGORY_INTROSPECTORS} to remove from the active preset at runtime.
+    attr_accessor :disabled_introspection_categories
 
     # TTL in seconds for cached introspection (default: 30)
     attr_accessor :cache_ttl
@@ -93,6 +109,8 @@ module RailsAiBridge
         ActionText::RichText ActionText::EncryptedRichText
         ActionMailbox::InboundEmail ActionMailbox::Record
       ]
+      @excluded_tables                    = []
+      @disabled_introspection_categories  = []
       @cache_ttl                = 30
       @context_mode             = :compact
       @claude_max_lines         = 150
@@ -111,6 +129,26 @@ module RailsAiBridge
       name = name.to_sym
       raise ArgumentError, "Unknown preset: #{name}. Valid presets: #{PRESETS.keys.join(", ")}" unless PRESETS.key?(name)
       @introspectors = PRESETS[name].dup
+    end
+
+    # Introspectors after removing any disabled by {#disabled_introspection_categories}.
+    #
+    # @return [Array<Symbol>]
+    def effective_introspectors
+      disabled = @disabled_introspection_categories.flat_map do |c|
+        INTROSPECTION_CATEGORY_INTROSPECTORS[c.to_sym] || []
+      end.uniq
+      @introspectors.reject { |i| disabled.include?(i) }
+    end
+
+    # Whether a logical table name matches any +excluded_tables+ pattern (exact or glob).
+    #
+    # @param table_name [String, nil]
+    # @return [Boolean]
+    def excluded_table?(table_name)
+      return false if table_name.nil? || table_name.to_s.empty?
+
+      @excluded_tables.any? { |pat| ExclusionHelper.table_pattern_match?(pat.to_s, table_name.to_s) }
     end
 
     def output_dir_for(app)

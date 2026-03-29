@@ -35,13 +35,21 @@ module RailsAiBridge
         nil
       end
 
+      def model_table_excluded?(model)
+        tn = model.table_name
+        return false if tn.nil? || tn.to_s.empty?
+
+        config.excluded_table?(tn)
+      end
+
       def discover_models
         return [] unless defined?(ActiveRecord::Base)
 
         ActiveRecord::Base.descendants.reject do |model|
           model.abstract_class? ||
             model.name.nil? ||
-            config.excluded_models.include?(model.name)
+            config.excluded_models.include?(model.name) ||
+            model_table_excluded?(model)
         end.sort_by(&:name)
       end
 

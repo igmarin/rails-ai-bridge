@@ -66,11 +66,70 @@ RSpec.describe RailsAiBridge::Configuration do
       expect { config.preset = :unknown }.to raise_error(ArgumentError, /Unknown preset/)
     end
 
+    it "sets regulated preset without schema, models, or migrations" do
+      config.preset = :regulated
+      expect(config.introspectors).not_to include(:schema, :models, :migrations)
+      expect(config.introspectors).to include(:routes, :controllers)
+    end
+
     it "allows adding introspectors after preset" do
       config.preset = :standard
       config.introspectors += %i[views turbo]
       expect(config.introspectors).to include(:views, :turbo)
       expect(config.introspectors.size).to eq(11)
+    end
+  end
+
+  describe "#effective_introspectors" do
+    it "returns all introspectors when no categories disabled" do
+      config.preset = :standard
+      expect(config.effective_introspectors).to eq(config.introspectors)
+    end
+
+    it "subtracts disabled categories" do
+      config.preset = :standard
+      config.disabled_introspection_categories << :domain_metadata
+      effective = config.effective_introspectors
+      expect(effective).not_to include(:schema, :models, :migrations)
+      expect(effective).to include(:routes, :controllers, :gems)
+    end
+
+    it "handles multiple disabled categories" do
+      config.preset = :full
+      config.disabled_introspection_categories = %i[domain_metadata ui_stack]
+      effective = config.effective_introspectors
+      expect(effective).not_to include(:schema, :models, :migrations, :views, :stimulus, :turbo, :i18n)
+      expect(effective).to include(:routes, :controllers)
+    end
+
+    it "ignores unknown category names" do
+      config.preset = :standard
+      config.disabled_introspection_categories << :nonexistent
+      expect(config.effective_introspectors).to eq(config.introspectors)
+    end
+  end
+
+  describe "#excluded_table?" do
+    it "returns false for nil or empty" do
+      expect(config.excluded_table?(nil)).to be false
+      expect(config.excluded_table?("")).to be false
+    end
+
+    it "matches exact table names" do
+      config.excluded_tables << "secrets"
+      expect(config.excluded_table?("secrets")).to be true
+      expect(config.excluded_table?("users")).to be false
+    end
+
+    it "matches glob patterns" do
+      config.excluded_tables << "audit_*"
+      expect(config.excluded_table?("audit_logs")).to be true
+      expect(config.excluded_table?("audit_events")).to be true
+      expect(config.excluded_table?("users")).to be false
+    end
+
+    it "returns false when excluded_tables is empty" do
+      expect(config.excluded_table?("anything")).to be false
     end
   end
 

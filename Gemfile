@@ -6,12 +6,18 @@ gemspec
 
 rails_version = ENV.fetch("RAILS_VERSION", "8.0")
 
+gem "pry", "~> 0.14", group: :development
+rails_version = ENV.fetch("RAILS_VERSION", "8.0")
+
+sqlite_version =
+  if rails_version.start_with?("8")
+    ">= 2.1"
+  else
+    "~> 1.7"
+  end
+
 group :development, :test do
-  gem "pry", "~> 0.14"
   gem "railties", "~> #{rails_version}.0"
   gem "activerecord", "~> #{rails_version}.0"
-  gem "sqlite3"
-  gem "rubocop-rails-omakase", require: false
-  gem "rubocop-performance", require: false
-  gem "rubocop-rails", require: false
+  gem "sqlite3", sqlite_version
 end
