@@ -7,7 +7,6 @@ gemspec
 rails_version = ENV.fetch("RAILS_VERSION", "8.0")
 
 gem "pry", "~> 0.14", group: :development
-rails_version = ENV.fetch("RAILS_VERSION", "8.0")
 
 sqlite_version =
   if rails_version.start_with?("8")
