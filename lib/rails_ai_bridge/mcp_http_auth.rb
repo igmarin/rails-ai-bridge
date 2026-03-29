@@ -35,6 +35,10 @@ module RailsAiBridge
     # Returns +true+ when ANY auth mechanism is configured — static token, resolver, or JWT decoder.
     # Used by production-safety validators to confirm the MCP endpoint is protected.
     #
+    # This checks configuration *presence*, not runtime correctness. A resolver that always
+    # returns +nil+ still counts as configured; actual auth enforcement happens per-request
+    # via {Mcp::HttpAuth}.
+    #
     # @return [Boolean]
     def any_auth_configured?
       cfg = RailsAiBridge.configuration
