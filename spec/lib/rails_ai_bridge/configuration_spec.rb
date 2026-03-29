@@ -99,7 +99,7 @@ RSpec.describe RailsAiBridge::Configuration do
       config.disabled_introspection_categories = %i[domain_metadata ui_stack]
       effective = config.effective_introspectors
       expect(effective).not_to include(:schema, :models, :migrations, :views, :stimulus, :turbo, :i18n)
-      expect(effective).to include(:routes, :controllers)
+      expect(effective).to include(:routes, :controllers, :gems, :jobs, :tests)
     end
 
     it "ignores unknown category names" do

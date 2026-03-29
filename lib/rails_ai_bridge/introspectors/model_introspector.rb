@@ -36,10 +36,13 @@ module RailsAiBridge
       end
 
       def model_table_excluded?(model)
+        # model.table_name can raise on STI subclasses that inherit a non-existent table
         tn = model.table_name
         return false if tn.nil? || tn.to_s.empty?
 
         config.excluded_table?(tn)
+      rescue StandardError
+        false
       end
 
       def discover_models

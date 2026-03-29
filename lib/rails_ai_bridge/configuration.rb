@@ -1,6 +1,15 @@
 # frozen_string_literal: true
 
 module RailsAiBridge
+  # Holds user-facing configuration: introspector presets, exclusions (models, tables, categories),
+  # MCP HTTP settings, context generation options, and extensibility hooks.
+  #
+  # Presets ({PRESETS}) set the base +introspectors+ list. {#disabled_introspection_categories}
+  # subtracts whole product categories at runtime. {#effective_introspectors} is the final list
+  # used by {Introspector} and MCP tools.
+  #
+  # @see RailsAiBridge.configure
+  # @see Introspector
   class Configuration
     PRESETS = {
       standard: %i[schema models routes jobs gems conventions controllers tests migrations],
@@ -14,7 +23,6 @@ module RailsAiBridge
     # Product-level categories that subtract introspectors from the active preset (see +#effective_introspectors+).
     INTROSPECTION_CATEGORY_INTROSPECTORS = {
       domain_metadata: %i[schema models migrations],
-      persistence_surface: %i[schema models],
       api_surface: %i[api],
       ui_stack: %i[views stimulus turbo i18n]
     }.freeze

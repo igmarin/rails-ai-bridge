@@ -126,7 +126,10 @@ module RailsAiBridge
         content.each_line do |line|
           if (match = line.match(/create_table\s+"(\w+)"/))
             current_table = match[1]
-            next if current_table.start_with?("ar_internal_metadata", "schema_migrations")
+            if current_table.start_with?("ar_internal_metadata", "schema_migrations") || config.excluded_table?(current_table)
+              current_table = nil
+              next
+            end
             tables[current_table] = { columns: [], indexes: [], foreign_keys: [] }
           elsif current_table && (match = line.match(/t\.(\w+)\s+"(\w+)"/))
             tables[current_table][:columns] << { name: match[2], type: match[1] }

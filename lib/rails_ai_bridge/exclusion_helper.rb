@@ -5,16 +5,19 @@ module RailsAiBridge
   module ExclusionHelper
     module_function
 
-    # @param pattern [String] e.g. +"users"+ or +"audit_*"+
-    # @param table_name [String]
+    # Returns +true+ when +table_name+ matches +pattern+ exactly or via +*+ glob.
+    # Table names in Rails are always lowercase snake_case, so matching is case-sensitive.
+    #
+    # @param pattern [String] exact name (e.g. +"secrets"+) or glob (e.g. +"audit_*"+)
+    # @param table_name [String] lowercase table name to test
     # @return [Boolean]
     def table_pattern_match?(pattern, table_name)
       return false if pattern.to_s.empty? || table_name.to_s.empty?
 
-      p = pattern.to_s
-      return p == table_name unless p.include?("*")
+      pat = pattern.to_s
+      return pat == table_name unless pat.include?("*")
 
-      File.fnmatch(p, table_name, File::FNM_EXTGLOB | File::FNM_CASEFOLD)
+      File.fnmatch(pat, table_name, File::FNM_EXTGLOB)
     end
   end
 end
