@@ -33,7 +33,8 @@ module RailsAiBridge
     end
 
     # Verifies whether an incoming Rack request is authorized for HTTP MCP access.
-    # Delegates to {Mcp::HttpAuth} which selects the active auth strategy.
+    # Delegates to {Mcp::HttpAuth} which selects the active auth strategy in priority order:
+    # +mcp_jwt_decoder+ > +mcp_token_resolver+ > +http_mcp_token+/ENV > open access.
     #
     # @param request [Rack::Request]
     # @return [Boolean] +true+ when auth is not configured or the credential is accepted

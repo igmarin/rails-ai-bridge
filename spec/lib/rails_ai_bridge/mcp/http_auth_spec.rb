@@ -109,4 +109,25 @@ RSpec.describe RailsAiBridge::Mcp::HttpAuth do
       expect(result.context).to eq({ via: :resolver })
     end
   end
+
+  context "ENV token takes precedence over config.http_mcp_token" do
+    before do
+      ENV["RAILS_AI_BRIDGE_MCP_TOKEN"] = "env-token"
+      RailsAiBridge.configuration.http_mcp_token = "config-token"
+    end
+
+    it "accepts the ENV token" do
+      expect(described_class.authenticate(build_request(token: "env-token"))).to be_success
+    end
+
+    it "rejects the config token when ENV is set" do
+      expect(described_class.authenticate(build_request(token: "config-token"))).to be_failure
+    end
+  end
+
+  describe "resolve_strategy visibility" do
+    it "is private and not callable from outside the module" do
+      expect(described_class.private_methods).to include(:resolve_strategy)
+    end
+  end
 end

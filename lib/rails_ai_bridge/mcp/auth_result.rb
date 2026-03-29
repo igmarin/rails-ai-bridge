@@ -15,8 +15,10 @@ module RailsAiBridge
       # @return [Boolean] +true+ when authentication failed
       def failure? = !success
 
-      # Builds a successful result, optionally carrying caller-provided context
-      # (e.g. the decoded JWT payload or the resolved user object).
+      # Builds a successful result, optionally carrying caller-provided context.
+      # The meaning of +context+ depends on the strategy:
+      # +:static_bearer+ (static token), a decoded JWT payload Hash, a resolved user object, or +nil+.
+      # Callers that only need to gate access can ignore +context+ and check {#success?} only.
       #
       # @param context [Object, nil] arbitrary data from the strategy
       # @return [AuthResult]

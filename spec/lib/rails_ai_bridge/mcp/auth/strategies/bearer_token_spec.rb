@@ -36,6 +36,12 @@ RSpec.describe RailsAiBridge::Mcp::Auth::Strategies::BearerToken do
       result = strategy.authenticate(build_request)
       expect(result.success?).to be true
     end
+
+    it "returns fail(:missing_token) for a whitespace-only Bearer value" do
+      result = strategy.authenticate(build_request(token: "   "))
+      expect(result.failure?).to be true
+      expect(result.error).to eq(:missing_token)
+    end
   end
 
   describe "token_resolver mode" do

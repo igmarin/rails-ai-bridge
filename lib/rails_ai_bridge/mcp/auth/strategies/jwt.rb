@@ -39,7 +39,10 @@ module RailsAiBridge
           private
 
           # Calls +@decoder+ and wraps exceptions so callers always get an {AuthResult}.
+          # Any +StandardError+ (including +JWT::DecodeError+ and similar) is caught and
+          # surfaced as +:decode_error+ rather than propagating to the caller.
           #
+          # @param token [String] raw Bearer credential (no +"Bearer "+ prefix)
           # @return [Array(Object, nil)] +[payload, nil]+ on success
           # @return [Array(nil, Symbol)] +[nil, :decode_error]+ when the decoder raised
           def decode_token(token)

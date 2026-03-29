@@ -59,7 +59,10 @@ module RailsAiBridge
           end
 
           # Calls +token_resolver+ and wraps exceptions so callers always get an {AuthResult}.
+          # Any +StandardError+ (including programmer errors) is caught and surfaced as
+          # +:resolver_error+ rather than propagating to the caller.
           #
+          # @param token [String] raw Bearer credential (no +"Bearer "+ prefix)
           # @return [Array(Object, nil)] +[context, nil]+ on success
           # @return [Array(nil, Symbol)] +[nil, :resolver_error]+ when the resolver raised
           def resolve_token_context(token)

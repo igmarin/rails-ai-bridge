@@ -4,7 +4,8 @@ module RailsAiBridge
   module Mcp
     module Auth
       # Shared helpers for Bearer-token–based auth strategies.
-      # Subclasses implement {#authenticate}.
+      #
+      # @abstract Subclasses must implement +#authenticate(request) -> AuthResult+.
       class BaseStrategy
         # Extracts the raw Bearer credential from an +Authorization+ header.
         #
