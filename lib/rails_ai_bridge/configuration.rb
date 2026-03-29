@@ -99,6 +99,29 @@ module RailsAiBridge
     # Optional custom MCP resources merged with built-in resources.
     attr_accessor :additional_resources
 
+    # Lambda that resolves a raw Bearer token to an auth context (or +nil+/+false+ to deny).
+    # When set, takes priority over the static +http_mcp_token+.
+    #
+    # @example Devise token
+    #   config.mcp_token_resolver = ->(token) { User.find_by(api_token: token) }
+    #
+    # @return [Proc, nil]
+    attr_accessor :mcp_token_resolver
+
+    # Lambda that decodes a raw Bearer JWT to a payload hash (or +nil+/+false+ to deny).
+    # No JWT gem is required — supply your own decoding logic.
+    # Takes priority over both +mcp_token_resolver+ and +http_mcp_token+.
+    #
+    # @example Using the +jwt+ gem
+    #   config.mcp_jwt_decoder = ->(token) {
+    #     JWT.decode(token, Rails.application.credentials.jwt_secret, true, algorithm: "HS256").first
+    #   rescue JWT::DecodeError
+    #     nil
+    #   }
+    #
+    # @return [Proc, nil]
+    attr_accessor :mcp_jwt_decoder
+
     def initialize
       @server_name         = "rails-ai-bridge"
       @server_version      = RailsAiBridge::VERSION
@@ -131,6 +154,8 @@ module RailsAiBridge
       @additional_introspectors         = {}
       @additional_tools                 = []
       @additional_resources             = {}
+      @mcp_token_resolver               = nil
+      @mcp_jwt_decoder                  = nil
     end
 
     def preset=(name)

@@ -1,20 +1,23 @@
 # frozen_string_literal: true
 
-require "digest"
-
 module RailsAiBridge
   # Shared HTTP MCP authentication for {Middleware} and {Server} Rack apps.
-  # When +http_mcp_token+ or +ENV["RAILS_AI_BRIDGE_MCP_TOKEN"]+ is set, requests must send
-  # +Authorization: Bearer <token>+. When unset, requests are allowed (local dev compatibility).
+  # Authentication is delegated to {Mcp::HttpAuth}, which selects the active
+  # strategy based on the current {Configuration}:
+  #
+  # 1. {Configuration#mcp_jwt_decoder} → JWT strategy
+  # 2. {Configuration#mcp_token_resolver} → Bearer + resolver
+  # 3. +http_mcp_token+ / +ENV["RAILS_AI_BRIDGE_MCP_TOKEN"]+ → static Bearer
+  # 4. None configured → open access (local dev compatibility)
   module McpHttpAuth
     TOKEN_ENV_KEY = "RAILS_AI_BRIDGE_MCP_TOKEN"
 
     module_function
 
-    # Returns the effective HTTP MCP Bearer token.
-    # Environment token takes precedence over configuration when present.
+    # Returns the effective static Bearer token from ENV or configuration.
+    # Environment variable takes precedence when present.
     #
-    # @return [String, nil] normalized token, or +nil+ when auth is not configured
+    # @return [String, nil] normalized token, or +nil+ when not configured
     def effective_http_mcp_token
       env_t = ENV.fetch(TOKEN_ENV_KEY, "").to_s.strip
       return env_t if env_t.present?
@@ -22,39 +25,25 @@ module RailsAiBridge
       RailsAiBridge.configuration.http_mcp_token.to_s.strip.presence
     end
 
-    # Indicates whether HTTP MCP auth is currently configured.
+    # Returns +true+ when a static Bearer token is configured via ENV or config.
     #
-    # @return [Boolean] true when an effective token exists
+    # @return [Boolean]
     def http_mcp_auth_configured?
       effective_http_mcp_token.present?
     end
 
     # Verifies whether an incoming Rack request is authorized for HTTP MCP access.
+    # Delegates to {Mcp::HttpAuth} which selects the active auth strategy.
     #
-    # @param request [Rack::Request] request to validate
-    # @return [Boolean] true when auth is not configured or the Bearer token matches
+    # @param request [Rack::Request]
+    # @return [Boolean] +true+ when auth is not configured or the credential is accepted
     def authorized_request?(request)
-      return true unless http_mcp_auth_configured?
-
-      auth = request.get_header("HTTP_AUTHORIZATION")
-      return false if auth.blank?
-
-      match = auth.match(/\ABearer\s+(.+)\z/i)
-      return false unless match
-
-      received = match[1].to_s.strip
-      expected = effective_http_mcp_token.to_s
-      return false if received.blank? || expected.blank?
-
-      ActiveSupport::SecurityUtils.secure_compare(
-        Digest::SHA256.hexdigest(received),
-        Digest::SHA256.hexdigest(expected)
-      )
+      Mcp::HttpAuth.authenticate(request).success?
     end
 
-    # Builds a Rack-compatible unauthorized response for HTTP MCP endpoints.
+    # Builds a Rack 401 response for unauthenticated HTTP MCP requests.
     #
-    # @return [Array<(Integer, Hash{String => String}, Array<String>)>] rack response tuple
+    # @return [Array<(Integer, Hash{String => String}, Array<String>)>] Rack response tuple
     def unauthorized_rack_response
       [
         401,

@@ -24,6 +24,8 @@ RSpec.describe RailsAiBridge::Configuration do
     expect(config.additional_introspectors).to eq({})
     expect(config.additional_tools).to eq([])
     expect(config.additional_resources).to eq({})
+    expect(config.mcp_token_resolver).to be_nil
+    expect(config.mcp_jwt_decoder).to be_nil
   end
 
   it "defaults to standard preset" do
