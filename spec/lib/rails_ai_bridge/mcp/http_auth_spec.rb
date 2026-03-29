@@ -16,7 +16,7 @@ RSpec.describe RailsAiBridge::Mcp::HttpAuth do
     ENV.delete("RAILS_AI_BRIDGE_MCP_TOKEN")
     example.run
   ensure
-    ENV["RAILS_AI_BRIDGE_MCP_TOKEN"] = saved_env if saved_env
+    saved_env ? (ENV["RAILS_AI_BRIDGE_MCP_TOKEN"] = saved_env) : ENV.delete("RAILS_AI_BRIDGE_MCP_TOKEN")
     RailsAiBridge.configuration.http_mcp_token    = saved_token
     RailsAiBridge.configuration.mcp_token_resolver = saved_resolver
     RailsAiBridge.configuration.mcp_jwt_decoder   = saved_decoder

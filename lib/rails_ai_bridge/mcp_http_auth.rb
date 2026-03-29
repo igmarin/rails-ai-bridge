@@ -32,6 +32,17 @@ module RailsAiBridge
       effective_http_mcp_token.present?
     end
 
+    # Returns +true+ when ANY auth mechanism is configured — static token, resolver, or JWT decoder.
+    # Used by production-safety validators to confirm the MCP endpoint is protected.
+    #
+    # @return [Boolean]
+    def any_auth_configured?
+      cfg = RailsAiBridge.configuration
+      http_mcp_auth_configured? ||
+        cfg.mcp_token_resolver.present? ||
+        cfg.mcp_jwt_decoder.present?
+    end
+
     # Verifies whether an incoming Rack request is authorized for HTTP MCP access.
     # Delegates to {Mcp::HttpAuth} which selects the active auth strategy in priority order:
     # +mcp_jwt_decoder+ > +mcp_token_resolver+ > +http_mcp_token+/ENV > open access.
