@@ -89,14 +89,12 @@ module RailsAiBridge
         STATIC_RESOURCES.merge(RailsAiBridge.configuration.additional_resources)
       end
 
-      # Registers resources and templates on the given MCP server.
+      # Builds the list of static +MCP::Resource+ objects for all registered URIs.
+      # Intended to be passed to +MCP::Server.new(resources: ...)+ at construction time.
       #
-      # @param server [MCP::Server] server instance to mutate
-      # @return [void]
-      def register(server)
-        require "json"
-
-        resources = resource_definitions.map do |uri, meta|
+      # @return [Array<MCP::Resource>]
+      def build_resources
+        resource_definitions.map do |uri, meta|
           MCP::Resource.new(
             uri: uri,
             name: meta[:name],
@@ -104,10 +102,14 @@ module RailsAiBridge
             mime_type: meta[:mime_type]
           )
         end
+      end
 
-        server.resources = resources
-
-        templates = [
+      # Builds the list of +MCP::ResourceTemplate+ objects for URI-template resources.
+      # Intended to be passed to +MCP::Server.new(resource_templates: ...)+ at construction time.
+      #
+      # @return [Array<MCP::ResourceTemplate>]
+      def build_templates
+        [
           MCP::ResourceTemplate.new(
             uri_template: "rails://models/{name}",
             name: "Model Details",
@@ -127,8 +129,16 @@ module RailsAiBridge
             mime_type: "application/json"
           )
         ]
+      end
 
-        server.resources_templates_list_handler { templates }
+      # Registers the +resources/read+ handler on an already-constructed MCP server.
+      # Resources and templates must be passed to +MCP::Server.new+ before calling this —
+      # see {build_resources} and {build_templates}.
+      #
+      # @param server [MCP::Server] server instance to register the handler on
+      # @return [void]
+      def register(server)
+        require "json"
 
         server.resources_read_handler do |params|
           handle_read(params)
