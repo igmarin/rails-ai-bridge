@@ -54,6 +54,18 @@ module RailsAiBridge
         end
       end
 
+      # Returns the appropriate test command string for this app's test framework.
+      # Reads +context[:tests][:framework]+ (value returned by the tests introspector:
+      # "rspec" or "minitest"). Falls back to +"bundle exec rspec"+ when the key is
+      # absent, nil, or contains an unrecognised value.
+      #
+      # @param context [Hash] full introspection hash
+      # @return [String] copy-pastable test command
+      def test_command(context)
+        framework = context.dig(:tests, :framework).to_s.strip.downcase
+        framework == "minitest" ? "bin/rails test" : "bundle exec rspec"
+      end
+
       # Short, copy-pastable baseline for compact serializers (performance, drift, MCP exposure).
       #
       # @return [Array<String>] markdown lines (including heading)

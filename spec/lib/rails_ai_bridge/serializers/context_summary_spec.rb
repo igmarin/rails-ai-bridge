@@ -3,6 +3,42 @@
 require "spec_helper"
 
 RSpec.describe RailsAiBridge::Serializers::ContextSummary do
+  describe ".test_command" do
+    it "returns 'bundle exec rspec' for rspec framework" do
+      context = { tests: { framework: "rspec" } }
+      expect(described_class.test_command(context)).to eq("bundle exec rspec")
+    end
+
+    it "returns 'bin/rails test' for minitest framework" do
+      context = { tests: { framework: "minitest" } }
+      expect(described_class.test_command(context)).to eq("bin/rails test")
+    end
+
+    it "returns 'bundle exec rspec' when framework is unknown" do
+      context = { tests: { framework: "unknown" } }
+      expect(described_class.test_command(context)).to eq("bundle exec rspec")
+    end
+
+    it "returns 'bundle exec rspec' when tests key is missing" do
+      expect(described_class.test_command({})).to eq("bundle exec rspec")
+    end
+
+    it "returns 'bundle exec rspec' when framework is nil" do
+      context = { tests: { framework: nil } }
+      expect(described_class.test_command(context)).to eq("bundle exec rspec")
+    end
+
+    it "returns 'bundle exec rspec' when framework is an empty string" do
+      context = { tests: { framework: "" } }
+      expect(described_class.test_command(context)).to eq("bundle exec rspec")
+    end
+
+    it "returns 'bundle exec rspec' when framework is whitespace only" do
+      context = { tests: { framework: "   " } }
+      expect(described_class.test_command(context)).to eq("bundle exec rspec")
+    end
+  end
+
   describe ".routes_stack_line" do
     it "uses introspected controller count to match split rule headings" do
       context = {

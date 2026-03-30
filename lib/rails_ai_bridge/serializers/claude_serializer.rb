@@ -110,19 +110,29 @@ module RailsAiBridge
 
         max_show = 15
         lines = [ "## Key models (#{models.size} total)" ]
-        models.keys.sort.first(max_show).each do |name|
+        sorted_names = models.sort_by { |_name, data| -model_complexity_score(data) }.map(&:first)
+        sorted_names.first(max_show).each do |name|
           data = models[name]
           assoc_count = (data[:associations] || []).size
           val_count = (data[:validations] || []).size
+          enum_names = (data[:enums] || {}).keys
           top_assocs = (data[:associations] || []).first(3).map { |a| "#{a[:type]} :#{a[:name]}" }.join(", ")
           line = "- **#{name}**"
           line += " (#{assoc_count}a, #{val_count}v)" if assoc_count > 0 || val_count > 0
+          line += " [enums: #{enum_names.join(', ')}]" if enum_names.any?
           line += " — #{top_assocs}" if top_assocs && !top_assocs.empty?
           lines << line
         end
         lines << "- _...#{models.size - max_show} more (use `rails_get_model_details` tool)_" if models.size > max_show
         lines << ""
         lines
+      end
+
+      def model_complexity_score(data)
+        data[:associations].to_a.size +
+          data[:validations].to_a.size +
+          data[:callbacks].to_a.size +
+          data[:scopes].to_a.size
       end
 
       def render_notable_gems
@@ -225,7 +235,7 @@ module RailsAiBridge
         [
           "## Commands",
           "- `bin/dev` — start dev server",
-          "- `bundle exec rspec` — run tests",
+          "- `#{ContextSummary.test_command(context)}` — run tests",
           "- `rails db:migrate` — run pending migrations",
           ""
         ]
@@ -270,7 +280,7 @@ module RailsAiBridge
         rules << "- Use the database schema as the source of truth for column names and types"
         rules << "- Respect existing associations and validations when modifying models"
         rules << "- Match the project's architecture style (#{architecture_summary})" if architecture_summary
-        rules << "- Run `bundle exec rspec` after making changes to verify correctness"
+        rules << "- Run `#{ContextSummary.test_command(context)}` after making changes to verify correctness"
         rules << ""
         rules << super
         rules.join("\n")

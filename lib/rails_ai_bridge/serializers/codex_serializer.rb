@@ -56,7 +56,7 @@ module RailsAiBridge
         lines << "## Working agreements"
         lines << "- Prefer the MCP tools over guessing the Rails structure."
         lines << "- Start with `detail:\"summary\"`, then drill into specifics."
-        lines << "- Run `bundle exec rspec` after behavior changes."
+        lines << "- Run `#{ContextSummary.test_command(context)}` after behavior changes."
         lines << "- Run `bundle exec rubocop --parallel` before finishing substantial code changes."
         lines << ""
         lines.concat(SharedAssistantGuidance.repo_specific_guidance_section_lines)

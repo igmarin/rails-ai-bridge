@@ -117,7 +117,7 @@ module RailsAiBridge
         lines << "## Conventions"
         lines << "- Follow existing patterns and naming conventions"
         lines << "- Use MCP tools to check schema before writing migrations"
-        lines << "- Run `bundle exec rspec` after changes"
+        lines << "- Run `#{ContextSummary.test_command(context)}` after changes"
         lines << ""
 
         lines.join("\n")

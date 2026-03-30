@@ -53,6 +53,64 @@ RSpec.describe RailsAiBridge::Serializers::ClaudeSerializer do
       expect(output).to include("...15 more")
     end
 
+    it "sorts key models by complexity score (associations + validations + callbacks + scopes), not alphabetically" do
+      models = {
+        "AardvarkModel" => { associations: [], validations: [], callbacks: [], scopes: [] },
+        "ZebraModel"    => {
+          associations: 10.times.map { |j| { type: "has_many", name: "rel_#{j}" } },
+          validations:  5.times.map  { |j| { kind: "presence", attributes: ["attr_#{j}"] } },
+          callbacks:    3.times.map  { |j| { name: "cb_#{j}" } },
+          scopes:       2.times.map  { |j| "scope_#{j}" }
+        }
+      }
+
+      context = {
+        app_name: "App", rails_version: "8.0", ruby_version: "3.4",
+        generated_at: Time.now.iso8601, schema: {}, models: models,
+        routes: {}, gems: {}, conventions: {}
+      }
+
+      output = described_class.new(context).call
+      zebra_pos    = output.index("ZebraModel")
+      aardvark_pos = output.index("AardvarkModel")
+
+      expect(zebra_pos).to be < aardvark_pos, "expected ZebraModel (high complexity) before AardvarkModel (zero complexity)"
+    end
+
+    it "shows enum names inline in key model lines" do
+      models = {
+        "Order" => {
+          associations: [],
+          validations: [],
+          enums: { "status" => %w[pending shipped delivered], "priority" => %w[low high] }
+        }
+      }
+
+      context = {
+        app_name: "App", rails_version: "8.0", ruby_version: "3.4",
+        generated_at: Time.now.iso8601, schema: {}, models: models,
+        routes: {}, gems: {}, conventions: {}
+      }
+
+      output = described_class.new(context).call
+      expect(output).to include("status"), "expected enum name 'status' in model line"
+      expect(output).to include("priority"), "expected enum name 'priority' in model line"
+    end
+
+    it "uses the dynamic test command based on framework" do
+      models = {}
+      context = {
+        app_name: "App", rails_version: "8.0", ruby_version: "3.4",
+        generated_at: Time.now.iso8601, schema: {}, models: models,
+        routes: {}, gems: {}, conventions: {},
+        tests: { framework: "minitest" }
+      }
+
+      output = described_class.new(context).call
+      expect(output).to include("bin/rails test")
+      expect(output).not_to include("bundle exec rspec")
+    end
+
     it "includes app name and version" do
       context = {
         app_name: "MyApp", rails_version: "8.0", ruby_version: "3.4",
