@@ -39,6 +39,36 @@ RSpec.describe RailsAiBridge::Serializers::ContextSummary do
     end
   end
 
+  describe ".model_complexity_score" do
+    it "sums associations, validations, callbacks, and scopes sizes" do
+      data = {
+        associations: [ {}, {}, {} ],
+        validations:  [ {}, {} ],
+        callbacks:    [ {} ],
+        scopes:       [ {}, {} ]
+      }
+      expect(described_class.model_complexity_score(data)).to eq(8)
+    end
+
+    it "returns 0 for an empty model" do
+      expect(described_class.model_complexity_score({})).to eq(0)
+    end
+
+    it "preserves insertion order for models with identical scores (stable sort)" do
+      models = {
+        "AardvarkModel" => { associations: [ {} ], validations: [], callbacks: [], scopes: [] },
+        "BeeModel"      => { associations: [ {} ], validations: [], callbacks: [], scopes: [] }
+      }
+      sorted = models.sort_by { |_n, d| -described_class.model_complexity_score(d) }.map(&:first)
+      expect(sorted).to eq(%w[AardvarkModel BeeModel])
+    end
+
+    it "handles unexpected non-array values via Array() coercion" do
+      data = { associations: "bad_value", validations: nil, callbacks: [], scopes: [] }
+      expect { described_class.model_complexity_score(data) }.not_to raise_error
+    end
+  end
+
   describe ".routes_stack_line" do
     it "uses introspected controller count to match split rule headings" do
       context = {

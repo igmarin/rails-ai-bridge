@@ -31,6 +31,25 @@ RSpec.describe RailsAiBridge::Serializers::CodexSerializer do
       expect(output).to include("find_each")
       expect(output).to include("snapshots")
     end
+
+    it "sorts key models by complexity score, not alphabetically" do
+      models = {
+        "AardvarkModel" => { associations: [], validations: [] },
+        "ZebraModel"    => {
+          associations: 8.times.map { |j| { type: "has_many", name: "rel_#{j}" } },
+          validations:  4.times.map { |j| { kind: "presence", attributes: ["attr_#{j}"] } }
+        }
+      }
+
+      context = {
+        app_name: "App", rails_version: "8.0", ruby_version: "3.3.10",
+        schema: {}, models: models, routes: {}, conventions: {}
+      }
+
+      output = described_class.new(context).call
+      expect(output.index("ZebraModel")).to be < output.index("AardvarkModel"),
+        "expected ZebraModel (high complexity) before AardvarkModel (zero complexity)"
+    end
   end
 
   describe "full mode" do

@@ -54,6 +54,19 @@ module RailsAiBridge
         end
       end
 
+      # Complexity score for a single model's introspection data.
+      # Used by compact serializers to surface the most architecturally significant
+      # models (high association/validation/callback/scope counts) first.
+      #
+      # @param data [Hash] single-model entry from +context[:models]+
+      # @return [Integer] non-negative score; higher = more complex
+      def model_complexity_score(data)
+        Array(data[:associations]).size +
+          Array(data[:validations]).size +
+          Array(data[:callbacks]).size +
+          Array(data[:scopes]).size
+      end
+
       # Returns the appropriate test command string for this app's test framework.
       # Reads +context[:tests][:framework]+ (value returned by the tests introspector:
       # "rspec" or "minitest"). Falls back to +"bundle exec rspec"+ when the key is

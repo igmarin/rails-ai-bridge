@@ -110,7 +110,7 @@ module RailsAiBridge
 
         max_show = 15
         lines = [ "## Key models (#{models.size} total)" ]
-        sorted_names = models.sort_by { |_name, data| -model_complexity_score(data) }.map(&:first)
+        sorted_names = models.sort_by { |_name, data| -ContextSummary.model_complexity_score(data) }.map(&:first)
         sorted_names.first(max_show).each do |name|
           data = models[name]
           assoc_count = (data[:associations] || []).size
@@ -126,13 +126,6 @@ module RailsAiBridge
         lines << "- _...#{models.size - max_show} more (use `rails_get_model_details` tool)_" if models.size > max_show
         lines << ""
         lines
-      end
-
-      def model_complexity_score(data)
-        data[:associations].to_a.size +
-          data[:validations].to_a.size +
-          data[:callbacks].to_a.size +
-          data[:scopes].to_a.size
       end
 
       def render_notable_gems

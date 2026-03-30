@@ -107,8 +107,7 @@ module RailsAiBridge
         if limit <= 0
           lines << "- _Use `rails_get_model_details(detail:\"summary\")` for names — not listed here to save context._"
         else
-          models.keys.sort.first(limit).each do |name|
-            data = models[name]
+          models.sort_by { |_n, d| -ContextSummary.model_complexity_score(d) }.first(limit).each do |name, data|
             assocs = (data[:associations] || []).first(2).map { |a| "#{a[:type]} :#{a[:name]}" }.join(", ")
             line = "- #{name}"
             line += " — #{assocs}" unless assocs.empty?

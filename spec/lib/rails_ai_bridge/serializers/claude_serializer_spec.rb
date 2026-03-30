@@ -77,7 +77,7 @@ RSpec.describe RailsAiBridge::Serializers::ClaudeSerializer do
       expect(zebra_pos).to be < aardvark_pos, "expected ZebraModel (high complexity) before AardvarkModel (zero complexity)"
     end
 
-    it "shows enum names inline in key model lines" do
+    it "shows enum names inline in key model lines using exact format" do
       models = {
         "Order" => {
           associations: [],
@@ -93,8 +93,7 @@ RSpec.describe RailsAiBridge::Serializers::ClaudeSerializer do
       }
 
       output = described_class.new(context).call
-      expect(output).to include("status"), "expected enum name 'status' in model line"
-      expect(output).to include("priority"), "expected enum name 'priority' in model line"
+      expect(output).to include("[enums: status, priority]")
     end
 
     it "uses the dynamic test command based on framework" do
@@ -119,6 +118,32 @@ RSpec.describe RailsAiBridge::Serializers::ClaudeSerializer do
       output = described_class.new(context).call
       expect(output).to include("MyApp")
       expect(output).to include("Rails 8.0")
+    end
+  end
+
+  describe "cross-serializer consistency (minitest)" do
+    before { RailsAiBridge.configuration.context_mode = :compact }
+    after  { RailsAiBridge.configuration.context_mode = :compact }
+
+    let(:minitest_context) do
+      {
+        app_name: "App", rails_version: "8.0", ruby_version: "3.4",
+        generated_at: Time.now.iso8601, schema: {}, models: {},
+        routes: {}, gems: {}, conventions: {},
+        tests: { framework: "minitest" }
+      }
+    end
+
+    it "all three compact serializers use bin/rails test for minitest apps" do
+      claude   = RailsAiBridge::Serializers::ClaudeSerializer.new(minitest_context).call
+      codex    = RailsAiBridge::Serializers::CodexSerializer.new(minitest_context).call
+      copilot  = RailsAiBridge::Serializers::CopilotSerializer.new(minitest_context).call
+
+      aggregate_failures do
+        expect(claude).to  include("bin/rails test"), "ClaudeSerializer should use bin/rails test"
+        expect(codex).to   include("bin/rails test"), "CodexSerializer should use bin/rails test"
+        expect(copilot).to include("bin/rails test"), "CopilotSerializer should use bin/rails test"
+      end
     end
   end
 
