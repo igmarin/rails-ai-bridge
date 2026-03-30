@@ -103,14 +103,23 @@ module RailsAiBridge
           return
         end
 
+        schema_tables = context.dig(:schema, :tables) || {}
+        migrations    = context[:migrations]
         limit = RailsAiBridge.configuration.codex_compact_model_list_limit.to_i
+
         if limit <= 0
           lines << "- _Use `rails_get_model_details(detail:\"summary\")` for names — not listed here to save context._"
         else
           models.sort_by { |_n, d| -ContextSummary.model_complexity_score(d) }.first(limit).each do |name, data|
-            assocs = (data[:associations] || []).first(2).map { |a| "#{a[:type]} :#{a[:name]}" }.join(", ")
+            assocs     = (data[:associations] || []).first(2).map { |a| "#{a[:type]} :#{a[:name]}" }.join(", ")
+            table_name = data[:table_name]
             line = "- #{name}"
             line += " — #{assocs}" unless assocs.empty?
+
+            cols = ContextSummary.top_columns(schema_tables[table_name])
+            line += " [cols: #{cols.map { |c| "#{c[:name]}:#{c[:type]}" }.join(', ')}]" if cols.any?
+
+            line += " [recently migrated]" if table_name && ContextSummary.recently_migrated?(table_name, migrations)
             lines << line
           end
           remainder = models.size - limit

@@ -108,18 +108,28 @@ module RailsAiBridge
         models = context[:models]
         return [] unless models.is_a?(Hash) && !models[:error] && models.any?
 
+        schema_tables = context.dig(:schema, :tables) || {}
+        migrations    = context[:migrations]
         max_show = 15
+
         lines = [ "## Key models (#{models.size} total)" ]
         sorted_names = models.sort_by { |_name, data| -ContextSummary.model_complexity_score(data) }.map(&:first)
         sorted_names.first(max_show).each do |name|
           data = models[name]
           assoc_count = (data[:associations] || []).size
-          val_count = (data[:validations] || []).size
-          enum_names = (data[:enums] || {}).keys
-          top_assocs = (data[:associations] || []).first(3).map { |a| "#{a[:type]} :#{a[:name]}" }.join(", ")
+          val_count   = (data[:validations] || []).size
+          enum_names  = (data[:enums] || {}).keys
+          top_assocs  = (data[:associations] || []).first(3).map { |a| "#{a[:type]} :#{a[:name]}" }.join(", ")
+          table_name  = data[:table_name]
+
           line = "- **#{name}**"
           line += " (#{assoc_count}a, #{val_count}v)" if assoc_count > 0 || val_count > 0
           line += " [enums: #{enum_names.join(', ')}]" if enum_names.any?
+
+          cols = ContextSummary.top_columns(schema_tables[table_name])
+          line += " [cols: #{cols.map { |c| "#{c[:name]}:#{c[:type]}" }.join(', ')}]" if cols.any?
+
+          line += " [recently migrated]" if table_name && ContextSummary.recently_migrated?(table_name, migrations)
           line += " — #{top_assocs}" if top_assocs && !top_assocs.empty?
           lines << line
         end

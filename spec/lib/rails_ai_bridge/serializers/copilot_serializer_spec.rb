@@ -41,6 +41,47 @@ RSpec.describe RailsAiBridge::Serializers::CopilotSerializer do
       expect(output).to include("has_many :posts")
     end
 
+    it "shows top non-housekeeping columns in model lines" do
+      context = {
+        app_name: "App", rails_version: "8.0", ruby_version: "3.4",
+        models: { "User" => { associations: [], validations: [], table_name: "users" } },
+        schema: {
+          adapter: "postgresql", total_tables: 1,
+          tables: {
+            "users" => {
+              columns: [
+                { name: "id", type: "integer" },
+                { name: "name", type: "string" },
+                { name: "email", type: "string" },
+                { name: "created_at", type: "datetime" }
+              ]
+            }
+          }
+        },
+        routes: {}, gems: {}, conventions: {}
+      }
+
+      output = described_class.new(context).call
+      expect(output).to include("[cols:")
+      expect(output).to include("name:string")
+      expect(output).not_to include("id:integer")
+    end
+
+    it "flags recently migrated models" do
+      recent_version = (Date.today - 5).strftime("%Y%m%d") + "120000"
+      context = {
+        app_name: "App", rails_version: "8.0", ruby_version: "3.4",
+        models: { "User" => { associations: [], validations: [], table_name: "users" } },
+        schema: {}, routes: {}, gems: {}, conventions: {},
+        migrations: {
+          recent: [ { version: recent_version, filename: "#{recent_version}_add_role_to_users.rb" } ]
+        }
+      }
+
+      output = described_class.new(context).call
+      expect(output).to include("[recently migrated]")
+    end
+
     it "sorts key models by complexity score, not alphabetically" do
       models = {
         "AardvarkModel" => { associations: [], validations: [] },

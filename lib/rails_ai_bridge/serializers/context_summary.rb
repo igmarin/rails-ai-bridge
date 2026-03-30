@@ -5,6 +5,10 @@ module RailsAiBridge
     # Shared stack metrics so compact outputs stay consistent with split rule files
     # (e.g. +# Controllers (N)+ uses {ControllerIntrospector}, not +routes[:by_controller]+ alone).
     module ContextSummary
+      # Column names excluded from compact model output — primary key, timestamps, and
+      # foreign keys (matched via +_id+ suffix separately).
+      HOUSEKEEPING_COLUMNS = %w[id created_at updated_at].freeze
+
       module_function
 
       # @param context [Hash] full introspection hash
@@ -77,6 +81,46 @@ module RailsAiBridge
       def test_command(context)
         framework = context.dig(:tests, :framework).to_s.strip.downcase
         framework == "minitest" ? "bin/rails test" : "bundle exec rspec"
+      end
+
+      # Top non-housekeeping columns for a model's table.
+      # Excludes primary key (+id+), timestamps (+created_at+, +updated_at+), and
+      # foreign key columns (names ending in +_id+). Returns at most 3 columns.
+      #
+      # @param table_data [Hash, nil] entry from +context[:schema][:tables][table_name]+;
+      #   must have a +:columns+ key with an array of +{ name:, type: }+ hashes.
+      # @return [Array<Hash>] up to 3 column hashes with +:name+ and +:type+ keys
+      def top_columns(table_data)
+        return [] unless table_data.is_a?(Hash)
+
+        columns = Array(table_data[:columns])
+
+        columns
+          .reject { |c| HOUSEKEEPING_COLUMNS.include?(c[:name]) || c[:name].to_s.end_with?("_id") }
+          .first(3)
+          .map { |c| { name: c[:name], type: c[:type] } }
+      end
+
+      # Returns true when any migration within the last 30 days references +table_name+.
+      # Migration recency is derived from the YYYYMMDDHHMMSS timestamp prefix in
+      # +:version+. The table match is a substring search on +:filename+.
+      #
+      # @param table_name [String, nil] snake_case table name (e.g. +"users"+)
+      # @param migrations [Hash, nil] +context[:migrations]+ hash; must have a +:recent+ key
+      # @return [Boolean]
+      def recently_migrated?(table_name, migrations)
+        return false unless table_name && migrations.is_a?(Hash)
+
+        cutoff = Date.today - 30
+        Array(migrations[:recent]).any? do |m|
+          version = m[:version].to_s
+          next false unless version.length >= 8
+
+          migration_date = Date.strptime(version[0..7], "%Y%m%d")
+          migration_date >= cutoff && m[:filename].to_s.include?(table_name)
+        rescue ArgumentError
+          false
+        end
       end
 
       # Short, copy-pastable baseline for compact serializers (performance, drift, MCP exposure).

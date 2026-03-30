@@ -49,15 +49,15 @@ module RailsAiBridge
       def render_engineering_rule
         show_ov = SharedAssistantGuidance.overrides_file_exists_and_nonempty?
         body = SharedAssistantGuidance.cursor_engineering_mdc_body_lines(show_overrides_pointer: show_ov)
-        (
-          [
-            "---",
-            "description: \"Rails engineering rules — strong params, auth, performance, security\"",
-            "alwaysApply: true",
-            "---",
-            ""
-          ] + body
-        ).join("\n")
+        lines = [
+          "---",
+          "description: \"Rails engineering rules — strong params, auth, performance, security\"",
+          "alwaysApply: true",
+          "---",
+          ""
+        ] + body
+        lines << "- Run `#{ContextSummary.test_command(context)}` after changes"
+        lines.join("\n")
       end
 
       # Always-on project overview rule (<50 lines)
@@ -123,10 +123,24 @@ module RailsAiBridge
           ""
         ]
 
-        models.keys.sort.first(30).each do |name|
-          data = models[name]
-          assocs = (data[:associations] || []).size
-          lines << "- #{name} (#{assocs} associations, table: #{data[:table_name] || '?'})"
+        schema_tables = context.dig(:schema, :tables) || {}
+        migrations    = context[:migrations]
+
+        sorted = models.sort_by { |_name, data| -ContextSummary.model_complexity_score(data) }
+        sorted.first(30).each do |name, data|
+          assocs     = (data[:associations] || []).size
+          table_name = data[:table_name]
+          enum_names = (data[:enums] || {}).keys
+
+          line = "- #{name} (#{assocs} associations, table: #{table_name || '?'})"
+          line += " [enums: #{enum_names.join(', ')}]" if enum_names.any?
+
+          cols = ContextSummary.top_columns(schema_tables[table_name])
+          line += " [cols: #{cols.map { |c| "#{c[:name]}:#{c[:type]}" }.join(', ')}]" if cols.any?
+
+          line += " [recently migrated]" if table_name && ContextSummary.recently_migrated?(table_name, migrations)
+
+          lines << line
         end
 
         lines << "- ...#{models.size - 30} more" if models.size > 30
@@ -143,6 +157,8 @@ module RailsAiBridge
         controllers = data[:controllers] || {}
         return nil if controllers.empty?
 
+        routes_by_ctrl = context.dig(:routes, :by_controller) || {}
+
         lines = [
           "---",
           "description: \"Controller reference\"",
@@ -157,8 +173,17 @@ module RailsAiBridge
 
         controllers.keys.sort.first(25).each do |name|
           info = controllers[name]
-          action_count = info[:actions]&.size || 0
-          lines << "- #{name} (#{action_count} actions)"
+          # Derive route key: "UsersController" → "users", "Admin::UsersController" → "admin/users"
+          route_key = name.gsub(/Controller\z/, "").underscore
+          routes = routes_by_ctrl[route_key] || []
+
+          if routes.any?
+            action_lines = routes.first(6).map { |r| "#{r[:verb]} #{r[:action]}" }.join(", ")
+            lines << "- #{name}: #{action_lines}"
+          else
+            action_count = info[:actions]&.size || 0
+            lines << "- #{name} (#{action_count} actions)"
+          end
         end
 
         lines << "- ...#{controllers.size - 25} more" if controllers.size > 25

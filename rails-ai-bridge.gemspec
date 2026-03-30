@@ -57,10 +57,10 @@ Gem::Specification.new do |spec|
 
   # Dev dependencies
   spec.add_development_dependency "appraisal", "~> 2.5"
-  spec.add_development_dependency "combustion", "~> 1.4" # Test Rails engines in isolation
+  spec.add_development_dependency "combustion", "~> 1.5" # Test Rails engines in isolation
   spec.add_development_dependency "rspec", "~> 3.13"
-  spec.add_development_dependency "rubocop", "~> 1.65"
-  spec.add_development_dependency "rubocop-rails-omakase", "~> 1.0"
+  spec.add_development_dependency "rubocop", "~> 1.86"
+  spec.add_development_dependency "rubocop-rails-omakase", "~> 1.1"
   spec.add_development_dependency "simplecov", "~> 0.22"
   spec.add_development_dependency "yard", "~> 0.9"
 end

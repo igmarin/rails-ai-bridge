@@ -52,10 +52,24 @@ module RailsAiBridge
 
         lines << ""
 
-        # Key models (names only — character budget is tight)
+        # Key models — complexity-sorted, with column hints and migration flags
         if models.is_a?(Hash) && !models[:error] && models.any?
+          schema_tables = context.dig(:schema, :tables) || {}
+          migrations    = context[:migrations]
+
           lines << "# Key models"
-          models.keys.sort.first(20).each { |name| lines << "- #{name}" }
+          sorted = models.sort_by { |_name, data| -ContextSummary.model_complexity_score(data) }
+          sorted.first(20).each do |name, data|
+            table_name = data[:table_name]
+            line = "- #{name}"
+
+            cols = ContextSummary.top_columns(schema_tables[table_name])
+            line += " [cols: #{cols.map { |c| "#{c[:name]}:#{c[:type]}" }.join(', ')}]" if cols.any?
+
+            line += " [recently migrated]" if table_name && ContextSummary.recently_migrated?(table_name, migrations)
+
+            lines << line
+          end
           lines << "- ...#{models.size - 20} more" if models.size > 20
           lines << ""
         end
@@ -87,7 +101,7 @@ module RailsAiBridge
         lines << "# Rules"
         lines << "- Follow existing patterns"
         lines << "- Check schema via MCP before writing migrations"
-        lines << "- Run tests after changes"
+        lines << "- Run `#{ContextSummary.test_command(context)}` after changes"
 
         lines.join("\n")
       end

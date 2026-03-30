@@ -69,6 +69,86 @@ RSpec.describe RailsAiBridge::Serializers::ContextSummary do
     end
   end
 
+  describe ".top_columns" do
+    let(:table_data) do
+      {
+        columns: [
+          { name: "id", type: "integer" },
+          { name: "name", type: "string" },
+          { name: "email", type: "string" },
+          { name: "role", type: "integer" },
+          { name: "user_id", type: "integer" },
+          { name: "created_at", type: "datetime" },
+          { name: "updated_at", type: "datetime" }
+        ]
+      }
+    end
+
+    it "excludes id, created_at, updated_at, and *_id columns" do
+      cols = described_class.top_columns(table_data)
+      col_names = cols.map { |c| c[:name] }
+      expect(col_names).not_to include("id", "created_at", "updated_at", "user_id")
+    end
+
+    it "returns at most 3 columns" do
+      cols = described_class.top_columns(table_data)
+      expect(cols.size).to be <= 3
+    end
+
+    it "includes name and type" do
+      cols = described_class.top_columns(table_data)
+      expect(cols).to include(hash_including(name: "name", type: "string"))
+    end
+
+    it "returns empty array when table_data is nil" do
+      expect(described_class.top_columns(nil)).to eq([])
+    end
+
+    it "returns empty array when columns key is missing" do
+      expect(described_class.top_columns({})).to eq([])
+    end
+  end
+
+  describe ".recently_migrated?" do
+    let(:recent_version) { (Date.today - 10).strftime("%Y%m%d") + "120000" }
+    let(:old_version)    { (Date.today - 60).strftime("%Y%m%d") + "120000" }
+
+    it "returns true when a migration within 30 days touches the table" do
+      migrations = {
+        recent: [
+          { version: recent_version, filename: "#{recent_version}_create_users.rb" }
+        ]
+      }
+      expect(described_class.recently_migrated?("users", migrations)).to be true
+    end
+
+    it "returns false when matching migration is older than 30 days" do
+      migrations = {
+        recent: [
+          { version: old_version, filename: "#{old_version}_create_users.rb" }
+        ]
+      }
+      expect(described_class.recently_migrated?("users", migrations)).to be false
+    end
+
+    it "returns false when no migration references the table name" do
+      migrations = {
+        recent: [
+          { version: recent_version, filename: "#{recent_version}_create_posts.rb" }
+        ]
+      }
+      expect(described_class.recently_migrated?("users", migrations)).to be false
+    end
+
+    it "returns false when migrations is nil" do
+      expect(described_class.recently_migrated?("users", nil)).to be false
+    end
+
+    it "returns false when recent is empty" do
+      expect(described_class.recently_migrated?("users", { recent: [] })).to be false
+    end
+  end
+
   describe ".routes_stack_line" do
     it "uses introspected controller count to match split rule headings" do
       context = {
