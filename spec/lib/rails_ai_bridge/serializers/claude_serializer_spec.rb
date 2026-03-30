@@ -58,7 +58,7 @@ RSpec.describe RailsAiBridge::Serializers::ClaudeSerializer do
         "AardvarkModel" => { associations: [], validations: [], callbacks: [], scopes: [] },
         "ZebraModel"    => {
           associations: 10.times.map { |j| { type: "has_many", name: "rel_#{j}" } },
-          validations:  5.times.map  { |j| { kind: "presence", attributes: ["attr_#{j}"] } },
+          validations:  5.times.map  { |j| { kind: "presence", attributes: [ "attr_#{j}" ] } },
           callbacks:    3.times.map  { |j| { name: "cb_#{j}" } },
           scopes:       2.times.map  { |j| "scope_#{j}" }
         }
