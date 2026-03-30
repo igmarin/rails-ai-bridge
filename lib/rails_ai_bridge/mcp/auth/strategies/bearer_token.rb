@@ -82,7 +82,15 @@ module RailsAiBridge
             AuthResult.ok(:static_bearer)
           end
 
-          # Timing-safe comparison over SHA-256 digests to avoid leaking token length.
+          # Timing-safe comparison over SHA-256 digests.
+          #
+          # Pre-hashing normalises both inputs to 64-hex-character strings so
+          # +secure_compare+ never leaks the original token length via timing.
+          # This is the same pattern used by Devise and Rails session tokens.
+          #
+          # **This does NOT protect against brute-force guessing.** Host
+          # applications MUST add rate limiting (e.g. Rack::Attack) on the MCP
+          # endpoint in production.
           def secure_compare(received, expected)
             ActiveSupport::SecurityUtils.secure_compare(
               Digest::SHA256.hexdigest(received),

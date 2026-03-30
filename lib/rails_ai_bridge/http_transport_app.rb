@@ -15,8 +15,8 @@ module RailsAiBridge
           end
 
           request = Rack::Request.new(env)
-          unless McpHttpAuth.authorized_request?(request)
-            return McpHttpAuth.unauthorized_rack_response
+          unless Mcp::Authenticator.call(request).success?
+            return Mcp::Authenticator.unauthorized_rack_response
           end
 
           transport.handle_request(request)

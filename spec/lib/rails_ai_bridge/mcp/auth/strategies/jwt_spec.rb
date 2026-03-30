@@ -46,4 +46,18 @@ RSpec.describe RailsAiBridge::Mcp::Auth::Strategies::Jwt do
     result = bad_strategy.authenticate(build_request(token: "any"))
     expect(result.error).to eq(:decode_error)
   end
+
+  it "raises ArgumentError when decoder is not callable" do
+    expect { described_class.new(decoder: "not_a_proc") }
+      .to raise_error(ArgumentError, /must respond to #call/)
+  end
+
+  it "strips Bearer prefix before passing token to decoder" do
+    received_token = nil
+    spy_decoder = ->(t) { received_token = t; payload }
+    strategy = described_class.new(decoder: spy_decoder)
+
+    strategy.authenticate(build_request(token: "raw.jwt.value"))
+    expect(received_token).to eq("raw.jwt.value")
+  end
 end

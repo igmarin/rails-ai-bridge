@@ -91,6 +91,10 @@ module RailsAiBridge
             #      config.http_mcp_token = "generate-a-long-random-secret"
             #      # ENV["RAILS_AI_BRIDGE_MCP_TOKEN"] overrides this when set
             #
+            # IMPORTANT: Token comparison is timing-safe but does NOT prevent
+            # brute-force guessing. Add rate limiting on the MCP endpoint in
+            # production (e.g. Rack::Attack throttle on config.http_path).
+            #
             # config.auto_mount = false
             # config.allow_auto_mount_in_production = false
             # config.http_path = "/mcp"

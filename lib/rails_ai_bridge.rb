@@ -79,11 +79,11 @@ module RailsAiBridge
               "rails_ai_bridge: auto_mount is disabled in production unless you set allow_auto_mount_in_production = true"
       end
 
-      return if McpHttpAuth.any_auth_configured?
+      return if Mcp::Authenticator.any_configured?
 
       raise ConfigurationError,
             "rails_ai_bridge: auto_mount in production requires an auth mechanism " \
-            "(http_mcp_token, mcp_token_resolver, mcp_jwt_decoder, or ENV['#{McpHttpAuth::TOKEN_ENV_KEY}'])"
+            "(http_mcp_token, mcp_token_resolver, mcp_jwt_decoder, or ENV['#{Mcp::Authenticator::TOKEN_ENV_KEY}'])"
     end
 
     # Raises {ConfigurationError} when starting the standalone HTTP MCP server in production without a token.
@@ -92,11 +92,11 @@ module RailsAiBridge
     # @raise [RailsAiBridge::ConfigurationError] when production HTTP MCP starts without a token
     def validate_http_mcp_server_in_production!
       return unless Rails.env.production?
-      return if McpHttpAuth.any_auth_configured?
+      return if Mcp::Authenticator.any_configured?
 
       raise ConfigurationError,
             "rails_ai_bridge: HTTP MCP in production requires an auth mechanism " \
-            "(http_mcp_token, mcp_token_resolver, mcp_jwt_decoder, or ENV['#{McpHttpAuth::TOKEN_ENV_KEY}'])"
+            "(http_mcp_token, mcp_token_resolver, mcp_jwt_decoder, or ENV['#{Mcp::Authenticator::TOKEN_ENV_KEY}'])"
     end
   end
 end

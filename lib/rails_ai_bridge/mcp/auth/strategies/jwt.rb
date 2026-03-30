@@ -15,8 +15,16 @@ module RailsAiBridge
         #     nil
         #   end
         class Jwt < BaseStrategy
-          # @param decoder [Proc, nil] +->(raw_bearer_string) { payload_or_nil_or_false }+
+          # @param decoder [#call, nil] callable receiving the raw Bearer string and returning
+          #   a truthy payload (Hash recommended), +nil+ (token rejected), or +false+ (explicitly denied).
+          #   Passing +nil+ is allowed (produces +:misconfigured+ at authenticate-time).
+          #   Passing a non-callable value raises immediately.
+          # @raise [ArgumentError] when +decoder+ is not +nil+ and does not respond to +#call+
           def initialize(decoder:)
+            if !decoder.nil? && !decoder.respond_to?(:call)
+              raise ArgumentError, "decoder must respond to #call (got #{decoder.class})"
+            end
+
             @decoder = decoder
           end
 
