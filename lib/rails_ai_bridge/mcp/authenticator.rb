@@ -84,21 +84,19 @@ module RailsAiBridge
         # Selects the appropriate auth strategy from the current configuration.
         #
         # @return [Auth::BaseStrategy, nil] +nil+ means no auth is required (open access)
-        def resolve_strategy
-          cfg = RailsAiBridge.configuration
-
-          if cfg.mcp_jwt_decoder.present?
-            return Auth::Strategies::Jwt.new(decoder: cfg.mcp_jwt_decoder)
+        def resolve_strategy(auth_cfg = RailsAiBridge.configuration.auth)
+          if auth_cfg.mcp_jwt_decoder.present?
+            return Auth::Strategies::Jwt.new(decoder: auth_cfg.mcp_jwt_decoder)
           end
 
-          if cfg.mcp_token_resolver.present?
+          if auth_cfg.mcp_token_resolver.present?
             return Auth::Strategies::BearerToken.new(
               static_token_provider: -> { nil },
-              token_resolver: cfg.mcp_token_resolver
+              token_resolver: auth_cfg.mcp_token_resolver
             )
           end
 
-          token = effective_static_token
+          token = effective_static_token(auth_cfg)
           return nil if token.blank?
 
           Auth::Strategies::BearerToken.new(
@@ -109,12 +107,13 @@ module RailsAiBridge
         # Returns the effective static Bearer token from ENV or configuration.
         # Environment variable takes precedence when present.
         #
+        # @param auth_cfg [Config::Auth]
         # @return [String, nil] normalized token, or +nil+ when not configured
-        def effective_static_token
+        def effective_static_token(auth_cfg = RailsAiBridge.configuration.auth)
           env_t = ENV.fetch(TOKEN_ENV_KEY, "").to_s.strip
           return env_t if env_t.present?
 
-          RailsAiBridge.configuration.http_mcp_token.to_s.strip.presence
+          auth_cfg.http_mcp_token.to_s.strip.presence
         end
       end
     end

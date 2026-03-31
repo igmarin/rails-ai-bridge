@@ -132,7 +132,7 @@ module RailsAiBridge
 
         schema_tables = context.dig(:schema, :tables) || {}
         migrations    = context[:migrations]
-        limit = RailsAiBridge.configuration.copilot_compact_model_list_limit.to_i
+        limit = @config.copilot_compact_model_list_limit.to_i
 
         lines << "## Models (#{models.size} total)"
         if limit <= 0

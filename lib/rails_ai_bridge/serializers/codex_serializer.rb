@@ -109,7 +109,7 @@ module RailsAiBridge
 
         schema_tables = context.dig(:schema, :tables) || {}
         migrations    = context[:migrations]
-        limit = RailsAiBridge.configuration.codex_compact_model_list_limit.to_i
+        limit = @config.codex_compact_model_list_limit.to_i
 
         if limit <= 0
           lines << "- _Use `rails_get_model_details(detail:\"summary\")` for names — not listed here to save context._"

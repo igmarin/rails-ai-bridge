@@ -121,7 +121,7 @@ module RailsAiBridge
       def append_compact_cursorrules_models_section(lines, models)
         return unless models.is_a?(Hash) && !models[:error] && models.any?
 
-        limit = RailsAiBridge.configuration.copilot_compact_model_list_limit.to_i
+        limit = @config.copilot_compact_model_list_limit.to_i
         lines << "## Models (#{models.size} total)"
         if limit <= 0
           lines << "- _Use `rails_get_model_details(detail:\"summary\")` for names._"

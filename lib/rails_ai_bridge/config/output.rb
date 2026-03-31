@@ -1,0 +1,47 @@
+# frozen_string_literal: true
+
+module RailsAiBridge
+  module Config
+    # Holds context-file generation and serialization settings.
+    class Output
+      # @return [String, nil] output directory for generated context files (nil → Rails.root)
+      attr_accessor :output_dir
+
+      # @return [Symbol] +:compact+ (≤150-line files + MCP refs) or +:full+ (full dumps)
+      attr_accessor :context_mode
+
+      # @return [Integer] max lines for compact CLAUDE.md
+      attr_accessor :claude_max_lines
+
+      # @return [Integer] max characters for any single MCP tool response
+      attr_accessor :max_tool_response_chars
+
+      # @return [String, nil] path to markdown merged into compact Copilot/Codex output
+      attr_accessor :assistant_overrides_path
+
+      # @return [Integer] max model names in compact Copilot instructions (0 = MCP pointer only)
+      attr_accessor :copilot_compact_model_list_limit
+
+      # @return [Integer] max model names in compact AGENTS.md (0 = MCP pointer only)
+      attr_accessor :codex_compact_model_list_limit
+
+      def initialize
+        @output_dir                     = nil
+        @context_mode                   = :compact
+        @claude_max_lines               = 150
+        @max_tool_response_chars        = 120_000
+        @assistant_overrides_path       = nil
+        @copilot_compact_model_list_limit = 5
+        @codex_compact_model_list_limit   = 3
+      end
+
+      # Resolve the effective output directory.
+      #
+      # @param app [Rails::Application]
+      # @return [String]
+      def output_dir_for(app)
+        @output_dir || app.root.to_s
+      end
+    end
+  end
+end
