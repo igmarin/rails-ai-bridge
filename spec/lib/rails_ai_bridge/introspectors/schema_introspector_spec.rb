@@ -61,5 +61,41 @@ RSpec.describe RailsAiBridge::Introspectors::SchemaIntrospector do
         expect(result[:tables]).to have_key("users")
       end
     end
+
+    context "when ActiveRecord is not connected (static parse fallback)" do
+      subject(:result) { introspector.call }
+
+      before do
+        allow(introspector).to receive(:active_record_connected?).and_return(false)
+      end
+
+      it "returns the static_parse adapter" do
+        expect(result[:adapter]).to eq("static_parse")
+      end
+
+      it "includes a note about the parse source" do
+        expect(result[:note]).to include("schema.rb")
+      end
+
+      it "includes tables from schema.rb" do
+        expect(result[:tables]).to have_key("users")
+        expect(result[:tables]).to have_key("posts")
+      end
+
+      it "total_tables matches the parsed table count" do
+        expect(result[:total_tables]).to eq(result[:tables].size)
+      end
+    end
+
+    context "when schema.rb is absent" do
+      before do
+        allow(introspector).to receive(:active_record_connected?).and_return(false)
+        allow(introspector).to receive(:schema_file_path).and_return("/nonexistent/schema.rb")
+      end
+
+      it "returns an error hash" do
+        expect(introspector.call[:error]).to include("schema.rb")
+      end
+    end
   end
 end

@@ -2,17 +2,31 @@
 
 module RailsAiBridge
   module Introspectors
-    # Extracts database schema information including tables, columns,
-    # indexes, and foreign keys from the Rails application.
+    # Extracts database schema information — tables, columns, indexes, and
+    # foreign keys — from a live ActiveRecord connection when available, or by
+    # falling back to text-parsing +db/schema.rb+ via
+    # {Schema::StaticSchemaParser} when no connection is present (CI, Claude
+    # Code, offline environments).
+    #
+    # @see Schema::StaticSchemaParser
     class SchemaIntrospector
-      attr_reader :app, :config
+      # @return [Rails::Application]
+      attr_reader :app
 
+      # @return [RailsAiBridge::Configuration]
+      attr_reader :config
+
+      # @param app [Rails::Application]
       def initialize(app)
         @app    = app
         @config = RailsAiBridge.configuration
       end
 
-      # @return [Hash] database schema context
+      # Returns database schema context. Uses a live connection when available;
+      # falls back to static text-parsing otherwise.
+      #
+      # @return [Hash{Symbol => Object}] includes +:adapter+, +:tables+,
+      #   +:total_tables+, and +:schema_version+ (live) or +:note+ (static)
       def call
         return static_schema_parse unless active_record_connected?
 
@@ -28,13 +42,13 @@ module RailsAiBridge
 
       def active_record_connected?
         defined?(ActiveRecord::Base) && ActiveRecord::Base.connected?
-      rescue
+      rescue StandardError
         false
       end
 
       def adapter_name
         ActiveRecord::Base.connection.adapter_name
-      rescue
+      rescue StandardError
         "unknown"
       end
 
@@ -97,7 +111,7 @@ module RailsAiBridge
             on_update: fk.on_update
           }.compact
         end
-      rescue
+      rescue StandardError
         [] # Some adapters don't support foreign_keys
       end
 
@@ -113,37 +127,15 @@ module RailsAiBridge
         File.join(app.root, "db", "schema.rb")
       end
 
-      # Fallback: parse db/schema.rb as text when DB isn't connected
-      # This enables introspection in CI, Claude Code, etc.
+      # Fallback: parse db/schema.rb as text when the DB is not connected.
+      # Delegates all parsing to {Schema::StaticSchemaParser}.
+      #
+      # @return [Hash] parsed schema result, or +{ error: }+ when the file is absent
       def static_schema_parse
         path = schema_file_path
         return { error: "No schema.rb found at #{path}" } unless File.exist?(path)
 
-        content = File.read(path)
-        tables = {}
-        current_table = nil
-
-        content.each_line do |line|
-          if (match = line.match(/create_table\s+"(\w+)"/))
-            current_table = match[1]
-            if current_table.start_with?("ar_internal_metadata", "schema_migrations") || config.excluded_table?(current_table)
-              current_table = nil
-              next
-            end
-            tables[current_table] = { columns: [], indexes: [], foreign_keys: [] }
-          elsif current_table && (match = line.match(/t\.(\w+)\s+"(\w+)"/))
-            tables[current_table][:columns] << { name: match[2], type: match[1] }
-          elsif (match = line.match(/add_index\s+"(\w+)",\s+\[?"(\w+)"/))
-            tables[match[1]]&.dig(:indexes)&.push({ columns: match[2] })
-          end
-        end
-
-        {
-          adapter: "static_parse",
-          tables: tables,
-          total_tables: tables.size,
-          note: "Parsed from db/schema.rb (no DB connection)"
-        }
+        Schema::StaticSchemaParser.new(content: File.read(path), config: config).call
       end
     end
   end
