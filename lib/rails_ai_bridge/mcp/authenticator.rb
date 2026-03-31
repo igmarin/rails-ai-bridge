@@ -21,8 +21,8 @@ module RailsAiBridge
     # * Static-token comparison uses +Digest::SHA256+ pre-hashing +
     #   +ActiveSupport::SecurityUtils.secure_compare+ (constant-time over
     #   fixed-length digests). This prevents token-length leakage but does NOT
-    #   protect against brute-force guessing. **Host applications must add
-    #   rate limiting** (e.g. Rack::Attack) on the MCP endpoint in production.
+    #   protect against brute-force guessing. Use +config.mcp.rate_limit_max_requests+
+    #   for built-in per-IP rate limiting, or +rack-attack+ for distributed/stricter quotas.
     #
     # * The JWT strategy is decoder-only — this gem carries no JWT dependency.
     #   The host supplies a lambda; any +StandardError+ it raises is caught and

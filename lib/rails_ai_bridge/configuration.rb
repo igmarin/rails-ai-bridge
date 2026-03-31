@@ -3,16 +3,21 @@
 require "forwardable"
 
 module RailsAiBridge
-  # Facade that composes the four config sub-objects and exposes a flat DSL.
+  # Facade that composes five config sub-objects and exposes a flat DSL.
   #
   # All attributes remain accessible directly on this object for backward
   # compatibility. Callers that need only one concern can receive the sub-object
-  # via +#auth+, +#server+, +#introspection+, or +#output+.
+  # via +#auth+, +#server+, +#introspection+, +#output+, or +#mcp+.
+  #
+  # Flat delegators are provided for the most commonly set attributes on each
+  # sub-object. Less-common attributes (e.g. +mcp.mode+, +mcp.authorize+) are
+  # only accessible via the sub-object directly, keeping the top-level DSL clean.
   #
   # @see Config::Auth
   # @see Config::Server
   # @see Config::Introspection
   # @see Config::Output
+  # @see Config::Mcp
   # @see RailsAiBridge.configure
   class Configuration
     extend Forwardable

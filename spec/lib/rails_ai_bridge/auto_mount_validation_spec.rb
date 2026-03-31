@@ -120,9 +120,32 @@ RSpec.describe "RailsAiBridge auto_mount production validation" do
       RailsAiBridge.configuration.mcp_jwt_decoder    = saved_decoder
     end
 
-    it "does nothing outside production" do
+    around do |example|
+      saved_require = RailsAiBridge.configuration.mcp.require_auth_in_production
+      example.run
+    ensure
+      RailsAiBridge.configuration.mcp.require_auth_in_production = saved_require
+    end
+
+    it "does nothing outside production when require_auth_in_production is false" do
       expect(Rails.env.production?).to eq(false)
       RailsAiBridge.configuration.http_mcp_token = nil
+      RailsAiBridge.configuration.mcp.require_auth_in_production = false
+      expect { RailsAiBridge.validate_http_mcp_server_in_production! }.not_to raise_error
+    end
+
+    it "raises outside production when require_auth_in_production is true and no auth is configured" do
+      expect(Rails.env.production?).to eq(false)
+      RailsAiBridge.configuration.http_mcp_token = nil
+      RailsAiBridge.configuration.mcp.require_auth_in_production = true
+
+      expect { RailsAiBridge.validate_http_mcp_server_in_production! }
+        .to raise_error(RailsAiBridge::ConfigurationError, /HTTP MCP in production/)
+    end
+
+    it "passes outside production when require_auth_in_production is true and token is configured" do
+      RailsAiBridge.configuration.http_mcp_token = "dev-token"
+      RailsAiBridge.configuration.mcp.require_auth_in_production = true
       expect { RailsAiBridge.validate_http_mcp_server_in_production! }.not_to raise_error
     end
 

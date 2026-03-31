@@ -28,9 +28,17 @@ module RailsAiBridge
           end
 
           authorize = RailsAiBridge.configuration.mcp.authorize
-          if authorize && !authorize.call(auth_result.context, request)
-            Mcp::HttpStructuredLog.emit(request: request, event: :forbidden, http_status: 403)
-            return [ 403, { "Content-Type" => "application/json" }, [ '{"error":"Forbidden"}' ] ]
+          if authorize
+            authorized = begin
+              authorize.call(auth_result.context, request)
+            rescue StandardError => e
+              Rails.logger.error("rails_ai_bridge: authorize lambda raised #{e.class}: #{e.message}") if defined?(Rails)
+              false
+            end
+            unless authorized
+              Mcp::HttpStructuredLog.emit(request: request, event: :forbidden, http_status: 403)
+              return [ 403, { "Content-Type" => "application/json" }, [ '{"error":"Forbidden"}' ] ]
+            end
           end
 
           if limiter && !limiter.allow?(request.ip)

@@ -95,6 +95,25 @@ RSpec.describe RailsAiBridge::HttpTransportApp do
       expect(body.first).to include("Forbidden")
     end
 
+    it "returns 403 when authorize lambda raises" do
+      RailsAiBridge.configuration.http_mcp_token = "secret"
+      RailsAiBridge.configuration.mcp.authorize = ->(_ctx, _req) { raise "boom" }
+      app = described_class.build(transport: transport, path: "/mcp")
+
+      env = Rack::MockRequest.env_for(
+        "/mcp",
+        method: "POST",
+        "HTTP_AUTHORIZATION" => "Bearer secret"
+      )
+
+      allow(Rails.logger).to receive(:error)
+      status, _headers, body = app.call(env)
+
+      expect(status).to eq(403)
+      expect(body.first).to include("Forbidden")
+      expect(Rails.logger).to have_received(:error).with(/authorize lambda raised/)
+    end
+
     it "emits a structured log when http_log_json is enabled" do
       RailsAiBridge.configuration.http_mcp_token = "secret"
       RailsAiBridge.configuration.mcp.http_log_json = true

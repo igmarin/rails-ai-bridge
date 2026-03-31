@@ -55,6 +55,8 @@ RailsAiBridge.configure do |config|
 end
 ```
 
+The lambda is read and called **on every request** (like `http_log_json`), so changes take effect immediately without rebuilding the transport app. If the lambda raises a `StandardError`, the gem treats it as a 403 and logs the error — it does not propagate as a 500.
+
 ### Production boot guard
 
 ```ruby
