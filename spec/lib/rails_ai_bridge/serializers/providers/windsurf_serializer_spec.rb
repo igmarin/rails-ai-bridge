@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe RailsAiBridge::Serializers::WindsurfSerializer do
+RSpec.describe RailsAiBridge::Serializers::Providers::WindsurfSerializer do
   it "never exceeds 6000 characters even with 200 models" do
     models = 200.times.each_with_object({}) { |i, h|
       h["Model#{i}"] = { associations: [], validations: [], table_name: "t#{i}" }

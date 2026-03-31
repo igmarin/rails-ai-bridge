@@ -2,10 +2,11 @@
 
 module RailsAiBridge
   module Serializers
-    # Generates compact, imperative-tone rules for legacy .cursorrules.
-    # In :compact mode (default), produces ≤200 lines pointing to MCP tools.
-    # In :full mode, delegates to MarkdownSerializer with rules-style header.
-    class RulesSerializer
+    module Providers
+      # Generates compact, imperative-tone rules for legacy .cursorrules.
+      # In :compact mode (default), produces ≤200 lines pointing to MCP tools.
+      # In :full mode, delegates to MarkdownSerializer with rules-style header.
+      class RulesSerializer
       attr_reader :context
 
       def initialize(context, config: RailsAiBridge.configuration)
@@ -135,6 +136,7 @@ module RailsAiBridge
           lines << "- _...#{remainder} more — `rails_get_model_details(detail:\"summary\")`._" if remainder.positive?
         end
         lines << ""
+      end
       end
     end
   end

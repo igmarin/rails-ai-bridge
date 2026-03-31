@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe RailsAiBridge::Serializers::ClaudeRulesSerializer do
+RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer do
   let(:context) do
     {
       schema: {

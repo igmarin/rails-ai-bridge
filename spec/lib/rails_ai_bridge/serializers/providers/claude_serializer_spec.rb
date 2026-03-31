@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe RailsAiBridge::Serializers::ClaudeSerializer do
+RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeSerializer do
   describe "compact mode" do
     before { RailsAiBridge.configuration.context_mode = :compact }
     after { RailsAiBridge.configuration.context_mode = :compact }
@@ -188,9 +188,9 @@ RSpec.describe RailsAiBridge::Serializers::ClaudeSerializer do
     end
 
     it "all three compact serializers use bin/rails test for minitest apps" do
-      claude   = RailsAiBridge::Serializers::ClaudeSerializer.new(minitest_context).call
-      codex    = RailsAiBridge::Serializers::CodexSerializer.new(minitest_context).call
-      copilot  = RailsAiBridge::Serializers::CopilotSerializer.new(minitest_context).call
+      claude   = RailsAiBridge::Serializers::Providers::ClaudeSerializer.new(minitest_context).call
+      codex    = RailsAiBridge::Serializers::Providers::CodexSerializer.new(minitest_context).call
+      copilot  = RailsAiBridge::Serializers::Providers::CopilotSerializer.new(minitest_context).call
 
       aggregate_failures do
         expect(claude).to  include("bin/rails test"), "ClaudeSerializer should use bin/rails test"

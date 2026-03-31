@@ -2,12 +2,13 @@
 
 module RailsAiBridge
   module Serializers
-    # Writes optional helper documentation under +.codex/+ (e.g. +README.md+) for team Codex setup notes.
-    #
-    # Does not replace +AGENTS.md+; use together with {CodexSerializer}.
-    #
-    # @since 0.8.0
-    class CodexSupportSerializer
+    module Providers
+      # Writes optional helper documentation under +.codex/+ (e.g. +README.md+) for team Codex setup notes.
+      #
+      # Does not replace +AGENTS.md+; use together with {CodexSerializer}.
+      #
+      # @since 0.8.0
+      class CodexSupportSerializer
       attr_reader :context
 
       # @param context [Hash] Introspection hash; uses +:app_name+ for the generated README.
@@ -58,6 +59,7 @@ module RailsAiBridge
 
           Generated files are **snapshots**. For repo-specific rules (hot tables, auth scoping, required specs), use `config/rails_ai_bridge/overrides.md`: remove the first-line `<!-- rails-ai-bridge:omit-merge -->` stub so content is merged into `AGENTS.md` and Copilot. See `overrides.md.example`. Alternatively re-merge curated guidance after each `rails ai:bridge`.
         MD
+      end
       end
     end
   end

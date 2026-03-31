@@ -2,14 +2,15 @@
 
 module RailsAiBridge
   module Serializers
-    # Generates OpenAI Codex project guidance as Markdown suitable for +AGENTS.md+.
-    #
-    # In +:compact+ mode (default), output is bounded and MCP-focused. In +:full+ mode,
-    # delegates to {MarkdownSerializer} with Codex-oriented header and footer formatters injected
-    # via constructor arguments.
-    #
-    # @since 0.8.0
-    class CodexSerializer
+    module Providers
+      # Generates OpenAI Codex project guidance as Markdown suitable for +AGENTS.md+.
+      #
+      # In +:compact+ mode (default), output is bounded and MCP-focused. In +:full+ mode,
+      # delegates to {MarkdownSerializer} with Codex-oriented header and footer formatters injected
+      # via constructor arguments.
+      #
+      # @since 0.8.0
+      class CodexSerializer
       attr_reader :context
 
       # @param context [Hash] Introspection hash from {Introspector#call} (e.g. +:app_name+, +:schema+, +:models+).
@@ -131,6 +132,7 @@ module RailsAiBridge
           lines << "- ...#{remainder} more — `rails_get_model_details(detail:\"summary\")`." if remainder.positive?
         end
         lines << ""
+      end
       end
     end
   end

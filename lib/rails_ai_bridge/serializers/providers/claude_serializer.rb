@@ -2,10 +2,11 @@
 
 module RailsAiBridge
   module Serializers
-    # Generates CLAUDE.md optimized for Claude Code.
-    # In :compact mode (default), produces ≤150 lines with MCP tool references.
-    # In :full mode, delegates to MarkdownSerializer with behavioral rules.
-    class ClaudeSerializer
+    module Providers
+      # Generates CLAUDE.md optimized for Claude Code.
+      # In :compact mode (default), produces ≤150 lines with MCP tool references.
+      # In :full mode, delegates to MarkdownSerializer with behavioral rules.
+      class ClaudeSerializer
       attr_reader :context
 
       def initialize(context, config: RailsAiBridge.configuration)
@@ -209,6 +210,7 @@ module RailsAiBridge
           "- Run tests after changes",
           ""
         ]
+      end
       end
     end
   end

@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe RailsAiBridge::Serializers::CopilotInstructionsSerializer do
+RSpec.describe RailsAiBridge::Serializers::Providers::CopilotInstructionsSerializer do
   let(:context) do
     {
       models: { "User" => { associations: [ { type: "has_many", name: "posts" } ], validations: [] } },

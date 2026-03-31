@@ -63,42 +63,42 @@ module RailsAiBridge
       def serialize(fmt)
         case fmt
         when :json     then JsonSerializer.new(context).call
-        when :claude   then ClaudeSerializer.new(context).call
-        when :codex    then CodexSerializer.new(context).call
-        when :cursor   then RulesSerializer.new(context).call
-        when :windsurf then WindsurfSerializer.new(context).call
-        when :copilot  then CopilotSerializer.new(context).call
+        when :claude   then Providers::ClaudeSerializer.new(context).call
+        when :codex    then Providers::CodexSerializer.new(context).call
+        when :cursor   then Providers::RulesSerializer.new(context).call
+        when :windsurf then Providers::WindsurfSerializer.new(context).call
+        when :copilot  then Providers::CopilotSerializer.new(context).call
         else MarkdownSerializer.new(context).call
         end
       end
 
       def generate_split_rules(formats, output_dir, written, skipped)
         if formats.include?(:claude)
-          result = ClaudeRulesSerializer.new(context).call(output_dir)
+          result = Providers::ClaudeRulesSerializer.new(context).call(output_dir)
           written.concat(result[:written])
           skipped.concat(result[:skipped])
         end
 
         if formats.include?(:codex)
-          result = CodexSupportSerializer.new(context).call(output_dir)
+          result = Providers::CodexSupportSerializer.new(context).call(output_dir)
           written.concat(result[:written])
           skipped.concat(result[:skipped])
         end
 
         if formats.include?(:cursor)
-          result = CursorRulesSerializer.new(context).call(output_dir)
+          result = Providers::CursorRulesSerializer.new(context).call(output_dir)
           written.concat(result[:written])
           skipped.concat(result[:skipped])
         end
 
         if formats.include?(:windsurf)
-          result = WindsurfRulesSerializer.new(context).call(output_dir)
+          result = Providers::WindsurfRulesSerializer.new(context).call(output_dir)
           written.concat(result[:written])
           skipped.concat(result[:skipped])
         end
 
         if formats.include?(:copilot)
-          result = CopilotInstructionsSerializer.new(context).call(output_dir)
+          result = Providers::CopilotInstructionsSerializer.new(context).call(output_dir)
           written.concat(result[:written])
           skipped.concat(result[:skipped])
         end

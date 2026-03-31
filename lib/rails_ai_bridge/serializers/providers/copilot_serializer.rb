@@ -2,10 +2,11 @@
 
 module RailsAiBridge
   module Serializers
-    # Generates GitHub Copilot instructions.
-    # In :compact mode (default), produces ≤500 lines with MCP tool references.
-    # In :full mode, delegates to MarkdownSerializer with Copilot header.
-    class CopilotSerializer
+    module Providers
+      # Generates GitHub Copilot instructions.
+      # In :compact mode (default), produces ≤500 lines with MCP tool references.
+      # In :full mode, delegates to MarkdownSerializer with Copilot header.
+      class CopilotSerializer
       attr_reader :context
 
       def initialize(context, config: RailsAiBridge.configuration)
@@ -154,6 +155,7 @@ module RailsAiBridge
           lines << "- _...#{remainder} more — use `rails_get_model_details(detail:\"summary\")`._" if remainder.positive?
         end
         lines << ""
+      end
       end
     end
   end

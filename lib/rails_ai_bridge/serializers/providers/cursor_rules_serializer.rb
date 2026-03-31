@@ -2,10 +2,11 @@
 
 module RailsAiBridge
   module Serializers
-    # Generates .cursor/rules/*.mdc files in the new Cursor MDC format.
-    # Each file is focused, <50 lines, with YAML frontmatter.
-    # Also generates legacy .cursorrules for backward compatibility.
-    class CursorRulesSerializer
+    module Providers
+      # Generates .cursor/rules/*.mdc files in the new Cursor MDC format.
+      # Each file is focused, <50 lines, with YAML frontmatter.
+      # Also generates legacy .cursorrules for backward compatibility.
+      class CursorRulesSerializer
       attr_reader :context
 
       def initialize(context)
@@ -237,6 +238,7 @@ module RailsAiBridge
         ]
 
         lines.join("\n")
+      end
       end
     end
   end

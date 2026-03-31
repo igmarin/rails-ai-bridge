@@ -2,9 +2,10 @@
 
 module RailsAiBridge
   module Serializers
-    # Generates .windsurf/rules/*.md files in the new Windsurf rules format.
-    # Each file is hard-capped at 5,800 characters (within Windsurf's 6K limit).
-    class WindsurfRulesSerializer
+    module Providers
+      # Generates .windsurf/rules/*.md files in the new Windsurf rules format.
+      # Each file is hard-capped at 5,800 characters (within Windsurf's 6K limit).
+      class WindsurfRulesSerializer
       MAX_CHARS_PER_FILE = 5_800
 
       attr_reader :context
@@ -78,6 +79,7 @@ module RailsAiBridge
         ]
 
         lines.join("\n")
+      end
       end
     end
   end

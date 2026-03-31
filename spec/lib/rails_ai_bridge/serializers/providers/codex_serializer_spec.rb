@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe RailsAiBridge::Serializers::CodexSerializer do
+RSpec.describe RailsAiBridge::Serializers::Providers::CodexSerializer do
   describe "compact mode" do
     before { RailsAiBridge.configuration.context_mode = :compact }
     after { RailsAiBridge.configuration.context_mode = :compact }

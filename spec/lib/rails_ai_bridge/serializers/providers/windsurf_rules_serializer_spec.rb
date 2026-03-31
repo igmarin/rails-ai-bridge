@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe RailsAiBridge::Serializers::WindsurfRulesSerializer do
+RSpec.describe RailsAiBridge::Serializers::Providers::WindsurfRulesSerializer do
   let(:context) do
     {
       app_name: "App", rails_version: "8.0", ruby_version: "3.4",

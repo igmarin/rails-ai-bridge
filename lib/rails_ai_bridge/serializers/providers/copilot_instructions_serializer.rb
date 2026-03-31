@@ -2,9 +2,10 @@
 
 module RailsAiBridge
   module Serializers
-    # Generates .github/instructions/*.instructions.md files with applyTo frontmatter
-    # for GitHub Copilot path-specific instructions.
-    class CopilotInstructionsSerializer
+    module Providers
+      # Generates .github/instructions/*.instructions.md files with applyTo frontmatter
+      # for GitHub Copilot path-specific instructions.
+      class CopilotInstructionsSerializer
       attr_reader :context
 
       def initialize(context)
@@ -137,6 +138,7 @@ module RailsAiBridge
         ]
 
         lines.join("\n")
+      end
       end
     end
   end

@@ -2,9 +2,10 @@
 
 module RailsAiBridge
   module Serializers
-    # Generates .claude/rules/ files for Claude Code auto-discovery.
-    # These provide quick-reference lists without bloating CLAUDE.md.
-    class ClaudeRulesSerializer
+    module Providers
+      # Generates .claude/rules/ files for Claude Code auto-discovery.
+      # These provide quick-reference lists without bloating CLAUDE.md.
+      class ClaudeRulesSerializer
       attr_reader :context
 
       def initialize(context)
@@ -141,6 +142,7 @@ module RailsAiBridge
         ]
 
         lines.join("\n")
+      end
       end
     end
   end

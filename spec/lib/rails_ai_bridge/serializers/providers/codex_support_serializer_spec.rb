@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe RailsAiBridge::Serializers::CodexSupportSerializer do
+RSpec.describe RailsAiBridge::Serializers::Providers::CodexSupportSerializer do
   let(:context) do
     {
       app_name: "App",

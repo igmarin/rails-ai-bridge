@@ -43,7 +43,7 @@ RSpec.describe RailsAiBridge::Serializers::MarkdownSerializer do
   end
 end
 
-RSpec.describe RailsAiBridge::Serializers::ClaudeSerializer do
+RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeSerializer do
   let(:context) { RailsAiBridge.introspect }
 
   describe "#call" do
@@ -91,7 +91,7 @@ RSpec.describe RailsAiBridge::Serializers::ClaudeSerializer do
   end
 end
 
-RSpec.describe RailsAiBridge::Serializers::RulesSerializer do
+RSpec.describe RailsAiBridge::Serializers::Providers::RulesSerializer do
   let(:context) { RailsAiBridge.introspect }
 
   describe "#call" do
@@ -103,7 +103,7 @@ RSpec.describe RailsAiBridge::Serializers::RulesSerializer do
   end
 end
 
-RSpec.describe RailsAiBridge::Serializers::CopilotSerializer do
+RSpec.describe RailsAiBridge::Serializers::Providers::CopilotSerializer do
   let(:context) { RailsAiBridge.introspect }
 
   describe "#call" do

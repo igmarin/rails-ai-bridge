@@ -2,9 +2,10 @@
 
 module RailsAiBridge
   module Serializers
-    # Generates .windsurfrules within Windsurf's hard 6,000 character limit.
-    # Always produces compact output regardless of context_mode.
-    class WindsurfSerializer
+    module Providers
+      # Generates .windsurfrules within Windsurf's hard 6,000 character limit.
+      # Always produces compact output regardless of context_mode.
+      class WindsurfSerializer
       MAX_CHARS = 5_800 # Leave buffer below 6K limit
 
       attr_reader :context
@@ -104,6 +105,7 @@ module RailsAiBridge
         lines << "- Run `#{ContextSummary.test_command(context)}` after changes"
 
         lines.join("\n")
+      end
       end
     end
   end
