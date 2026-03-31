@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.0.0] - 2026-03-30
+## [2.0.0] - 2026-03-31
 
 ### Added
 
@@ -27,13 +27,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`config.mcp.authorize`** — optional post-auth lambda `(context, request) { truthy }`; returning falsey yields HTTP 403 on the MCP path.
 - **`config.mcp.require_auth_in_production`** — when `true`, boot fails in production unless an auth mechanism is configured.
 - **`HttpTransportApp`** updated — request pipeline is now: path check → auth → authorize → rate limit → structured log → transport.
+- **`SectionFormatter` template method base** — 22 of 37 formatters now inherit from `SectionFormatter`, which handles the nil/error guard in one place; each formatter only implements `render(data)`.
+- **`Serializers::Providers` namespace** — 10 LLM provider serializers extracted into `lib/rails_ai_bridge/serializers/providers/`, separating provider concerns from domain infrastructure (`MarkdownSerializer`, `JsonSerializer`, formatters).
+- **`UPGRADING.md`** — new upgrade guide documenting `config.mcp` settings, rate limit semantics, structured logging, `authorize` behaviour, and the `require_auth_in_production` flag.
+- **Contributor roadmaps** — `docs/roadmaps.md`, `docs/roadmap-mcp-v2.md`, `docs/roadmap-context-assistants.md` added.
 
 ### Changed
 
 - **Install generator messages** — the install flow now reports created vs unchanged files correctly and the generated initializer comments reflect the current preset sizes.
 - **Fingerprint reuse on invalidation** — context refresh reuses a single fingerprint snapshot per fetch cycle instead of scanning twice when cached context becomes stale.
 - **`FullClaudeSerializer`, `FullRulesSerializer`, `FullCopilotSerializer`, `FullCodexSerializer` removed** — full-mode rendering is now handled by injecting header/footer formatter classes into `MarkdownSerializer` via constructor arguments; no subclassing needed.
-- **Test suite expanded to 699 examples at ≥85% line coverage.**
+- **Test suite expanded to 841 examples at ≥87% line coverage.**
 
 ### Fixed
 
@@ -42,7 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Upgrading from 1.x
 
-**No configuration changes required.** Every `config.*` attribute from 1.x is still available unchanged — `Configuration` now delegates to focused sub-objects (`Config::Auth`, `Config::Server`, `Config::Introspection`, `Config::Output`) but exposes the same flat DSL.
+**No configuration changes required.** Every `config.*` attribute from 1.x is still available unchanged — `Configuration` now delegates to focused sub-objects (`Config::Auth`, `Config::Server`, `Config::Introspection`, `Config::Output`, `Config::Mcp`) but exposes the same flat DSL.
 
 The following internal classes were removed; they were never part of the documented public API:
 
