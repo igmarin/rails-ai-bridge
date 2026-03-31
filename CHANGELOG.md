@@ -21,6 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Tool response formatters** — `GetSchema` and `GetModelDetails` delegate all rendering to `Tools::Schema::*` and `Tools::ModelDetails::*` formatter classes; tool `call` methods are ≤20 lines each.
 - **`Config::Auth`, `Config::Server`, `Config::Introspection`, `Config::Output`** — `Configuration` is now a `Forwardable` facade over four focused sub-objects; each is independently readable and injectable.
 - **`Mcp::Authenticator`** — consolidates strategy resolution, static-token lookup, and configuration predicates into a single entry point, replacing the previous split between `McpHttpAuth` and `Mcp::HttpAuth`.
+- **`Mcp::HttpRateLimiter`** — optional in-process sliding-window rate limiter per client IP; configured via `config.mcp.rate_limit_max_requests` and `config.mcp.rate_limit_window_seconds`. Returns 429 with `Retry-After` header when exceeded.
+- **`Mcp::HttpStructuredLog`** — optional one-JSON-line-per-request logger for the MCP HTTP path; enabled via `config.mcp.http_log_json = true`. Logs `event`, `http_status`, `path`, `client_ip`, and `request_id`; never logs tokens or full Rack env.
+- **`Config::Mcp`** — new `config.mcp` sub-object (5th façade sub-config) for MCP HTTP operational settings: `mode`, `security_profile`, `rate_limit_max_requests`, `rate_limit_window_seconds`, `http_log_json`, `authorize`, `require_auth_in_production`.
+- **`config.mcp.authorize`** — optional post-auth lambda `(context, request) { truthy }`; returning falsey yields HTTP 403 on the MCP path.
+- **`config.mcp.require_auth_in_production`** — when `true`, boot fails in production unless an auth mechanism is configured.
+- **`HttpTransportApp`** updated — request pipeline is now: path check → auth → authorize → rate limit → structured log → transport.
 
 ### Changed
 

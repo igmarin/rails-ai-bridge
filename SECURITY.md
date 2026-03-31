@@ -33,14 +33,18 @@ This fork is maintained by **Ismael Marin**. If you discover a security vulnerab
 
 ## HTTP MCP authentication
 
-- Set `config.http_mcp_token` and/or `ENV["RAILS_AI_BRIDGE_MCP_TOKEN"]` (**ENV overrides** the config value when set).
-- When a token is configured, clients must send `Authorization: Bearer <token>` to the HTTP MCP endpoint (`auto_mount` or `rails ai:serve_http`).
-- When no token is configured, HTTP MCP is **unauthenticated** (backward compatible for local use); **set a token** before exposing the port beyond localhost.
+- **Shared secret:** set `config.http_mcp_token` and/or `ENV["RAILS_AI_BRIDGE_MCP_TOKEN"]` (**ENV overrides** the config value when set). Clients send `Authorization: Bearer <token>`.
+- **Custom resolver / JWT:** configure `config.mcp_token_resolver` or `config.mcp_jwt_decoder` (see [docs/GUIDE.md](docs/GUIDE.md)); clients still use a Bearer header; the gem does not ship a JWT library — you verify and decode inside your lambda.
+- **Rack env context:** after a successful auth, `env["rails_ai_bridge.mcp.context"]` may contain **PII or claims** (e.g. JWT payload). Do not dump full Rack `env` to logs or APM; treat this key like session-derived data.
+- When **no** auth mechanism is configured, HTTP MCP is **unauthenticated** (backward compatible for local use); configure one of the above before exposing the port beyond localhost.
+- **Misconfiguration guard:** setting `:bearer_token` strategy without a `token_resolver` and without a static token causes **boot failure** (`ConfigurationError`) so the endpoint cannot start in an accidentally open state.
+- **Rate limiting:** optional `config.mcp.rate_limit_max_requests` is an **in-memory, per-process** sliding window keyed by client IP (`request.ip`). It is **not** shared across Puma workers or hosts. Treat this as a light guard — use a reverse proxy, WAF, or `rack-attack` for strict distributed quotas.
+- **MCP HTTP JSON logs:** when `config.mcp.http_log_json` is enabled, log lines include `client_ip` and path; treat log sinks like any operational data store (retention, access control).
 
 ## Production
 
-- `config.auto_mount = true` in **production** raises at boot unless **both** `config.allow_auto_mount_in_production = true` and a non-empty MCP token are set.
-- `rails ai:serve_http` in **production** requires a non-empty MCP token (config or ENV).
+- `config.auto_mount = true` in **production** raises at boot unless **both** `config.allow_auto_mount_in_production = true` and an MCP auth mechanism is configured (shared token, `mcp_token_resolver`, or `mcp_jwt_decoder`).
+- `rails ai:serve_http` in **production** requires an auth mechanism (not necessarily a static shared secret).
 
 ## Operational Security Guidance
 
@@ -48,3 +52,7 @@ This fork is maintained by **Ismael Marin**. If you discover a security vulnerab
 - If you enable HTTP transport, keep it bound to `127.0.0.1` unless you add your own network isolation and authentication controls.
 - Do **not** expose `auto_mount` on public or shared production surfaces without an explicit threat model review.
 - Treat generated files such as `AGENTS.md`, `CLAUDE.md`, `.cursorrules`, and `.ai-context.json` as internal engineering documentation.
+
+## Presets, exclusions, and MCP
+
+`rails_get_schema`, `rails_get_model_details`, and other tools build on the same introspection pipeline as `rails ai:bridge`. When you use `config.excluded_tables`, `config.excluded_models`, `config.disabled_introspection_categories`, or presets such as `:regulated`, treat the HTTP/stdio MCP surface with the **same data-classification assumptions** as your committed context files: the tools remain read-only but can still reveal structure you chose to omit from markdown.

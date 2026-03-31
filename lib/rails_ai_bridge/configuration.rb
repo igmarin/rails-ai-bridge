@@ -43,11 +43,15 @@ module RailsAiBridge
     # @return [Config::Output]
     attr_reader :output
 
+    # @return [Config::Mcp]
+    attr_reader :mcp
+
     def initialize
       @auth          = Config::Auth.new
       @server        = Config::Server.new
       @introspection = Config::Introspection.new
       @output        = Config::Output.new
+      @mcp           = Config::Mcp.new
     end
 
     # -- Config::Auth -----------------------------------------------------------
@@ -82,6 +86,12 @@ module RailsAiBridge
       :preset=,
       :effective_introspectors,
       :excluded_table?
+
+    # -- Config::Mcp ------------------------------------------------------------
+    def_delegators :@mcp,
+      :rate_limit_max_requests, :rate_limit_max_requests=,
+      :rate_limit_window_seconds, :rate_limit_window_seconds=,
+      :http_log_json, :http_log_json=
 
     # -- Config::Output ---------------------------------------------------------
     def_delegators :@output,

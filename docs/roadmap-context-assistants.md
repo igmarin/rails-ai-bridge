@@ -1,0 +1,27 @@
+# Roadmap: context files & assistant UX (pre–major release)
+
+This track is **separate** from [roadmap-mcp-v2.md](roadmap-mcp-v2.md) (MCP HTTP auth, rate limits, logging). It covers **improving the static context** the gem generates (CLAUDE.md, Cursor rules, Copilot instructions, etc.) so IDEs and AI clients get **clearer, more actionable** help from the same introspection data.
+
+**Progress summary:** [roadmaps.md](roadmaps.md).
+
+## Goals (high level)
+
+- Sharpen per-assistant formats (structure, length, cross-links) based on real usage feedback.
+- Reduce duplication and noise while keeping "always-on" rules discoverable.
+- Align tool references and workflow hints across Claude, Cursor, Copilot, Windsurf, Codex, etc.
+- Separate LLM provider serializers from domain infrastructure (done: `Serializers::Providers::` namespace).
+- DRY the formatter hierarchy (done: `SectionFormatter` template method base).
+
+## In progress
+
+- Refining per-provider serializer output (context quality improvements on `pr5-context-quality` branch)
+- Custom Rails directory introspection coverage gaps
+
+## Relation to versioning
+
+**No semver bump is implied by this doc alone.** A future **major release** (e.g. 2.0.0) should follow **after** this work when the maintainers are ready to communicate breaking or wide-ranging changes to generated files and defaults — not as a fixed milestone on the MCP roadmap.
+
+## References
+
+- [docs/GUIDE.md](GUIDE.md) — install, formats, MCP setup
+- [CHANGELOG.md](../CHANGELOG.md) — user-visible changes

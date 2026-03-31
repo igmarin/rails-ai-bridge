@@ -26,6 +26,13 @@ RSpec.describe RailsAiBridge::Configuration do
     expect(config.additional_resources).to eq({})
     expect(config.mcp_token_resolver).to be_nil
     expect(config.mcp_jwt_decoder).to be_nil
+    expect(config.rate_limit_max_requests).to be_nil
+    expect(config.rate_limit_window_seconds).to eq(60)
+    expect(config.http_log_json).to eq(false)
+  end
+
+  it "exposes the mcp sub-config" do
+    expect(config.mcp).to be_a(RailsAiBridge::Config::Mcp)
   end
 
   it "defaults to standard preset" do
