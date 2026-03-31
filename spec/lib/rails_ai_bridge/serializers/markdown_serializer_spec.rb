@@ -24,6 +24,22 @@ RSpec.describe RailsAiBridge::Serializers::MarkdownSerializer do
     it "includes routes section" do
       expect(output).to include("## Routes")
     end
+
+    it "includes the footer" do
+      expect(output).to include("rails ai:bridge")
+    end
+
+    it "sections are separated by double newlines" do
+      expect(output).to include("\n\n##")
+    end
+
+    it "includes models section" do
+      expect(output).to include("## Models")
+    end
+
+    it "does not include nil sections (compact join)" do
+      expect(output).not_to include("\n\n\n\n")
+    end
   end
 end
 
