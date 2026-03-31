@@ -5,7 +5,8 @@ module RailsAiBridge
     # Generates OpenAI Codex project guidance as Markdown suitable for +AGENTS.md+.
     #
     # In +:compact+ mode (default), output is bounded and MCP-focused. In +:full+ mode,
-    # delegates to {FullCodexSerializer}, which extends {MarkdownSerializer} with Codex-oriented framing.
+    # delegates to {MarkdownSerializer} with Codex-oriented header and footer formatters injected
+    # via constructor arguments.
     #
     # @since 0.8.0
     class CodexSerializer

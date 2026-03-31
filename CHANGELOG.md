@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-03-30
+
 ### Added
 
 - **Shared runtime context provider** — MCP tools and `rails://...` resources now read through `RailsAiBridge::ContextProvider`, keeping cache invalidation and snapshot semantics aligned across both entry points.
@@ -15,15 +17,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Section-level context reads** — `ContextProvider.fetch_section` and `BaseTool.cached_section` let single-section tools avoid rebuilding or materializing the full snapshot path when unnecessary.
 - **Folder-level contributor docs** — key runtime folders now include local `README.md` guides for structure, boundaries, and extension points.
 - **Extensibility integration coverage** — specs now prove that a custom introspector, tool, and resource can be registered and used together from the host app configuration surface.
+- **Serializer formatter objects** — `MarkdownSerializer` is now a thin orchestrator delegating to 37 single-responsibility `Formatters::*` classes; each formatter is independently testable and injectable.
+- **Tool response formatters** — `GetSchema` and `GetModelDetails` delegate all rendering to `Tools::Schema::*` and `Tools::ModelDetails::*` formatter classes; tool `call` methods are ≤20 lines each.
+- **`Config::Auth`, `Config::Server`, `Config::Introspection`, `Config::Output`** — `Configuration` is now a `Forwardable` facade over four focused sub-objects; each is independently readable and injectable.
+- **`Mcp::Authenticator`** — consolidates strategy resolution, static-token lookup, and configuration predicates into a single entry point, replacing the previous split between `McpHttpAuth` and `Mcp::HttpAuth`.
 
 ### Changed
 
 - **Install generator messages** — the install flow now reports created vs unchanged files correctly and the generated initializer comments reflect the current preset sizes.
 - **Fingerprint reuse on invalidation** — context refresh reuses a single fingerprint snapshot per fetch cycle instead of scanning twice when cached context becomes stale.
+- **`FullClaudeSerializer`, `FullRulesSerializer`, `FullCopilotSerializer`, `FullCodexSerializer` removed** — full-mode rendering is now handled by injecting header/footer formatter classes into `MarkdownSerializer` via constructor arguments; no subclassing needed.
+- **Test suite expanded to 699 examples at ≥85% line coverage.**
 
 ### Fixed
 
 - **Install generator output bug** — `generate_context` results are no longer iterated as raw hash pairs during install-time file generation.
+- **`StandardFormatter` pagination hint** — navigation hint now correctly uses `offset + limit < total` (consistent with `SummaryFormatter` and `FullFormatter`), preventing a spurious hint on the last page.
+
+### Upgrading from 1.x
+
+**No configuration changes required.** Every `config.*` attribute from 1.x is still available unchanged — `Configuration` now delegates to focused sub-objects (`Config::Auth`, `Config::Server`, `Config::Introspection`, `Config::Output`) but exposes the same flat DSL.
+
+The following internal classes were removed; they were never part of the documented public API:
+
+| Removed | Replacement |
+|---------|-------------|
+| `Mcp::HttpAuth` / `McpHttpAuth` | `Mcp::Authenticator` (same behaviour, single entry point) |
+| `FullClaudeSerializer` | Pass `header_class: Formatters::ClaudeHeaderFormatter` to `MarkdownSerializer` |
+| `FullCopilotSerializer` | Pass `header_class: Formatters::CopilotHeaderFormatter` to `MarkdownSerializer` |
+| `FullCodexSerializer` | Pass `header_class: Formatters::CodexHeaderFormatter` to `MarkdownSerializer` |
+| `FullRulesSerializer` | Pass `header_class: Formatters::RulesHeaderFormatter` to `MarkdownSerializer` |
+
+If you were only using the gem through its initializer, rake tasks, or MCP server — no action needed.
 
 ## [1.1.0] - 2026-03-20
 

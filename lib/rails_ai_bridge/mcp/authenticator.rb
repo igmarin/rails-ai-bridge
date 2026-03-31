@@ -5,8 +5,9 @@ module RailsAiBridge
     # Service object that authenticates HTTP MCP requests.
     #
     # Consolidates strategy resolution, static-token lookup, and configuration
-    # predicates into a single entry point — replacing the previous split between
-    # +McpHttpAuth+ (utility helpers) and +Mcp::HttpAuth+ (strategy orchestrator).
+    # predicates into a single entry point — previously split across
+    # +McpHttpAuth+ (utility helpers) and +Mcp::HttpAuth+ (strategy orchestrator),
+    # both removed in v2.0.0.
     #
     # == Strategy priority (highest → lowest)
     #

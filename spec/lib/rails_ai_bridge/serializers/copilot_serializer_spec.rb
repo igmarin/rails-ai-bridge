@@ -106,7 +106,7 @@ RSpec.describe RailsAiBridge::Serializers::CopilotSerializer do
     before { RailsAiBridge.configuration.context_mode = :full }
     after { RailsAiBridge.configuration.context_mode = :compact }
 
-    it "delegates to FullCopilotSerializer (MarkdownSerializer)" do
+    it "delegates to MarkdownSerializer with Copilot header/footer formatters" do
       context = {
         app_name: "App", rails_version: "8.0", ruby_version: "3.4",
         generated_at: Time.now.iso8601

@@ -204,7 +204,7 @@ RSpec.describe RailsAiBridge::Serializers::ClaudeSerializer do
     before { RailsAiBridge.configuration.context_mode = :full }
     after { RailsAiBridge.configuration.context_mode = :compact }
 
-    it "delegates to FullClaudeSerializer (MarkdownSerializer)" do
+    it "delegates to MarkdownSerializer with Claude header/footer formatters" do
       context = {
         app_name: "App", rails_version: "8.0", ruby_version: "3.4",
         generated_at: Time.now.iso8601
