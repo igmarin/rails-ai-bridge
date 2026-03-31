@@ -4,13 +4,12 @@ module RailsAiBridge
   module Serializers
     module Formatters
       # Renders the Testing section with framework, factories, and CI config.
-      class TestsFormatter < Base
-        # @return [String, nil]
-        def call
-          data = context[:tests]
-          return unless data
-          return if data[:error]
+      class TestsFormatter < SectionFormatter
+        section :tests
 
+        private
+
+        def render(data)
           lines = [ "## Testing" ]
           lines << "- Framework: #{data[:framework]}"
           lines << "- Factories: #{data[:factories][:location]} (#{data[:factories][:count]} files)" if data[:factories]

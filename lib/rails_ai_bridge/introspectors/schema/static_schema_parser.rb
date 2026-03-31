@@ -35,6 +35,8 @@ module RailsAiBridge
         COLUMN_LINE  = /t\.(\w+)\s+"(\w+)"/.freeze
 
         # Regex matching an +add_index+ statement (bare or array column form).
+        # Only the first column is captured for multi-column indexes — sufficient
+        # for context output but not a complete representation.
         INDEX_LINE   = /add_index\s+"(\w+)",\s+\[?"(\w+)"/.freeze
 
         # Rails-managed tables that must never appear in introspection output.

@@ -4,15 +4,14 @@ module RailsAiBridge
   module Serializers
     module Formatters
       # Renders the Routes section grouped by controller.
-      class RoutesFormatter < Base
-        # @return [String, nil]
-        def call
-          routes = context[:routes]
-          return unless routes
-          return if routes[:error]
+      class RoutesFormatter < SectionFormatter
+        section :routes
 
-          lines = [ "## Routes (#{routes[:total_routes]} total)" ]
-          routes[:by_controller]&.sort&.each do |ctrl, actions|
+        private
+
+        def render(data)
+          lines = [ "## Routes (#{data[:total_routes]} total)" ]
+          data[:by_controller]&.sort&.each do |ctrl, actions|
             lines << "### #{ctrl}"
             actions.each do |r|
               lines << "- `#{r[:verb]} #{r[:path]}` → #{r[:action]}"

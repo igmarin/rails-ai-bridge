@@ -4,13 +4,12 @@ module RailsAiBridge
   module Serializers
     module Formatters
       # Renders the Mounted Engines section.
-      class EnginesFormatter < Base
-        # @return [String, nil]
-        def call
-          data = context[:engines]
-          return unless data
-          return if data[:error]
+      class EnginesFormatter < SectionFormatter
+        section :engines
 
+        private
+
+        def render(data)
           lines = [ "## Mounted Engines" ]
           if data[:mounted_engines]&.any?
             data[:mounted_engines].each do |e|

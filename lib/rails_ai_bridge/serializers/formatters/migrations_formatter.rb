@@ -4,13 +4,12 @@ module RailsAiBridge
   module Serializers
     module Formatters
       # Renders the Migrations section with pending and recent migrations.
-      class MigrationsFormatter < Base
-        # @return [String, nil]
-        def call
-          data = context[:migrations]
-          return unless data
-          return if data[:error]
+      class MigrationsFormatter < SectionFormatter
+        section :migrations
 
+        private
+
+        def render(data)
           lines = [ "## Migrations" ]
           lines << "- Total: #{data[:total]}"
           lines << "- Schema version: #{data[:schema_version]}" if data[:schema_version]

@@ -4,27 +4,27 @@ module RailsAiBridge
   module Serializers
     module Formatters
       # Renders Background Jobs, Mailers, and Action Cable Channels sections.
-      class JobsFormatter < Base
-        # @return [String, nil]
-        def call
-          jobs = context[:jobs]
-          return unless jobs
+      class JobsFormatter < SectionFormatter
+        section :jobs
 
+        private
+
+        def render(data)
           parts = []
 
-          if jobs[:jobs]&.any?
+          if data[:jobs]&.any?
             parts << "## Background Jobs"
-            jobs[:jobs].each { |j| parts << "- `#{j[:name]}` (queue: #{j[:queue]})" }
+            data[:jobs].each { |j| parts << "- `#{j[:name]}` (queue: #{j[:queue]})" }
           end
 
-          if jobs[:mailers]&.any?
+          if data[:mailers]&.any?
             parts << "## Mailers"
-            jobs[:mailers].each { |m| parts << "- `#{m[:name]}`: #{m[:actions].join(', ')}" }
+            data[:mailers].each { |m| parts << "- `#{m[:name]}`: #{m[:actions].join(', ')}" }
           end
 
-          if jobs[:channels]&.any?
+          if data[:channels]&.any?
             parts << "## Action Cable Channels"
-            jobs[:channels].each { |c| parts << "- `#{c[:name]}`" }
+            data[:channels].each { |c| parts << "- `#{c[:name]}`" }
           end
 
           parts.join("\n") if parts.any?

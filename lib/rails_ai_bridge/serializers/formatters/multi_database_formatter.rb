@@ -4,12 +4,12 @@ module RailsAiBridge
   module Serializers
     module Formatters
       # Renders the Multi-Database section; returns nil when multi-db is not configured.
-      class MultiDatabaseFormatter < Base
-        # @return [String, nil]
-        def call
-          data = context[:multi_database]
-          return unless data
-          return if data[:error]
+      class MultiDatabaseFormatter < SectionFormatter
+        section :multi_database
+
+        private
+
+        def render(data)
           return unless data[:multi_db]
 
           lines = [ "## Multi-Database" ]

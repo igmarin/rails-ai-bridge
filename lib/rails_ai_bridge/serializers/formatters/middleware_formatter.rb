@@ -4,13 +4,12 @@ module RailsAiBridge
   module Serializers
     module Formatters
       # Renders the Custom Middleware section.
-      class MiddlewareFormatter < Base
-        # @return [String, nil]
-        def call
-          data = context[:middleware]
-          return unless data
-          return if data[:error]
+      class MiddlewareFormatter < SectionFormatter
+        section :middleware
 
+        private
+
+        def render(data)
           lines = [ "## Custom Middleware" ]
           if data[:custom_middleware]&.any?
             data[:custom_middleware].each do |m|

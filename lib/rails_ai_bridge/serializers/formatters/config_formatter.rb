@@ -4,13 +4,12 @@ module RailsAiBridge
   module Serializers
     module Formatters
       # Renders the Configuration section with cache, session, and timezone.
-      class ConfigFormatter < Base
-        # @return [String, nil]
-        def call
-          data = context[:config]
-          return unless data
-          return if data[:error]
+      class ConfigFormatter < SectionFormatter
+        section :config
 
+        private
+
+        def render(data)
           lines = [ "## Configuration" ]
           lines << "- Cache store: #{data[:cache_store]}" if data[:cache_store]
           lines << "- Session store: #{data[:session_store]}" if data[:session_store]

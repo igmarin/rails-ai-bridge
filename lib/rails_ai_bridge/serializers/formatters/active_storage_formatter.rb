@@ -4,12 +4,12 @@ module RailsAiBridge
   module Serializers
     module Formatters
       # Renders the Active Storage section with attachment types and services.
-      class ActiveStorageFormatter < Base
-        # @return [String, nil]
-        def call
-          data = context[:active_storage]
-          return unless data
-          return if data[:error]
+      class ActiveStorageFormatter < SectionFormatter
+        section :active_storage
+
+        private
+
+        def render(data)
           return unless data[:attachments]&.any?
 
           lines = [ "## Active Storage" ]

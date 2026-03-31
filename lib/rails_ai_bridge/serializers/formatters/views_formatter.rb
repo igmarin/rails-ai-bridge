@@ -4,13 +4,12 @@ module RailsAiBridge
   module Serializers
     module Formatters
       # Renders the Views section with layouts, templates, and helpers.
-      class ViewsFormatter < Base
-        # @return [String, nil]
-        def call
-          data = context[:views]
-          return unless data
-          return if data[:error]
+      class ViewsFormatter < SectionFormatter
+        section :views
 
+        private
+
+        def render(data)
           lines = [ "## Views" ]
           lines << "- Layouts: #{data[:layouts].join(', ')}" if data[:layouts]&.any?
           lines << "- Template engines: #{data[:template_engines].join(', ')}" if data[:template_engines]&.any?

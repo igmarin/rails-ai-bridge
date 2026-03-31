@@ -4,13 +4,12 @@ module RailsAiBridge
   module Serializers
     module Formatters
       # Renders the Database Seeds section.
-      class SeedsFormatter < Base
-        # @return [String, nil]
-        def call
-          data = context[:seeds]
-          return unless data
-          return if data[:error]
+      class SeedsFormatter < SectionFormatter
+        section :seeds
 
+        private
+
+        def render(data)
           lines = [ "## Database Seeds" ]
           if data[:seeds_file]
             lines << "- Seeds file: #{data[:seeds_file][:exists] ? 'exists' : 'missing'}"

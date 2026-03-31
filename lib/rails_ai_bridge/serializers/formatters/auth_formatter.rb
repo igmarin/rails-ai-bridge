@@ -4,13 +4,12 @@ module RailsAiBridge
   module Serializers
     module Formatters
       # Renders the Authentication & Authorization section (Devise, Pundit, etc.).
-      class AuthFormatter < Base
-        # @return [String, nil]
-        def call
-          data = context[:auth]
-          return unless data
-          return if data[:error]
+      class AuthFormatter < SectionFormatter
+        section :auth
 
+        private
+
+        def render(data)
           authn = data[:authentication] || {}
           authz = data[:authorization] || {}
           return if authn.empty? && authz.empty?

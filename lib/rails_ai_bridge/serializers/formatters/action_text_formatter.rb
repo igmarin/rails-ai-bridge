@@ -4,12 +4,12 @@ module RailsAiBridge
   module Serializers
     module Formatters
       # Renders the Action Text section with rich text fields.
-      class ActionTextFormatter < Base
-        # @return [String, nil]
-        def call
-          data = context[:action_text]
-          return unless data
-          return if data[:error]
+      class ActionTextFormatter < SectionFormatter
+        section :action_text
+
+        private
+
+        def render(data)
           return unless data[:rich_text_fields]&.any?
 
           lines = [ "## Action Text" ]

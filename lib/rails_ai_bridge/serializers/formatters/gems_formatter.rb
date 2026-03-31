@@ -4,14 +4,13 @@ module RailsAiBridge
   module Serializers
     module Formatters
       # Renders the Notable Gems section grouped by category.
-      class GemsFormatter < Base
-        # @return [String, nil]
-        def call
-          gems = context[:gems]
-          return unless gems
-          return if gems[:error]
+      class GemsFormatter < SectionFormatter
+        section :gems
 
-          notable = gems[:notable_gems] || []
+        private
+
+        def render(data)
+          notable = data[:notable_gems] || []
           return if notable.empty?
 
           lines = [ "## Notable Gems" ]

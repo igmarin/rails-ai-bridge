@@ -4,12 +4,12 @@ module RailsAiBridge
   module Serializers
     module Formatters
       # Renders the Action Mailbox section with mailbox class names.
-      class ActionMailboxFormatter < Base
-        # @return [String, nil]
-        def call
-          data = context[:action_mailbox]
-          return unless data
-          return if data[:error]
+      class ActionMailboxFormatter < SectionFormatter
+        section :action_mailbox
+
+        private
+
+        def render(data)
           return unless data[:mailboxes]&.any?
 
           lines = [ "## Action Mailbox" ]

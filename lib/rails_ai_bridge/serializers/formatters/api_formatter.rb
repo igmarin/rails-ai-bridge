@@ -4,13 +4,12 @@ module RailsAiBridge
   module Serializers
     module Formatters
       # Renders the API Layer section with versioning, serializers, and GraphQL.
-      class ApiFormatter < Base
-        # @return [String, nil]
-        def call
-          data = context[:api]
-          return unless data
-          return if data[:error]
+      class ApiFormatter < SectionFormatter
+        section :api
 
+        private
+
+        def render(data)
           lines = [ "## API Layer" ]
           lines << "- API-only mode: #{data[:api_only]}"
           lines << "- API versions: #{data[:api_versioning].join(', ')}" if data[:api_versioning]&.any?

@@ -4,12 +4,12 @@ module RailsAiBridge
   module Serializers
     module Formatters
       # Renders the Hotwire/Turbo section with frames, streams, and broadcasts.
-      class TurboFormatter < Base
-        # @return [String, nil]
-        def call
-          data = context[:turbo]
-          return unless data
-          return if data[:error]
+      class TurboFormatter < SectionFormatter
+        section :turbo
+
+        private
+
+        def render(data)
           return if data[:turbo_frames]&.empty? && data[:turbo_streams]&.empty? && data[:model_broadcasts]&.empty?
 
           lines = [ "## Hotwire / Turbo" ]

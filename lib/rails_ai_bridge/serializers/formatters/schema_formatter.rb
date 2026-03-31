@@ -4,16 +4,15 @@ module RailsAiBridge
   module Serializers
     module Formatters
       # Renders the Database Schema section; returns nil when schema is absent or errored.
-      class SchemaFormatter < Base
-        # @return [String, nil]
-        def call
-          schema = context[:schema]
-          return unless schema
-          return if schema[:error]
+      class SchemaFormatter < SectionFormatter
+        section :schema
 
-          lines = [ "## Database Schema (#{schema[:total_tables]} tables)" ]
-          schema[:tables]&.each do |name, data|
-            cols = (data[:columns] || []).map { |c| "`#{c[:name]}` (#{c[:type]})" }.join(", ")
+        private
+
+        def render(data)
+          lines = [ "## Database Schema (#{data[:total_tables]} tables)" ]
+          data[:tables]&.each do |name, table|
+            cols = (table[:columns] || []).map { |c| "`#{c[:name]}` (#{c[:type]})" }.join(", ")
             lines << "### #{name}"
             lines << cols
           end

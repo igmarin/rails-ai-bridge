@@ -4,13 +4,12 @@ module RailsAiBridge
   module Serializers
     module Formatters
       # Renders the Internationalization section with locale settings.
-      class I18nFormatter < Base
-        # @return [String, nil]
-        def call
-          data = context[:i18n]
-          return unless data
-          return if data[:error]
+      class I18nFormatter < SectionFormatter
+        section :i18n
 
+        private
+
+        def render(data)
           lines = [ "## Internationalization" ]
           lines << "- Default locale: #{data[:default_locale]}"
           lines << "- Available locales: #{data[:available_locales]&.join(', ')}"

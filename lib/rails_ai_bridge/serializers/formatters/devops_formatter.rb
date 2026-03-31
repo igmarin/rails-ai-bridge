@@ -4,13 +4,12 @@ module RailsAiBridge
   module Serializers
     module Formatters
       # Renders the DevOps section with Puma config and deployment info.
-      class DevopsFormatter < Base
-        # @return [String, nil]
-        def call
-          data = context[:devops]
-          return unless data
-          return if data[:error]
+      class DevopsFormatter < SectionFormatter
+        section :devops
 
+        private
+
+        def render(data)
           lines = [ "## DevOps" ]
           if data[:puma]
             lines << "### Puma"
