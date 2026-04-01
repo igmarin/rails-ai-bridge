@@ -38,7 +38,9 @@ module RailsAiBridge
       server = MCP::Server.new(
         name: config.server_name,
         version: config.server_version,
-        tools: tool_classes
+        tools: tool_classes,
+        resources: Resources.build_resources,
+        resource_templates: Resources.build_templates
       )
 
       Resources.register(server)

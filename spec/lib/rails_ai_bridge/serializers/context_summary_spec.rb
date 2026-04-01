@@ -3,6 +3,152 @@
 require "spec_helper"
 
 RSpec.describe RailsAiBridge::Serializers::ContextSummary do
+  describe ".test_command" do
+    it "returns 'bundle exec rspec' for rspec framework" do
+      context = { tests: { framework: "rspec" } }
+      expect(described_class.test_command(context)).to eq("bundle exec rspec")
+    end
+
+    it "returns 'bin/rails test' for minitest framework" do
+      context = { tests: { framework: "minitest" } }
+      expect(described_class.test_command(context)).to eq("bin/rails test")
+    end
+
+    it "returns 'bundle exec rspec' when framework is unknown" do
+      context = { tests: { framework: "unknown" } }
+      expect(described_class.test_command(context)).to eq("bundle exec rspec")
+    end
+
+    it "returns 'bundle exec rspec' when tests key is missing" do
+      expect(described_class.test_command({})).to eq("bundle exec rspec")
+    end
+
+    it "returns 'bundle exec rspec' when framework is nil" do
+      context = { tests: { framework: nil } }
+      expect(described_class.test_command(context)).to eq("bundle exec rspec")
+    end
+
+    it "returns 'bundle exec rspec' when framework is an empty string" do
+      context = { tests: { framework: "" } }
+      expect(described_class.test_command(context)).to eq("bundle exec rspec")
+    end
+
+    it "returns 'bundle exec rspec' when framework is whitespace only" do
+      context = { tests: { framework: "   " } }
+      expect(described_class.test_command(context)).to eq("bundle exec rspec")
+    end
+  end
+
+  describe ".model_complexity_score" do
+    it "sums associations, validations, callbacks, and scopes sizes" do
+      data = {
+        associations: [ {}, {}, {} ],
+        validations:  [ {}, {} ],
+        callbacks:    [ {} ],
+        scopes:       [ {}, {} ]
+      }
+      expect(described_class.model_complexity_score(data)).to eq(8)
+    end
+
+    it "returns 0 for an empty model" do
+      expect(described_class.model_complexity_score({})).to eq(0)
+    end
+
+    it "preserves insertion order for models with identical scores (stable sort)" do
+      models = {
+        "AardvarkModel" => { associations: [ {} ], validations: [], callbacks: [], scopes: [] },
+        "BeeModel"      => { associations: [ {} ], validations: [], callbacks: [], scopes: [] }
+      }
+      sorted = models.sort_by { |_n, d| -described_class.model_complexity_score(d) }.map(&:first)
+      expect(sorted).to eq(%w[AardvarkModel BeeModel])
+    end
+
+    it "handles unexpected non-array values via Array() coercion" do
+      data = { associations: "bad_value", validations: nil, callbacks: [], scopes: [] }
+      expect { described_class.model_complexity_score(data) }.not_to raise_error
+    end
+  end
+
+  describe ".top_columns" do
+    let(:table_data) do
+      {
+        columns: [
+          { name: "id", type: "integer" },
+          { name: "name", type: "string" },
+          { name: "email", type: "string" },
+          { name: "role", type: "integer" },
+          { name: "user_id", type: "integer" },
+          { name: "created_at", type: "datetime" },
+          { name: "updated_at", type: "datetime" }
+        ]
+      }
+    end
+
+    it "excludes id, created_at, updated_at, and *_id columns" do
+      cols = described_class.top_columns(table_data)
+      col_names = cols.map { |c| c[:name] }
+      expect(col_names).not_to include("id", "created_at", "updated_at", "user_id")
+    end
+
+    it "returns at most 3 columns" do
+      cols = described_class.top_columns(table_data)
+      expect(cols.size).to be <= 3
+    end
+
+    it "includes name and type" do
+      cols = described_class.top_columns(table_data)
+      expect(cols).to include(hash_including(name: "name", type: "string"))
+    end
+
+    it "returns empty array when table_data is nil" do
+      expect(described_class.top_columns(nil)).to eq([])
+    end
+
+    it "returns empty array when columns key is missing" do
+      expect(described_class.top_columns({})).to eq([])
+    end
+  end
+
+  describe ".recently_migrated?" do
+    let(:recent_version) { (Date.today - 10).strftime("%Y%m%d") + "120000" }
+    let(:old_version)    { (Date.today - 60).strftime("%Y%m%d") + "120000" }
+
+    it "returns true when a migration within 30 days touches the table" do
+      migrations = {
+        recent: [
+          { version: recent_version, filename: "#{recent_version}_create_users.rb" }
+        ]
+      }
+      expect(described_class.recently_migrated?("users", migrations)).to be true
+    end
+
+    it "returns false when matching migration is older than 30 days" do
+      migrations = {
+        recent: [
+          { version: old_version, filename: "#{old_version}_create_users.rb" }
+        ]
+      }
+      expect(described_class.recently_migrated?("users", migrations)).to be false
+    end
+
+    it "returns false when no migration references the table name" do
+      migrations = {
+        recent: [
+          { version: recent_version, filename: "#{recent_version}_create_posts.rb" }
+        ]
+      }
+      expect(described_class.recently_migrated?("users", migrations)).to be false
+    end
+
+    it "returns false when migrations is nil" do
+      expect(described_class.recently_migrated?("users", nil)).to be false
+    end
+
+    it "returns false when recent is empty" do
+      expect(described_class.recently_migrated?("users", { recent: [] })).to be false
+    end
+  end
+
   describe ".routes_stack_line" do
     it "uses introspected controller count to match split rule headings" do
       context = {

@@ -72,29 +72,33 @@ module RailsAiBridge
     def validate_auto_mount_configuration!
       cfg = configuration
       return unless cfg.auto_mount
-      return unless Rails.env.production?
+      return unless Rails.env.production? || cfg.mcp.require_auth_in_production
 
       unless cfg.allow_auto_mount_in_production
         raise ConfigurationError,
               "rails_ai_bridge: auto_mount is disabled in production unless you set allow_auto_mount_in_production = true"
       end
 
-      return if McpHttpAuth.effective_http_mcp_token.present?
+      return if Mcp::Authenticator.any_configured?
 
       raise ConfigurationError,
-            "rails_ai_bridge: auto_mount in production requires http_mcp_token or ENV['#{McpHttpAuth::TOKEN_ENV_KEY}']"
+            "rails_ai_bridge: auto_mount in production requires an auth mechanism " \
+            "(http_mcp_token, mcp_token_resolver, mcp_jwt_decoder, or ENV['#{Mcp::Authenticator::TOKEN_ENV_KEY}'])"
     end
 
     # Raises {ConfigurationError} when starting the standalone HTTP MCP server in production without a token.
     #
+    # Also enforces {Config::Mcp#require_auth_in_production} when +true+, regardless of Rails env.
+    #
     # @return [void]
-    # @raise [RailsAiBridge::ConfigurationError] when production HTTP MCP starts without a token
+    # @raise [RailsAiBridge::ConfigurationError] when HTTP MCP starts without a required auth mechanism
     def validate_http_mcp_server_in_production!
-      return unless Rails.env.production?
-      return if McpHttpAuth.effective_http_mcp_token.present?
+      return unless Rails.env.production? || configuration.mcp.require_auth_in_production
+      return if Mcp::Authenticator.any_configured?
 
       raise ConfigurationError,
-            "rails_ai_bridge: HTTP MCP in production requires http_mcp_token or ENV['#{McpHttpAuth::TOKEN_ENV_KEY}']"
+            "rails_ai_bridge: HTTP MCP in production requires an auth mechanism " \
+            "(http_mcp_token, mcp_token_resolver, mcp_jwt_decoder, or ENV['#{Mcp::Authenticator::TOKEN_ENV_KEY}'])"
     end
   end
 end

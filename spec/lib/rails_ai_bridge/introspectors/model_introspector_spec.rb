@@ -59,6 +59,36 @@ RSpec.describe RailsAiBridge::Introspectors::ModelIntrospector do
     it "extracts instance_methods as array" do
       expect(result["User"][:instance_methods]).to be_an(Array)
     end
+
+    context "with excluded_tables configured" do
+      subject(:result) { described_class.new(Rails.application).call }
+
+      before { RailsAiBridge.configuration.excluded_tables << "users" }
+      after  { RailsAiBridge.configuration.excluded_tables.clear }
+
+      it "omits models whose table is excluded" do
+        expect(result).not_to have_key("User")
+      end
+
+      it "still returns models whose table is not excluded" do
+        expect(result).to have_key("Post")
+      end
+    end
+
+    context "with glob excluded_tables pattern" do
+      subject(:result) { described_class.new(Rails.application).call }
+
+      before { RailsAiBridge.configuration.excluded_tables << "post*" }
+      after  { RailsAiBridge.configuration.excluded_tables.clear }
+
+      it "omits models matching the glob" do
+        expect(result).not_to have_key("Post")
+      end
+
+      it "keeps models not matching the glob" do
+        expect(result).to have_key("User")
+      end
+    end
   end
 
   describe "#extract_source_macros (private)" do

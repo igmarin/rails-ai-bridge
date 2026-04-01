@@ -24,53 +24,81 @@ module RailsAiBridge
 
       def create_initializer
         standard_count = RailsAiBridge::Configuration::PRESETS[:standard].size
-        full_count = RailsAiBridge::Configuration::PRESETS[:full].size
+        full_count     = RailsAiBridge::Configuration::PRESETS[:full].size
+        regulated_count = RailsAiBridge::Configuration::PRESETS[:regulated].size
 
         create_file "config/initializers/rails_ai_bridge.rb", <<~RUBY
           # frozen_string_literal: true
 
           RailsAiBridge.configure do |config|
-            # Introspector preset:
-            #   :standard — #{standard_count} core introspectors (schema, models, routes, jobs, gems, conventions, controllers, tests, migrations)
-            #   :full     — all #{full_count} introspectors (adds views, turbo, auth, API, config, assets, devops, etc.)
+            # --- Introspector preset ---
+            #   :standard  — #{standard_count} core introspectors (schema, models, routes, jobs, gems, conventions, controllers, tests, migrations)
+            #   :full      — all #{full_count} introspectors (adds views, turbo, auth, API, config, assets, devops, etc.)
+            #   :regulated — #{regulated_count} introspectors — no schema/models/migrations (for apps with strict data governance)
             # config.preset = :standard
 
             # Or cherry-pick individual introspectors:
             # config.introspectors += %i[views turbo auth api]
 
-            # Models to exclude from introspection
+            # Disable whole product categories at runtime (schema + models + migrations, api, views/turbo/i18n):
+            # config.disabled_introspection_categories << :domain_metadata
+
+            # --- Security exclusions ---
+            # Tables to hide from schema + model introspection (exact name or glob, e.g. "pii_*"):
+            # config.excluded_tables += %w[secrets audit_logs pii_*]
+
+            # Models to exclude from introspection:
             # config.excluded_models += %w[AdminUser InternalThing]
 
-            # Paths to exclude from code search
+            # Paths excluded from rails_search_code:
             # config.excluded_paths += %w[vendor/bundle]
 
-            # Context mode for generated files (CLAUDE.md, .cursorrules, etc.)
-            # :compact — smart, ≤150 lines, references MCP tools for details (default)
-            # :full    — dumps everything into context files (good for small apps <30 models)
+            # --- Context output ---
+            # :compact — ≤150 lines, references MCP tools for details (default)
+            # :full    — full dump (good for small apps)
             # config.context_mode = :compact
-
-            # Max lines for CLAUDE.md in compact mode
             # config.claude_max_lines = 150
-
-            # Max response size for MCP tool results (chars). Safety net for large apps.
             # config.max_tool_response_chars = 120_000
 
-            # Optional: path to markdown merged into compact Copilot + Codex (default: config/rails_ai_bridge/overrides.md).
-            # The install stub uses <!-- rails-ai-bridge:omit-merge --> on line 1 — delete it when adding real rules
-            # (until then nothing is merged). See config/rails_ai_bridge/overrides.md.example for an outline.
+            # Team rules merged into compact Copilot/Codex output (remove omit-merge line when ready):
             # config.assistant_overrides_path = "config/rails_ai_bridge/overrides.md"
 
-            # Compact file model name caps (0 = MCP pointer only, no names listed)
+            # Compact model list caps (0 = MCP pointer only, no names listed):
             # config.copilot_compact_model_list_limit = 5
             # config.codex_compact_model_list_limit = 3
 
-            # Auto-mount HTTP MCP endpoint at /mcp (see SECURITY.md — production needs token + explicit opt-in)
+            # ==========================================================================
+            # HTTP MCP / auto_mount — SECURITY CRITICAL
+            # ==========================================================================
+            # Exposes read-only MCP tools over HTTP. Still reveals routes, schema, and
+            # code layout — treat as sensitive. Prefer stdio (`rails ai:serve`) for local
+            # AI clients.
+            #
+            # In production you MUST configure one auth mechanism AND set
+            # allow_auto_mount_in_production = true. Options (highest priority first):
+            #
+            #   1. JWT decoder (no JWT gem required — supply your own lambda):
+            #      config.mcp_jwt_decoder = ->(token) {
+            #        JWT.decode(token, credentials.jwt_secret, true, algorithm: "HS256").first
+            #      rescue JWT::DecodeError
+            #        nil
+            #      }
+            #
+            #   2. Token resolver (Devise, database lookup, etc.):
+            #      config.mcp_token_resolver = ->(token) { User.find_by(mcp_api_token: token) }
+            #
+            #   3. Static shared secret:
+            #      config.http_mcp_token = "generate-a-long-random-secret"
+            #      # ENV["RAILS_AI_BRIDGE_MCP_TOKEN"] overrides this when set
+            #
+            # IMPORTANT: Token comparison is timing-safe but does NOT prevent
+            # brute-force guessing. Add rate limiting on the MCP endpoint in
+            # production (e.g. Rack::Attack throttle on config.http_path).
+            #
             # config.auto_mount = false
             # config.allow_auto_mount_in_production = false
-            # config.http_mcp_token = "generate-a-long-random-secret"
-            # ENV["RAILS_AI_BRIDGE_MCP_TOKEN"] overrides http_mcp_token when set
-            # config.http_path  = "/mcp"
-            # config.http_port  = 6029
+            # config.http_path = "/mcp"
+            # config.http_port = 6029
           end
         RUBY
 

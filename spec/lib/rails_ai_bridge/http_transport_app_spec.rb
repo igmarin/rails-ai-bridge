@@ -6,10 +6,16 @@ RSpec.describe RailsAiBridge::HttpTransportApp do
   let(:transport) { instance_double(MCP::Server::Transports::StreamableHTTPTransport) }
 
   around do |example|
-    saved_token = RailsAiBridge.configuration.http_mcp_token
+    saved_token    = RailsAiBridge.configuration.http_mcp_token
+    saved_max_reqs = RailsAiBridge.configuration.mcp.rate_limit_max_requests
+    saved_log      = RailsAiBridge.configuration.mcp.http_log_json
+    saved_authorize = RailsAiBridge.configuration.mcp.authorize
     example.run
   ensure
     RailsAiBridge.configuration.http_mcp_token = saved_token
+    RailsAiBridge.configuration.mcp.rate_limit_max_requests = saved_max_reqs
+    RailsAiBridge.configuration.mcp.http_log_json = saved_log
+    RailsAiBridge.configuration.mcp.authorize = saved_authorize
   end
 
   describe ".build" do
@@ -48,6 +54,80 @@ RSpec.describe RailsAiBridge::HttpTransportApp do
 
       expect(status).to eq(200)
       expect(transport).to have_received(:handle_request)
+    end
+
+    it "returns 429 and Retry-After when rate limit is exceeded" do
+      RailsAiBridge.configuration.http_mcp_token = "secret"
+      RailsAiBridge.configuration.mcp.rate_limit_max_requests = 1
+      RailsAiBridge.configuration.mcp.rate_limit_window_seconds = 60
+      app = described_class.build(transport: transport, path: "/mcp")
+
+      env = Rack::MockRequest.env_for(
+        "/mcp",
+        method: "POST",
+        "HTTP_AUTHORIZATION" => "Bearer secret",
+        "REMOTE_ADDR" => "1.2.3.4"
+      )
+
+      allow(transport).to receive(:handle_request).and_return([ 200, {}, [ "OK" ] ])
+      app.call(env)
+      status, headers, body = app.call(env)
+
+      expect(status).to eq(429)
+      expect(headers["Retry-After"]).to eq("60")
+      expect(body.first).to include("Too many requests")
+    end
+
+    it "returns 403 when authorize lambda returns falsey" do
+      RailsAiBridge.configuration.http_mcp_token = "secret"
+      RailsAiBridge.configuration.mcp.authorize = ->(_ctx, _req) { false }
+      app = described_class.build(transport: transport, path: "/mcp")
+
+      env = Rack::MockRequest.env_for(
+        "/mcp",
+        method: "POST",
+        "HTTP_AUTHORIZATION" => "Bearer secret"
+      )
+
+      status, _headers, body = app.call(env)
+
+      expect(status).to eq(403)
+      expect(body.first).to include("Forbidden")
+    end
+
+    it "returns 403 when authorize lambda raises" do
+      RailsAiBridge.configuration.http_mcp_token = "secret"
+      RailsAiBridge.configuration.mcp.authorize = ->(_ctx, _req) { raise "boom" }
+      app = described_class.build(transport: transport, path: "/mcp")
+
+      env = Rack::MockRequest.env_for(
+        "/mcp",
+        method: "POST",
+        "HTTP_AUTHORIZATION" => "Bearer secret"
+      )
+
+      allow(Rails.logger).to receive(:error)
+      status, _headers, body = app.call(env)
+
+      expect(status).to eq(403)
+      expect(body.first).to include("Forbidden")
+      expect(Rails.logger).to have_received(:error).with(/authorize lambda raised/)
+    end
+
+    it "emits a structured log when http_log_json is enabled" do
+      RailsAiBridge.configuration.http_mcp_token = "secret"
+      RailsAiBridge.configuration.mcp.http_log_json = true
+      allow(transport).to receive(:handle_request).and_return([ 200, {}, [ "OK" ] ])
+      app = described_class.build(transport: transport, path: "/mcp")
+
+      env = Rack::MockRequest.env_for(
+        "/mcp",
+        method: "POST",
+        "HTTP_AUTHORIZATION" => "Bearer secret"
+      )
+
+      expect(Rails.logger).to receive(:info).at_least(:once)
+      app.call(env)
     end
   end
 end

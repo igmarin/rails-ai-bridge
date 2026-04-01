@@ -21,6 +21,7 @@ Gem::Specification.new do |spec|
   spec.license       = "MIT"
 
   spec.required_ruby_version = ">= 3.2.0"
+  spec.required_rubygems_version = ">= 3.4"
 
   spec.metadata["homepage_uri"]      = spec.homepage
   spec.metadata["source_code_uri"]   = "#{spec.homepage}/tree/main"
@@ -49,17 +50,17 @@ Gem::Specification.new do |spec|
   spec.require_paths = [ "lib" ]
 
   # Core dependencies
-  spec.add_dependency "mcp", "~> 0.8"             # Official MCP Ruby SDK
+  spec.add_dependency "mcp", "~> 0.10.0"             # Official MCP Ruby SDK
   spec.add_dependency "railties", ">= 7.1", "< 9.0"
   spec.add_dependency "thor", ">= 1.0", "< 3.0"
   spec.add_dependency "zeitwerk", "~> 2.6"         # Autoloading
 
   # Dev dependencies
+  spec.add_development_dependency "appraisal", "~> 2.5"
+  spec.add_development_dependency "combustion", "~> 1.5" # Test Rails engines in isolation
   spec.add_development_dependency "rspec", "~> 3.13"
-  spec.add_development_dependency "rake", "~> 13.0"
-  spec.add_development_dependency "rubocop", "~> 1.65"
-  spec.add_development_dependency "rubocop-rails-omakase", "~> 1.0"
-  spec.add_development_dependency "yard", "~> 0.9"
-  spec.add_development_dependency "combustion", "~> 1.4" # Test Rails engines in isolation
+  spec.add_development_dependency "rubocop", "~> 1.86"
+  spec.add_development_dependency "rubocop-rails-omakase", "~> 1.1"
   spec.add_development_dependency "simplecov", "~> 0.22"
+  spec.add_development_dependency "yard", "~> 0.9"
 end

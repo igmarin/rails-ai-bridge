@@ -24,10 +24,26 @@ RSpec.describe RailsAiBridge::Serializers::MarkdownSerializer do
     it "includes routes section" do
       expect(output).to include("## Routes")
     end
+
+    it "includes the footer" do
+      expect(output).to include("rails ai:bridge")
+    end
+
+    it "sections are separated by double newlines" do
+      expect(output).to include("\n\n##")
+    end
+
+    it "includes models section" do
+      expect(output).to include("## Models")
+    end
+
+    it "does not include nil sections (compact join)" do
+      expect(output).not_to include("\n\n\n\n")
+    end
   end
 end
 
-RSpec.describe RailsAiBridge::Serializers::ClaudeSerializer do
+RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeSerializer do
   let(:context) { RailsAiBridge.introspect }
 
   describe "#call" do
@@ -75,7 +91,7 @@ RSpec.describe RailsAiBridge::Serializers::ClaudeSerializer do
   end
 end
 
-RSpec.describe RailsAiBridge::Serializers::RulesSerializer do
+RSpec.describe RailsAiBridge::Serializers::Providers::RulesSerializer do
   let(:context) { RailsAiBridge.introspect }
 
   describe "#call" do
@@ -87,7 +103,7 @@ RSpec.describe RailsAiBridge::Serializers::RulesSerializer do
   end
 end
 
-RSpec.describe RailsAiBridge::Serializers::CopilotSerializer do
+RSpec.describe RailsAiBridge::Serializers::Providers::CopilotSerializer do
   let(:context) { RailsAiBridge.introspect }
 
   describe "#call" do

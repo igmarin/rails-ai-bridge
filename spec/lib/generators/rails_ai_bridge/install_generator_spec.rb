@@ -18,8 +18,38 @@ RSpec.describe RailsAiBridge::Generators::InstallGenerator do
 
       content = File.read(File.join(destination_root, "config/initializers/rails_ai_bridge.rb"))
 
-      expect(content).to include(":standard — 9 core introspectors")
-      expect(content).to include(":full     — all 26 introspectors")
+      expect(content).to include(":standard  — 9 core introspectors")
+      expect(content).to include(":full      — all 26 introspectors")
+    end
+
+    it "documents the :regulated preset" do
+      generator.create_initializer
+      content = File.read(File.join(destination_root, "config/initializers/rails_ai_bridge.rb"))
+      expect(content).to include(":regulated")
+    end
+
+    it "documents excluded_tables" do
+      generator.create_initializer
+      content = File.read(File.join(destination_root, "config/initializers/rails_ai_bridge.rb"))
+      expect(content).to include("excluded_tables")
+    end
+
+    it "documents disabled_introspection_categories" do
+      generator.create_initializer
+      content = File.read(File.join(destination_root, "config/initializers/rails_ai_bridge.rb"))
+      expect(content).to include("disabled_introspection_categories")
+    end
+
+    it "documents mcp_token_resolver" do
+      generator.create_initializer
+      content = File.read(File.join(destination_root, "config/initializers/rails_ai_bridge.rb"))
+      expect(content).to include("mcp_token_resolver")
+    end
+
+    it "documents mcp_jwt_decoder" do
+      generator.create_initializer
+      content = File.read(File.join(destination_root, "config/initializers/rails_ai_bridge.rb"))
+      expect(content).to include("mcp_jwt_decoder")
     end
   end
 

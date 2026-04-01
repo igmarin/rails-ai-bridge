@@ -1,0 +1,85 @@
+# frozen_string_literal: true
+
+module RailsAiBridge
+  module Config
+    # Holds introspector selection, exclusion rules, and caching settings.
+    class Introspection
+      # @return [Array<Symbol>] active introspector keys
+      attr_accessor :introspectors
+
+      # @return [Array<String>] directory names excluded from code search
+      attr_accessor :excluded_paths
+
+      # @return [Array<String>] model class names excluded from introspection
+      attr_accessor :excluded_models
+
+      # @return [Array<String>] table names/patterns excluded from schema introspection
+      attr_accessor :excluded_tables
+
+      # @return [Array<Symbol>] product-level category keys that subtract introspectors at runtime
+      attr_accessor :disabled_introspection_categories
+
+      # @return [Integer] TTL in seconds for cached introspection results
+      attr_accessor :cache_ttl
+
+      # @return [Boolean] include credential key names in config introspection output
+      attr_accessor :expose_credentials_key_names
+
+      # @return [Hash{Symbol => Class}] additional custom introspector classes
+      attr_accessor :additional_introspectors
+
+      # @return [Array<String>] extra file extensions allowed for rails_search_code
+      attr_accessor :search_code_allowed_file_types
+
+      def initialize
+        @introspectors      = Configuration::PRESETS[:standard].dup
+        @excluded_paths     = %w[node_modules tmp log vendor .git]
+        @excluded_models    = %w[
+          ApplicationRecord
+          ActiveStorage::Blob ActiveStorage::Attachment ActiveStorage::VariantRecord
+          ActionText::RichText ActionText::EncryptedRichText
+          ActionMailbox::InboundEmail ActionMailbox::Record
+        ]
+        @excluded_tables                   = []
+        @disabled_introspection_categories = []
+        @cache_ttl                         = 30
+        @expose_credentials_key_names      = false
+        @additional_introspectors          = {}
+        @search_code_allowed_file_types    = []
+      end
+
+      # Switch the active introspector list to a named preset.
+      #
+      # @param name [Symbol, String] preset key from {Configuration::PRESETS}
+      # @raise [ArgumentError] when the preset is unknown
+      def preset=(name)
+        name = name.to_sym
+        unless Configuration::PRESETS.key?(name)
+          raise ArgumentError, "Unknown preset: #{name}. Valid presets: #{Configuration::PRESETS.keys.join(', ')}"
+        end
+
+        @introspectors = Configuration::PRESETS[name].dup
+      end
+
+      # Introspectors after removing those disabled by {#disabled_introspection_categories}.
+      #
+      # @return [Array<Symbol>]
+      def effective_introspectors
+        disabled = @disabled_introspection_categories.flat_map do |c|
+          Configuration::INTROSPECTION_CATEGORY_INTROSPECTORS[c.to_sym] || []
+        end.uniq
+        @introspectors.reject { |i| disabled.include?(i) }
+      end
+
+      # Whether a table name matches any {#excluded_tables} pattern (exact or glob).
+      #
+      # @param table_name [String, nil]
+      # @return [Boolean]
+      def excluded_table?(table_name)
+        return false if table_name.nil? || table_name.to_s.empty?
+
+        @excluded_tables.any? { |pat| ExclusionHelper.table_pattern_match?(pat.to_s, table_name.to_s) }
+      end
+    end
+  end
+end
