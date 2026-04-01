@@ -301,6 +301,84 @@ Codex support is centered on **`AGENTS.md`** at the repository root.
 
 ---
 
+## Best Practices
+
+After testing with Cursor, Windsurf, Copilot, Codex, and Claude Code in real projects, these patterns consistently produce the best results.
+
+### Layer 1: Commit your static files
+
+The generated files (`.cursorrules`, `.cursor/rules/`, `AGENTS.md`, `.windsurfrules`, `CLAUDE.md`, `.github/copilot-instructions.md`) are loaded **passively** by AI tools on every session start — giving the assistant immediate project grounding before it reads a single line of your code.
+
+**Always commit these files.** The whole team benefits, not just the developer who ran `rails ai:bridge`.
+
+### Layer 2: Run the MCP server
+
+Static files cover overview. The MCP server covers depth. When an assistant needs full schema details, specific model associations, or a filtered route listing, the `rails_*` tools fetch live data on demand — without inflating your initial context window.
+
+The combination is additive:
+
+| Setup | What you get |
+|-------|-------------|
+| Static files only | Passive overview: project structure always loaded |
+| MCP server only | On-demand depth: accurate live data, no passive grounding |
+| **Both (recommended)** | **Passive overview + on-demand depth = best coverage** |
+
+This is the pattern that consistently outperforms either layer alone. The files reduce orientation overhead; the server handles the details when the assistant actually needs them.
+
+### Keep files fresh — regenerate after every significant change
+
+Static files are snapshots. An assistant working from a schema that is 20 commits out of date will still make assumptions based on the old structure. After any significant change — a new model, a migration, a refactor, a feature merged — run:
+
+```bash
+rails ai:bridge
+```
+
+**Rule of thumb:** treat `rails ai:bridge` the same way you treat `bundle install` after a `Gemfile` change — a routine step, not a one-time setup. Commit the regenerated files alongside the code change so the whole team stays in sync.
+
+#### Auto-regeneration during active development
+
+```bash
+rails ai:watch
+```
+
+Watches for file changes and regenerates relevant context files automatically. Useful when you are actively adding models, routes, or controllers and want the assistant to track along in the same session.
+
+### Use `detail: "summary"` first with the MCP server
+
+When the MCP server is running, start broad and drill down:
+
+```
+1. rails_get_schema(detail: "summary")      → all tables, no noise
+2. rails_get_schema(table: "orders")        → full detail for one table
+3. rails_get_model_details(model: "Order")  → associations, validations, scopes
+```
+
+This keeps token usage low and answer quality high. Requesting full detail on every table at once is rarely necessary and wastes context on data the assistant does not need yet.
+
+### Pick the right preset for your app
+
+| Preset | Introspectors | Best for |
+|--------|--------------|---------|
+| `:standard` (default) | 9 core | Most apps — schema, models, routes, jobs, gems, conventions |
+| `:full` | 27 | Full-stack apps where frontend, auth, API, and DevOps context matter |
+
+Add individual introspectors on top of a preset for targeted additions:
+
+```ruby
+config.preset = :standard
+config.introspectors += %i[views auth api]
+```
+
+### Check your readiness score
+
+```bash
+rails ai:doctor
+```
+
+Prints a 0–100 AI readiness score and flags anything missing: `.mcp.json`, generated context files, MCP token in production, and more. Run it after initial setup and after major configuration changes.
+
+---
+
 ## Configuration
 
 ```ruby
