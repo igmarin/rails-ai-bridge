@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-04-02
+
+### Added
+
+- **Gemini Support:** Added support for Google's Gemini AI assistant.
+- **New Rake Task:** Added `rails ai:bridge:gemini` to generate `GEMINI.md`.
+- **New Serializer:** Added `RailsAiBridge::Serializers::Providers::GeminiSerializer`.
+- **New Formatters:** Added `RailsAiBridge::Serializers::Formatters::GeminiHeaderFormatter` and `RailsAiBridge::Serializers::Formatters::GeminiFooterFormatter`.
+- **Generator Update:** The install generator now includes instructions for Gemini.
+
 ## [2.0.0] - 2026-03-31
 
 ### Added

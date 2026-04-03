@@ -20,7 +20,7 @@ module RailsAiBridge
     RELATIVE_PATH = "config/rails_ai_bridge/install.yml"
 
     # All recognized format keys (order is not significant).
-    FORMAT_KEYS = %i[claude codex cursor windsurf copilot json].freeze
+    FORMAT_KEYS = %i[claude codex cursor windsurf copilot json gemini].freeze
 
     class << self
       # Absolute path to the preference file for the current Rails application.

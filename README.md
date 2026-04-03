@@ -32,7 +32,7 @@ flowchart LR
 ```
 
 1. **Up to 27 introspectors** scan schema, models, routes, controllers, jobs, gems, conventions, and more (preset `:standard` runs 9 core ones by default; `:full` runs all).
-2. **`rails ai:bridge`** writes bounded bridge files for Claude, Cursor, Copilot, Codex, Windsurf, and JSON.
+2. **`rails ai:bridge`** writes bounded bridge files for Claude, Cursor, Copilot, Codex, Windsurf, Gemini, and JSON.
 3. **`rails ai:serve`** exposes **9 MCP tools** so assistants pull detail on demand (`detail: "summary"` first, then drill down).
 
 ### Folder guides
@@ -480,6 +480,7 @@ Frontend introspectors (views, Turbo, Stimulus, assets) degrade gracefully — t
 | `rails ai:bridge:cursor` | Generate Cursor files only |
 | `rails ai:bridge:windsurf` | Generate Windsurf files only |
 | `rails ai:bridge:copilot` | Generate Copilot files only |
+| `rails ai:bridge:gemini` | Generate Gemini files only |
 | `rails ai:serve` | Start MCP server (stdio) |
 | `rails ai:serve_http` | Start MCP server (HTTP) |
 | `rails ai:doctor` | Run diagnostics and AI readiness score (0-100) |

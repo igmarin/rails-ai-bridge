@@ -22,7 +22,7 @@ RSpec.describe RailsAiBridge::Serializers::Providers::CodexSerializer do
 
       expect(output).to include("Codex")
       expect(output).to include("AGENTS.md")
-      expect(output.index("Engineering rules")).to be < output.index("Project overview")
+      expect(output.index("Engineering rules")).to be < output.index("## Stack")
       expect(output).to include("rails_get_schema")
       expect(output).to include('detail:"summary"')
       expect(output).to include("User")

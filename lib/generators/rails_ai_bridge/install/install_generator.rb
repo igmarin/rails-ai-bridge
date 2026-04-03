@@ -168,6 +168,7 @@ module RailsAiBridge
         say "  rails ai:bridge:claude   # Generate CLAUDE.md only"
         say "  rails ai:bridge:codex    # Generate AGENTS.md only"
         say "  rails ai:bridge:cursor   # Generate .cursorrules only"
+        say "  rails ai:bridge:gemini   # Generate GEMINI.md only"
         say "  rails ai:serve           # Start MCP server (stdio)"
         say "  rails ai:inspect         # Print introspection summary"
         say ""
@@ -177,6 +178,7 @@ module RailsAiBridge
         say "  Cursor         → .cursorrules + .cursor/rules/*.mdc (incl. rails-engineering.mdc)"
         say "  Windsurf       → .windsurfrules + .windsurf/rules/*.md"
         say "  GitHub Copilot → .github/copilot-instructions.md + .github/instructions/*.instructions.md"
+        say "  Gemini         → GEMINI.md"
         say ""
         say "MCP auto-discovery:", :yellow
         say "  .mcp.json is auto-detected by Claude Code and Cursor."
