@@ -3,7 +3,9 @@
 module RailsAiBridge
   class Doctor
     module Checkers
+      # Verifies +app/controllers+ contains controller Ruby files.
       class ControllersChecker < BaseChecker
+        # @return [Doctor::Check] +:pass+ when controller files exist; +:warn+ otherwise
         def call
           controllers_path = File.join(app.root, "app/controllers", "**/*.rb")
           controllers = Dir.glob(controllers_path)

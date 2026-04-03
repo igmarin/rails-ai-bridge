@@ -3,7 +3,9 @@
 module RailsAiBridge
   class Doctor
     module Checkers
+      # Verifies the +rails://bridge/meta+ MCP resource is registered.
       class BridgeMetadataChecker < BaseChecker
+        # @return [Doctor::Check] +:pass+ when the resource exists; +:fail+ otherwise
         def call
           check(
             "Bridge metadata",

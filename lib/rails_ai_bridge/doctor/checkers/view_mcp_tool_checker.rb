@@ -3,7 +3,9 @@
 module RailsAiBridge
   class Doctor
     module Checkers
+      # Ensures +rails_get_view+ is registered when views and +:views+ introspection matter.
       class ViewMcpToolChecker < BaseChecker
+        # @return [Doctor::Check] +:pass+, +:warn+, or +:fail+ depending on views and tool registration
         def call
           return new_check(name: "View MCP tool", status: :pass, message: "No view files detected; view MCP tool not required", fix: nil) unless view_files_present?
 

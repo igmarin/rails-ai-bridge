@@ -2,6 +2,7 @@
 
 module RailsAiBridge
   module Tools
+    # MCP tool exposing detected architecture, patterns, directory layout, and config files.
     class GetConventions < BaseTool
       tool_name "rails_get_conventions"
       description "Detect architectural patterns and conventions used in this Rails app. Returns info about architecture style (API-only, Hotwire, GraphQL), design patterns (service objects, STI, polymorphism), directory structure, and config files present."
@@ -10,6 +11,8 @@ module RailsAiBridge
 
       annotations(read_only_hint: true, destructive_hint: false, idempotent_hint: true, open_world_hint: false)
 
+      # @param server_context [Object, nil] reserved for MCP transport metadata
+      # @return [MCP::Tool::Response] markdown convention summary or an error message
       def self.call(server_context: nil)
         conventions = cached_section(:conventions)
         return text_response("Convention detection not available. Add :conventions to introspectors.") unless conventions
@@ -20,6 +23,7 @@ module RailsAiBridge
       end
 
       # @private
+      # Formats +:conventions+ introspection hash as markdown for {GetConventions}.
       class ResponseFormatter
         def initialize(conventions)
           @conventions = conventions

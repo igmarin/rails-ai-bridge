@@ -3,7 +3,9 @@
 module RailsAiBridge
   class Doctor
     module Checkers
+      # Verifies +rg+ is available on +PATH+ for fast code search.
       class RipgrepChecker < BaseChecker
+        # @return [Doctor::Check] +:pass+ when +rg+ is found; +:warn+ otherwise
         def call
           check(
             "ripgrep",

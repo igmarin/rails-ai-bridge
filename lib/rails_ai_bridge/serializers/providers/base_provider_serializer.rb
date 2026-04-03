@@ -28,7 +28,7 @@ module RailsAiBridge
           lines.concat(render_notable_gems)
           lines.concat(render_architecture)
           lines.concat(render_key_considerations)
-          lines.concat(Formatters::McpGuideFormatter.new(context).call.split("\n"))
+          lines.concat(Formatters::Providers::McpGuideFormatter.new(context).call.split("\n"))
           lines.concat(render_key_config_files)
           lines.concat(render_commands)
           lines.concat(render_footer)

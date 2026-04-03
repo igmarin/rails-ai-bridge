@@ -3,7 +3,9 @@
 module RailsAiBridge
   class Doctor
     module Checkers
+      # Verifies +db/schema.rb+ exists for schema-driven AI context.
       class SchemaChecker < BaseChecker
+        # @return [Doctor::Check] +:pass+ when the schema file exists; +:warn+ otherwise
         def call
           schema_path = File.join(app.root, "db/schema.rb")
           check(

@@ -3,7 +3,9 @@
 module RailsAiBridge
   class Doctor
     module Checkers
+      # Verifies +app/models+ contains Ruby model files.
       class ModelsChecker < BaseChecker
+        # @return [Doctor::Check] +:pass+ when model files exist; +:warn+ otherwise
         def call
           models_path = File.join(app.root, "app/models", "**/*.rb")
           models = Dir.glob(models_path)

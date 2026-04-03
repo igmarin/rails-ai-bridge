@@ -2,6 +2,7 @@
 
 module RailsAiBridge
   module Tools
+    # MCP tool listing controllers with actions, filters, and strong params.
     class GetControllers < BaseTool
       tool_name "rails_get_controllers"
       description "Get controller information including actions, filters, strong params, and concerns. Optionally filter by controller name. Supports detail levels."
@@ -22,6 +23,10 @@ module RailsAiBridge
 
       annotations(read_only_hint: true, destructive_hint: false, idempotent_hint: true, open_world_hint: false)
 
+      # @param controller [String, nil] when set, return detail for that controller only
+      # @param detail [String] +summary+, +standard+, or +full+ for listings
+      # @param server_context [Object, nil] reserved for MCP transport metadata
+      # @return [MCP::Tool::Response] markdown controller summary or an error message
       def self.call(controller: nil, detail: "standard", server_context: nil)
         data = cached_section(:controllers)
         return text_response("Controller introspection not available. Add :controllers to introspectors.") unless data
@@ -34,6 +39,7 @@ module RailsAiBridge
       end
 
       # @private
+      # Formats +:controllers+ introspection for {GetControllers}.
       class ResponseFormatter
         def initialize(controllers, controller:, detail:)
           @controllers = controllers

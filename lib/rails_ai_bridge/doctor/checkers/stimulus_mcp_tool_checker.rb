@@ -3,7 +3,9 @@
 module RailsAiBridge
   class Doctor
     module Checkers
+      # Ensures +rails_get_stimulus+ is registered when Stimulus files and introspection matter.
       class StimulusMcpToolChecker < BaseChecker
+        # @return [Doctor::Check] +:pass+, +:warn+, or +:fail+ depending on Stimulus files and tool registration
         def call
           return new_check(name: "Stimulus MCP tool", status: :pass, message: "No Stimulus controllers detected; stimulus MCP tool not required", fix: nil) unless stimulus_files_present?
 

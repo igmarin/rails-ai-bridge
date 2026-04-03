@@ -3,7 +3,9 @@
 module RailsAiBridge
   class Doctor
     module Checkers
+      # Verifies the MCP server can be built for this application.
       class McpBuildableChecker < BaseChecker
+        # @return [Doctor::Check] +:pass+ on successful build; +:fail+ if build raises
         def call
           Server.new(app).build
           new_check(name: "MCP server", status: :pass, message: "MCP server builds successfully", fix: nil)

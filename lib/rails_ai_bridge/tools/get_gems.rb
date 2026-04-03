@@ -2,6 +2,7 @@
 
 module RailsAiBridge
   module Tools
+    # MCP tool summarizing +Gemfile.lock+ and notable gems by category.
     class GetGems < BaseTool
       tool_name "rails_get_gems"
       description "Analyze the app's Gemfile.lock to identify notable gems, their categories (auth, jobs, frontend, API, database, testing, deploy), and what they mean for the app's architecture."
@@ -18,6 +19,9 @@ module RailsAiBridge
 
       annotations(read_only_hint: true, destructive_hint: false, idempotent_hint: true, open_world_hint: false)
 
+      # @param category [String] filter: +auth+, +jobs+, +frontend+, +api+, +database+, +files+, +testing+, +deploy+, or +all+
+      # @param server_context [Object, nil] reserved for MCP transport metadata
+      # @return [MCP::Tool::Response] markdown gem analysis or an error message
       def self.call(category: "all", server_context: nil)
         gems = cached_section(:gems)
         return text_response("Gem introspection not available. Add :gems to introspectors.") unless gems
@@ -28,6 +32,7 @@ module RailsAiBridge
       end
 
       # @private
+      # Formats +:gems+ introspection data as markdown for {GetGems}.
       class ResponseFormatter
         def initialize(gems_data, category:)
           @gems_data = gems_data

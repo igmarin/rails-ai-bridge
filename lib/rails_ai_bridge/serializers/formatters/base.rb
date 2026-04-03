@@ -3,11 +3,13 @@
 module RailsAiBridge
   module Serializers
     module Formatters
-      # Base class for all MarkdownSerializer section formatters.
+      # Base class for all MarkdownSerializer section and provider formatters.
       # Subclasses implement {#call} to return a markdown string or nil.
       class Base
         attr_reader :context
 
+        # @param context [Hash] introspection payload (symbol keys) passed from serializers
+        # @return [void]
         def initialize(context)
           @context = context
         end

@@ -4,6 +4,8 @@ module RailsAiBridge
   # Diagnostic checker that validates the environment and reports
   # AI readiness with pass/warn/fail checks and a readiness score.
   class Doctor
+    # Maps stable check identifiers to checker classes. Each value must implement
+    # +.call+ on an instance and return a {Doctor::Check}.
     CHECKS = {
       check_schema: Checkers::SchemaChecker,
       check_models: Checkers::ModelsChecker,
@@ -41,6 +43,10 @@ module RailsAiBridge
 
     private
 
+    # Weighted score: +:pass+ 10, +:warn+ 5, other 0; scaled to 0–100.
+    #
+    # @param results [Array<Doctor::Check>]
+    # @return [Integer] readiness percentage (rounded)
     def compute_score(results)
       total = results.size * 10
       earned = results.sum do |check|

@@ -4,14 +4,16 @@ require "open3"
 
 module RailsAiBridge
   module Tools
+    # MCP tool searching the app tree with ripgrep (+rg+) or a Ruby fallback.
     class SearchCode < BaseTool
       tool_name "rails_search_code"
       description "Search the Rails codebase for a pattern using ripgrep (rg) or Ruby fallback. Returns matching lines with file paths and line numbers. Useful for finding usages, implementations, and patterns."
 
+      # Hard upper bound for +max_results+ regardless of client input.
       MAX_RESULTS_CAP = 100
 
-      # Default extensions for +file_type+ and for unrestricted search (no +file_type+).
-      # Extend with +config.search_code_allowed_file_types+.
+      # Default extensions when no +file_type+ is given, merged with
+      # {RailsAiBridge::Configuration#search_code_allowed_file_types}.
       DEFAULT_ALLOWED_FILE_TYPES = %w[rb erb js ts jsx tsx yml yaml json].freeze
 
       input_schema(
@@ -38,6 +40,12 @@ module RailsAiBridge
 
       annotations(read_only_hint: true, destructive_hint: false, idempotent_hint: true, open_world_hint: false)
 
+      # @param pattern [String] regex-capable search pattern (required)
+      # @param path [String, nil] subdirectory under +Rails.root+ to scope the search
+      # @param file_type [String, nil] extension filter (must be allowlisted)
+      # @param max_results [Integer] capped at {MAX_RESULTS_CAP}
+      # @param server_context [Object, nil] reserved for MCP transport metadata
+      # @return [MCP::Tool::Response] search hits as markdown or a validation error response
       def self.call(pattern:, path: nil, file_type: nil, max_results: 30, server_context: nil)
         root = Rails.root.to_s
 

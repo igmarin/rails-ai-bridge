@@ -2,6 +2,7 @@
 
 module RailsAiBridge
   module Tools
+    # MCP tool listing routes with optional controller filter, detail level, and pagination.
     class GetRoutes < BaseTool
       tool_name "rails_get_routes"
       description "Get all routes for the Rails app, optionally filtered by controller. Shows HTTP verb, path, controller#action, and route name. Supports detail levels and pagination."
@@ -30,6 +31,12 @@ module RailsAiBridge
 
       annotations(read_only_hint: true, destructive_hint: false, idempotent_hint: true, open_world_hint: false)
 
+      # @param controller [String, nil] filter by controller path/name
+      # @param detail [String] +summary+, +standard+, or +full+
+      # @param limit [Integer, nil] max routes to include
+      # @param offset [Integer] pagination offset
+      # @param server_context [Object, nil] reserved for MCP transport metadata
+      # @return [MCP::Tool::Response] markdown routes output or an error message
       def self.call(controller: nil, detail: "standard", limit: nil, offset: 0, server_context: nil)
         routes = cached_section(:routes)
         return text_response("Route introspection not available. Add :routes to introspectors.") unless routes
@@ -42,6 +49,7 @@ module RailsAiBridge
       end
 
       # @private
+      # Formats +:routes+ introspection for {GetRoutes}.
       class ResponseFormatter
         def initialize(routes, controller:, detail:, limit:, offset:)
           @routes = routes

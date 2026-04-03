@@ -3,7 +3,9 @@
 module RailsAiBridge
   class Doctor
     module Checkers
+      # Verifies +Gemfile.lock+ is present for dependency introspection.
       class GemsChecker < BaseChecker
+        # @return [Doctor::Check] +:pass+ when lockfile exists; +:warn+ otherwise
         def call
           lock_path = File.join(app.root, "Gemfile.lock")
           check(

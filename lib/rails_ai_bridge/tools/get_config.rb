@@ -2,6 +2,7 @@
 
 module RailsAiBridge
   module Tools
+    # MCP tool exposing application configuration (cache, session, timezone, middleware, initializers).
     class GetConfig < BaseTool
       tool_name "rails_get_config"
       description "Get Rails application configuration including cache store, session store, timezone, middleware stack, and initializers."
@@ -10,6 +11,8 @@ module RailsAiBridge
 
       annotations(read_only_hint: true, destructive_hint: false, idempotent_hint: true, open_world_hint: false)
 
+      # @param server_context [Object, nil] reserved for MCP transport metadata
+      # @return [MCP::Tool::Response] markdown configuration summary or an error message
       def self.call(server_context: nil)
         data = cached_section(:config)
         return text_response("Config introspection not available. Add :config to introspectors or use `config.preset = :full`.") unless data
@@ -20,6 +23,7 @@ module RailsAiBridge
       end
 
       # @private
+      # Formats +:config+ introspection hash as markdown for {GetConfig}.
       class ResponseFormatter
         def initialize(config_data)
           @config_data = config_data

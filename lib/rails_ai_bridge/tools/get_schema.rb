@@ -2,6 +2,7 @@
 
 module RailsAiBridge
   module Tools
+    # MCP tool returning database schema tables, columns, indexes, and foreign keys.
     class GetSchema < BaseTool
       tool_name "rails_get_schema"
       description "Get the database schema for the Rails app including tables, columns, indexes, and foreign keys. Optionally filter by table name. Supports detail levels and pagination for large schemas."
@@ -40,6 +41,13 @@ module RailsAiBridge
         open_world_hint: false
       )
 
+      # @param table [String, nil] when set, return full detail for that table only
+      # @param detail [String] +summary+, +standard+, or +full+
+      # @param limit [Integer, nil] max tables (or rows) depending on formatter defaults
+      # @param offset [Integer] pagination offset for table listings
+      # @param format [String] +markdown+ or +json+
+      # @param server_context [Object, nil] reserved for MCP transport metadata
+      # @return [MCP::Tool::Response] schema markdown/JSON or an error message
       def self.call(table: nil, detail: "standard", limit: nil, offset: 0, format: "markdown", server_context: nil)
         schema = cached_section(:schema)
         return text_response("Schema introspection not available. Add :schema to introspectors.") unless schema
@@ -52,6 +60,7 @@ module RailsAiBridge
       end
 
       # @private
+      # Delegates to schema formatters for table-specific or listing output.
       class ResponseFormatter
         def initialize(schema, table:, detail:, limit:, offset:, format:)
           @schema = schema

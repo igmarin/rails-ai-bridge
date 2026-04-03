@@ -3,7 +3,9 @@
 module RailsAiBridge
   class Doctor
     module Checkers
+      # Verifies +app/views+ contains template files.
       class ViewsChecker < BaseChecker
+        # @return [Doctor::Check] +:pass+ when view files exist; +:warn+ otherwise
         def call
           views_path = File.join(app.root, "app/views", "**/*")
           views = Dir.glob(views_path).reject { |f| File.directory?(f) }

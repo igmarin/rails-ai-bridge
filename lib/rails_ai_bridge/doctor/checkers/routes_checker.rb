@@ -3,7 +3,9 @@
 module RailsAiBridge
   class Doctor
     module Checkers
+      # Verifies +config/routes.rb+ exists.
       class RoutesChecker < BaseChecker
+        # @return [Doctor::Check] +:pass+ when routes file exists; +:fail+ otherwise
         def call
           routes_path = File.join(app.root, "config/routes.rb")
           check(

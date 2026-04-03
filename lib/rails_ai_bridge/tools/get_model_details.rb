@@ -2,6 +2,7 @@
 
 module RailsAiBridge
   module Tools
+    # MCP tool returning ActiveRecord model metadata or a listing with configurable detail.
     class GetModelDetails < BaseTool
       tool_name "rails_get_model_details"
       description "Get detailed information about a specific ActiveRecord model including associations, validations, scopes, enums, callbacks, and concerns. If no model specified, lists all available models with configurable detail level."
@@ -22,6 +23,10 @@ module RailsAiBridge
 
       annotations(read_only_hint: true, destructive_hint: false, idempotent_hint: true, open_world_hint: false)
 
+      # @param model [String, nil] ActiveRecord class name for full detail; omit to list models
+      # @param detail [String] +summary+, +standard+, or +full+ when listing
+      # @param server_context [Object, nil] reserved for MCP transport metadata
+      # @return [MCP::Tool::Response] markdown model output or an error message
       def self.call(model: nil, detail: "standard", server_context: nil)
         models = cached_section(:models)
         return text_response("Model introspection not available. Add :models to introspectors.") unless models
@@ -35,6 +40,7 @@ module RailsAiBridge
       end
 
       # @private
+      # Formats +:models+ introspection for {GetModelDetails}.
       class ResponseFormatter
         def initialize(models, model:, detail:)
           @models = models

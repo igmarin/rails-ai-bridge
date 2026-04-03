@@ -3,7 +3,9 @@
 module RailsAiBridge
   class Doctor
     module Checkers
+      # Verifies bridge-generated context files (e.g. +CLAUDE.md+) exist.
       class ContextFilesChecker < BaseChecker
+        # @return [Doctor::Check] +:pass+ when +CLAUDE.md+ exists; +:warn+ otherwise
         def call
           claude_path = File.join(app.root, "CLAUDE.md")
           check(

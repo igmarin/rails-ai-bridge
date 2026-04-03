@@ -2,10 +2,12 @@
 
 module RailsAiBridge
   module Tools
+    # Markdown formatters for {Tools::GetModelDetails}.
     module ModelDetails
       # Renders a bare list of model names with a total count.
       class SummaryFormatter
-        # @param models [Hash] models hash keyed by class name
+        # @param models [Hash{String => Hash}] model name => introspection payload
+        # @return [void]
         def initialize(models:)
           @models = models
         end

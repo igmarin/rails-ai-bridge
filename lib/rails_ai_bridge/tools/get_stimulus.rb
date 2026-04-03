@@ -42,6 +42,7 @@ module RailsAiBridge
       end
 
       # @private
+      # Formats Stimulus controller metadata for {GetStimulus}.
       class ResponseFormatter
         def initialize(controllers, controller:, detail:)
           @controllers = controllers
@@ -88,8 +89,7 @@ module RailsAiBridge
           @controllers.sort_by { |entry| entry[:name].to_s }.each do |entry|
             lines << "- **#{entry[:name]}** — #{Array(entry[:targets]).size} targets, #{Array(entry[:actions]).size} actions"
           end
-          lines.join("
-")
+          lines.join("\n")
         end
 
         def format_standard
@@ -101,8 +101,7 @@ module RailsAiBridge
             lines << "- Values: #{entry[:values].keys.join(', ')}" if entry[:values].is_a?(Hash) && entry[:values].any?
             lines << ""
           end
-          lines.join("
-")
+          lines.join("\n")
         end
 
         def format_full
@@ -119,8 +118,7 @@ module RailsAiBridge
             lines << "- Classes: #{Array(entry[:classes]).join(', ')}" if Array(entry[:classes]).any?
             lines << ""
           end
-          lines.join("
-")
+          lines.join("\n")
         end
 
         def format_controller(entry)
@@ -154,8 +152,7 @@ module RailsAiBridge
             Array(entry[:classes]).each { |klass| lines << "- `#{klass}`" }
           end
 
-          lines.join("
-")
+          lines.join("\n")
         end
       end
     end
