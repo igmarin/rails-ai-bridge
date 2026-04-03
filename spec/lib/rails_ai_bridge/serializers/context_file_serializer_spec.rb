@@ -89,6 +89,15 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
       end
     end
 
+    it "generates GEMINI.md when writing gemini format" do
+      Dir.mktmpdir do |dir|
+        allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
+        serializer = described_class.new(context, format: :gemini)
+        result = serializer.call
+        expect(result[:written].any? { |f| f.end_with?("GEMINI.md") }).to be true
+      end
+    end
+
     it "dispatches cursor format to RulesSerializer" do
       Dir.mktmpdir do |dir|
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)

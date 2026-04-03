@@ -9,6 +9,7 @@ ASSISTANT_TABLE = <<~TABLE
   Windsurf           .windsurfrules + .windsurf/rules/     rails ai:bridge:windsurf
   GitHub Copilot     .github/copilot-instructions.md       rails ai:bridge:copilot
   JSON (generic)     .ai-context.json                      rails ai:bridge:json
+  Gemini             GEMINI.md                             rails ai:bridge:gemini
 TABLE
 
 def print_result(result)
@@ -61,7 +62,7 @@ namespace :ai do
 
   namespace :bridge do
     { claude: "CLAUDE.md", codex: "AGENTS.md", cursor: ".cursorrules", windsurf: ".windsurfrules",
-      copilot: ".github/copilot-instructions.md", json: ".ai-context.json" }.each do |fmt, file|
+      copilot: ".github/copilot-instructions.md", json: ".ai-context.json", gemini: "GEMINI.md" }.each do |fmt, file|
       desc "Generate #{file} bridge file"
       task fmt => :environment do
         require "rails_ai_bridge"

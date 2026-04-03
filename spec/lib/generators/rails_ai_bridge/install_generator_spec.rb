@@ -53,6 +53,19 @@ RSpec.describe RailsAiBridge::Generators::InstallGenerator do
     end
   end
 
+  describe "#show_instructions" do
+    it "includes gemini instructions" do
+      original_stdout = $stdout
+      $stdout = StringIO.new
+      generator.show_instructions
+      output = $stdout.string
+      $stdout = original_stdout
+
+      expect(output).to include("rails ai:bridge:gemini")
+      expect(output).to include("Gemini         → GEMINI.md")
+    end
+  end
+
   describe "#generate_context_files" do
     it "reports written and skipped files separately" do
       allow(RailsAiBridge).to receive(:generate_context).and_return({

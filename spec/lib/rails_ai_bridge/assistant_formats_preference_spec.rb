@@ -111,8 +111,8 @@ RSpec.describe RailsAiBridge::AssistantFormatsPreference do
   end
 
   describe "FORMAT_KEYS" do
-    it "includes all six supported formats" do
-      expect(described_class::FORMAT_KEYS).to contain_exactly(:claude, :codex, :cursor, :windsurf, :copilot, :json)
+    it "includes all seven supported formats" do
+      expect(described_class::FORMAT_KEYS).to contain_exactly(:claude, :codex, :cursor, :windsurf, :copilot, :json, :gemini)
     end
   end
 end

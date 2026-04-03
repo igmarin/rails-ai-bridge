@@ -14,7 +14,8 @@ module RailsAiBridge
         cursor:    ".cursorrules",
         windsurf:  ".windsurfrules",
         copilot:   ".github/copilot-instructions.md",
-        json:      ".ai-context.json"
+        json:      ".ai-context.json",
+        gemini:    "GEMINI.md"
       }.freeze
 
       def initialize(context, format: :all)
@@ -67,6 +68,7 @@ module RailsAiBridge
         when :codex    then Providers::CodexSerializer.new(context).call
         when :cursor   then Providers::RulesSerializer.new(context).call
         when :windsurf then Providers::WindsurfSerializer.new(context).call
+        when :gemini   then Providers::GeminiSerializer.new(context).call
         when :copilot  then Providers::CopilotSerializer.new(context).call
         else MarkdownSerializer.new(context).call
         end
