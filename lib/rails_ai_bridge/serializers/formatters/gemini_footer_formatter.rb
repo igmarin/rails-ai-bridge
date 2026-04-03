@@ -27,7 +27,6 @@ module RailsAiBridge
           lines << "_This context file is auto-generated. Run `rails ai:bridge` to regenerate._"
           lines.join("\n")
         end
-        end
       end
     end
   end
