@@ -10,129 +10,110 @@ module RailsAiBridge
       # via constructor arguments.
       #
       # @since 0.8.0
-      class CodexSerializer
-      attr_reader :context
-
-      # @param context [Hash] Introspection hash from {Introspector#call} (e.g. +:app_name+, +:schema+, +:models+).
-      def initialize(context, config: RailsAiBridge.configuration)
-        @context = context
-        @config = config
-      end
-
-      # @return [String] Markdown written to +AGENTS.md+ by {ContextFileSerializer}.
-      def call
-        if @config.context_mode == :full
-          MarkdownSerializer.new(context,
-            header_class: Formatters::CodexHeaderFormatter,
-            footer_class: Formatters::CodexFooterFormatter
-          ).call
-        else
-          render_compact
-        end
-      end
-
-      private
-
-      def render_compact
-        lines = []
-        lines << "# AGENTS.md"
-        lines << ""
-        lines << "Codex reads this file before starting work in this repository."
-        lines << ""
-        lines.concat(SharedAssistantGuidance.compact_engineering_rules_lines)
-
-        lines << "## Project overview"
-        lines << "- App: #{context[:app_name]}"
-        lines << "- Stack: Rails #{context[:rails_version]} | Ruby #{context[:ruby_version]}"
-
-        schema = context[:schema]
-        if schema && !schema[:error]
-          lines << "- Database: #{schema[:adapter]} (#{schema[:total_tables]} tables)"
+      class CodexSerializer < BaseProviderSerializer
+        # @param context [Hash] Introspection hash from {Introspector#call} (e.g. +:app_name+, +:schema+, +:models+).
+        # @param config [RailsAiBridge::Configuration] Bridge configuration (+context_mode+, limits, etc.).
+        def initialize(context, config: RailsAiBridge.configuration)
+          super(context, config: config)
         end
 
-        models = context[:models]
-        if models.is_a?(Hash) && !models[:error]
-          lines << "- Models: #{models.size}"
-        end
-
-        line = ContextSummary.routes_stack_line(context)
-        lines << line if line
-
-        lines << ""
-        lines << "## Working agreements"
-        lines << "- Prefer the MCP tools over guessing the Rails structure."
-        lines << "- Start with `detail:\"summary\"`, then drill into specifics."
-        lines << "- Run `#{ContextSummary.test_command(context)}` after behavior changes."
-        lines << "- Run `bundle exec rubocop --parallel` before finishing substantial code changes."
-        lines << ""
-        lines.concat(SharedAssistantGuidance.repo_specific_guidance_section_lines)
-
-        SharedAssistantGuidance.performance_security_and_rails_examples_lines.each { |l| lines << l }
-        lines << ""
-
-        append_compact_codex_models_section(lines, models)
-
-        conv = context[:conventions]
-        if conv.is_a?(Hash) && !conv[:error]
-          architecture = conv[:architecture] || []
-          patterns = conv[:patterns] || []
-
-          if architecture.any? || patterns.any?
-            lines << "## Architecture hints"
-            architecture.first(5).each { |item| lines << "- #{item}" }
-            patterns.first(5).each { |item| lines << "- #{item}" }
-            lines << ""
+        # @return [String] Markdown written to `AGENTS.md` by {ContextFileSerializer}.
+        def call
+          if @config.context_mode == :full
+            MarkdownSerializer.new(context,
+              header_class: Formatters::CodexHeaderFormatter,
+              footer_class: Formatters::CodexFooterFormatter
+            ).call
+          else
+            render_compact
           end
         end
 
-        lines << "## MCP tool reference"
-        lines << "- `rails_get_schema(detail:\"summary\")` to inspect tables first."
-        lines << "- `rails_get_model_details(model:\"User\")` for model-level detail."
-        lines << "- `rails_get_routes(detail:\"summary\")` before editing controllers or endpoints."
-        lines << "- `rails_get_controllers(controller:\"UsersController\")` for filters and params."
-        lines << "- `rails_get_config` and `rails_get_conventions` for stack decisions."
-        lines << "- `rails_search_code(pattern:\"regex\", file_type:\"rb\", max_results:20)` for targeted searches."
-        lines << ""
-        lines << "## Codex notes"
-        lines << "- This repository also includes `.mcp.json` for MCP client setup."
-        lines << "- See `.codex/README.md` for optional local Codex setup guidance."
-        lines << ""
+        private
 
-        lines.join("\n")
-      end
-
-      def append_compact_codex_models_section(lines, models)
-        lines << "## Key models"
-        unless models.is_a?(Hash) && !models[:error] && models.any?
-          lines << "- Use `rails_get_model_details(detail:\"summary\")` to discover models."
+        # Renders the compact version of the Codex context file.
+        #
+        # @return [String] The generated content.
+        def render_compact
+          lines = []
+          # Start with a Codex-specific header, then common overview
+          lines.concat(render_header)
           lines << ""
-          return
+          lines << "Codex reads AGENTS.md before starting work in this repository."
+          lines << ""
+          lines.concat(SharedAssistantGuidance.compact_engineering_rules_lines)
+
+          # Use shared stack overview
+          lines.concat(render_stack_overview)
+
+          lines << "## Working agreements"
+          lines << "- Prefer the MCP tools over guessing the Rails structure."
+          lines << '- Start with `detail:"summary"`, then drill into specifics.'
+          lines << "- Run `#{ContextSummary.test_command(context)}` after behavior changes."
+          lines << "- Run `bundle exec rubocop --parallel` before finishing substantial code changes."
+          lines << ""
+          lines.concat(SharedAssistantGuidance.repo_specific_guidance_section_lines)
+
+          SharedAssistantGuidance.performance_security_and_rails_examples_lines.each { |l| lines << l }
+          lines << ""
+
+          append_compact_codex_models_section(lines, context[:models])
+
+          # Use shared architecture rendering
+          lines.concat(render_architecture)
+
+          lines << "## MCP tool reference"
+          lines << '- `rails_get_schema(detail:"summary")` to inspect tables first.'
+          lines << '- `rails_get_model_details(model:"User")` for model-level detail.'
+          lines << '- `rails_get_routes(detail:"summary")` before editing controllers or endpoints.'
+          lines << '- `rails_get_controllers(controller:"UsersController")` for filters and params.'
+          lines << "- `rails_get_config` and `rails_get_conventions` for stack decisions."
+          lines << '- `rails_search_code(pattern:"regex", file_type:"rb", max_results:20)` for targeted searches.'
+          lines << ""
+          lines << "## Codex notes"
+          lines << "- This repository also includes `.mcp.json` for MCP client setup."
+          lines << "- See `.codex/README.md` for optional local Codex setup guidance."
+          lines << ""
+
+          lines.join("\n")
         end
 
-        schema_tables = context.dig(:schema, :tables) || {}
-        migrations    = context[:migrations]
-        limit = @config.codex_compact_model_list_limit.to_i
-
-        if limit <= 0
-          lines << "- _Use `rails_get_model_details(detail:\"summary\")` for names — not listed here to save context._"
-        else
-          models.sort_by { |_n, d| -ContextSummary.model_complexity_score(d) }.first(limit).each do |name, data|
-            assocs     = (data[:associations] || []).first(2).map { |a| "#{a[:type]} :#{a[:name]}" }.join(", ")
-            table_name = data[:table_name]
-            line = "- #{name}"
-            line += " — #{assocs}" unless assocs.empty?
-
-            cols = ContextSummary.top_columns(schema_tables[table_name])
-            line += " [cols: #{cols.map { |c| "#{c[:name]}:#{c[:type]}" }.join(', ')}]" if cols.any?
-
-            line += " [recently migrated]" if table_name && ContextSummary.recently_migrated?(table_name, migrations)
-            lines << line
+        # Appends a compact list of key models specific to Codex.
+        #
+        # @param lines [Array<String>] The array of lines to append to.
+        # @param models [Hash] The models context.
+        def append_compact_codex_models_section(lines, models)
+          lines << "## Key models"
+          unless models.is_a?(Hash) && !models[:error] && models.any?
+            lines << '- Use `rails_get_model_details(detail:"summary")` to discover models.'
+            lines << ""
+            return
           end
-          remainder = models.size - limit
-          lines << "- ...#{remainder} more — `rails_get_model_details(detail:\"summary\")`." if remainder.positive?
+
+          schema_tables = context.dig(:schema, :tables) || {}
+          migrations    = context[:migrations]
+          limit = @config.codex_compact_model_list_limit.to_i
+
+          if limit <= 0
+            lines << '- _Use `rails_get_model_details(detail:"summary")` for names — not listed here to save context._'
+          else
+            models.sort_by { |_n, d| -ContextSummary.model_complexity_score(d) }.first(limit).each do |name, data|
+              assocs     = (data[:associations] || []).first(2).map { |a| "#{a[:type]} :#{a[:name]}" }.join(", ")
+              table_name = data[:table_name]
+              line = "- #{name}"
+              line += " — #{assocs}" unless assocs.empty?
+
+              cols = ContextSummary.top_columns(schema_tables[table_name])
+              line += " [cols: #{cols.map { |c| "#{c[:name]}:#{c[:type]}" }.join(', ')}]" if cols.any?
+
+              line += " [recently migrated]" if table_name && ContextSummary.recently_migrated?(table_name, migrations)
+              lines << line
+            end
+            remainder = models.size - limit
+            lines << "- ...#{remainder} more — `rails_get_model_details(detail:\"summary\")`." if remainder.positive?
+          end
+          lines << ""
         end
-        lines << ""
-      end
       end
     end
   end
