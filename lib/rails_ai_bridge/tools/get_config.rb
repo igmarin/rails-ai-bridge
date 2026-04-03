@@ -15,27 +15,39 @@ module RailsAiBridge
         return text_response("Config introspection not available. Add :config to introspectors or use `config.preset = :full`.") unless data
         return text_response("Config introspection failed: #{data[:error]}") if data[:error]
 
-        lines = [ "# Application Configuration", "" ]
-        lines << "- **Cache store:** #{data[:cache_store]}" if data[:cache_store]
-        lines << "- **Session store:** #{data[:session_store]}" if data[:session_store]
-        lines << "- **Timezone:** #{data[:timezone]}" if data[:timezone]
+        formatter = ResponseFormatter.new(data)
+        text_response(formatter.format)
+      end
 
-        if data[:middleware_stack]&.any?
-          lines << "" << "## Middleware Stack"
-          data[:middleware_stack].each { |m| lines << "- #{m}" }
+      # @private
+      class ResponseFormatter
+        def initialize(config_data)
+          @config_data = config_data
         end
 
-        if data[:initializers]&.any?
-          lines << "" << "## Initializers"
-          data[:initializers].each { |i| lines << "- `#{i}`" }
-        end
+        def format
+          lines = [ "# Application Configuration", "" ]
+          lines << "- **Cache store:** #{@config_data[:cache_store]}" if @config_data[:cache_store]
+          lines << "- **Session store:** #{@config_data[:session_store]}" if @config_data[:session_store]
+          lines << "- **Timezone:** #{@config_data[:timezone]}" if @config_data[:timezone]
 
-        if data[:current_attributes]&.any?
-          lines << "" << "## CurrentAttributes"
-          data[:current_attributes].each { |c| lines << "- `#{c}`" }
-        end
+          if @config_data[:middleware_stack]&.any?
+            lines << "" << "## Middleware Stack"
+            @config_data[:middleware_stack].each { |m| lines << "- #{m}" }
+          end
 
-        text_response(lines.join("\n"))
+          if @config_data[:initializers]&.any?
+            lines << "" << "## Initializers"
+            @config_data[:initializers].each { |i| lines << "- `#{i}`" }
+          end
+
+          if @config_data[:current_attributes]&.any?
+            lines << "" << "## CurrentAttributes"
+            @config_data[:current_attributes].each { |c| lines << "- `#{c}`" }
+          end
+
+          lines.join("\n")
+        end
       end
     end
   end

@@ -15,20 +15,38 @@ module RailsAiBridge
         return text_response("Test introspection not available. Add :tests to introspectors.") unless data
         return text_response("Test introspection failed: #{data[:error]}") if data[:error]
 
-        lines = [ "# Test Infrastructure", "" ]
-        lines << "- **Framework:** #{data[:framework]}"
-        lines << "- **Factories:** #{data[:factories][:location]} (#{data[:factories][:count]} files)" if data[:factories]
-        lines << "- **Fixtures:** #{data[:fixtures][:location]} (#{data[:fixtures][:count]} files)" if data[:fixtures]
-        lines << "- **System tests:** #{data[:system_tests][:location]}" if data[:system_tests]
-        lines << "- **CI:** #{data[:ci_config].join(', ')}" if data[:ci_config]&.any?
-        lines << "- **Coverage:** #{data[:coverage]}" if data[:coverage]
+        formatted_text = ResponseFormatter.new(data).format
+        text_response(formatted_text)
+      end
 
-        if data[:test_helpers]&.any?
-          lines << "" << "## Test Helpers"
-          data[:test_helpers].each { |h| lines << "- `#{h}`" }
+      # @private
+      class ResponseFormatter
+        def initialize(data)
+          @data = data
         end
 
-        text_response(lines.join("\n"))
+        def format
+          lines = [ "# Test Infrastructure", "" ]
+          lines << "- **Framework:** #{@data[:framework]}"
+          lines << "- **Factories:** #{@data[:factories][:location]} (#{@data[:factories][:count]} files)" if @data[:factories]
+          lines << "- **Fixtures:** #{@data[:fixtures][:location]} (#{@data[:fixtures][:count]} files)" if @data[:fixtures]
+          lines << "- **System tests:** #{@data[:system_tests][:location]}" if @data[:system_tests]
+          lines << "- **CI:** #{@data[:ci_config].join(', ')}" if @data[:ci_config]&.any?
+          lines << "- **Coverage:** #{@data[:coverage]}" if @data[:coverage]
+
+          format_helpers(lines)
+
+          lines.join("\n")
+        end
+
+        private
+
+        def format_helpers(lines)
+          return unless @data[:test_helpers]&.any?
+
+          lines << "" << "## Test Helpers"
+          @data[:test_helpers].each { |h| lines << "- `#{h}`" }
+        end
       end
     end
   end

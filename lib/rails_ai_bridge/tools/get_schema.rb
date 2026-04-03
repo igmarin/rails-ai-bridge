@@ -45,27 +45,61 @@ module RailsAiBridge
         return text_response("Schema introspection not available. Add :schema to introspectors.") unless schema
         return text_response("Schema introspection not available: #{schema[:error]}") if schema[:error]
 
-        tables = schema[:tables] || {}
+        formatter = ResponseFormatter.new(schema, table: table, detail: detail, limit: limit, offset: offset, format: format)
+        return text_response(formatter.table_not_found_message) if formatter.table_not_found?
 
-        if table
-          table_data = tables[table]
-          return text_response("Table '#{table}' not found. Available: #{tables.keys.sort.join(', ')}") unless table_data
-          output = format == "json" ? table_data.to_json : Schema::TableFormatter.new(name: table, data: table_data).call
-          return text_response(output)
+        text_response(formatter.format)
+      end
+
+      # @private
+      class ResponseFormatter
+        def initialize(schema, table:, detail:, limit:, offset:, format:)
+          @schema = schema
+          @table = table
+          @detail = detail
+          @limit = limit
+          @offset = offset
+          @format = format
+          @tables = @schema[:tables] || {}
         end
 
-        return text_response(schema.to_json) if format == "json" && detail == "full"
-
-        total  = tables.size
-        offset = [ offset.to_i, 0 ].max
-
-        formatter_class, default_limit = case detail
-        when "summary" then [ Schema::SummaryFormatter, 50 ]
-        when "full"    then [ Schema::FullFormatter,     5 ]
-        else                [ Schema::StandardFormatter, 15 ]
+        def table_not_found?
+          @table && !@tables.key?(@table)
         end
 
-        text_response(formatter_class.new(tables: tables, total: total, limit: limit || default_limit, offset: offset).call)
+        def table_not_found_message
+          "Table '#{@table}' not found. Available: #{@tables.keys.sort.join(', ')}"
+        end
+
+        def format
+          if @table
+            format_single_table
+          elsif @format == "json" && @detail == "full"
+            @schema.to_json
+          else
+            format_all_tables
+          end
+        end
+
+        private
+
+        def format_single_table
+          table_data = @tables[@table]
+          @format == "json" ? table_data.to_json : Schema::TableFormatter.new(name: @table, data: table_data).call
+        end
+
+        def format_all_tables
+          total = @tables.size
+          offset = [ @offset.to_i, 0 ].max
+
+          formatter_class, default_limit = case @detail
+          when "summary" then [ Schema::SummaryFormatter, 50 ]
+          when "full"    then [ Schema::FullFormatter,     5 ]
+          else                [ Schema::StandardFormatter, 15 ]
+          end
+
+          formatter_class.new(tables: @tables, total: total, limit: @limit || default_limit, offset: offset).call
+        end
       end
     end
   end

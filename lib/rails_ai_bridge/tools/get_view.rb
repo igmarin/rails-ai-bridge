@@ -152,10 +152,12 @@ module RailsAiBridge
         lines << "- Shared partials: #{filtered[:shared_partials].size}"
         lines << ""
 
-        filtered[:templates].keys.sort.each do |name|
-          template_count = filtered[:templates][name].size
-          partial_count = filtered[:controller_partials].fetch(name, []).size
-          lines << "- **#{name}/** — #{template_count} templates, #{partial_count} partials"
+        unless partial.present? && controller.blank?
+          filtered[:templates].keys.sort.each do |name|
+            template_count = filtered[:templates][name].size
+            partial_count = filtered[:controller_partials].fetch(name, []).size
+            lines << "- **#{name}/** — #{template_count} templates, #{partial_count} partials"
+          end
         end
 
         lines.join("\n")
@@ -166,7 +168,7 @@ module RailsAiBridge
         lines << "- Layouts: #{filtered[:layouts].join(', ')}" if filtered[:layouts].any?
         lines << "- Template engines: #{filtered[:template_engines].join(', ')}" if filtered[:template_engines].any?
 
-        if filtered[:templates].any?
+        if filtered[:templates].any? && !(partial.present? && controller.blank?)
           lines << "" << "## Templates by controller"
           filtered[:templates].keys.sort.each do |name|
             lines << "- `#{name}/`: #{filtered[:templates][name].join(', ')}"
@@ -210,7 +212,7 @@ module RailsAiBridge
       private_class_method def self.format_specific_view(analysis)
         lines = [ "# View: #{analysis[:path]}", "" ]
         lines << "- Template engine: #{analysis[:template_engine]}" if analysis[:template_engine]
-        lines << "- Partial: yes" if analysis[:partial]
+        lines << "- Partial: #{analysis[:partial] ? 'yes' : 'no'}"
         lines << "- Renders: #{analysis[:renders].join(', ')}" if analysis[:renders].any?
         lines << "- Turbo frames: #{analysis[:turbo_frames].join(', ')}" if analysis[:turbo_frames].any?
         lines << "- Stimulus controllers: #{analysis[:stimulus_controllers].join(', ')}" if analysis[:stimulus_controllers].any?
