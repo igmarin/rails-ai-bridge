@@ -303,6 +303,8 @@ Codex support is centered on **`AGENTS.md`** at the repository root.
 
 ## Best Practices
 
+> See **[docs/BEST_PRACTICES.md](docs/BEST_PRACTICES.md)** for the full guide — including a client compatibility matrix, token optimization patterns, staleness management, and per-assistant workflow tips.
+
 After testing with Cursor, Windsurf, Copilot, Codex, and Claude Code in real projects, these patterns consistently produce the best results.
 
 ### Layer 1: Commit your static files
@@ -521,23 +523,32 @@ The gem parses `db/schema.rb` as text when no database is connected. Works in CI
 
 ---
 
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [docs/GUIDE.md](docs/GUIDE.md) | Full reference — every command, option, MCP parameter, and AI assistant setup |
+| [docs/BEST_PRACTICES.md](docs/BEST_PRACTICES.md) | Client compatibility matrix, token optimization, staleness management, per-assistant tips |
+| [UPGRADING.md](UPGRADING.md) | Migration guide when upgrading between major versions |
+| [CHANGELOG.md](CHANGELOG.md) | Full version history and release notes |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Dev setup, adding introspectors/tools, PR process, and release checklist |
+| [SECURITY.md](SECURITY.md) | Security policy, vulnerability reporting, and HTTP MCP auth guidance |
+| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Community standards |
+
+---
+
 ## Contributing
 
 ```bash
 git clone https://github.com/igmarin/rails-ai-bridge.git
 cd rails-ai-bridge && bundle install
-bundle exec rspec       # runs the full suite; SimpleCov runs locally by default
-bundle exec rubocop     # Lint
+bundle exec rspec       # runs the full suite (SimpleCov enforces ≥80% coverage)
+bundle exec rubocop     # lint
 ```
 
-### Test coverage (SimpleCov)
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide: adding introspectors, adding MCP tools, code style rules, PR process, and the maintainer release checklist.
 
-- Running `bundle exec rspec` locally enables **SimpleCov** and enforces **at least 80% line coverage** across `lib/**/*.rb` (see [`spec/simplecov_helper.rb`](spec/simplecov_helper.rb)).
-- After the run, open **`coverage/index.html`** in a browser for a per-file report (`coverage/` is gitignored).
-- CI runs coverage enforcement on **one matrix job** (Ruby **3.3** + Rails **8.0**) with `COVERAGE=true` and uploads the HTML report as a workflow artifact for inspection on PRs.
-- For a **prioritized backlog of files below 80%** (refreshed after substantive test work), see [`docs/COVERAGE.md`](docs/COVERAGE.md).
-
-Bug reports and pull requests for this fork are handled at [github.com/igmarin/rails-ai-bridge](https://github.com/igmarin/rails-ai-bridge).
+Bug reports and pull requests: [github.com/igmarin/rails-ai-bridge/issues](https://github.com/igmarin/rails-ai-bridge/issues)
 
 ## Acknowledgments & Origins
 
