@@ -11,11 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Gemini Support:** Added support for Google's Gemini AI assistant.
-- **New Rake Task:** Added `rails ai:bridge:gemini` to generate `GEMINI.md`.
-- **New Serializer:** Added `RailsAiBridge::Serializers::Providers::GeminiSerializer`.
-- **New Formatters:** Added `RailsAiBridge::Serializers::Formatters::GeminiHeaderFormatter` and `RailsAiBridge::Serializers::Formatters::GeminiFooterFormatter`.
-- **Generator Update:** The install generator now includes instructions for Gemini.
+- **Gemini Support:** Added support for Google's Gemini AI assistant via `GEMINI.md`.
+- **New Rake Task:** Added `rails ai:bridge:gemini` to generate Gemini-specific context.
+- **Context Harmonization:** Refactored all provider serializers (Claude, Gemini, Codex, Copilot, Cursor, Windsurf) to use a shared `BaseProviderSerializer`.
+- **Enhanced AI Guidance:** All context files now feature directive headers, complexity-sorted model lists, and explicit behavioral rules to improve AI code generation.
+- **Improved Metadata:** Context files now include descriptions for key config files and standard maintenance commands (e.g., `rubocop`).
+
+### Changed
+
+- **Internal Refactor:** Extracted common rendering logic into `RailsAiBridge::Serializers::Providers::BaseProviderSerializer` to ensure consistency and maintainability across all AI assistants.
 
 ## [2.0.0] - 2026-03-31
 

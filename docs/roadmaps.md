@@ -33,8 +33,18 @@ Entry point to see **which tracks exist** and **what is left**. Details live in 
 | `Mcp::Authenticator` consolidation | Done |
 | Provider serializers extracted to `Serializers::Providers::` | Done |
 | `SectionFormatter` template method base (DRY guard pattern) | Done |
-| Concrete tasks per assistant / format | **In progress** |
-| Major release (2.0.0) | **Deferred** until this track + communication plan |
+| Major release (2.0.0) | Done |
+
+---
+
+## v2.1.0 — Gemini & Harmonization
+
+| Area | Status |
+|------|--------|
+| Gemini Support (`GEMINI.md`, `GeminiSerializer`, Rake task) | Done |
+| Context Harmonization (Shared `BaseProviderSerializer`) | Done |
+| Enhanced directive guidance for all assistants | Done |
+| Release (2.1.0) | Done |
 
 ---
 

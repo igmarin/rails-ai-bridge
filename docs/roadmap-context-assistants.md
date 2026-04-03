@@ -8,13 +8,15 @@ This track is **separate** from [roadmap-mcp-v2.md](roadmap-mcp-v2.md) (MCP HTTP
 
 - Sharpen per-assistant formats (structure, length, cross-links) based on real usage feedback.
 - Reduce duplication and noise while keeping "always-on" rules discoverable.
-- Align tool references and workflow hints across Claude, Cursor, Copilot, Windsurf, Codex, etc.
+## Done
+
 - Separate LLM provider serializers from domain infrastructure (done: `Serializers::Providers::` namespace).
 - DRY the formatter hierarchy (done: `SectionFormatter` template method base).
+- Align tool references and workflow hints across Claude, Cursor, Copilot, Windsurf, Codex, and **Gemini** (v2.1.0).
+- Refactor provider serializers with a shared `BaseProviderSerializer` for consistent, high-fidelity output (v2.1.0).
 
 ## In progress
 
-- Refining per-provider serializer output (context quality improvements on `pr5-context-quality` branch)
 - Custom Rails directory introspection coverage gaps
 
 ## Relation to versioning
