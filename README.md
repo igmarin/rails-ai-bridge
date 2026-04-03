@@ -142,6 +142,9 @@ your-rails-app/
 │       ├── rails-controllers.instructions.md             applyTo: app/controllers/**
 │       └── rails-mcp-tools.instructions.md               applyTo: **/*
 │
+├── 🔴 Gemini
+│   └── GEMINI.md                                         directive briefing + MCP guide
+│
 ├── 📋 .ai-context.json                                   full JSON (programmatic)
 └── .mcp.json                                             MCP auto-discovery
 ```
