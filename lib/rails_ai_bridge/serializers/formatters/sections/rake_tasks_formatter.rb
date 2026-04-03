@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders the Rake Tasks section.
       #
       # @see Formatters::Providers::SectionFormatter
-      class RakeTasksFormatter < Formatters::Providers::SectionFormatter
+      class RakeTasksFormatter < SectionFormatter
         section :rake_tasks
 
         private

@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders the Routes section grouped by controller.
       #
       # @see Formatters::Providers::SectionFormatter
-      class RoutesFormatter < Formatters::Providers::SectionFormatter
+      class RoutesFormatter < SectionFormatter
         section :routes
 
         private

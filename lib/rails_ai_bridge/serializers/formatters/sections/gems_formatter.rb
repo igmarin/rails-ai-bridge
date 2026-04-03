@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders the Gems section.
       #
       # @see Formatters::Providers::SectionFormatter
-      class GemsFormatter < Formatters::Providers::SectionFormatter
+      class GemsFormatter < SectionFormatter
         section :gems
 
         private

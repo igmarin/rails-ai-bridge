@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders the Action Text section with RichText models.
       #
       # @see Formatters::Providers::SectionFormatter
-      class ActionTextFormatter < Formatters::Providers::SectionFormatter
+      class ActionTextFormatter < SectionFormatter
         section :action_text
 
         private

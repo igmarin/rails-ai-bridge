@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders the Rails Engines section.
       #
       # @see Formatters::Providers::SectionFormatter
-      class EnginesFormatter < Formatters::Providers::SectionFormatter
+      class EnginesFormatter < SectionFormatter
         section :engines
 
         private

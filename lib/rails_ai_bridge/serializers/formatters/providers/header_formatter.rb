@@ -4,7 +4,7 @@ module RailsAiBridge
   module Serializers
     module Formatters::Providers
       # Renders the document header with app name, version, and generator metadata.
-      class HeaderFormatter < Formatters::Base
+      class HeaderFormatter < Base
         # @return [String]
         def call
           <<~MD

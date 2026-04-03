@@ -4,7 +4,7 @@ module RailsAiBridge
   module Serializers
     module Formatters::Providers
       # Renders the Copilot Instructions document header.
-      class CopilotHeaderFormatter < Formatters::Base
+      class CopilotHeaderFormatter < Base
         # @return [String]
         def call
           <<~MD

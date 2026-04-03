@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders the Asset Pipeline section.
       #
       # @see Formatters::Providers::SectionFormatter
-      class AssetsFormatter < Formatters::Providers::SectionFormatter
+      class AssetsFormatter < SectionFormatter
         section :assets
 
         private

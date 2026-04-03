@@ -4,7 +4,7 @@ module RailsAiBridge
   module Serializers
     module Formatters::Providers
       # Renders the Claude Code-specific document header.
-      class ClaudeHeaderFormatter < Formatters::Base
+      class ClaudeHeaderFormatter < Base
         # @return [String]
         def call
           <<~MD

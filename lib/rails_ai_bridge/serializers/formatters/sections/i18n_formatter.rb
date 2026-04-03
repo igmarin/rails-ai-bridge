@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders the Internationalization (I18n) section.
       #
       # @see Formatters::Providers::SectionFormatter
-      class I18nFormatter < Formatters::Providers::SectionFormatter
+      class I18nFormatter < SectionFormatter
         section :i18n
 
         private

@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders the Authentication & Authorization section.
       #
       # @see Formatters::Providers::SectionFormatter
-      class AuthFormatter < Formatters::Providers::SectionFormatter
+      class AuthFormatter < SectionFormatter
         section :auth
 
         private

@@ -4,7 +4,7 @@ module RailsAiBridge
   module Serializers
     module Formatters::Providers
       # Renders the Gemini-specific document header.
-      class GeminiHeaderFormatter < Formatters::Base
+      class GeminiHeaderFormatter < Base
         # Renders the header for the GEMINI.md file.
         #
         # @return [String] The rendered header.

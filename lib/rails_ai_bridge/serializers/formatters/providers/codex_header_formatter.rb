@@ -4,7 +4,7 @@ module RailsAiBridge
   module Serializers
     module Formatters::Providers
       # Renders the Codex (AGENTS.md) document header.
-      class CodexHeaderFormatter < Formatters::Base
+      class CodexHeaderFormatter < Base
         # @return [String]
         def call
           <<~MD

@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders the Migrations section with pending and recent migrations.
       #
       # @see Formatters::Providers::SectionFormatter
-      class MigrationsFormatter < Formatters::Providers::SectionFormatter
+      class MigrationsFormatter < SectionFormatter
         section :migrations
 
         private

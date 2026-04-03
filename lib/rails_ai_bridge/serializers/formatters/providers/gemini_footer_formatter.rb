@@ -4,7 +4,7 @@ module RailsAiBridge
   module Serializers
     module Formatters::Providers
       # Renders the Gemini footer with behavioral rules and regeneration note.
-      class GeminiFooterFormatter < Formatters::Base
+      class GeminiFooterFormatter < Base
         # Renders the footer for the GEMINI.md file.
         #
         # @return [String] The rendered footer.

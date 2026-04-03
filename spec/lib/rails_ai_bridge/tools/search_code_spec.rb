@@ -57,9 +57,13 @@ RSpec.describe RailsAiBridge::Tools::SearchCode do
     end
 
     it "returns results for a valid search" do
-      result = described_class.call(pattern: "ActiveRecord::Schema")
+      # This test now indirectly verifies the Formatter is used.
+      result = described_class.call(pattern: "ActiveRecord::Schema", file_type: "rb")
       text = result.content.first[:text]
-      expect(text).to include("Search:")
+      expect(text).to include("# Search: `ActiveRecord::Schema`")
+      expect(text).to include("results") # Checks for the results count
+      expect(text).to include("```") # Checks for markdown code block
+      expect(text).to include("db/schema.rb:1: ActiveRecord::Schema.define(version:") # Checks for actual content
     end
 
     it "returns a not-found message for unmatched patterns" do

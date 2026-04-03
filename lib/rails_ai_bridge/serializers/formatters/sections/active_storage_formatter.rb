@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders the Active Storage section with attachment models and configured services.
       #
       # @see Formatters::Providers::SectionFormatter
-      class ActiveStorageFormatter < Formatters::Providers::SectionFormatter
+      class ActiveStorageFormatter < SectionFormatter
         section :active_storage
 
         private

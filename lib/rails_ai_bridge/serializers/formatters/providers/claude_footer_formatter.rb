@@ -4,7 +4,7 @@ module RailsAiBridge
   module Serializers
     module Formatters::Providers
       # Renders the Claude Code footer with behavioral rules and regeneration note.
-      class ClaudeFooterFormatter < Formatters::Base
+      class ClaudeFooterFormatter < Base
         # @return [String]
         def call
           arch = context.dig(:conventions, :architecture)

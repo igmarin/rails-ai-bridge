@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders the Controllers section.
       #
       # @see Formatters::Providers::SectionFormatter
-      class ControllersFormatter < Formatters::Providers::SectionFormatter
+      class ControllersFormatter < SectionFormatter
         section :controllers
 
         private

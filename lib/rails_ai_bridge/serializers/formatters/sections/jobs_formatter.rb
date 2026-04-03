@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders the Jobs section with Active Job adapters and defined jobs.
       #
       # @see Formatters::Providers::SectionFormatter
-      class JobsFormatter < Formatters::Providers::SectionFormatter
+      class JobsFormatter < SectionFormatter
         section :jobs
 
         private

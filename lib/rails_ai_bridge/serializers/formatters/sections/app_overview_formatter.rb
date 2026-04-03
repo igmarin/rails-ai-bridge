@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders a high-level overview of the Rails application.
       #
       # @see Formatters::Providers::SectionFormatter
-      class AppOverviewFormatter < Formatters::Providers::SectionFormatter
+      class AppOverviewFormatter < SectionFormatter
         section :app_overview
 
         private

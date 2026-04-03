@@ -4,7 +4,7 @@ module RailsAiBridge
   module Serializers
     module Formatters::Providers
       # Renders the Codex-specific document footer with regeneration instructions.
-      class CodexFooterFormatter < Formatters::Base
+      class CodexFooterFormatter < Base
         # @return [String]
         def call
           <<~MD

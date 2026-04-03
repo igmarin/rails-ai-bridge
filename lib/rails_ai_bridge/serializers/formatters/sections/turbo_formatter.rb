@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders the Hotwire/Turbo section with frames, streams, and broadcasts.
       #
       # @see Formatters::Providers::SectionFormatter
-      class TurboFormatter < Formatters::Providers::SectionFormatter
+      class TurboFormatter < SectionFormatter
         section :turbo
 
         private

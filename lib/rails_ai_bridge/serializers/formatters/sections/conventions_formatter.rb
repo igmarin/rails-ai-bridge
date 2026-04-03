@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders the App Conventions & Architecture section.
       #
       # @see Formatters::Providers::SectionFormatter
-      class ConventionsFormatter < Formatters::Providers::SectionFormatter
+      class ConventionsFormatter < SectionFormatter
         section :conventions
 
         ARCH_LABELS = {

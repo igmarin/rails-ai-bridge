@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders the Application Configuration section.
       #
       # @see Formatters::Providers::SectionFormatter
-      class ConfigFormatter < Formatters::Providers::SectionFormatter
+      class ConfigFormatter < SectionFormatter
         section :config
 
         private

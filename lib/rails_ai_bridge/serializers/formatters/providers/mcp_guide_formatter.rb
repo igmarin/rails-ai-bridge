@@ -4,7 +4,7 @@ module RailsAiBridge
   module Serializers
     module Formatters::Providers
       # Generates the MCP Tool Reference section for compact serializers.
-      class McpGuideFormatter < Formatters::Base
+      class McpGuideFormatter < Base
         # @return [String] markdown block ready to embed in a compact context file
         def call
           <<~'MARKDOWN'.rstrip

@@ -30,7 +30,7 @@ RSpec.describe RailsAiBridge::Tools::GetView do
     {
       path: "users/index.html.erb",
       template_engine: "erb",
-      partial: false, # Added this line
+      partial: false,
       renders: [ "users/_user_card.html.erb" ],
       turbo_frames: [ "user_list" ],
       stimulus_controllers: [ "user-search" ],
@@ -44,6 +44,12 @@ RSpec.describe RailsAiBridge::Tools::GetView do
   before do
     allow(described_class).to receive(:cached_section).with(:views).and_return(view_data)
     allow(RailsAiBridge::ViewFileAnalyzer).to receive(:call).and_return(specific_view_analysis)
+
+    # Stub formatters to ensure correct delegation
+    allow(RailsAiBridge::Tools::GetView::SummaryFormatter).to receive(:new).and_call_original
+    allow(RailsAiBridge::Tools::GetView::StandardFormatter).to receive(:new).and_call_original
+    allow(RailsAiBridge::Tools::GetView::FullFormatter).to receive(:new).and_call_original
+    allow(RailsAiBridge::Tools::GetView::SpecificViewFormatter).to receive(:new).and_call_original
   end
 
   let(:response) { described_class.call(**params) }
@@ -53,8 +59,12 @@ RSpec.describe RailsAiBridge::Tools::GetView do
     context "when requesting a specific view path" do
       let(:params) { { path: "users/index.html.erb" } }
 
-      it "returns detailed analysis of that view file" do
+      it "delegates to SpecificViewFormatter" do
+        expect(RailsAiBridge::Tools::GetView::SpecificViewFormatter).to receive(:new).and_call_original
         expect(content).to include("# View: users/index.html.erb")
+      end
+
+      it "returns detailed analysis of that view file" do
         expect(content).to include("- Template engine: erb")
         expect(content).to include("- Partial: no")
         expect(content).to include("- Renders: users/_user_card.html.erb")
@@ -67,8 +77,12 @@ RSpec.describe RailsAiBridge::Tools::GetView do
     context "with detail: 'summary'" do
       let(:params) { { detail: "summary" } }
 
-      it "returns a summary of view-layer components" do
+      it "delegates to SummaryFormatter" do
+        expect(RailsAiBridge::Tools::GetView::SummaryFormatter).to receive(:new).and_call_original
         expect(content).to include("# View Summary")
+      end
+
+      it "returns a summary of view-layer components" do
         expect(content).to include("- Layouts: 2")
         expect(content).to include("- Template engines: erb, haml")
         expect(content).to include("- Shared partials: 1")
@@ -80,8 +94,12 @@ RSpec.describe RailsAiBridge::Tools::GetView do
     context "with detail: 'standard'" do
       let(:params) { { detail: "standard" } }
 
-      it "returns a standard list of templates and partials" do
+      it "delegates to StandardFormatter" do
+        expect(RailsAiBridge::Tools::GetView::StandardFormatter).to receive(:new).and_call_original
         expect(content).to include("# Views")
+      end
+
+      it "returns a standard list of templates and partials" do
         expect(content).to include("- Layouts: application, admin")
         expect(content).to include("## Templates by controller")
         expect(content).to include("- `users/`: index.html.erb, show.html.erb")
@@ -93,8 +111,12 @@ RSpec.describe RailsAiBridge::Tools::GetView do
     context "with detail: 'full'" do
       let(:params) { { detail: "full" } }
 
-      it "returns full details including helpers and view components" do
+      it "delegates to FullFormatter" do
+        expect(RailsAiBridge::Tools::GetView::FullFormatter).to receive(:new).and_call_original
         expect(content).to include("## Templates by controller") # from standard formatter
+      end
+
+      it "returns full details including helpers and view components" do
         expect(content).to include("## Helpers")
         expect(content).to include("- `app/helpers/users_helper.rb`: full_name")
         expect(content).to include("## View Components")
@@ -119,7 +141,7 @@ RSpec.describe RailsAiBridge::Tools::GetView do
         expect(content).to include("# Partials matching _header")
         expect(content).to include("## Shared Partials")
         expect(content).to include("- `_header.html.erb`")
-        expect(content).not_to include("posts/") # This assertion is still correct for partials_match? logic
+        expect(content).not_to include("posts/")
       end
     end
 

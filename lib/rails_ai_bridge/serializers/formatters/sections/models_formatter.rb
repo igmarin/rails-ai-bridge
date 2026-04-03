@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders the Models section with associations, validations, and enums.
       #
       # @see Formatters::Providers::SectionFormatter
-      class ModelsFormatter < Formatters::Providers::SectionFormatter
+      class ModelsFormatter < SectionFormatter
         section :models
 
         private

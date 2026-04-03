@@ -4,7 +4,7 @@ module RailsAiBridge
   module Serializers
     module Formatters::Providers
       # Renders the project rules document footer for .cursorrules full mode.
-      class RulesFooterFormatter < Formatters::Base
+      class RulesFooterFormatter < Base
         # @return [String]
         def call
           <<~MD

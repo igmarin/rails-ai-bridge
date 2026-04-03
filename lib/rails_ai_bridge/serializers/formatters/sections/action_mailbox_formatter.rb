@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders the Action Mailbox section with mailbox class names.
       #
       # @see Formatters::Providers::SectionFormatter
-      class ActionMailboxFormatter < Formatters::Providers::SectionFormatter
+      class ActionMailboxFormatter < SectionFormatter
         section :action_mailbox
 
         private

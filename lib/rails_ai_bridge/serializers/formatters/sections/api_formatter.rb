@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders the API Endpoints section based on introspected API details.
       #
       # @see Formatters::Providers::SectionFormatter
-      class ApiFormatter < Formatters::Providers::SectionFormatter
+      class ApiFormatter < SectionFormatter
         section :api
 
         private

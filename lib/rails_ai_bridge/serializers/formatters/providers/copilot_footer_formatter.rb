@@ -4,7 +4,7 @@ module RailsAiBridge
   module Serializers
     module Formatters::Providers
       # Renders the Copilot-specific document footer.
-      class CopilotFooterFormatter < Formatters::Base
+      class CopilotFooterFormatter < Base
         # @return [String]
         def call
           <<~MD

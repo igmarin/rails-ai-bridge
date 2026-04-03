@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders the Testing section with framework, factories, and CI config.
       #
       # @see Formatters::Providers::SectionFormatter
-      class TestsFormatter < Formatters::Providers::SectionFormatter
+      class TestsFormatter < SectionFormatter
         section :tests
 
         private

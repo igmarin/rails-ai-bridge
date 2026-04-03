@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders the Multi-Database section; returns nil when multi-db is not configured.
       #
       # @see Formatters::Providers::SectionFormatter
-      class MultiDatabaseFormatter < Formatters::Providers::SectionFormatter
+      class MultiDatabaseFormatter < SectionFormatter
         section :multi_database
 
         private

@@ -81,15 +81,8 @@ module RailsAiBridge
                     search_with_ruby(pattern, search_path, file_type, max_results, root)
         end
 
-        if results.empty?
-          return text_response("No results found for '#{pattern}' in #{path || 'app'}.")
-        end
-
-        output = results.map { |r| "#{r[:file]}:#{r[:line_number]}: #{r[:content].strip}" }.join("\n")
-        header = "# Search: `#{pattern}`\n**#{results.size} results**#{" in #{path}" if path}\n\n```\n"
-        footer = "\n```"
-
-        text_response("#{header}#{output}#{footer}")
+        # Use the Formatter to generate the output
+        text_response(Formatter.new.call(results, pattern, path))
       end
 
       private_class_method def self.allowed_search_file_types

@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders the Views section with layouts, templates, and helpers.
       #
       # @see Formatters::Providers::SectionFormatter
-      class ViewsFormatter < Formatters::Providers::SectionFormatter
+      class ViewsFormatter < SectionFormatter
         section :views
 
         private

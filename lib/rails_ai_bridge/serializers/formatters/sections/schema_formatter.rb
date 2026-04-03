@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders the Database Schema section; returns nil when schema is absent or errored.
       #
       # @see Formatters::Providers::SectionFormatter
-      class SchemaFormatter < Formatters::Providers::SectionFormatter
+      class SchemaFormatter < SectionFormatter
         section :schema
 
         private

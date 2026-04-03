@@ -4,7 +4,7 @@ module RailsAiBridge
   module Serializers
     module Formatters::Providers
       # Renders the document footer with regeneration instructions.
-      class FooterFormatter < Formatters::Base
+      class FooterFormatter < Base
         # @return [String]
         def call
           <<~MD

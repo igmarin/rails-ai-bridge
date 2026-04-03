@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders the Database Seeds section.
       #
       # @see Formatters::Providers::SectionFormatter
-      class SeedsFormatter < Formatters::Providers::SectionFormatter
+      class SeedsFormatter < SectionFormatter
         section :seeds
 
         private

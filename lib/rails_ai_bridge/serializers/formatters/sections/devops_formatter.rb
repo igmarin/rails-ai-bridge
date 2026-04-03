@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders the DevOps & CI/CD section.
       #
       # @see Formatters::Providers::SectionFormatter
-      class DevopsFormatter < Formatters::Providers::SectionFormatter
+      class DevopsFormatter < SectionFormatter
         section :devops
 
         private

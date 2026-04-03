@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders the Custom Middleware section.
       #
       # @see Formatters::Providers::SectionFormatter
-      class MiddlewareFormatter < Formatters::Providers::SectionFormatter
+      class MiddlewareFormatter < SectionFormatter
         section :middleware
 
         private

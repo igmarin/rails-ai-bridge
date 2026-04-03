@@ -2,7 +2,7 @@
 
 module RailsAiBridge
   module Serializers
-    module Formatters::Providers
+    module Formatters::Sections
       # Template-method base for section formatters that follow the standard
       # guard pattern: extract data by key, return nil when absent or errored,
       # then delegate to {#render}.
@@ -10,7 +10,7 @@ module RailsAiBridge
       # Subclasses declare their context key with +section+ and implement
       # +render(data)+:
       #
-      #   class SchemaFormatter < Formatters::Providers::SectionFormatter
+      #   class SchemaFormatter < Formatters::Sections::SectionFormatter
       #     section :schema
       #
       #     private
@@ -21,7 +21,7 @@ module RailsAiBridge
       #   end
       #
       # @see Base
-      class SectionFormatter < Formatters::Base
+      class SectionFormatter < Base
         class << self
           # @return [Symbol] the context key this formatter reads from
           attr_reader :section_key
