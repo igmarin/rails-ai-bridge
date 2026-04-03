@@ -303,6 +303,8 @@ Codex support is centered on **`AGENTS.md`** at the repository root.
 
 ## Best Practices
 
+> See **[docs/BEST_PRACTICES.md](docs/BEST_PRACTICES.md)** for the full guide — including a client compatibility matrix, token optimization patterns, staleness management, and per-assistant workflow tips.
+
 After testing with Cursor, Windsurf, Copilot, Codex, and Claude Code in real projects, these patterns consistently produce the best results.
 
 ### Layer 1: Commit your static files
