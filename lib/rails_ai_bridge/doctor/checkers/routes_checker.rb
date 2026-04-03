@@ -1,0 +1,19 @@
+# frozen_string_literal: true
+
+module RailsAiBridge
+  class Doctor
+    module Checkers
+      class RoutesChecker < BaseChecker
+        def call
+          routes_path = File.join(app.root, "config/routes.rb")
+          check(
+            "Routes",
+            File.exist?(routes_path),
+            pass: { message: "config/routes.rb found" },
+            fail: { status: :fail, message: "config/routes.rb not found", fix: "Ensure you're in a Rails app root directory" }
+          )
+        end
+      end
+    end
+  end
+end
