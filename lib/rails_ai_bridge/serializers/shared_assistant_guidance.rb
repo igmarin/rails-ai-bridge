@@ -147,6 +147,30 @@ module RailsAiBridge
         ]
       end
 
+      # Closing rules and regeneration footer (shared by compact provider serializers and {Providers::RulesOrchestrator}).
+      #
+      # @param context [Hash] introspection context (+:conventions+ optional for architecture line)
+      # @return [Array<String>] markdown lines
+      def compact_engineering_rules_footer_lines(context)
+        arch = context.dig(:conventions, :architecture)
+        arch_summary = arch&.any? ? arch.join(", ") : nil
+
+        lines = [
+          "## Rules",
+          "",
+          "- **Adhere to Conventions:** Strictly follow the existing patterns and conventions outlined in this document.",
+          "- **Schema as Source of Truth:** Always use the database schema as the definitive source for column names, types, and relationships.",
+          "- **Respect Existing Logic:** Ensure all new code respects existing associations, validations, and service objects.",
+          "- **Write Tests:** All new features and bug fixes must be accompanied by corresponding tests."
+        ]
+        lines << "- **Match Architecture:** Align with the project's architectural style (#{arch_summary})." if arch_summary
+        lines << "- **Verify Correctness:** Run `#{ContextSummary.test_command(context)}` and `bundle exec rubocop` after making changes to ensure correctness and style adherence."
+        lines << ""
+        lines << "---"
+        lines << "_This context file is auto-generated. Run `rails ai:bridge` to regenerate._"
+        lines
+      end
+
       # Baseline bullets plus concrete Rails patterns for large data.
       #
       # @return [Array<String>]
