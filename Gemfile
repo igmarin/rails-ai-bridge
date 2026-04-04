@@ -17,6 +17,7 @@ sqlite_version =
 
 group :development, :test do
   gem "railties", "~> #{rails_version}.0"
+  gem "skunk"
   gem "activerecord", "~> #{rails_version}.0"
   gem "sqlite3", sqlite_version
 end

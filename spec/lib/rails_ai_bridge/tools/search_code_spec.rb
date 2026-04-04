@@ -56,6 +56,12 @@ RSpec.describe RailsAiBridge::Tools::SearchCode do
       expect(text).to match(/Path not (found|allowed)/)
     end
 
+    it "returns not found for a subdirectory that does not exist under Rails.root" do
+      result = described_class.call(pattern: "class", path: "no_such_directory_rails_ai_bridge")
+      text = result.content.first[:text]
+      expect(text).to include("Path not found")
+    end
+
     it "returns results for a valid search" do
       # This test now indirectly verifies the Formatter is used.
       result = described_class.call(pattern: "ActiveRecord::Schema", file_type: "rb")
