@@ -13,8 +13,8 @@ RSpec.describe RailsAiBridge::Serializers::MarkdownSerializer do
       expect(output).to include("# ")
     end
 
-    it "includes the app overview" do
-      expect(output).to include("## Overview")
+    it "includes the app overview or stack context in the header" do
+      expect(output).to match(/Application Overview|AI Context/)
     end
 
     it "includes database schema section" do

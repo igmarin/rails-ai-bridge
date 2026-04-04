@@ -9,16 +9,19 @@ module RailsAiBridge
     # annotations, and protocol compliance for free.
     class BaseTool < MCP::Tool
       class << self
-        # Convenience: access the Rails app and cached introspection
+        # @return [Rails::Application] the host Rails application
         def rails_app
           Rails.application
         end
 
+        # @return [RailsAiBridge::Configuration] gem configuration
         def config
           RailsAiBridge.configuration
         end
 
-        # Cache introspection results with TTL + fingerprint invalidation
+        # Full introspection hash (TTL + fingerprint invalidation).
+        #
+        # @return [Hash] context payload keyed by introspector symbol
         def cached_context
           ContextProvider.fetch(rails_app)
         end
@@ -38,7 +41,11 @@ module RailsAiBridge
           ContextProvider.reset!
         end
 
-        # Helper: wrap text in an MCP::Tool::Response with safety-net truncation
+        # Wraps markdown (or plain text) in a +MCP::Tool::Response+, truncating when
+        # +max_tool_response_chars+ is set on the gem configuration.
+        #
+        # @param text [String] tool body to return to the client
+        # @return [MCP::Tool::Response]
         def text_response(text)
           max = RailsAiBridge.configuration.max_tool_response_chars
           if max && text.length > max

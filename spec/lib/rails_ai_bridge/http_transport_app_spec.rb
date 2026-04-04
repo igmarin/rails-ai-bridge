@@ -10,12 +10,14 @@ RSpec.describe RailsAiBridge::HttpTransportApp do
     saved_max_reqs = RailsAiBridge.configuration.mcp.rate_limit_max_requests
     saved_log      = RailsAiBridge.configuration.mcp.http_log_json
     saved_authorize = RailsAiBridge.configuration.mcp.authorize
+    saved_require_http_auth = RailsAiBridge.configuration.mcp.require_http_auth
     example.run
   ensure
     RailsAiBridge.configuration.http_mcp_token = saved_token
     RailsAiBridge.configuration.mcp.rate_limit_max_requests = saved_max_reqs
     RailsAiBridge.configuration.mcp.http_log_json = saved_log
     RailsAiBridge.configuration.mcp.authorize = saved_authorize
+    RailsAiBridge.configuration.mcp.require_http_auth = saved_require_http_auth
   end
 
   describe ".build" do
@@ -27,6 +29,29 @@ RSpec.describe RailsAiBridge::HttpTransportApp do
       expect(status).to eq(404)
       expect(headers["Content-Type"]).to eq("application/json")
       expect(body.first).to include("Not found")
+    end
+
+    it "returns 401 when require_http_auth is true and no auth strategy is configured" do
+      token_key = RailsAiBridge::Mcp::Authenticator::TOKEN_ENV_KEY
+      saved_env_token = ENV[token_key]
+      ENV.delete(token_key)
+
+      RailsAiBridge.configuration.http_mcp_token = nil
+      RailsAiBridge.configuration.mcp_token_resolver = nil
+      RailsAiBridge.configuration.mcp_jwt_decoder = nil
+      RailsAiBridge.configuration.mcp.require_http_auth = true
+      app = described_class.build(transport: transport, path: "/mcp")
+
+      status, headers, = app.call(Rack::MockRequest.env_for("/mcp", method: "POST"))
+
+      expect(status).to eq(401)
+      expect(headers["WWW-Authenticate"]).to include("Bearer")
+    ensure
+      if saved_env_token
+        ENV[token_key] = saved_env_token
+      else
+        ENV.delete(token_key)
+      end
     end
 
     it "returns 401 when auth is configured and Authorization is missing" do

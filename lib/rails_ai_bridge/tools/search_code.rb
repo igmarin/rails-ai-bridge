@@ -1,17 +1,26 @@
 # frozen_string_literal: true
 
 require "open3"
+require "timeout"
 
 module RailsAiBridge
   module Tools
+    # MCP tool searching the app tree with ripgrep (+rg+) or a Ruby fallback.
+    #
+    # Pattern size is capped by {Configuration#search_code_pattern_max_bytes} (default 2048).
+    # Wall-clock limits use {Configuration#search_code_timeout_seconds} (+0+ disables).
     class SearchCode < BaseTool
       tool_name "rails_search_code"
       description "Search the Rails codebase for a pattern using ripgrep (rg) or Ruby fallback. Returns matching lines with file paths and line numbers. Useful for finding usages, implementations, and patterns."
 
+      # Hard upper bound for +max_results+ regardless of client input.
       MAX_RESULTS_CAP = 100
 
-      # Default extensions for +file_type+ and for unrestricted search (no +file_type+).
-      # Extend with +config.search_code_allowed_file_types+.
+      # Fallback when +config.search_code_pattern_max_bytes+ is misconfigured (non-positive).
+      DEFAULT_PATTERN_MAX_BYTES = 2048
+
+      # Default extensions when no +file_type+ is given, merged with
+      # {RailsAiBridge::Configuration#search_code_allowed_file_types}.
       DEFAULT_ALLOWED_FILE_TYPES = %w[rb erb js ts jsx tsx yml yaml json].freeze
 
       input_schema(
@@ -38,8 +47,17 @@ module RailsAiBridge
 
       annotations(read_only_hint: true, destructive_hint: false, idempotent_hint: true, open_world_hint: false)
 
+      # @param pattern [String] regex-capable search pattern (required)
+      # @param path [String, nil] subdirectory under +Rails.root+ to scope the search
+      # @param file_type [String, nil] extension filter (must be allowlisted)
+      # @param max_results [Integer] capped at {MAX_RESULTS_CAP}
+      # @param server_context [Object, nil] reserved for MCP transport metadata
+      # @return [MCP::Tool::Response] search hits as markdown or a validation error response
       def self.call(pattern:, path: nil, file_type: nil, max_results: 30, server_context: nil)
         root = Rails.root.to_s
+
+        pattern_response = validate_pattern_size(pattern)
+        return pattern_response if pattern_response.is_a?(MCP::Tool::Response)
 
         normalized_type = normalize_and_validate_file_type(file_type)
         return normalized_type if normalized_type.is_a?(MCP::Tool::Response)
@@ -67,21 +85,44 @@ module RailsAiBridge
           return text_response("Path not found: #{path}")
         end
 
-        results = if ripgrep_available?
-                    search_with_ripgrep(pattern, search_path, file_type, max_results, root)
-        else
-                    search_with_ruby(pattern, search_path, file_type, max_results, root)
+        results = with_search_timeout do
+          if ripgrep_available?
+            search_with_ripgrep(pattern, search_path, file_type, max_results, root)
+          else
+            search_with_ruby(pattern, search_path, file_type, max_results, root)
+          end
         end
 
-        if results.empty?
-          return text_response("No results found for '#{pattern}' in #{path || 'app'}.")
-        end
+        # Use the Formatter to generate the output
+        text_response(Formatter.new.call(results, pattern, path))
+      end
 
-        output = results.map { |r| "#{r[:file]}:#{r[:line_number]}: #{r[:content].strip}" }.join("\n")
-        header = "# Search: `#{pattern}`\n**#{results.size} results**#{" in #{path}" if path}\n\n```\n"
-        footer = "\n```"
+      private_class_method def self.validate_pattern_size(pattern)
+        p = pattern.to_s
+        max_b = RailsAiBridge.configuration.search_code_pattern_max_bytes.to_i
+        max_b = DEFAULT_PATTERN_MAX_BYTES if max_b <= 0
 
-        text_response("#{header}#{output}#{footer}")
+        return nil if p.bytesize <= max_b
+
+        text_response(
+          "Pattern exceeds maximum length (#{max_b} bytes). " \
+          "Use a shorter pattern or increase config.search_code_pattern_max_bytes."
+        )
+      end
+
+      private_class_method def self.with_search_timeout
+        sec = RailsAiBridge.configuration.search_code_timeout_seconds.to_f
+        return yield if sec <= 0
+
+        Timeout.timeout(sec) { yield }
+      rescue Timeout::Error
+        [
+          {
+            file: "error",
+            line_number: 0,
+            content: "Search timed out after #{sec} seconds. Try a narrower path, file_type, or pattern."
+          }
+        ]
       end
 
       private_class_method def self.allowed_search_file_types

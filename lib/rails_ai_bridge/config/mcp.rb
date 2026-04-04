@@ -41,6 +41,11 @@ module RailsAiBridge
       # @return [Boolean]
       attr_accessor :require_auth_in_production
 
+      # When +true+, HTTP MCP requests receive +401+ unless a Bearer/JWT/static auth strategy is configured.
+      # Off by default for backward compatibility (stdio and local dev HTTP).
+      # @return [Boolean]
+      attr_accessor :require_http_auth
+
       def initialize
         @mode                     = :hybrid
         @security_profile         = :balanced
@@ -49,6 +54,7 @@ module RailsAiBridge
         @http_log_json            = false
         @authorize                = nil
         @require_auth_in_production = false
+        @require_http_auth          = false
       end
 
       # Effective rate-limit ceiling for {HttpTransportApp} (+0+ means disabled).

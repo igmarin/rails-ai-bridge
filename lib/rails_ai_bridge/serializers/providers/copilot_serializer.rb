@@ -17,8 +17,8 @@ module RailsAiBridge
         def call
           if @config.context_mode == :full
             MarkdownSerializer.new(context,
-              header_class: Formatters::CopilotHeaderFormatter,
-              footer_class: Formatters::CopilotFooterFormatter
+              header_class: Formatters::Providers::CopilotHeaderFormatter,
+              footer_class: Formatters::Providers::CopilotFooterFormatter
             ).call
           else
             render_compact

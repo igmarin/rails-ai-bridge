@@ -2,13 +2,15 @@
 
 module RailsAiBridge
   module Tools
+    # Markdown formatters for {Tools::GetSchema}.
     module Schema
       # Renders a compact summary of all tables: name + column/index counts.
       class SummaryFormatter
-        # @param tables [Hash] tables hash keyed by table name
+        # @param tables [Hash{String => Hash}] table name => introspection payload
         # @param total [Integer] total number of tables in the schema
         # @param limit [Integer] max tables to display
         # @param offset [Integer] number of tables to skip
+        # @return [void]
         def initialize(tables:, total:, limit:, offset:)
           @tables = tables
           @total  = total

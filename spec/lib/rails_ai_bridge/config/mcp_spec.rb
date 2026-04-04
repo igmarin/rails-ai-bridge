@@ -14,6 +14,7 @@ RSpec.describe RailsAiBridge::Config::Mcp do
       expect(config.http_log_json).to eq(false)
       expect(config.authorize).to be_nil
       expect(config.require_auth_in_production).to eq(false)
+      expect(config.require_http_auth).to eq(false)
     end
   end
 

@@ -2,31 +2,31 @@
 
 module RailsAiBridge
   # File system watcher that regenerates bridge files when key files change.
-  # Requires the `listen` gem (optional dependency).
+  # Requires the +listen+ gem (optional dependency).
+  #
+  # Orchestrates {Watcher::WatchDirectories}, the Listen listener loop, and
+  # {Watcher::BridgeRegenerator} for regeneration work.
   class Watcher
-    DEBOUNCE_SECONDS = 2
-    WATCH_PATTERNS = %w[
-      app/models
-      app/controllers
-      app/jobs
-      app/mailers
-      app/javascript/controllers
-      config
-      db
-    ].freeze
+    # @return [Array<String>] relative path segments watched by default (same as {Watcher::WatchDirectories::DEFAULT_PATTERNS})
+    WATCH_PATTERNS = WatchDirectories::DEFAULT_PATTERNS
 
+    # @return [Rails::Application] host application
     attr_reader :app
 
+    # @param app [Rails::Application, nil] defaults to +Rails.application+
     def initialize(app = nil)
       @app = app || Rails.application
-      @last_fingerprint = Fingerprinter.compute(@app)
+      @regenerator = BridgeRegenerator.new(@app)
     end
 
+    # Starts the Listen loop until SIGINT (Interrupt). Exits the process if +listen+ is missing.
+    #
+    # @return [void]
     def start
       require "listen"
 
       root = app.root.to_s
-      dirs = WATCH_PATTERNS.map { |p| File.join(root, p) }.select { |d| Dir.exist?(d) }
+      dirs = WatchDirectories.resolve(root)
 
       if dirs.empty?
         $stderr.puts "[rails-ai-bridge] No watchable directories found"
@@ -34,16 +34,16 @@ module RailsAiBridge
       end
 
       $stderr.puts "[rails-ai-bridge] Watching for changes..."
-      $stderr.puts "[rails-ai-bridge] Directories: #{dirs.map { |d| d.sub("#{root}/", '') }.join(', ')}"
+      $stderr.puts "[rails-ai-bridge] Directories: #{dirs.map { |d| d.sub("#{root}/", "") }.join(", ")}"
 
       listener = Listen.to(*dirs) do |modified, added, removed|
         next if (modified + added + removed).empty?
+
         handle_change
       end
 
       listener.start
 
-      # Keep the process alive
       loop do
         sleep 1
       rescue Interrupt
@@ -60,15 +60,13 @@ module RailsAiBridge
     private
 
     def handle_change
-      return unless Fingerprinter.changed?(app, @last_fingerprint)
-
-      @last_fingerprint = Fingerprinter.compute(app)
+      return unless @regenerator.change_pending?
 
       $stderr.puts "[rails-ai-bridge] Changes detected, regenerating bridge files..."
-      result = RailsAiBridge.generate_context(format: :all)
+      result = @regenerator.regenerate!
       result[:written].each { |f| $stderr.puts "  Updated: #{f}" }
       result[:skipped].each { |f| $stderr.puts "  Unchanged: #{f}" }
-    rescue => e
+    rescue StandardError => e
       $stderr.puts "[rails-ai-bridge] Error regenerating: #{e.message}"
     end
   end

@@ -2,12 +2,14 @@
 
 module RailsAiBridge
   module Tools
+    # Markdown formatters for {Tools::GetSchema}.
     module Schema
       # Renders a single database table as a Markdown block with columns,
       # indexes, and foreign keys.
       class TableFormatter
         # @param name [String] table name
-        # @param data [Hash] table data from {Introspectors::SchemaIntrospector}
+        # @param data [Hash] slice from schema introspection (+:columns+, +:indexes+, +:foreign_keys+)
+        # @return [void]
         def initialize(name:, data:)
           @name = name
           @data = data

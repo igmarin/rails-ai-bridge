@@ -41,6 +41,14 @@ RSpec.describe RailsAiBridge::Config::Introspection do
     expect(introspection.search_code_allowed_file_types).to eq([])
   end
 
+  it "defaults search_code_pattern_max_bytes to 2048" do
+    expect(introspection.search_code_pattern_max_bytes).to eq(2048)
+  end
+
+  it "defaults search_code_timeout_seconds to 5.0" do
+    expect(introspection.search_code_timeout_seconds).to eq(5.0)
+  end
+
   describe "#preset=" do
     it "sets introspectors from a named preset" do
       introspection.preset = :full

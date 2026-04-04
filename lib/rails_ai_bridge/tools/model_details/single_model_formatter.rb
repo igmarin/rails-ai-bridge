@@ -2,11 +2,13 @@
 
 module RailsAiBridge
   module Tools
+    # Markdown formatters for {Tools::GetModelDetails}.
     module ModelDetails
       # Renders complete detail for a single ActiveRecord model.
       class SingleModelFormatter
         # @param name [String] model class name
-        # @param data [Hash] model data from {Introspectors::ModelIntrospector}
+        # @param data [Hash] model payload from {Introspectors::ModelIntrospector}
+        # @return [void]
         def initialize(name:, data:)
           @name = name
           @data = data

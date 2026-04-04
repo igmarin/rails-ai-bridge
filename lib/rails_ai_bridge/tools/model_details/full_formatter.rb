@@ -2,10 +2,12 @@
 
 module RailsAiBridge
   module Tools
+    # Markdown formatters for {Tools::GetModelDetails}.
     module ModelDetails
       # Renders model names with their full association lists and table names.
       class FullFormatter
-        # @param models [Hash] models hash keyed by class name
+        # @param models [Hash{String => Hash}] model name => introspection payload
+        # @return [void]
         def initialize(models:)
           @models = models
         end

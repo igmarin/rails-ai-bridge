@@ -63,4 +63,56 @@ RSpec.describe RailsAiBridge::Serializers::SharedAssistantGuidance do
       expect(lines).to include("find_each")
     end
   end
+
+  describe ".compact_engineering_rules_footer_lines" do
+    let(:base_ctx) { { tests: { framework: "rspec" } } }
+
+    it "starts with the default rules heading and omits architecture without conventions" do
+      lines = described_class.compact_engineering_rules_footer_lines(base_ctx)
+      expect(lines.first).to eq("## Rules")
+      expect(lines.join("\n")).not_to include("Match Architecture")
+    end
+
+    it "includes standard bullets, test command, rubocop, and regeneration trailer" do
+      md = described_class.compact_engineering_rules_footer_lines(base_ctx).join("\n")
+      expect(md).to include("- **Adhere to Conventions:**")
+      expect(md).to include("- **Schema as Source of Truth:**")
+      expect(md).to include("Run `bundle exec rspec` and `bundle exec rubocop`")
+      expect(md).to include("---")
+      expect(md).to include("_This context file is auto-generated. Run `rails ai:bridge` to regenerate._")
+    end
+
+    it "appends a Match Architecture bullet when architecture conventions are present" do
+      ctx = base_ctx.merge(conventions: { architecture: %w[layered hexagonal] })
+      md = described_class.compact_engineering_rules_footer_lines(ctx).join("\n")
+      expect(md).to include(
+        "- **Match Architecture:** Align with the project's architectural style (layered, hexagonal)."
+      )
+    end
+
+    it "honors a custom rules_heading keyword" do
+      lines = described_class.compact_engineering_rules_footer_lines(base_ctx, rules_heading: "## Custom heading")
+      expect(lines.first).to eq("## Custom heading")
+    end
+  end
+
+  describe ".claude_full_footer_lines" do
+    let(:base_ctx) { { tests: { framework: "rspec" } } }
+
+    it "returns markdown lines for the Claude full-mode footer" do
+      md = described_class.claude_full_footer_lines(base_ctx).join("\n")
+      expect(md).to eq(<<~MD.chomp)
+        ## Behavioral Rules
+
+        When working in this codebase:
+        - Follow existing patterns and conventions detected above
+        - Use the database schema as the source of truth for column names and types
+        - Respect existing associations and validations when modifying models
+        - Run `bundle exec rspec` after making changes to verify correctness
+
+        ---
+        _This context file is auto-generated. Run `rails ai:bridge` to regenerate._
+      MD
+    end
+  end
 end

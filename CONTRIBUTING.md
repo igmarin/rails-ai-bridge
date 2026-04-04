@@ -19,7 +19,7 @@ The test suite uses [Combustion](https://github.com/pat/combustion) to boot a mi
 ```
 lib/rails_ai_bridge/
 ├── introspectors/     # 27 introspectors (schema, models, routes, etc.)
-├── tools/             # 9 MCP tools with detail levels and pagination
+├── tools/             # 11 built-in MCP tools (detail levels, pagination, extensible)
 ├── serializers/       # Per-assistant formatters (claude, cursor, windsurf, copilot, JSON)
 ├── server.rb          # MCP server setup (stdio + HTTP)
 ├── engine.rb          # Rails Engine for auto-integration
