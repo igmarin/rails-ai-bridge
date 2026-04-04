@@ -4,6 +4,11 @@ module RailsAiBridge
   module Serializers
     module Formatters::Providers
       # Generates the MCP Tool Reference section for compact serializers.
+      #
+      # This long-form guide (tables, detail limits) is embedded from {Providers::BaseProviderSerializer}.
+      # It intentionally differs from {Providers::McpToolReferenceFormatter}, which serves rules-oriented
+      # serializers with a shorter summary. Unify content only when product or documentation explicitly
+      # requires both surfaces to match.
       class McpGuideFormatter < Base
         # @return [String] markdown block ready to embed in a compact context file
         def call

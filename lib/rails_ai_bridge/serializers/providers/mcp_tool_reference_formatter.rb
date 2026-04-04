@@ -3,9 +3,11 @@
 module RailsAiBridge
   module Serializers
     module Providers
-      # Formats the static MCP Tool Reference section.
-      # This content is typically hardcoded as it describes the generic MCP tool interface
-      # rather than app-specific introspection results.
+      # Formats the static MCP Tool Reference section for rules-oriented output.
+      #
+      # This shorter summary intentionally differs from {Formatters::Providers::McpGuideFormatter}, which
+      # is embedded in compact provider context files with tables and richer detail. Keep them aligned only
+      # when product or documentation requires a single canonical MCP description.
       class McpToolReferenceFormatter < RailsAiBridge::Serializers::Providers::Base
         # Renders the MCP Tool Reference section as a Markdown string.
         #

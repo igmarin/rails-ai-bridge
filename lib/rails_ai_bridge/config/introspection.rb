@@ -31,6 +31,12 @@ module RailsAiBridge
       # @return [Array<String>] extra file extensions allowed for rails_search_code
       attr_accessor :search_code_allowed_file_types
 
+      # @return [Integer] maximum +pattern+ size in bytes for {Tools::SearchCode} (ReDoS / abuse guard)
+      attr_accessor :search_code_pattern_max_bytes
+
+      # @return [Float] seconds before {Tools::SearchCode} aborts (+0+ disables the timeout)
+      attr_accessor :search_code_timeout_seconds
+
       def initialize
         @introspectors      = Configuration::PRESETS[:standard].dup
         @excluded_paths     = %w[node_modules tmp log vendor .git]
@@ -46,6 +52,8 @@ module RailsAiBridge
         @expose_credentials_key_names      = false
         @additional_introspectors          = {}
         @search_code_allowed_file_types    = []
+        @search_code_pattern_max_bytes     = 2048
+        @search_code_timeout_seconds       = 5.0
       end
 
       # Switch the active introspector list to a named preset.

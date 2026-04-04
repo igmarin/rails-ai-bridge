@@ -7,11 +7,7 @@ module RailsAiBridge
       class RulesHeaderFormatter < Base
         # @return [String]
         def call
-          <<~MD
-            # #{context[:app_name]} — Project Rules
-
-            Rails #{context[:rails_version]} | Ruby #{context[:ruby_version]}
-          MD
+          ProviderDocumentHeader.rules_banner(context: context)
         end
       end
     end

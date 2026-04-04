@@ -5,10 +5,14 @@ require "spec_helper"
 RSpec.describe RailsAiBridge::Tools::SearchCode do
   describe ".call" do
     around do |example|
-      saved = RailsAiBridge.configuration.search_code_allowed_file_types.dup
+      saved_types = RailsAiBridge.configuration.search_code_allowed_file_types.dup
+      saved_max = RailsAiBridge.configuration.search_code_pattern_max_bytes
+      saved_timeout = RailsAiBridge.configuration.search_code_timeout_seconds
       example.run
     ensure
-      RailsAiBridge.configuration.search_code_allowed_file_types = saved
+      RailsAiBridge.configuration.search_code_allowed_file_types = saved_types
+      RailsAiBridge.configuration.search_code_pattern_max_bytes = saved_max
+      RailsAiBridge.configuration.search_code_timeout_seconds = saved_timeout
     end
 
     it "rejects invalid file_type with special characters" do
@@ -85,6 +89,22 @@ RSpec.describe RailsAiBridge::Tools::SearchCode do
       text = result.content.first[:text]
 
       expect(text).to include("Invalid pattern")
+    end
+
+    it "rejects patterns larger than search_code_pattern_max_bytes" do
+      RailsAiBridge.configuration.search_code_pattern_max_bytes = 8
+      result = described_class.call(pattern: "ninechars")
+      text = result.content.first[:text]
+      expect(text).to include("Pattern exceeds maximum length")
+    end
+
+    it "surfaces a timeout when Timeout.timeout fires during search" do
+      allow(Timeout).to receive(:timeout).and_raise(Timeout::Error)
+      allow(described_class).to receive(:ripgrep_available?).and_return(true)
+
+      result = described_class.call(pattern: "class")
+      text = result.content.first[:text]
+      expect(text).to include("Search timed out")
     end
   end
 end

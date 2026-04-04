@@ -7,10 +7,7 @@ module RailsAiBridge
       class FooterFormatter < Base
         # @return [String]
         def call
-          <<~MD
-            ---
-            _This context file is auto-generated. Run `rails ai:bridge` to regenerate._
-          MD
+          RegenerationFooter.markdown(command: "rails ai:bridge", variant: :context_file)
         end
       end
     end

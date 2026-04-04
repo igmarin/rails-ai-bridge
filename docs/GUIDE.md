@@ -233,7 +233,7 @@ rails ai:bridge:claude           # Use this instead (no quoting needed)
 
 ## MCP Tools — Full Reference
 
-All 9 tools are **read-only** and **idempotent** — they never modify your application or database.
+All **11 built-in tools** are **read-only** and **idempotent** — they never modify your application or database. Hosts can append more via `config.additional_tools`.
 
 ### rails_get_schema
 
@@ -406,15 +406,16 @@ rails_get_conventions()
 
 ### rails_search_code
 
-Ripgrep-powered regex search across the codebase.
+Ripgrep-powered regex search across the codebase (Ruby fallback if `rg` is unavailable).
 
 **Parameters:**
 
 | Param | Type | Description |
 |-------|------|-------------|
-| `pattern` | string | **Required.** Regex pattern to search for. |
-| `file_type` | string | Filter by file type (e.g. `rb`, `erb`, `js`). Alphanumeric only. |
-| `max_results` | integer | Max results to return. Default: 20, max: 100. |
+| `pattern` | string | **Required.** Regex pattern to search for. Size capped by `config.search_code_pattern_max_bytes` (default 2048). |
+| `path` | string | Optional subdirectory under `Rails.root` (e.g. `app/models`). Default: entire app. |
+| `file_type` | string | Filter by file type (e.g. `rb`, `erb`, `js`). Alphanumeric only. Extra types: `config.search_code_allowed_file_types`. |
+| `max_results` | integer | Max results to return. Default: **30**, max: 100. |
 
 **Examples:**
 
@@ -425,11 +426,23 @@ rails_search_code(pattern: "has_secure_password")
 rails_search_code(pattern: "class.*Controller", file_type: "rb")
   → All Ruby files with controller class definitions
 
-rails_search_code(pattern: "def create", file_type: "rb", max_results: 50)
-  → First 50 create methods across the codebase
+rails_search_code(pattern: "def create", path: "app/controllers", file_type: "rb", max_results: 50)
+  → First 50 matches under app/controllers
 ```
 
-**Security:** Uses `Open3.capture2` with array arguments (no shell injection). Validates file_type. Blocks path traversal. Respects `excluded_paths` config.
+**Security:** Uses `Open3.capture2` with array arguments (no shell injection). Validates `file_type`. Blocks path traversal. Respects `excluded_paths`. Optional wall-clock limit per call: `config.search_code_timeout_seconds` (default 5; set `0` to disable).
+
+### rails_get_view
+
+View-layer context: layouts, templates, partials, helpers, components. Requires the `:views` introspector (included in the `:full` preset, or add `config.introspectors << :views`).
+
+**Parameters:** optional `path` (file under `app/views`), `controller`, `partial`, and `detail` (`summary` / `standard` / `full`).
+
+### rails_get_stimulus
+
+Stimulus controller metadata: targets, values, actions, outlets, classes. Requires the `:stimulus` introspector (included in `:full`, or add `config.introspectors << :stimulus`).
+
+**Parameters:** optional `controller` name and `detail` (`summary` / `standard` / `full`).
 
 ### Detail Level Summary
 
@@ -454,6 +467,7 @@ In addition to tools, the gem registers static MCP resources that AI clients can
 
 | Resource URI | Description |
 |-------------|-------------|
+| `rails://bridge/meta` | Gem version and enabled feature flags (JSON) |
 | `rails://schema` | Full database schema (JSON) |
 | `rails://routes` | All routes (JSON) |
 | `rails://conventions` | Detected patterns and architecture (JSON) |
@@ -463,6 +477,8 @@ In addition to tools, the gem registers static MCP resources that AI clients can
 | `rails://tests` | Test infrastructure details (JSON) |
 | `rails://migrations` | Migration history and statistics (JSON) |
 | `rails://engines` | Mounted engines with paths and descriptions (JSON) |
+| `rails://views` | View-layer summary (JSON); template `rails://views/{path}` |
+| `rails://stimulus` | Stimulus summary (JSON); template `rails://stimulus/{name}` |
 | `rails://models/{name}` | Per-model details (resource template) |
 
 ---
@@ -548,6 +564,8 @@ end
 
 Keep HTTP bound to `127.0.0.1` unless you add your own network and authentication controls. The tools are read-only, but they may still expose sensitive application structure.
 
+Set `config.require_http_auth = true` if the endpoint must not accept anonymous traffic when no Bearer/JWT/static token strategy is configured (returns **401**). Operational notes: [mcp-security.md](mcp-security.md).
+
 ### Codex
 
 This fork adds Codex support through `AGENTS.md` and `.codex/README.md`.
@@ -556,7 +574,7 @@ This fork adds Codex support through `AGENTS.md` and `.codex/README.md`.
 - Commit `AGENTS.md` for shared repository instructions.
 - Keep personal Codex preferences in `~/.codex/AGENTS.md`.
 
-Both transports are **read-only** — they expose the same 9 tools and never modify your app.
+Both transports are **read-only** — they expose the same built-in tools (plus `config.additional_tools`) and never modify your app.
 
 ---
 
@@ -614,6 +632,17 @@ RailsAiBridge.configure do |config|
   config.http_path  = "/mcp"
   config.http_bind  = "127.0.0.1"
   config.http_port  = 6029
+
+  # Optional: reject HTTP when no auth strategy is configured (see docs/mcp-security.md)
+  # config.require_http_auth = true
+
+  # Code search guardrails
+  # config.search_code_pattern_max_bytes = 2048
+  # config.search_code_timeout_seconds = 5.0  # 0 disables timeout
+
+  # Nested MCP HTTP options (rate limit profile, post-auth authorize, etc.)
+  # config.mcp.security_profile = :balanced  # :strict | :balanced | :relaxed
+  # config.mcp.authorize = ->(_context, _request) { true }
 end
 ```
 
@@ -634,6 +663,12 @@ end
 | `http_path` | String | `"/mcp"` | HTTP endpoint path |
 | `http_bind` | String | `"127.0.0.1"` | HTTP bind address |
 | `http_port` | Integer | `6029` | HTTP server port |
+| `require_http_auth` | Boolean | `false` | HTTP **401** when no MCP auth strategy configured |
+| `search_code_pattern_max_bytes` | Integer | `2048` | Max `rails_search_code` pattern size |
+| `search_code_timeout_seconds` | Float | `5.0` | Per-search wall clock (`0` = off) |
+| `rate_limit_max_requests` | Integer / nil | profile | Per-IP HTTP limit (`0` disables); not shared across workers |
+| `rate_limit_window_seconds` | Integer | `60` | Sliding window for rate limit |
+| `http_log_json` | Boolean | `false` | Structured JSON log line per HTTP MCP response |
 | `server_name` | String | `"rails-ai-bridge"` | MCP server name |
 | `assistant_overrides_path` | String | `nil` → `config/rails_ai_bridge/overrides.md` | Markdown merged into compact Copilot + Codex |
 | `copilot_compact_model_list_limit` | Integer | `5` | Max model rows in copilot-instructions / `.cursorrules` (`0` = none) |
@@ -842,11 +877,12 @@ Works in:
 - All MCP tools are **read-only** — they never modify your application or database
 - Code search uses `Open3.capture2` with array arguments — **no shell injection**
 - File paths are validated against **path traversal** attacks
-- Credentials and secret values are **never exposed** — only key names are introspected
+- Credentials and secret values are **never exposed** — only key names are introspected (unless you opt in with `expose_credentials_key_names`)
 - The gem makes **no outbound network requests**
 - File type validation prevents arbitrary file access in code search
-- `max_results` is capped at 100 to prevent resource exhaustion
+- `max_results` is capped at 100 to prevent resource exhaustion; `pattern` length is capped (`search_code_pattern_max_bytes`); optional per-invocation timeout (`search_code_timeout_seconds`)
 - Invalid regex input in the Ruby fallback path returns a controlled error response
+- HTTP MCP can require a configured auth strategy (`require_http_auth`) — see [mcp-security.md](mcp-security.md) and [SECURITY.md](../SECURITY.md)
 - Read-only access can still expose sensitive application structure; treat generated files and MCP responses as internal artifacts
 
 ---

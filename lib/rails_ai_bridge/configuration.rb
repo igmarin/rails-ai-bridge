@@ -88,6 +88,8 @@ module RailsAiBridge
       :expose_credentials_key_names, :expose_credentials_key_names=,
       :additional_introspectors, :additional_introspectors=,
       :search_code_allowed_file_types, :search_code_allowed_file_types=,
+      :search_code_pattern_max_bytes, :search_code_pattern_max_bytes=,
+      :search_code_timeout_seconds, :search_code_timeout_seconds=,
       :preset=,
       :effective_introspectors,
       :excluded_table?
@@ -96,7 +98,8 @@ module RailsAiBridge
     def_delegators :@mcp,
       :rate_limit_max_requests, :rate_limit_max_requests=,
       :rate_limit_window_seconds, :rate_limit_window_seconds=,
-      :http_log_json, :http_log_json=
+      :http_log_json, :http_log_json=,
+      :require_http_auth, :require_http_auth=
 
     # -- Config::Output ---------------------------------------------------------
     def_delegators :@output,

@@ -147,16 +147,39 @@ module RailsAiBridge
         ]
       end
 
-      # Closing rules and regeneration footer (shared by compact provider serializers and {Providers::RulesOrchestrator}).
+      # Full-mode Claude Code footer (plain-language bullets; not the compact rules list).
       #
       # @param context [Hash] introspection context (+:conventions+ optional for architecture line)
-      # @return [Array<String>] markdown lines
-      def compact_engineering_rules_footer_lines(context)
+      # @return [Array<String>] markdown lines (join with newlines for a string)
+      def claude_full_footer_lines(context)
         arch = context.dig(:conventions, :architecture)
         arch_summary = arch&.any? ? arch.join(", ") : nil
 
         lines = [
-          "## Rules",
+          "## Behavioral Rules",
+          "",
+          "When working in this codebase:",
+          "- Follow existing patterns and conventions detected above",
+          "- Use the database schema as the source of truth for column names and types",
+          "- Respect existing associations and validations when modifying models"
+        ]
+        lines << "- Match the project's architecture style (#{arch_summary})" if arch_summary
+        lines << "- Run `#{ContextSummary.test_command(context)}` after making changes to verify correctness"
+        lines.concat(RegenerationFooter.continuation_lines(command: "rails ai:bridge", variant: :context_file))
+        lines
+      end
+
+      # Closing rules and regeneration footer (shared by compact provider serializers and {Providers::RulesOrchestrator}).
+      #
+      # @param context [Hash] introspection context (+:conventions+ optional for architecture line)
+      # @param rules_heading [String] markdown `## ...` line opening the rules section (default: `## Rules`)
+      # @return [Array<String>] markdown lines
+      def compact_engineering_rules_footer_lines(context, rules_heading: "## Rules")
+        arch = context.dig(:conventions, :architecture)
+        arch_summary = arch&.any? ? arch.join(", ") : nil
+
+        lines = [
+          rules_heading,
           "",
           "- **Adhere to Conventions:** Strictly follow the existing patterns and conventions outlined in this document.",
           "- **Schema as Source of Truth:** Always use the database schema as the definitive source for column names, types, and relationships.",
@@ -167,7 +190,7 @@ module RailsAiBridge
         lines << "- **Verify Correctness:** Run `#{ContextSummary.test_command(context)}` and `bundle exec rubocop` after making changes to ensure correctness and style adherence."
         lines << ""
         lines << "---"
-        lines << "_This context file is auto-generated. Run `rails ai:bridge` to regenerate._"
+        lines << RegenerationFooter.message_line(command: "rails ai:bridge", variant: :context_file)
         lines
       end
 

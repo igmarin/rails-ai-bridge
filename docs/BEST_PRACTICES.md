@@ -70,6 +70,10 @@ Files marked as `alwaysApply: true` (Cursor) or loaded at session start are incl
 - Glob-scoped files for model/controller-specific detail (only injected when working on those files)
 - MCP tools for deep inspection (only tokens when called)
 
+### Built-in tools and HTTP MCP
+
+There are **11** read-only built-in `rails_*` tools (hosts can add more via configuration). For Hotwire-heavy work, include `:views` and `:stimulus` in your introspectors so `rails_get_view` and `rails_get_stimulus` return live data. If MCP is served over HTTP beyond a locked-down localhost setup, configure authentication and read [mcp-security.md](mcp-security.md) and the repository [SECURITY.md](../SECURITY.md).
+
 ---
 
 ## Token Optimization

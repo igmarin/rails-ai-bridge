@@ -21,6 +21,11 @@ module RailsAiBridge
 
           request = Rack::Request.new(env)
 
+          if mcp_cfg.require_http_auth && !Mcp::Authenticator.any_configured?
+            Mcp::HttpStructuredLog.emit(request: request, event: :unauthorized, http_status: 401)
+            return Mcp::Authenticator.unauthorized_rack_response
+          end
+
           auth_result = Mcp::Authenticator.call(request)
           unless auth_result.success?
             Mcp::HttpStructuredLog.emit(request: request, event: :unauthorized, http_status: 401)

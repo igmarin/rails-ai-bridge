@@ -30,7 +30,11 @@ RSpec.describe RailsAiBridge::Watcher do
     let(:listener) { double("Listen::Listener", start: nil, stop: nil) }
 
     context "when no watch directories exist" do
-      before { stub_const("Listen", WatcherSpecListenStub.minimal_module) }
+      before do
+        stub_const("Listen", WatcherSpecListenStub.minimal_module)
+        allow_any_instance_of(described_class).to receive(:require).and_call_original
+        allow_any_instance_of(described_class).to receive(:require).with("listen").and_return(true)
+      end
 
       it "returns early without calling Listen.to" do
         empty = Dir.mktmpdir
@@ -50,7 +54,9 @@ RSpec.describe RailsAiBridge::Watcher do
         FileUtils.mkdir_p(File.join(tmpdir, "app", "models"))
         stub_const("Listen", WatcherSpecListenStub.minimal_module)
         allow(Listen).to receive(:to).and_return(listener)
-        allow(watcher).to receive(:sleep).and_raise(Interrupt)
+        allow_any_instance_of(described_class).to receive(:require).and_call_original
+        allow_any_instance_of(described_class).to receive(:require).with("listen").and_return(true)
+        allow_any_instance_of(described_class).to receive(:sleep).and_raise(Interrupt)
       end
 
       it "starts Listen on resolved roots and stops the listener on Interrupt" do

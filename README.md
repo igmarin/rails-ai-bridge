@@ -33,7 +33,7 @@ flowchart LR
 
 1. **Up to 27 introspectors** scan schema, models, routes, controllers, jobs, gems, conventions, and more (preset `:standard` runs 9 core ones by default; `:full` runs all).
 2. **`rails ai:bridge`** writes bounded bridge files for Claude, Cursor, Copilot, Codex, Windsurf, Gemini, and JSON.
-3. **`rails ai:serve`** exposes **9 MCP tools** so assistants pull detail on demand (`detail: "summary"` first, then drill down).
+3. **`rails ai:serve`** exposes **11 built-in MCP tools** (plus any `additional_tools`) so assistants pull detail on demand (`detail: "summary"` first, then drill down).
 
 ### Folder guides
 
@@ -94,7 +94,7 @@ The install generator creates **`.mcp.json`** (MCP auto-discovery) and generates
 | Zero config | Yes — Railtie + install generator | No — per-project `projects.yml` | No |
 | Token optimization | Yes — compact files + `detail:"summary"` workflow | Varies | No |
 | Codex-oriented repo files | Yes — `AGENTS.md`, `.codex/README.md` | No | DIY |
-| Live MCP tools | Yes — 9 read-only `rails_*` tools | Yes | No |
+| Live MCP tools | Yes — 11 read-only `rails_*` tools (extensible) | Yes | No |
 | Auto-introspection | Yes — up to **27** domains (`:full`) | No — server points at projects you configure | DIY |
 
 *Comparison reflects typical documented setups; verify against each project before treating any row as absolute.*
@@ -180,7 +180,7 @@ Each file respects the AI tool's format and size limits. **Commit these files** 
 
 ## MCP Tools
 
-The gem exposes **9 live tools** via MCP that AI clients call on-demand:
+The gem exposes **11 built-in tools** via MCP that AI clients call on-demand (hosts can append more via `config.additional_tools`):
 
 | Tool | What it returns |
 |------|----------------|
@@ -192,7 +192,9 @@ The gem exposes **9 live tools** via MCP that AI clients call on-demand:
 | `rails_get_test_info` | Test framework, factories, CI config, coverage |
 | `rails_get_gems` | Notable gems categorized by function |
 | `rails_get_conventions` | Architecture patterns, directory structure |
-| `rails_search_code` | Ripgrep-powered regex search across the codebase |
+| `rails_search_code` | Ripgrep (or Ruby) search under `Rails.root` with allowlisted extensions, pattern size cap, and optional wall-clock timeout |
+| `rails_get_view` | View layouts, templates, partials; optional per-file detail under `app/views` |
+| `rails_get_stimulus` | Stimulus controllers: targets, values, actions, outlets (requires `:stimulus` introspector) |
 
 All tools are **read-only** — they never modify your application or database.
 
@@ -283,12 +285,14 @@ RailsAiBridge.configure do |config|
   # Production only: explicit opt-in + token required (see SECURITY.md)
   # config.allow_auto_mount_in_production = true
   config.http_path  = "/mcp"
+  # Optional: reject HTTP requests when no Bearer/JWT/static auth is configured (safer beyond localhost)
+  # config.mcp.require_http_auth = true
 end
 ```
 
 Clients must send `Authorization: Bearer <token>` when a token is configured.
 
-Security note: keep the HTTP transport bound to `127.0.0.1` unless you add your own network and authentication controls. The tools are read-only, but they can still expose sensitive application structure. In **production**, `rails ai:serve_http` and `auto_mount` require a configured MCP token; `auto_mount` also requires `allow_auto_mount_in_production = true`.
+Security note: keep the HTTP transport bound to `127.0.0.1` unless you add your own network and authentication controls. The tools are read-only, but they can still expose sensitive application structure. In **production**, `rails ai:serve_http` and `auto_mount` require a configured MCP token; `auto_mount` also requires `allow_auto_mount_in_production = true`. For operational hardening (tokens, proxies, `require_http_auth`, stdio threat model), see **[docs/mcp-security.md](docs/mcp-security.md)** and **[SECURITY.md](SECURITY.md)**.
 </details>
 
 ---
@@ -425,6 +429,12 @@ end
 | `allow_auto_mount_in_production` | `false` | Allow `auto_mount` in production (requires MCP token) |
 | `http_mcp_token` | `nil` | Bearer token for HTTP MCP; `ENV["RAILS_AI_BRIDGE_MCP_TOKEN"]` overrides when set |
 | `search_code_allowed_file_types` | `[]` | Extra extensions allowed for `rails_search_code` `file_type` |
+| `search_code_pattern_max_bytes` | `2048` | Maximum `pattern` size (bytes) for `rails_search_code` |
+| `search_code_timeout_seconds` | `5.0` | Wall-clock limit per search (`0` disables); mitigates runaway regex / CPU |
+| `require_http_auth` | `false` | When `true`, HTTP MCP returns `401` if no Bearer/JWT/static auth is configured |
+| `rate_limit_max_requests` | `nil` (profile default) | Per-IP sliding window ceiling (`0` disables); not shared across workers |
+| `rate_limit_window_seconds` | `60` | Sliding window length for HTTP rate limiting |
+| `http_log_json` | `false` | One JSON log line per HTTP MCP response when enabled |
 | `expose_credentials_key_names` | `false` | Include `credentials_keys` in config introspection / `rails://config` |
 | `additional_introspectors` | `{}` | Optional custom introspector classes keyed by symbol |
 | `additional_tools` | `[]` | Optional MCP tool classes appended to the built-in toolset |
@@ -432,6 +442,8 @@ end
 | `http_path` | `"/mcp"` | HTTP endpoint path |
 | `http_port` | `6029` | HTTP server port |
 | `cache_ttl` | `30` | Cache TTL in seconds |
+
+Other HTTP MCP knobs live only on the nested object, for example `RailsAiBridge.configuration.mcp.authorize`, `mcp.mode`, `mcp.security_profile`, and `mcp.require_auth_in_production` — see [docs/GUIDE.md](docs/GUIDE.md) and [docs/mcp-security.md](docs/mcp-security.md).
 </details>
 
 ### Extending the built-ins
@@ -532,10 +544,11 @@ The gem parses `db/schema.rb` as text when no database is connected. Works in CI
 |----------|-------------|
 | [docs/GUIDE.md](docs/GUIDE.md) | Full reference — every command, option, MCP parameter, and AI assistant setup |
 | [docs/BEST_PRACTICES.md](docs/BEST_PRACTICES.md) | Client compatibility matrix, token optimization, staleness management, per-assistant tips |
+| [docs/mcp-security.md](docs/mcp-security.md) | MCP HTTP hardening — tokens, `require_http_auth`, rate limits, proxies, stdio model |
 | [UPGRADING.md](UPGRADING.md) | Migration guide when upgrading between major versions |
 | [CHANGELOG.md](CHANGELOG.md) | Full version history and release notes |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Dev setup, adding introspectors/tools, PR process, and release checklist |
-| [SECURITY.md](SECURITY.md) | Security policy, vulnerability reporting, and HTTP MCP auth guidance |
+| [SECURITY.md](SECURITY.md) | Security policy, vulnerability reporting, design notes, and HTTP MCP authentication |
 | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Community standards |
 
 ---
