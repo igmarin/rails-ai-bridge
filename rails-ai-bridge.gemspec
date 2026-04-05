@@ -8,13 +8,13 @@ Gem::Specification.new do |spec|
   spec.authors       = [ "Ismael Marin" ]
   spec.email         = [ "ismael.marin@gmail.com" ]
 
-  spec.summary       = "Give AI assistants deep, live knowledge of your Rails app via MCP."
-  spec.description   = <<~DESC
-    rails-ai-bridge automatically introspects your Rails application and exposes
-    models, routes, schema, controllers, views, jobs, mailers, Turbo/Hotwire,
-    auth, API layer, tests, config, and conventions through the Model Context
-    Protocol (MCP). Works with Claude Code, Cursor, Windsurf, GitHub Copilot, and
-    any MCP-compatible AI tool. Zero configuration required.
+  spec.summary       = "Senior-grade AI context and semantic model tiering for Ruby on Rails."
+  spec.description   = <<~DESC.gsub(/\s+/, " ").strip
+    Rails-AI-Bridge introspects your Rails application and exposes structure to AI assistants via
+    static context files and a live Model Context Protocol (MCP) server. It classifies Active Record
+    models semantically (Core, Join, Supporting), optionally surfaces non-ActiveRecord Ruby classes
+    under app/models (tagged POJO/Service), and integrates with editors and assistants such as
+    Claude, Gemini, Cursor, and Windsurf.
   DESC
 
   spec.homepage      = "https://github.com/igmarin/rails-ai-bridge"
