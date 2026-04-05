@@ -51,6 +51,19 @@ RSpec.describe RailsAiBridge::Generators::InstallGenerator do
       content = File.read(File.join(destination_root, "config/initializers/rails_ai_bridge.rb"))
       expect(content).to include("mcp_jwt_decoder")
     end
+
+    it "documents core_models configuration option" do
+      generator.create_initializer
+      content = File.read(File.join(destination_root, "config/initializers/rails_ai_bridge.rb"))
+      expect(content).to include("core_models")
+    end
+
+    it "documents core_models as a commented-out example" do
+      generator.create_initializer
+      content = File.read(File.join(destination_root, "config/initializers/rails_ai_bridge.rb"))
+      # Should be a comment showing an example like: # config.core_models += %w[User Order Project]
+      expect(content).to match(/# config\.core_models/)
+    end
   end
 
   describe "#show_instructions" do
