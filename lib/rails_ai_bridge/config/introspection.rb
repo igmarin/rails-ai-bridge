@@ -54,7 +54,19 @@ module RailsAiBridge
       # - `@additional_introspectors` to an empty hash
       # - `@search_code_allowed_file_types` to an empty array
       # - `@search_code_pattern_max_bytes` to `2048`
-      # - `@search_code_timeout_seconds` to `5.0`
+      ##
+      # Initializes Introspection configuration with sensible defaults.
+      # Sets:
+      # - @introspectors to a duplicate of Configuration::PRESETS[:standard]
+      # - @excluded_paths to ["node_modules", "tmp", "log", "vendor", ".git"]
+      # - @excluded_models to common Rails/ActiveStorage/Action* classes
+      # - @core_models, @excluded_tables, and @disabled_introspection_categories to empty arrays
+      # - @cache_ttl to 30
+      # - @expose_credentials_key_names to false
+      # - @additional_introspectors to an empty hash
+      # - @search_code_allowed_file_types to an empty array
+      # - @search_code_pattern_max_bytes to 2048
+      # - @search_code_timeout_seconds to 5.0
       def initialize
         @introspectors      = Configuration::PRESETS[:standard].dup
         @excluded_paths     = %w[node_modules tmp log vendor .git]

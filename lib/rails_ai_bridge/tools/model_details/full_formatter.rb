@@ -7,7 +7,9 @@ module RailsAiBridge
       # Renders model names with their full association lists and table names.
       class FullFormatter
         # @param models [Hash{String => Hash}] model name => introspection payload
-        # @return [void]
+        ##
+        # Create a FullFormatter configured with model introspection data.
+        # @param [Hash<String, Hash>] models - A mapping of model name to its introspection payload (each payload may include keys such as :table_name, :semantic_tier, :associations, and :error). The hash is stored for use when rendering the formatter output.
         def initialize(models:)
           @models = models
         end
@@ -17,6 +19,15 @@ module RailsAiBridge
         #
         # Models that contain an `:error` key are omitted from the output.
         # Each model is rendered on its own line; a final footer provides a usage hint.
+        ##
+        # Generates a Markdown document summarizing the stored models.
+        #
+        # The output begins with a header "# Models (N)" where N is the number of models,
+        # followed by one bullet line per model (models with `data[:error]` are omitted).
+        # Each model line includes the model name and, when present, the table name,
+        # the semantic tier, and a comma-separated list of associations. The document
+        # ends with an instruction line for querying model details.
+        #
         # @return [String] The Markdown document containing the header, one line per included model, and the footer instruction.
         def call
           lines = [ "# Models (#{@models.size})", "" ]

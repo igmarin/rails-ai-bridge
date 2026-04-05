@@ -9,6 +9,8 @@ class ExampleJob
 
   ##
   # Performs the job for the given user id (no-op stub used for tests).
+  ##
+  # Performs the job for the given user identifier. This method is a no-op used for testing.
   # @param [Object] user_id - The ID of the user.
   def perform(user_id)
     # no-op for testing
