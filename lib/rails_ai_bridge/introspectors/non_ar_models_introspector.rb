@@ -4,16 +4,21 @@ module RailsAiBridge
   module Introspectors
     # Discovers concrete Ruby classes under +app/models+ that do not inherit from
     # {ActiveRecord::Base}, so assistants can surface POJOs and service objects that
-    # would not appear in the ActiveRecord model introspector.
+    # would not appear in ActiveRecord model introspector.
     #
     # After a best-effort eager load (including Zeitwerk +eager_load_dir+ for +app/models+
     # when enabled), entries are derived from +Object.const_source_location+ so anonymous
     # or invalidly named classes are skipped.
+    # @since 2.2.0
     class NonArModelsIntrospector
       # Default label attached to each discovered non-AR class in tool and rules output.
       TAG = "POJO/Service"
 
       # @param app [Rails::Application] host application whose +root+ and paths are used
+      # @example Basic usage
+      #   introspector = NonArModelsIntrospector.new(Rails.application)
+      #   result = introspector.call
+      #   result[:non_ar_models] # => [{ name: "OrderCalculator", relative_path: "app/models/order_calculator.rb", tag: "POJO/Service" }]
       def initialize(app)
         @app = app
         @root = app.root.to_s
@@ -24,6 +29,10 @@ module RailsAiBridge
       # @return [Hash] On success, a hash with key +:non_ar_models+ — an Array of hashes with
       #   keys +:name+ (String), +:relative_path+ (String from app root), and +:tag+ (String, usually the same value as NonArModelsIntrospector::TAG).
       #   On failure, a hash with key +:error+ and a String message.
+      # @example Basic usage
+      #   introspector = NonArModelsIntrospector.new(Rails.application)
+      #   result = introspector.call
+      #   result[:non_ar_models] # => [{ name: "OrderCalculator", relative_path: "app/models/order_calculator.rb", tag: "POJO/Service" }]
       def call
         eager_load!
         models_dir = File.join(@root, "app", "models")
