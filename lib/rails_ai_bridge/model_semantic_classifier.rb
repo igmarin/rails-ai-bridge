@@ -39,14 +39,22 @@ module RailsAiBridge
     end
 
     # @param core_model_names [Array<String, Symbol>] from {Configuration#core_models}
-    # @param through_model_names [Set<String>, Array<String>] from {.through_join_model_names}
+    ##
+    # Initialize the classifier with configured core and through-join model names.
+    # @param [Array<String>, Set<String>] core_model_names - Model class names treated as core entities; entries are converted to strings and stored as a Set.
+    # @param [Set<String>, Array<String>] through_model_names - Model class names identified as through/join models (typically from `.through_join_model_names`); entries are converted to strings and stored as a Set.
     def initialize(core_model_names: [], through_model_names: Set.new)
       @core = core_model_names.map(&:to_s).to_set
       @through = through_model_names.map(&:to_s).to_set
     end
 
     # @param model [Class] ActiveRecord model
-    # @return [Hash{Symbol => String}] +:tier+ and +:reason+ (machine-oriented; for MCP transparency)
+    ##
+    # Classifies an ActiveRecord model into a semantic tier for downstream semantic context.
+    # @param [Class] model - The ActiveRecord model class to classify.
+    # @return [Hash{Symbol => String}] A hash with keys:
+    #   - :tier => one of "core_entity", "pure_join", "rich_join", or "supporting".
+    #   - :reason => a machine-oriented reason code explaining the classification.
     def call(model)
       return tier(:supporting, "unnamed_model") if model.name.blank?
       return tier(:core_entity, "configured_core_model") if @core.include?(model.name)
@@ -72,6 +80,7 @@ module RailsAiBridge
 
     private
 
+    # @return [Hash] A hash with keys `:tier` (the tier name as a string) and `:reason` (a machine-oriented reason string).
     def classify_without_payload(is_through, belongs_count)
       if is_through && belongs_count >= 2
         tier(:pure_join, "through_join_without_payload_columns")
@@ -80,6 +89,11 @@ module RailsAiBridge
       end
     end
 
+    ##
+    # Determine the tier for a model that has additional (payload) columns.
+    # @param [Boolean] is_through - Whether the model is recognized as a `has_many :through` join model.
+    # @param [Integer] belongs_count - Number of `belongs_to` associations declared on the model.
+    # @return [Hash] A hash with keys `:tier` (String) and `:reason` (String) describing the classification.
     def classify_with_payload(is_through, belongs_count)
       if is_through && belongs_count >= 2
         tier(:rich_join, "through_join_with_payload_columns")
@@ -88,16 +102,31 @@ module RailsAiBridge
       end
     end
 
+    ##
+    # Build a formatted classification hash with stringified tier name and reason.
+    # @param [Symbol,String] name - The tier identifier (e.g., :core_entity, :pure_join).
+    # @param [String] reason - Machine-oriented reason code explaining the classification.
+    # @return [Hash] A hash with keys `:tier` (stringified `name`) and `:reason` (the provided reason).
     def tier(name, reason)
       { tier: name.to_s, reason: reason }
     end
 
+    ##
+    # Retrieve column names for the given model as strings.
+    # @param [Class] model - An ActiveRecord model class or instance that responds to `column_names`.
+    # @return [Array<String>] Column names converted to strings; returns an empty array if the model's columns cannot be read due to an error.
     def safe_column_names(model)
       model.column_names.map(&:to_s)
     rescue StandardError
       []
     end
 
+    ##
+    # Determine which metadata column names are present for a given model.
+    # Checks the BASE_METADATA list, the model's inheritance column, and "lock_version" against the provided column names.
+    # @param [Class] model - The ActiveRecord model class whose inheritance column may be included.
+    # @param [Array<String>] column_names - The list of column names available on the model.
+    # @return [Array<String>] Unique metadata column names from `column_names` (base metadata, the model's inheritance column if present, and `"lock_version"` if present).
     def metadata_column_names(model, column_names)
       meta = BASE_METADATA.select { |c| column_names.include?(c) }
       inc = model.inheritance_column.to_s

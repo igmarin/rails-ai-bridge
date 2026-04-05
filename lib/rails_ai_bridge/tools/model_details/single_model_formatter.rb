@@ -14,7 +14,14 @@ module RailsAiBridge
           @data = data
         end
 
-        # @return [String] full Markdown representation of the model
+        ##
+        # Format model introspection data into a Markdown document.
+        #
+        # The output includes the model name header and, when present in the input data,
+        # sections for table name, semantic tier (and tier reason), associations,
+        # validations, enums, scopes, callbacks, concerns, and up to the first 15 key
+        # instance methods.
+        # @return [String] The complete Markdown representation of the model.
         def call
           lines = [ "# #{@name}", "" ]
           lines << "**Table:** `#{@data[:table_name]}`" if @data[:table_name]

@@ -12,7 +12,12 @@ module RailsAiBridge
           @models = models
         end
 
-        # @return [String] Markdown listing with association details
+        ##
+        # Builds a Markdown listing of models including table name, semantic tier, and associations.
+        #
+        # Models that contain an `:error` key are omitted from the output.
+        # Each model is rendered on its own line; a final footer provides a usage hint.
+        # @return [String] The Markdown document containing the header, one line per included model, and the footer instruction.
         def call
           lines = [ "# Models (#{@models.size})", "" ]
 

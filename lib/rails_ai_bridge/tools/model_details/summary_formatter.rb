@@ -12,7 +12,10 @@ module RailsAiBridge
           @models = models
         end
 
-        # @return [String] Markdown name listing
+        ##
+        # Produce a Markdown summary listing available model names with optional semantic-tier annotations and a total count.
+        # The list is sorted by model name; each entry is rendered as a bullet point and includes " (tier)" when a model's `:semantic_tier` is present.
+        # @return [String] A Markdown-formatted summary containing a header `# Available models (N)`, a newline-separated bullet list of models (each optionally suffixed with ` (tier)`), and the footer `_Use `model:"Name"` for full detail._`
         def call
           model_list = @models.keys.sort.map do |m|
             data = @models[m]

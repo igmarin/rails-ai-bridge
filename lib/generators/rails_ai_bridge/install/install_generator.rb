@@ -22,6 +22,14 @@ module RailsAiBridge
         say "Created .mcp.json (auto-discovered by Claude Code, Cursor, etc.)", :green
       end
 
+      ##
+      # Create the Rails AI Bridge initializer at config/initializers/rails_ai_bridge.rb.
+      #
+      # The generated file is a commented configuration template that documents available
+      # introspector presets (with counts interpolated from Configuration::PRESETS),
+      # security exclusions, context/output controls, assistant override guidance, and
+      # HTTP MCP auto-mount settings. Writes the initializer to disk and prints a
+      # confirmation message.
       def create_initializer
         standard_count = RailsAiBridge::Configuration::PRESETS[:standard].size
         full_count     = RailsAiBridge::Configuration::PRESETS[:full].size
