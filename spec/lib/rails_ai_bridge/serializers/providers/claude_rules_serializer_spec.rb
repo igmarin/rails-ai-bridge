@@ -108,6 +108,55 @@ RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer do
     end
   end
 
+  describe "rails-models.md non-ActiveRecord section" do
+    let(:many_non_ar) do
+      (1..21).map do |i|
+        { name: "Service#{i}", relative_path: "app/models/service#{i}.rb", tag: "POJO/Service" }
+      end
+    end
+
+    let(:heavy_non_ar_context) do
+      context.merge(non_ar_models: { non_ar_models: many_non_ar })
+    end
+
+    def non_ar_bullet_lines(body)
+      body.lines.select { |l| l.match?(/\A- \*\*\[POJO\/Service\]\*\*/) }
+    end
+
+    it "caps non-AR rows in compact context_mode with the same overflow hint as tier lists" do
+      previous_mode = RailsAiBridge.configuration.context_mode
+      RailsAiBridge.configuration.context_mode = :compact
+      Dir.mktmpdir do |dir|
+        described_class.new(heavy_non_ar_context).call(dir)
+        body = File.read(File.join(dir, ".claude", "rules", "rails-models.md"))
+        expect(non_ar_bullet_lines(body).size).to eq(described_class::SEMANTIC_TIER_LIST_CAP)
+        expect(body).to include("+1 more")
+        expect(body).to include('rails_get_model_details(detail:"summary")')
+      end
+    ensure
+      RailsAiBridge.configuration.context_mode = previous_mode
+    end
+
+    context "when context_mode is :full" do
+      around do |example|
+        previous = RailsAiBridge.configuration.context_mode
+        RailsAiBridge.configuration.context_mode = :full
+        example.run
+      ensure
+        RailsAiBridge.configuration.context_mode = previous
+      end
+
+      it "lists every non-AR row without overflow" do
+        Dir.mktmpdir do |dir|
+          described_class.new(heavy_non_ar_context).call(dir)
+          body = File.read(File.join(dir, ".claude", "rules", "rails-models.md"))
+          expect(non_ar_bullet_lines(body).size).to eq(21)
+          expect(body).not_to include("+1 more")
+        end
+      end
+    end
+  end
+
   describe "rails-context.md semantic tier lists" do
     let(:twenty_one_supporting) do
       (1..21).each_with_object({}) do |i, h|

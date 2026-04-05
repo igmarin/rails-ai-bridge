@@ -189,6 +189,9 @@ module RailsAiBridge
         # Builds a Markdown reference listing ActiveRecord models (when any) and optional
         # non-AR +app/models+ classes from {Tools::ModelDetails::NonArModelsAppendix}.
         #
+        # Non-AR rows follow the same compact cap as semantic tier lists ({semantic_tier_names_cap} /
+        # {SEMANTIC_TIER_LIST_CAP}); +:full+ {Configuration#context_mode} lists all rows.
+        #
         # @return [String, nil] Markdown, or +nil+ when +:models+ is invalid or has +:error+,
         #   or when there are no ActiveRecord models and no non-AR rows to list
         def render_models_reference
@@ -220,29 +223,37 @@ module RailsAiBridge
             lines << line
           end
 
-          append_non_ar_models_to_rules(lines, non_ar_section)
+          append_non_ar_models_to_rules(lines, non_ar_entries, semantic_tier_names_cap)
 
           lines.join("\n")
         end
 
-
         # Appends a Markdown subsection for {Introspectors::NonArModelsIntrospector} rows to +lines+.
         #
+        # In compact {Configuration#context_mode}, lists at most {SEMANTIC_TIER_LIST_CAP} rows and adds
+        # an overflow hint (same pattern as {append_tier_model_bullets}). In +:full+ mode, lists every row.
+        #
         # @param lines [Array<String>] mutable buffer for {render_models_reference}
-        # @param section [Hash, nil] +:non_ar_models+ payload (or +nil+)
+        # @param entries [Array<Hash>] normalized rows from {Tools::ModelDetails::NonArModelsAppendix.entries_from}
+        # @param cap [Integer, nil] maximum rows when compact; +nil+ lists all entries
         # @return [void]
-        def append_non_ar_models_to_rules(lines, section)
-          entries = RailsAiBridge::Tools::ModelDetails::NonArModelsAppendix.entries_from(section)
+        def append_non_ar_models_to_rules(lines, entries, cap)
           return if entries.empty?
 
           lines << ""
           lines << "## Non-ActiveRecord classes (POJO/Service)"
-          entries.each do |row|
+          visible = cap.nil? ? entries : entries.first(cap)
+          visible.each do |row|
             name = row[:name] || row["name"]
             path = row[:relative_path] || row["relative_path"]
             tag = row[:tag] || row["tag"] || RailsAiBridge::Tools::ModelDetails::NonArModelsAppendix::DEFAULT_TAG
             lines << "- **[#{tag}]** `#{name}` — `#{path}`"
           end
+
+          remaining = entries.size - visible.size
+          return unless remaining.positive?
+
+          lines << "- … +#{remaining} more (use `rails_get_model_details(detail:\"summary\")` for full list)"
         end
 
         # @return [String] MCP tool reference markdown for Claude rules.
