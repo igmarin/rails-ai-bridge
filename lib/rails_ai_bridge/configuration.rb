@@ -82,6 +82,7 @@ module RailsAiBridge
       :introspectors, :introspectors=,
       :excluded_paths, :excluded_paths=,
       :excluded_models, :excluded_models=,
+      :core_models, :core_models=,
       :excluded_tables, :excluded_tables=,
       :disabled_introspection_categories, :disabled_introspection_categories=,
       :cache_ttl, :cache_ttl=,

@@ -112,8 +112,9 @@ your-rails-app/
 ├── 🟣 Claude Code
 │   ├── CLAUDE.md                                         ≤150 lines (compact)
 │   └── .claude/rules/
+│       ├── rails-context.md                              semantic layer (compact: capped per tier + MCP hint)
 │       ├── rails-schema.md                               table listing
-│       ├── rails-models.md                               model listing
+│       ├── rails-models.md                               model listing (includes semantic tier)
 │       └── rails-mcp-tools.md                            full tool reference
 │
 ├── 🟡 OpenAI Codex
@@ -161,7 +162,7 @@ Each file respects the AI tool's format and size limits. **Commit these files** 
 | Category | What's introspected |
 |----------|-------------------|
 | **Database** | Every table, column, index, foreign key, and migration |
-| **Models** | Associations, validations, scopes, enums, callbacks, concerns, macros (`has_secure_password`, `encrypts`, `normalizes`, etc.) |
+| **Models** | Associations, validations, scopes, enums, callbacks, concerns, macros (`has_secure_password`, `encrypts`, `normalizes`, etc.), **semantic tier** (`core_entity`, `pure_join`, `rich_join`, `supporting`) |
 | **Routing** | Every route with HTTP verbs, paths, controller actions, API namespaces |
 | **Controllers** | Actions, filters, strong params, concerns, API controllers |
 | **Views** | Layouts, templates, partials, helpers, template engines, view components |
@@ -406,6 +407,9 @@ RailsAiBridge.configure do |config|
   # Exclude models from introspection
   config.excluded_models += %w[AdminUser InternalAuditLog]
 
+  # Tag primary domain models as core_entity (semantic context for AI + Claude rules)
+  # config.core_models += %w[User Order Project]
+
   # Exclude paths from code search
   config.excluded_paths += %w[vendor/bundle]
 
@@ -425,6 +429,7 @@ end
 | `claude_max_lines` | `150` | Max lines for CLAUDE.md in compact mode |
 | `max_tool_response_chars` | `120_000` | Safety cap for MCP tool responses |
 | `excluded_models` | internal Rails models | Models to skip during introspection |
+| `core_models` | `[]` | Model names tagged as `core_entity` in introspection and `.claude/rules/` |
 | `excluded_paths` | `node_modules tmp log vendor .git` | Paths excluded from code search |
 | `auto_mount` | `false` | Auto-mount HTTP MCP endpoint |
 | `allow_auto_mount_in_production` | `false` | Allow `auto_mount` in production (requires MCP token) |

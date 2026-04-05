@@ -13,6 +13,9 @@ module RailsAiBridge
       # @return [Array<String>] model class names excluded from introspection
       attr_accessor :excluded_models
 
+      # @return [Array<String>] model class names tagged as +core_entity+ in semantic classification (AI focus)
+      attr_accessor :core_models
+
       # @return [Array<String>] table names/patterns excluded from schema introspection
       attr_accessor :excluded_tables
 
@@ -37,6 +40,33 @@ module RailsAiBridge
       # @return [Float] seconds before {Tools::SearchCode} aborts (+0+ disables the timeout)
       attr_accessor :search_code_timeout_seconds
 
+      ##
+      # Set default configuration values for introspection.
+      # Initializes:
+      # - `@introspectors` to a duplicated copy of `Configuration::PRESETS[:standard]`
+      # - `@excluded_paths` to `["node_modules", "tmp", "log", "vendor", ".git"]`
+      # - `@excluded_models` to common Rails framework and ActiveStorage/Action* classes
+      # - `@core_models` to an empty array (model class names treated as core entities)
+      # - `@excluded_tables` to an empty array
+      # - `@disabled_introspection_categories` to an empty array
+      # - `@cache_ttl` to `30`
+      # - `@expose_credentials_key_names` to `false`
+      # - `@additional_introspectors` to an empty hash
+      # - `@search_code_allowed_file_types` to an empty array
+      # - `@search_code_pattern_max_bytes` to `2048`
+      ##
+      # Initializes Introspection configuration with sensible defaults.
+      # Sets:
+      # - @introspectors to a duplicate of Configuration::PRESETS[:standard]
+      # - @excluded_paths to ["node_modules", "tmp", "log", "vendor", ".git"]
+      # - @excluded_models to common Rails/ActiveStorage/Action* classes
+      # - @core_models, @excluded_tables, and @disabled_introspection_categories to empty arrays
+      # - @cache_ttl to 30
+      # - @expose_credentials_key_names to false
+      # - @additional_introspectors to an empty hash
+      # - @search_code_allowed_file_types to an empty array
+      # - @search_code_pattern_max_bytes to 2048
+      # - @search_code_timeout_seconds to 5.0
       def initialize
         @introspectors      = Configuration::PRESETS[:standard].dup
         @excluded_paths     = %w[node_modules tmp log vendor .git]
@@ -46,6 +76,7 @@ module RailsAiBridge
           ActionText::RichText ActionText::EncryptedRichText
           ActionMailbox::InboundEmail ActionMailbox::Record
         ]
+        @core_models                       = []
         @excluded_tables                   = []
         @disabled_introspection_categories = []
         @cache_ttl                         = 30

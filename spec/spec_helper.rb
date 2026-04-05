@@ -4,9 +4,16 @@ require_relative "simplecov_helper"
 require 'bundler/setup'
 require "combustion"
 
+# Resolve the dummy app under project ./spec/internal (gem default "/spec/internal" is an absolute path).
+Combustion.path = "spec/internal"
+
 Combustion.initialize! :active_record, :action_controller do
   config.eager_load = false
 end
+
+# Combustion schedules DB setup in a +to_prepare+ hook; RSpec examples can run before
+# that fires, leaving :memory: SQLite empty. Load schema synchronously for deterministic specs.
+Combustion::Database.setup
 
 require "rails_ai_bridge"
 

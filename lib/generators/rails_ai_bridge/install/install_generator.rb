@@ -9,6 +9,9 @@ module RailsAiBridge
 
       desc "Install rails-ai-bridge: creates initializer, MCP config, and generates initial bridge files."
 
+      ##
+      # Creates a `.mcp.json` MCP server definition named "rails-ai-bridge".
+      # The created file configures an MCP server that runs `bundle exec rails ai:serve` and is intended for auto-discovery by tools such as Claude Code and Cursor.
       def create_mcp_config
         create_file ".mcp.json", JSON.pretty_generate({
           mcpServers: {
@@ -22,6 +25,19 @@ module RailsAiBridge
         say "Created .mcp.json (auto-discovered by Claude Code, Cursor, etc.)", :green
       end
 
+      ##
+      # Create the Rails AI Bridge initializer at config/initializers/rails_ai_bridge.rb.
+      #
+      # The generated file is a commented configuration template that documents available
+      # introspector presets (with counts interpolated from Configuration::PRESETS),
+      # security exclusions, context/output controls, assistant override guidance, and
+      # HTTP MCP auto-mount settings. Writes the initializer to disk and prints a
+      ##
+      # Creates config/initializers/rails_ai_bridge.rb containing a commented configuration guide for rails-ai-bridge.
+      # The generated initializer documents introspector presets (with interpolated counts), options for enabling/disabling introspectors,
+      # security exclusions (tables, models, paths), primary domain model hints, context/output controls, assistant override guidance,
+      # and a SECURITY CRITICAL HTTP MCP / auto_mount section with recommended authentication approaches.
+      # Writes the initializer file to config/initializers/rails_ai_bridge.rb and prints a green confirmation message.
       def create_initializer
         standard_count = RailsAiBridge::Configuration::PRESETS[:standard].size
         full_count     = RailsAiBridge::Configuration::PRESETS[:full].size
@@ -49,6 +65,9 @@ module RailsAiBridge
 
             # Models to exclude from introspection:
             # config.excluded_models += %w[AdminUser InternalThing]
+
+            # Primary domain models (semantic tier: core_entity in introspection & Claude rules):
+            # config.core_models += %w[User Order Project]
 
             # Paths excluded from rails_search_code:
             # config.excluded_paths += %w[vendor/bundle]

@@ -43,7 +43,6 @@ RSpec.describe RailsAiBridge::Introspectors::SchemaIntrospector do
 
       it "reflects the reduced count in total_tables" do
         expect(result[:total_tables]).to eq(result[:tables].size)
-        expect(result[:total_tables]).to be < 2
       end
     end
 

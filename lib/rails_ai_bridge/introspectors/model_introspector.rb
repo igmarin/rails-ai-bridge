@@ -9,18 +9,35 @@ module RailsAiBridge
 
       EXCLUDED_CALLBACKS = %w[autosave_associated_records_for].freeze
 
+      ##
+      # Initializes the ModelIntrospector with the host Rails application and loads the library configuration.
+      # @param [Object] app - The Rails application instance to introspect.
       def initialize(app)
         @app    = app
         @config = RailsAiBridge.configuration
       end
 
-      # @return [Hash] model metadata keyed by model name
+      ##
+      # Builds a hash of discovered ActiveRecord model metadata keyed by model name.
+      # For each model, performs semantic classification and collects table name,
+      # associations, validations, scopes, enums, callbacks, concerns, public methods,
+      # and source-based macro signals; if extraction for a model raises, records
+      # `{ error: <message> }` for that model.
+      ##
+      # Builds a metadata map for all discovered ActiveRecord models.
+      # For each model, the map contains the extracted metadata hash; if extraction fails for a model, its value will be a hash with an `:error` key and the error message.
+      # @return [Hash<String, Hash>] Mapping from model name to its metadata hash or `{ error: String }` on failure.
       def call
         eager_load_models!
         models = discover_models
+        through_names = ModelSemanticClassifier.through_join_model_names
+        classifier = ModelSemanticClassifier.new(
+          core_model_names: config.core_models,
+          through_model_names: through_names
+        )
 
         models.each_with_object({}) do |model, hash|
-          hash[model.name] = extract_model_details(model)
+          hash[model.name] = extract_model_details(model, classifier)
         rescue => e
           hash[model.name] = { error: e.message }
         end
@@ -35,6 +52,10 @@ module RailsAiBridge
         nil
       end
 
+      ##
+      # Determines whether the model's database table is excluded by the inspector configuration.
+      # @param [Class] model - The ActiveRecord model class whose table name will be checked.
+      # @return [Boolean] `true` if the model's table name is listed as excluded in the configuration, `false` otherwise (returns `false` if the model has no table name or if an error occurs while retrieving it).
       def model_table_excluded?(model)
         # model.table_name can raise on STI subclasses that inherit a non-existent table
         tn = model.table_name
@@ -45,6 +66,19 @@ module RailsAiBridge
         false
       end
 
+      ##
+      # Discovers application ActiveRecord model classes subject to configuration and table exclusions.
+      #
+      # Returns an array of model classes sorted by name. The list excludes:
+      # - models if `ActiveRecord::Base` is not defined (returns an empty array),
+      # - abstract models,
+      # - models without a name,
+      # - models whose name appears in `config.excluded_models`,
+      # - models whose table is excluded via `model_table_excluded?`.
+      ##
+      # Finds all non-abstract ActiveRecord model classes in the application, excluding models with no name, models listed in configuration, or models whose table is excluded, and returns them sorted by class name.
+      # Returns an empty array if `ActiveRecord::Base` is not defined.
+      # @return [Array<Class>] Array of discovered model classes sorted by name.
       def discover_models
         return [] unless defined?(ActiveRecord::Base)
 
@@ -56,7 +90,42 @@ module RailsAiBridge
         end.sort_by(&:name)
       end
 
-      def extract_model_details(model)
+      ##
+      # Builds a hash of introspected metadata for the given ActiveRecord model.
+      # @param [Class] model - The ActiveRecord model class to inspect.
+      # @param [#call] classifier - An object that responds to `call(model)` and returns a hash containing `:tier` and `:reason` for semantic classification.
+      # @return [Hash] A compacted hash of model metadata including:
+      #   - :table_name => String model's table name
+      #   - :associations => Array of association descriptors
+      #   - :validations => Array of validation descriptors
+      #   - :scopes => Array of scope names
+      #   - :enums => Hash of enum attribute => Array of keys
+      #   - :callbacks => Hash of callbacks by type
+      #   - :concerns => Array of included concern module names
+      #   - :class_methods => Array of public class method names
+      #   - :instance_methods => Array of public instance method names
+      #   - :semantic_tier => Value returned as `:tier` by the classifier
+      #   - :semantic_tier_reason => Value returned as `:reason` by the classifier
+      ##
+      # Build a metadata hash describing the given ActiveRecord model.
+      # Populates model structural metadata, semantic classification results, and source-derived macro signals.
+      # @param [Class] model - The ActiveRecord model class to introspect.
+      # @param [Object] classifier - A semantic classifier responding to `call(model)` that returns a hash with `:tier` and `:reason`.
+      # @return [Hash] A compacted hash of metadata including:
+      #   - `:table_name` - model's table name
+      #   - `:associations` - array of association descriptors
+      #   - `:validations` - array of validation descriptors
+      #   - `:scopes` - array of scope names
+      #   - `:enums` - hash of enum attributes to keys
+      #   - `:callbacks` - hash of callbacks by type
+      #   - `:concerns` - array of included concern module names
+      #   - `:class_methods` - array of public class method names (capped)
+      #   - `:instance_methods` - array of public instance method names (capped)
+      #   - `:semantic_tier` - classifier-assigned tier
+      #   - `:semantic_tier_reason` - classifier-provided reason
+      #   - additional keys extracted from the model source (e.g., `:has_secure_password`, `:encrypts`, attachment macros, `:delegations`, etc.)
+      #   Nil-valued entries are removed from the returned hash.
+      def extract_model_details(model, classifier)
         details = {
           table_name: model.table_name,
           associations: extract_associations(model),
@@ -68,6 +137,10 @@ module RailsAiBridge
           class_methods: extract_public_class_methods(model),
           instance_methods: extract_public_instance_methods(model)
         }
+
+        tier = classifier.call(model)
+        details[:semantic_tier] = tier[:tier]
+        details[:semantic_tier_reason] = tier[:reason]
 
         # Source-based macro extractions
         macros = extract_source_macros(model)
