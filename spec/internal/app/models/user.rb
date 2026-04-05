@@ -2,6 +2,8 @@
 
 class User < ApplicationRecord
   has_many :posts, dependent: :destroy
+  has_many :memberships, dependent: :destroy
+  has_many :groups, through: :memberships
 
   validates :email, presence: true
 

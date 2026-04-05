@@ -6,6 +6,10 @@ require "spec_helper"
 require_relative "../../../internal/app/models/application_record"
 require_relative "../../../internal/app/models/user"
 require_relative "../../../internal/app/models/post"
+require_relative "../../../internal/app/models/category"
+require_relative "../../../internal/app/models/categorization"
+require_relative "../../../internal/app/models/group"
+require_relative "../../../internal/app/models/membership"
 
 RSpec.describe RailsAiBridge::Introspectors::ModelIntrospector do
   let(:introspector) { described_class.new(Rails.application) }
@@ -46,6 +50,24 @@ RSpec.describe RailsAiBridge::Introspectors::ModelIntrospector do
     it "extracts table names" do
       expect(result["User"][:table_name]).to eq("users")
       expect(result["Post"][:table_name]).to eq("posts")
+    end
+
+    it "includes semantic_tier and semantic_tier_reason" do
+      expect(result["Categorization"][:semantic_tier]).to eq("pure_join")
+      expect(result["Membership"][:semantic_tier]).to eq("rich_join")
+      expect(result["Post"][:semantic_tier]).to eq("supporting")
+      expect(result["User"][:semantic_tier]).to eq("supporting")
+      expect(result["Categorization"][:semantic_tier_reason]).to be_a(String)
+    end
+
+    context "with core_models configured" do
+      after { RailsAiBridge.configuration.core_models.clear }
+
+      it "tags configured models as core_entity" do
+        RailsAiBridge.configuration.core_models << "User"
+        data = described_class.new(Rails.application).call["User"]
+        expect(data[:semantic_tier]).to eq("core_entity")
+      end
     end
 
     it "extracts concerns as array" do

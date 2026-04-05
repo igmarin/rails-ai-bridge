@@ -18,6 +18,10 @@ module RailsAiBridge
         def call
           lines = [ "# #{@name}", "" ]
           lines << "**Table:** `#{@data[:table_name]}`" if @data[:table_name]
+          if @data[:semantic_tier].present?
+            lines << "**Semantic tier:** `#{@data[:semantic_tier]}`"
+            lines << "**Tier reason:** #{@data[:semantic_tier_reason]}" if @data[:semantic_tier_reason].present?
+          end
 
           if @data[:associations]&.any?
             lines << "" << "## Associations"

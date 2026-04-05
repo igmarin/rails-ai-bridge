@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_Targeting **v2.2.0** when Phase 2–3 and final review are done; gem version remains **2.1.0** until that release tag._
+
+### Added
+
+- **Model semantic classification** — Each ActiveRecord model in introspection output now includes `semantic_tier` (`core_entity`, `pure_join`, `rich_join`, `supporting`) and `semantic_tier_reason` for MCP transparency. Join tables used in `has_many :through` are detected; payload columns beyond FKs and metadata yield `rich_join`.
+- **`config.core_models`** — List model class names to tag as `core_entity` for AI-focused context (initializer comment + `Config::Introspection`).
+- **`RailsAiBridge::ModelSemanticClassifier`** — PORO that computes tiers from columns, `belongs_to` foreign keys, and through-association membership.
+- **`.claude/rules/rails-context.md`** — Semantic layer summary (app metadata + models grouped by tier) for Claude Code, alongside existing split rules.
+
+### Changed
+
+- **Claude rules `rails-models.md`** — Each model line includes `tier: …` when present.
+- **`rails_get_model_details` formatters** — Summary, standard, full, and single-model views include semantic tier where applicable.
+- **Combustion test setup** — `Combustion.path` is set to `spec/internal`, `Combustion::Database.setup` runs after boot so `:memory:` SQLite has schema before examples, and the internal `ExampleJob` no longer subclasses `ActiveJob::Base` (Active Job is not loaded in the minimal stack).
+
 ## [2.1.0] - 2026-04-02
 
 ### Added

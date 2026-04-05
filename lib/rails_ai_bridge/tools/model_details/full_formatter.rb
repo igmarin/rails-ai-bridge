@@ -23,6 +23,7 @@ module RailsAiBridge
             assocs = (data[:associations] || []).map { |a| "#{a[:type]} :#{a[:name]}" }.join(", ")
             line = "- **#{name}**"
             line += " (table: #{data[:table_name]})" if data[:table_name]
+            line += " — tier: #{data[:semantic_tier]}" if data[:semantic_tier].present?
             line += " — #{assocs}" unless assocs.empty?
             lines << line
           end

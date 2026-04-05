@@ -18,9 +18,14 @@ module RailsAiBridge
       def call
         eager_load_models!
         models = discover_models
+        through_names = ModelSemanticClassifier.through_join_model_names
+        classifier = ModelSemanticClassifier.new(
+          core_model_names: config.core_models,
+          through_model_names: through_names
+        )
 
         models.each_with_object({}) do |model, hash|
-          hash[model.name] = extract_model_details(model)
+          hash[model.name] = extract_model_details(model, classifier)
         rescue => e
           hash[model.name] = { error: e.message }
         end
@@ -56,7 +61,7 @@ module RailsAiBridge
         end.sort_by(&:name)
       end
 
-      def extract_model_details(model)
+      def extract_model_details(model, classifier)
         details = {
           table_name: model.table_name,
           associations: extract_associations(model),
@@ -68,6 +73,10 @@ module RailsAiBridge
           class_methods: extract_public_class_methods(model),
           instance_methods: extract_public_instance_methods(model)
         }
+
+        tier = classifier.call(model)
+        details[:semantic_tier] = tier[:tier]
+        details[:semantic_tier_reason] = tier[:reason]
 
         # Source-based macro extractions
         macros = extract_source_macros(model)

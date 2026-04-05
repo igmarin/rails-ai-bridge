@@ -14,7 +14,12 @@ module RailsAiBridge
 
         # @return [String] Markdown name listing
         def call
-          model_list = @models.keys.sort.map { |m| "- #{m}" }.join("\n")
+          model_list = @models.keys.sort.map do |m|
+            data = @models[m]
+            tier = data.is_a?(Hash) ? data[:semantic_tier] : nil
+            suffix = tier.present? ? " (#{tier})" : ""
+            "- #{m}#{suffix}"
+          end.join("\n")
           "# Available models (#{@models.size})\n\n#{model_list}\n\n_Use `model:\"Name\"` for full detail._"
         end
       end

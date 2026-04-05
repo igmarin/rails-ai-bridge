@@ -127,15 +127,16 @@ end
 
 ## Generated Files
 
-`rails ai:bridge` generates **18+ files** across all AI assistants (counts include Codex and split rules).
+`rails ai:bridge` generates **19+ files** across all AI assistants (counts include Codex and split rules).
 
-### Claude Code (4 files)
+### Claude Code (5 files)
 
 | File | Purpose | Notes |
 |------|---------|-------|
 | `CLAUDE.md` | Main context file | ≤150 lines in compact mode. Claude Code reads this automatically. |
+| `.claude/rules/rails-context.md` | Semantic layer | App metadata + models grouped by `semantic_tier` (`core_entity`, `pure_join`, `rich_join`, `supporting`). |
 | `.claude/rules/rails-schema.md` | Database table listing | Auto-loaded by Claude Code alongside CLAUDE.md. |
-| `.claude/rules/rails-models.md` | Model listing with associations | Auto-loaded by Claude Code alongside CLAUDE.md. |
+| `.claude/rules/rails-models.md` | Model listing with associations | Includes `tier: …` per model when introspection provides it. |
 | `.claude/rules/rails-mcp-tools.md` | Full MCP tool reference | Parameters, detail levels, pagination, workflow guide. |
 
 ### Cursor (6 files)
@@ -622,6 +623,9 @@ RailsAiBridge.configure do |config|
   # Models to skip during introspection
   config.excluded_models += %w[AdminUser InternalAuditLog]
 
+  # Primary domain models (semantic tier: core_entity in introspection + Claude rules)
+  # config.core_models += %w[User Order Project]
+
   # Paths to exclude from code search
   config.excluded_paths += %w[vendor/bundle]
 
@@ -657,6 +661,7 @@ end
 | `max_tool_response_chars` | Integer | `120_000` | Safety cap for MCP tool responses |
 | `cache_ttl` | Integer | `30` | Cache TTL in seconds for introspection results |
 | `excluded_models` | Array | internal Rails models | Models to skip |
+| `core_models` | Array | `[]` | Model names tagged as `core_entity` in introspection output and `.claude/rules/rails-context.md` |
 | `excluded_paths` | Array | `node_modules tmp log vendor .git` | Paths excluded from code search |
 | `output_dir` | String | `nil` (Rails.root) | Where to write context files |
 | `auto_mount` | Boolean | `false` | Auto-mount HTTP MCP endpoint |
@@ -685,7 +690,7 @@ These run by default. Fast and cover core Rails structure.
 | Introspector | What it discovers |
 |-------------|-------------------|
 | `schema` | Tables, columns, types, indexes, foreign keys, primary keys. Falls back to `db/schema.rb` parsing when no DB connected. |
-| `models` | Associations, validations, scopes, enums, callbacks, concerns, instance methods, class methods. Source-level macros: `has_secure_password`, `encrypts`, `normalizes`, `delegate`, `serialize`, `store`, `generates_token_for`, `has_one_attached`, `has_many_attached`, `has_rich_text`, `broadcasts_to`. |
+| `models` | Associations, validations, scopes, enums, callbacks, concerns, instance methods, class methods. Source-level macros: `has_secure_password`, `encrypts`, `normalizes`, `delegate`, `serialize`, `store`, `generates_token_for`, `has_one_attached`, `has_many_attached`, `has_rich_text`, `broadcasts_to`. **Semantic tier** per model: `core_entity` (from `config.core_models`), `pure_join` / `rich_join` (through join tables), or `supporting`. |
 | `routes` | All routes with HTTP verbs, paths, controller actions, route names, API namespaces, mounted engines. |
 | `jobs` | ActiveJob classes with queue names. Mailers with action methods. Action Cable channels. |
 | `gems` | 70+ notable gems categorized: auth, background_jobs, admin, monitoring, search, pagination, forms, file_upload, testing, linting, security, api, frontend, utilities. |

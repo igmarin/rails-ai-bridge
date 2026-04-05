@@ -13,6 +13,9 @@ module RailsAiBridge
       # @return [Array<String>] model class names excluded from introspection
       attr_accessor :excluded_models
 
+      # @return [Array<String>] model class names tagged as +core_entity+ in semantic classification (AI focus)
+      attr_accessor :core_models
+
       # @return [Array<String>] table names/patterns excluded from schema introspection
       attr_accessor :excluded_tables
 
@@ -46,6 +49,7 @@ module RailsAiBridge
           ActionText::RichText ActionText::EncryptedRichText
           ActionMailbox::InboundEmail ActionMailbox::Record
         ]
+        @core_models                       = []
         @excluded_tables                   = []
         @disabled_introspection_categories = []
         @cache_ttl                         = 30

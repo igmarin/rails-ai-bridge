@@ -50,6 +50,9 @@ module RailsAiBridge
             # Models to exclude from introspection:
             # config.excluded_models += %w[AdminUser InternalThing]
 
+            # Primary domain models (semantic tier: core_entity in introspection & Claude rules):
+            # config.core_models += %w[User Order Project]
+
             # Paths excluded from rails_search_code:
             # config.excluded_paths += %w[vendor/bundle]
 

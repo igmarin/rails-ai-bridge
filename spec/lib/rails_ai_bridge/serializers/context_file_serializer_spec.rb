@@ -22,7 +22,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
         described_class.new(context, format: :claude).call
         result = described_class.new(context, format: :claude).call
-        # 1 main file + 2 claude/rules files = 3 total skipped
+        # 1 main file + 4 .claude/rules/ files = 5 total skipped when unchanged
         expect(result[:skipped].size).to be >= 1
         expect(result[:written]).to be_empty
       end
@@ -33,7 +33,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
         serializer = described_class.new(context, format: :claude)
         result = serializer.call
-        # 1 CLAUDE.md + 2 .claude/rules/ files = 3
+        # 1 CLAUDE.md + 4 .claude/rules/ files (minimum written set varies)
         expect(result[:written].size).to be >= 1
         expect(result[:written].any? { |f| f.end_with?("CLAUDE.md") }).to be true
       end

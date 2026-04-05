@@ -17,6 +17,10 @@ RSpec.describe RailsAiBridge::Config::Introspection do
     expect(introspection.excluded_models).to include("ApplicationRecord", "ActiveStorage::Blob")
   end
 
+  it "defaults core_models to []" do
+    expect(introspection.core_models).to eq([])
+  end
+
   it "defaults excluded_tables to []" do
     expect(introspection.excluded_tables).to eq([])
   end
