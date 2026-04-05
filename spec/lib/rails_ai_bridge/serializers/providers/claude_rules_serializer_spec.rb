@@ -19,6 +19,11 @@ RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer do
       models: {
         "User" => { table_name: "users", semantic_tier: "core_entity", associations: [ { type: "has_many", name: "posts" } ], validations: [] },
         "Post" => { table_name: "posts", semantic_tier: "supporting", associations: [ { type: "belongs_to", name: "user" } ], validations: [] }
+      },
+      non_ar_models: {
+        non_ar_models: [
+          { name: "OrderCalculator", relative_path: "app/models/order_calculator.rb", tag: "POJO/Service" }
+        ]
       }
     }
   end
@@ -47,6 +52,8 @@ RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer do
       expect(content).to include("User")
       expect(content).to include("tier: core_entity")
       expect(content).to include("rails_get_model_details")
+      expect(content).to include("OrderCalculator")
+      expect(content).to include("POJO/Service")
 
       tools_file = File.join(dir, ".claude", "rules", "rails-mcp-tools.md")
       expect(File.exist?(tools_file)).to be true
@@ -98,6 +105,8 @@ RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer do
     end
 
     it "caps names per tier in compact mode with an MCP overflow hint" do
+      previous_mode = RailsAiBridge.configuration.context_mode
+      RailsAiBridge.configuration.context_mode = :compact
       Dir.mktmpdir do |dir|
         described_class.new(bulky_context).call(dir)
         body = File.read(File.join(dir, ".claude", "rules", "rails-context.md"))
@@ -106,6 +115,8 @@ RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer do
         expect(body).to include("+1 more")
         expect(body).to include("rails_get_model_details")
       end
+    ensure
+      RailsAiBridge.configuration.context_mode = previous_mode
     end
 
     context "when context_mode is :full" do

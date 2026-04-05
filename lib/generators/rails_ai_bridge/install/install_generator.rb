@@ -48,7 +48,7 @@ module RailsAiBridge
 
           RailsAiBridge.configure do |config|
             # --- Introspector preset ---
-            #   :standard  — #{standard_count} core introspectors (schema, models, routes, jobs, gems, conventions, controllers, tests, migrations)
+            #   :standard  — #{standard_count} core introspectors (schema, models, non_ar_models, routes, jobs, gems, conventions, controllers, tests, migrations)
             #   :full      — all #{full_count} introspectors (adds views, turbo, auth, API, config, assets, devops, etc.)
             #   :regulated — #{regulated_count} introspectors — no schema/models/migrations (for apps with strict data governance)
             # config.preset = :standard
@@ -56,7 +56,7 @@ module RailsAiBridge
             # Or cherry-pick individual introspectors:
             # config.introspectors += %i[views turbo auth api]
 
-            # Disable whole product categories at runtime (schema + models + migrations, api, views/turbo/i18n):
+            # Disable whole product categories at runtime (schema + models + non_ar_models + migrations, api, views/turbo/i18n):
             # config.disabled_introspection_categories << :domain_metadata
 
             # --- Security exclusions ---

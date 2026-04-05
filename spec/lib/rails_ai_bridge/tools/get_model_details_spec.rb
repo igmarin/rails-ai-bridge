@@ -10,8 +10,15 @@ RSpec.describe RailsAiBridge::Tools::GetModelDetails do
     }
   end
 
+  let(:non_ar_empty) { { non_ar_models: [] } }
+
   before do
-    allow(described_class).to receive(:cached_section).with(:models).and_return(models_data)
+    allow(described_class).to receive(:cached_section) do |sym|
+      case sym
+      when :models then models_data
+      when :non_ar_models then non_ar_empty
+      end
+    end
   end
 
   let(:response) { described_class.call(**params) }
@@ -62,7 +69,41 @@ RSpec.describe RailsAiBridge::Tools::GetModelDetails do
       let(:params) { { model: "Missing" } }
 
       it "returns a helpful error message" do
-        expect(content).to include("Model 'Missing' not found. Available: Post, User")
+        expect(content).to include("Model 'Missing' not found. Available AR: Post, User")
+      end
+    end
+
+    context "when requesting a non-ActiveRecord class under app/models" do
+      let(:non_ar_empty) do
+        {
+          non_ar_models: [
+            { name: "OrderCalculator", relative_path: "app/models/order_calculator.rb", tag: "POJO/Service" }
+          ]
+        }
+      end
+
+      let(:params) { { model: "OrderCalculator" } }
+
+      it "returns a POJO/Service detail stub" do
+        expect(content).to include("# OrderCalculator (POJO/Service)")
+        expect(content).to include("app/models/order_calculator.rb")
+      end
+    end
+
+    context "when non_ar_models section has entries in a listing" do
+      let(:non_ar_empty) do
+        {
+          non_ar_models: [
+            { name: "OrderCalculator", relative_path: "app/models/order_calculator.rb", tag: "POJO/Service" }
+          ]
+        }
+      end
+      let(:params) { { detail: "summary" } }
+
+      it "appends a Non-ActiveRecord section" do
+        expect(content).to include("## Non-ActiveRecord classes")
+        expect(content).to include("OrderCalculator")
+        expect(content).to include("[POJO/Service]")
       end
     end
   end

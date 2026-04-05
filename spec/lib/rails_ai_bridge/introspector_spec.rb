@@ -29,6 +29,7 @@ RSpec.describe RailsAiBridge::Introspector do
 
       expect(result).to have_key(:schema)
       expect(result).to have_key(:models)
+      expect(result).to have_key(:non_ar_models)
       expect(result).to have_key(:routes)
       expect(result).to have_key(:jobs)
       expect(result).to have_key(:gems)

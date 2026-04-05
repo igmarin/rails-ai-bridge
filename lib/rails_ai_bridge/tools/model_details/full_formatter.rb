@@ -2,33 +2,19 @@
 
 module RailsAiBridge
   module Tools
-    # Markdown formatters for {Tools::GetModelDetails}.
     module ModelDetails
-      # Renders model names with their full association lists and table names.
+      # Renders ActiveRecord model names with table names, tiers, and full association lists.
       class FullFormatter
-        # @param models [Hash{String => Hash}] model name => introspection payload
-        ##
-        # Create a FullFormatter configured with model introspection data.
-        # @param [Hash<String, Hash>] models - A mapping of model name to its introspection payload (each payload may include keys such as :table_name, :semantic_tier, :associations, and :error). The hash is stored for use when rendering the formatter output.
-        def initialize(models:)
+        # @param models [Hash{String => Hash}] payloads may include +:table_name+, +:semantic_tier+, +:associations+, +:error+
+        # @param non_ar_models [Hash, nil] optional +:non_ar_models+ section; appended via {NonArModelsAppendix}
+        def initialize(models:, non_ar_models: nil)
           @models = models
+          @non_ar_models = non_ar_models
         end
 
-        ##
-        # Builds a Markdown listing of models including table name, semantic tier, and associations.
+        # Builds Markdown with header `# Models (N)` and detailed bullets per model, plus optional POJO appendix.
         #
-        # Models that contain an `:error` key are omitted from the output.
-        # Each model is rendered on its own line; a final footer provides a usage hint.
-        ##
-        # Generates a Markdown document summarizing the stored models.
-        #
-        # The output begins with a header "# Models (N)" where N is the number of models,
-        # followed by one bullet line per model (models with `data[:error]` are omitted).
-        # Each model line includes the model name and, when present, the table name,
-        # the semantic tier, and a comma-separated list of associations. The document
-        # ends with an instruction line for querying model details.
-        #
-        # @return [String] The Markdown document containing the header, one line per included model, and the footer instruction.
+        # @return [String] Markdown document
         def call
           lines = [ "# Models (#{@models.size})", "" ]
 
@@ -45,7 +31,7 @@ module RailsAiBridge
           end
 
           lines << "" << "_Use `model:\"Name\"` for validations, scopes, callbacks, and more._"
-          lines.join("\n")
+          lines.join("\n") + NonArModelsAppendix.append_markdown(@non_ar_models)
         end
       end
     end

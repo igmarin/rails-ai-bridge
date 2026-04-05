@@ -56,7 +56,7 @@ RSpec.describe RailsAiBridge::Config::Introspection do
   describe "#preset=" do
     it "sets introspectors from a named preset" do
       introspection.preset = :full
-      expect(introspection.introspectors.size).to eq(26)
+      expect(introspection.introspectors.size).to eq(27)
     end
 
     it "raises on unknown preset" do
@@ -71,7 +71,7 @@ RSpec.describe RailsAiBridge::Config::Introspection do
 
     it "subtracts domain_metadata category" do
       introspection.disabled_introspection_categories << :domain_metadata
-      expect(introspection.effective_introspectors).not_to include(:schema, :models, :migrations)
+      expect(introspection.effective_introspectors).not_to include(:schema, :models, :non_ar_models, :migrations)
     end
   end
 

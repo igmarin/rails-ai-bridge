@@ -219,7 +219,29 @@ module RailsAiBridge
             lines << line
           end
 
+          append_non_ar_models_to_rules(lines, context[:non_ar_models])
+
           lines.join("\n")
+        end
+
+
+        # Appends a Markdown subsection for {Introspectors::NonArModelsIntrospector} rows to +lines+.
+        #
+        # @param lines [Array<String>] mutable buffer for {render_models_reference}
+        # @param section [Hash, nil] +:non_ar_models+ payload (or +nil+)
+        # @return [void]
+        def append_non_ar_models_to_rules(lines, section)
+          entries = RailsAiBridge::Tools::ModelDetails::NonArModelsAppendix.entries_from(section)
+          return if entries.empty?
+
+          lines << ""
+          lines << "## Non-ActiveRecord classes (POJO/Service)"
+          entries.each do |row|
+            name = row[:name] || row["name"]
+            path = row[:relative_path] || row["relative_path"]
+            tag = row[:tag] || row["tag"] || RailsAiBridge::Tools::ModelDetails::NonArModelsAppendix::DEFAULT_TAG
+            lines << "- **[#{tag}]** `#{name}` — `#{path}`"
+          end
         end
 
         # @return [String] MCP tool reference markdown for Claude rules.
@@ -243,6 +265,7 @@ module RailsAiBridge
             "- `rails_get_model_details(detail:\"summary\")` — list all model names",
             "- `rails_get_model_details(model:\"User\")` — associations, validations, scopes, enums, callbacks",
             "- `rails_get_model_details(detail:\"full\")` — all models with full association lists",
+            "- Plain Ruby classes under app/models (not ActiveRecord) appear in listings as [POJO/Service]; `model:\"Name\"` returns a short file-path summary.",
             "",
             "## rails_get_routes",
             "Params: `controller`, `detail`, `limit`, `offset`",

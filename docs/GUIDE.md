@@ -136,7 +136,7 @@ end
 | `CLAUDE.md` | Main context file | ≤150 lines in compact mode. Claude Code reads this automatically. |
 | `.claude/rules/rails-context.md` | Semantic layer | App metadata + models grouped by `semantic_tier`. In **compact** mode, at most 20 names per tier with an overflow line pointing to `rails_get_model_details`; **full** mode lists all. |
 | `.claude/rules/rails-schema.md` | Database table listing | Auto-loaded by Claude Code alongside CLAUDE.md. |
-| `.claude/rules/rails-models.md` | Model listing with associations | Includes `tier: …` per model when introspection provides it. |
+| `.claude/rules/rails-models.md` | Model listing with associations | Includes `tier: …` per ActiveRecord model; adds **Non-ActiveRecord classes (POJO/Service)** for plain Ruby classes under `app/models`. |
 | `.claude/rules/rails-mcp-tools.md` | Full MCP tool reference | Parameters, detail levels, pagination, workflow guide. |
 
 ### Cursor (6 files)
@@ -655,7 +655,7 @@ end
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `preset` | Symbol | `:standard` | Introspector preset (`:standard` or `:full`) |
-| `introspectors` | Array | 9 core symbols | Which introspectors to run |
+| `introspectors` | Array | 10 core symbols | Which introspectors to run |
 | `context_mode` | Symbol | `:compact` | `:compact` or `:full` |
 | `claude_max_lines` | Integer | `150` | Max lines for CLAUDE.md in compact mode |
 | `max_tool_response_chars` | Integer | `120_000` | Safety cap for MCP tool responses |
@@ -683,7 +683,7 @@ end
 
 ## Introspectors — Full List
 
-### Standard preset (9 introspectors)
+### Standard preset (10 introspectors)
 
 These run by default. Fast and cover core Rails structure.
 
@@ -691,6 +691,7 @@ These run by default. Fast and cover core Rails structure.
 |-------------|-------------------|
 | `schema` | Tables, columns, types, indexes, foreign keys, primary keys. Falls back to `db/schema.rb` parsing when no DB connected. |
 | `models` | Associations, validations, scopes, enums, callbacks, concerns, instance methods, class methods. Source-level macros: `has_secure_password`, `encrypts`, `normalizes`, `delegate`, `serialize`, `store`, `generates_token_for`, `has_one_attached`, `has_many_attached`, `has_rich_text`, `broadcasts_to`. **Semantic tier** per model: `core_entity` (from `config.core_models`), `pure_join` / `rich_join` (through join tables), or `supporting`. |
+| `non_ar_models` | Ruby **classes** under `app/models` that are **not** subclasses of `ActiveRecord::Base`, tagged **`[POJO/Service]`** in `rails_get_model_details` listings and Claude `rails-models.md`. Uses `Object.const_source_location` after eager load. |
 | `routes` | All routes with HTTP verbs, paths, controller actions, route names, API namespaces, mounted engines. |
 | `jobs` | ActiveJob classes with queue names. Mailers with action methods. Action Cable channels. |
 | `gems` | 70+ notable gems categorized: auth, background_jobs, admin, monitoring, search, pagination, forms, file_upload, testing, linting, security, api, frontend, utilities. |
