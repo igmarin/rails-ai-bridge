@@ -43,6 +43,50 @@ RSpec.describe "RailsAiBridge::Tools::ModelDetails formatters" do
     it "does not include association counts or details" do
       expect(output).not_to include("associations")
     end
+
+    context "with semantic_tier in model data" do
+      let(:models_with_tiers) do
+        {
+          "User" => { table_name: "users", semantic_tier: "core_entity" },
+          "Membership" => { table_name: "memberships", semantic_tier: "rich_join" },
+          "Categorization" => { table_name: "categorizations", semantic_tier: "pure_join" },
+          "Post" => { table_name: "posts", semantic_tier: "supporting" }
+        }
+      end
+
+      subject(:output) { described_class.new(models: models_with_tiers).call }
+
+      it "appends tier suffix to each model entry" do
+        expect(output).to include("- User (core_entity)")
+        expect(output).to include("- Membership (rich_join)")
+        expect(output).to include("- Categorization (pure_join)")
+        expect(output).to include("- Post (supporting)")
+      end
+
+      it "sorts model names alphabetically" do
+        lines = output.lines.map(&:chomp).select { |l| l.start_with?("- ") }
+        names = lines.map { |l| l.sub(/^- (\w+).*/, '\1') }
+        expect(names).to eq(names.sort)
+      end
+    end
+
+    context "without semantic_tier in model data" do
+      it "renders model names without tier suffix" do
+        # The base models fixture has no :semantic_tier key
+        expect(output).not_to match(/- User \(/)
+        expect(output).not_to match(/- Post \(/)
+      end
+    end
+
+    context "when model data is not a Hash" do
+      let(:models_non_hash) { { "Plain" => nil } }
+
+      it "renders model name without tier suffix" do
+        output = described_class.new(models: models_non_hash).call
+        expect(output).to include("- Plain")
+        expect(output).not_to include("- Plain (")
+      end
+    end
   end
 
   describe RailsAiBridge::Tools::ModelDetails::StandardFormatter do
@@ -60,6 +104,61 @@ RSpec.describe "RailsAiBridge::Tools::ModelDetails formatters" do
 
     it "includes a hint to use model: for full detail" do
       expect(output).to include("model:\"Name\"")
+    end
+
+    context "with semantic_tier in model data" do
+      let(:models_with_tiers) do
+        {
+          "User" => {
+            table_name: "users",
+            semantic_tier: "core_entity",
+            associations: [],
+            validations: []
+          },
+          "Membership" => {
+            table_name: "memberships",
+            semantic_tier: "rich_join",
+            associations: [ { type: "belongs_to", name: "user" }, { type: "belongs_to", name: "group" } ],
+            validations: []
+          }
+        }
+      end
+
+      subject(:output) { described_class.new(models: models_with_tiers).call }
+
+      it "includes tier annotation after model name" do
+        expect(output).to include("**User** — tier: core_entity")
+        expect(output).to include("**Membership** — tier: rich_join")
+      end
+    end
+
+    context "when model data contains :error key" do
+      let(:models_with_error) do
+        {
+          "BrokenModel" => { error: "Failed to load" },
+          "User" => { table_name: "users", associations: [], validations: [] }
+        }
+      end
+
+      subject(:output) { described_class.new(models: models_with_error).call }
+
+      it "omits the errored model from output" do
+        expect(output).not_to include("BrokenModel")
+        expect(output).to include("**User**")
+      end
+    end
+
+    context "when model has no associations or validations" do
+      let(:models_empty_counts) do
+        { "EmptyModel" => { table_name: "empty_models", associations: [], validations: [] } }
+      end
+
+      subject(:output) { described_class.new(models: models_empty_counts).call }
+
+      it "omits count suffix when both counts are zero" do
+        expect(output).not_to include("0 associations")
+        expect(output).not_to include("0 validations")
+      end
     end
   end
 
@@ -80,6 +179,50 @@ RSpec.describe "RailsAiBridge::Tools::ModelDetails formatters" do
 
     it "includes navigation hint" do
       expect(output).to include("model:\"Name\"")
+    end
+
+    context "with semantic_tier in model data" do
+      let(:models_with_tiers) do
+        {
+          "User" => {
+            table_name: "users",
+            semantic_tier: "core_entity",
+            associations: [ { type: "has_many", name: "posts" } ]
+          }
+        }
+      end
+
+      subject(:output) { described_class.new(models: models_with_tiers).call }
+
+      it "includes tier annotation in model line" do
+        expect(output).to include("— tier: core_entity")
+      end
+
+      it "places tier annotation after table name" do
+        expect(output).to match(/\(table: users\).*tier: core_entity/)
+      end
+    end
+
+    context "when model data contains :error key" do
+      let(:models_with_error) do
+        {
+          "BrokenModel" => { error: "Could not introspect" },
+          "Post" => { table_name: "posts", associations: [] }
+        }
+      end
+
+      subject(:output) { described_class.new(models: models_with_error).call }
+
+      it "omits the errored model from output" do
+        expect(output).not_to include("BrokenModel")
+        expect(output).to include("**Post**")
+      end
+    end
+
+    context "when model has no semantic_tier" do
+      it "does not include tier annotation" do
+        expect(output).not_to include("tier:")
+      end
     end
   end
 
@@ -127,6 +270,67 @@ RSpec.describe "RailsAiBridge::Tools::ModelDetails formatters" do
     it "renders instance methods section" do
       expect(output).to include("## Key instance methods")
       expect(output).to include("`full_name`")
+    end
+
+    context "with semantic_tier in model data" do
+      let(:data_with_tier) do
+        models["User"].merge(
+          semantic_tier: "core_entity",
+          semantic_tier_reason: "configured_core_model"
+        )
+      end
+
+      subject(:output) { described_class.new(name: "User", data: data_with_tier).call }
+
+      it "renders semantic tier section" do
+        expect(output).to include("**Semantic tier:** `core_entity`")
+      end
+
+      it "renders tier reason when present" do
+        expect(output).to include("**Tier reason:** configured_core_model")
+      end
+    end
+
+    context "with semantic_tier but no tier reason" do
+      let(:data_with_tier_no_reason) do
+        models["User"].merge(semantic_tier: "supporting")
+      end
+
+      subject(:output) { described_class.new(name: "User", data: data_with_tier_no_reason).call }
+
+      it "renders semantic tier without reason line" do
+        expect(output).to include("**Semantic tier:** `supporting`")
+        expect(output).not_to include("**Tier reason:**")
+      end
+    end
+
+    context "without semantic_tier" do
+      it "does not render semantic tier section" do
+        expect(output).not_to include("**Semantic tier:**")
+        expect(output).not_to include("**Tier reason:**")
+      end
+    end
+
+    context "with rich_join tier" do
+      let(:data_rich_join) do
+        {
+          table_name: "memberships",
+          semantic_tier: "rich_join",
+          semantic_tier_reason: "through_join_with_payload_columns",
+          associations: [
+            { type: "belongs_to", name: "user" },
+            { type: "belongs_to", name: "group" }
+          ],
+          validations: []
+        }
+      end
+
+      subject(:output) { described_class.new(name: "Membership", data: data_rich_join).call }
+
+      it "renders the rich_join tier correctly" do
+        expect(output).to include("**Semantic tier:** `rich_join`")
+        expect(output).to include("**Tier reason:** through_join_with_payload_columns")
+      end
     end
   end
 end
