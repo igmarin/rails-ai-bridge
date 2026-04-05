@@ -18,7 +18,10 @@ module RailsAiBridge
       # @example Basic usage
       #   introspector = NonArModelsIntrospector.new(Rails.application)
       #   result = introspector.call
-      #   result[:non_ar_models] # => [{ name: "OrderCalculator", relative_path: "app/models/order_calculator.rb", tag: "POJO/Service" }]
+      ##
+      # Initializes the introspector for a Rails application.
+      # Stores the provided Rails application and its root path (as a string) for later introspection.
+      # @param [Rails::Application] app - The Rails application instance to inspect.
       def initialize(app)
         @app = app
         @root = app.root.to_s
@@ -32,7 +35,18 @@ module RailsAiBridge
       # @example Basic usage
       #   introspector = NonArModelsIntrospector.new(Rails.application)
       #   result = introspector.call
-      #   result[:non_ar_models] # => [{ name: "OrderCalculator", relative_path: "app/models/order_calculator.rb", tag: "POJO/Service" }]
+      ##
+      # Discovers concrete Ruby classes under app/models that do not inherit from ActiveRecord::Base.
+      #
+      # The returned hash contains either a `:non_ar_models` array of discovered entries or an `:error` string
+      # when introspection fails. Each entry in `:non_ar_models` is a Hash with:
+      # - `:name` — the constant name of the class (String)
+      # - `:relative_path` — path to the source file relative to the app root (String)
+      # - `:tag` — the discovery tag, `"POJO/Service"` (String)
+      #
+      # @return [Hash] Either:
+      #   - `{ non_ar_models: Array<Hash> }` where each Hash has keys `:name`, `:relative_path`, and `:tag`, or
+      #   - `{ error: String }` containing a sanitized, truncated error message.
       def call
         eager_load!
         models_dir = File.join(@root, "app", "models")
@@ -53,7 +67,10 @@ module RailsAiBridge
       #   sanitize_error_message("Failed to load /path/to/secret/file")
       #   # => "Failed to load /[REDACTED]"
       #   sanitize_error_message("Very long error message that should be truncated...")
-      #   # => "Very long error message that should be trunc..."
+      ##
+      # Produces a sanitized, truncated error message safe for external exposure.
+      # @param [String, nil] message - The original error message which may contain file paths.
+      # @return [String] A message with filesystem paths replaced by "/[REDACTED]" and limited to 200 characters; returns "Introspection failed" if the input is nil or empty.
       def sanitize_error_message(message)
         return "Introspection failed" if message.nil? || message.empty?
 
@@ -70,6 +87,14 @@ module RailsAiBridge
 
       private
 
+      ##
+      # Collects discovered non-ActiveRecord classes defined under the given models root.
+      # Populates and returns a hash keyed by constant name with metadata for each discovered class.
+      # @param [String] models_root - Absolute path to the application's `app/models` directory.
+      # @return [Hash{String=>Hash}] A hash mapping class name strings to metadata hashes with keys:
+      #   - :name [String] the constant name
+      #   - :relative_path [String] the file path relative to the application root
+      #   - :tag [String] the discovery tag (e.g., "POJO/Service")
       def collect_entries(models_root)
         entries = {}
         collect_safe_object_space_entries(models_root, entries)
@@ -82,7 +107,12 @@ module RailsAiBridge
       # @return [Hash] The populated entries hash
       # @example Basic usage
       #   collect_safe_object_space_entries("/path/to/app/models", {})
-      #   # => { "OrderCalculator" => { name: "OrderCalculator", relative_path: "app/models/order_calculator.rb", tag: "POJO/Service" } }
+      ##
+      # Populates the given entries hash with discovered non-ActiveRecord model classes defined under the provided models_root.
+      # Iteration errors for individual classes are logged with only the error class name.
+      # @param [String] models_root - Absolute path to the application's app/models directory.
+      # @param [Hash] entries - Accumulator hash which will be mutated; keys are class names and values are detail hashes.
+      # @return [Hash] The same entries hash, populated with discovered non-AR model entries.
       def collect_safe_object_space_entries(models_root, entries)
         ObjectSpace.each_object(Class) do |klass|
           next unless safe_to_process?(klass)
@@ -100,7 +130,11 @@ module RailsAiBridge
       # @return [Boolean] true if safe to process
       # @example Checking if a class is safe
       #   safe_to_process?(OrderCalculator) # => true
-      #   safe_to_process?(ActiveRecord::Base) # => false
+      ##
+      # Determines whether a class is a safe candidate for introspection.
+      # Returns `true` only when the class has a non-empty, dot-free constant name that matches `\A[A-Z][A-Za-z0-9_:]*\z` and is not a subclass of `ActiveRecord::Base`.
+      # @param [Class] klass - The class to validate.
+      # @return [Boolean] `true` if the class meets the naming and inheritance criteria, `false` otherwise (also returns `false` on error).
       def safe_to_process?(klass)
         name = klass.name
         return false if name.nil? || name.empty?
@@ -113,6 +147,15 @@ module RailsAiBridge
         false
       end
 
+      ##
+      # Records a non-ActiveRecord class defined under the application's models directory into the provided entries hash.
+      #
+      # Only classes that have a valid constant name, do not inherit from `ActiveRecord::Base`,
+      # and whose source file is located inside `models_root` are recorded. When recorded,
+      # the method sets `entries[name] = { name: name, relative_path: relative_to_root(path), tag: TAG }`.
+      # @param [Class] klass - The class to inspect.
+      # @param [String] models_root - Absolute path to the `app/models` directory.
+      # @param [Hash] entries - Mutable hash that will be populated with discovered entries keyed by class name.
       def record_if_non_ar_model(klass, models_root, entries)
         name = klass.name
         return if name.nil? || name.empty?
