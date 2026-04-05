@@ -85,11 +85,26 @@ RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer do
     end
   end
 
-  it "skips models rule when no models" do
+  it "skips models rule when there are no AR models and no non-AR rows" do
     context[:models] = {}
+    context[:non_ar_models] = { non_ar_models: [] }
     Dir.mktmpdir do |dir|
       result = described_class.new(context).call(dir)
       expect(result[:written].size).to eq(3) # context + schema + mcp-tools
+    end
+  end
+
+  it "writes rails-models.md with only non-AR classes when the models hash is empty" do
+    context[:models] = {}
+    Dir.mktmpdir do |dir|
+      result = described_class.new(context).call(dir)
+      expect(result[:written].size).to eq(4)
+
+      models_file = File.join(dir, ".claude", "rules", "rails-models.md")
+      body = File.read(models_file)
+      expect(body).to include("# ActiveRecord Models (0)")
+      expect(body).to include("OrderCalculator")
+      expect(body).to include("## Non-ActiveRecord classes (POJO/Service)")
     end
   end
 

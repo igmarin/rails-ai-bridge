@@ -186,17 +186,18 @@ module RailsAiBridge
         end
 
         ##
-        # Builds a Markdown index of ActiveRecord models from the introspection `context`.
-        # The output includes a header with the model count and a per-model bullet that may
-        # show the table name, semantic tier, number of associations, and number of validations.
-        ##
-        # Builds a Markdown reference listing ActiveRecord models and brief metadata.
-        # Produces a document with a header showing the model count, instructions for `rails_get_model_details`, and one bullet per model including optional table name, semantic tier, association count, and validation count.
-        # @return [String, nil] The generated Markdown string, or `nil` when models are missing, empty, or the models hash contains an `:error`.
+        # Builds a Markdown reference listing ActiveRecord models (when any) and optional
+        # non-AR +app/models+ classes from {Tools::ModelDetails::NonArModelsAppendix}.
+        #
+        # @return [String, nil] Markdown, or +nil+ when +:models+ is invalid or has +:error+,
+        #   or when there are no ActiveRecord models and no non-AR rows to list
         def render_models_reference
           models = context[:models]
           return nil unless models.is_a?(Hash) && !models[:error]
-          return nil if models.empty?
+
+          non_ar_section = context[:non_ar_models]
+          non_ar_entries = RailsAiBridge::Tools::ModelDetails::NonArModelsAppendix.entries_from(non_ar_section)
+          return nil if models.empty? && non_ar_entries.empty?
 
           lines = [
             "# ActiveRecord Models (#{models.size})",
@@ -219,7 +220,7 @@ module RailsAiBridge
             lines << line
           end
 
-          append_non_ar_models_to_rules(lines, context[:non_ar_models])
+          append_non_ar_models_to_rules(lines, non_ar_section)
 
           lines.join("\n")
         end
