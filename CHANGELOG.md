@@ -11,6 +11,7 @@ _Targeting **v2.2.0** when Phase 2–3 and final review are done; gem version re
 
 ### Added
 
+- **`non_ar_models` introspector** — Lists Ruby classes under `app/models` that are not ActiveRecord models, tagged **`[POJO/Service]`** in MCP listings and `.claude/rules/rails-models.md`. Context key: `:non_ar_models` with `{ non_ar_models: [{ name, relative_path, tag }] }`. **Not** in `:standard` or `:full` presets (opt in via `config.introspectors << :non_ar_models`). Included in the `domain_metadata` disable category when enabled.
 - **Model semantic classification** — Each ActiveRecord model in introspection output now includes `semantic_tier` (`core_entity`, `pure_join`, `rich_join`, `supporting`) and `semantic_tier_reason` for MCP transparency. Join tables used in `has_many :through` are detected; payload columns beyond FKs and metadata yield `rich_join`.
 - **`config.core_models`** — List model class names to tag as `core_entity` for AI-focused context (initializer comment + `Config::Introspection`).
 - **`RailsAiBridge::ModelSemanticClassifier`** — PORO that computes tiers from columns, `belongs_to` foreign keys, and through-association membership.

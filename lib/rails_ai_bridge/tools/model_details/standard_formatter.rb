@@ -2,35 +2,19 @@
 
 module RailsAiBridge
   module Tools
-    # Markdown formatters for {Tools::GetModelDetails}.
     module ModelDetails
-      # Renders model names with association and validation counts.
+      # Renders ActiveRecord model names with association and validation counts (and optional tier).
       class StandardFormatter
-        # @param models [Hash{String => Hash}] model name => introspection payload
-        ##
-        # Initialize the formatter with model metadata.
-        # @param [Hash{String,Symbol => Hash}] models - A hash mapping model names to payload hashes. Each payload may include keys such as `:associations`, `:validations`, `:semantic_tier`, and `:error`. The provided hash is stored as-is without validation.
-        def initialize(models:)
+        # @param models [Hash{String => Hash}] payloads may include +:associations+, +:validations+, +:semantic_tier+, +:error+
+        # @param non_ar_models [Hash, nil] optional +:non_ar_models+ section; appended via {NonArModelsAppendix}
+        def initialize(models:, non_ar_models: nil)
           @models = models
+          @non_ar_models = non_ar_models
         end
 
-        ##
-        # Builds a Markdown summary of models including semantic tier and counts of associations and validations.
+        # Builds Markdown with header `# Models (N)` and one line per non-errored model, plus optional POJO appendix.
         #
-        # The output lists models in alphabetical order, omitting any model whose payload contains `:error`.
-        # Each model is rendered as a bullet with its name, optionally followed by `— tier: <value>` when
-        # `:semantic_tier` is present, and optionally followed by `— X associations, Y validations` when
-        # either count is greater than zero. A header with the total model count and a trailing instruction
-        # line are included.
-        ##
-        # Generate a Markdown listing of models with optional semantic tier and association/validation counts.
-        #
-        # The output begins with a header "# Models (<count>)" followed by one bullet per model in
-        # alphabetical order. Models whose payload contains `:error` are omitted. Each model line
-        # includes the model name, appends "— tier: <value>" when `:semantic_tier` is present, and
-        # appends "— <N> associations, <M> validations" only if either count is greater than zero.
-        # The document ends with a usage note for requesting full details.
-        # @return [String] The generated Markdown string described above.
+        # @return [String] Markdown document
         def call
           lines = [ "# Models (#{@models.size})", "" ]
 
@@ -47,7 +31,7 @@ module RailsAiBridge
           end
 
           lines << "" << "_Use `model:\"Name\"` for full detail, or `detail:\"full\"` for association lists._"
-          lines.join("\n")
+          lines.join("\n") + NonArModelsAppendix.append_markdown(@non_ar_models)
         end
       end
     end

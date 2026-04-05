@@ -35,6 +35,7 @@ An introspector should answer one domain question well:
 
 - schema
 - models
+- non_ar_models (plain Ruby classes under `app/models` that are not ActiveRecord)
 - routes
 - controllers
 - tests

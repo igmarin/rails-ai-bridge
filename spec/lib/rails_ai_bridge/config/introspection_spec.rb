@@ -71,7 +71,7 @@ RSpec.describe RailsAiBridge::Config::Introspection do
 
     it "subtracts domain_metadata category" do
       introspection.disabled_introspection_categories << :domain_metadata
-      expect(introspection.effective_introspectors).not_to include(:schema, :models, :migrations)
+      expect(introspection.effective_introspectors).not_to include(:schema, :models, :non_ar_models, :migrations)
     end
   end
 

@@ -136,7 +136,7 @@ end
 | `CLAUDE.md` | Main context file | ≤150 lines in compact mode. Claude Code reads this automatically. |
 | `.claude/rules/rails-context.md` | Semantic layer | App metadata + models grouped by `semantic_tier`. In **compact** mode, at most 20 names per tier with an overflow line pointing to `rails_get_model_details`; **full** mode lists all. |
 | `.claude/rules/rails-schema.md` | Database table listing | Auto-loaded by Claude Code alongside CLAUDE.md. |
-| `.claude/rules/rails-models.md` | Model listing with associations | Includes `tier: …` per model when introspection provides it. |
+| `.claude/rules/rails-models.md` | Model listing with associations | Includes `tier: …` per ActiveRecord model; adds **Non-ActiveRecord classes (POJO/Service)** for plain Ruby classes under `app/models`. |
 | `.claude/rules/rails-mcp-tools.md` | Full MCP tool reference | Parameters, detail levels, pagination, workflow guide. |
 
 ### Cursor (6 files)
@@ -699,7 +699,9 @@ These run by default. Fast and cover core Rails structure.
 | `tests` | Test framework (rspec/minitest), factories/fixtures with locations and counts, system tests, CI config files, coverage tool, test helpers, VCR cassettes. |
 | `migrations` | Total count, schema version, pending migrations, recent migration history with detected actions (create_table, add_column, etc.), migration statistics. |
 
-### Full preset (27 introspectors)
+**Opt-in:** `non_ar_models` — Ruby classes under `app/models` that are not subclasses of `ActiveRecord::Base`, tagged **`[POJO/Service]`** in `rails_get_model_details` listings and Claude `rails-models.md`. Enable with `config.introspectors << :non_ar_models` (typically immediately after `:models`). Uses `Object.const_source_location` after eager load.
+
+### Full preset (26 introspectors)
 
 Includes all standard introspectors plus:
 

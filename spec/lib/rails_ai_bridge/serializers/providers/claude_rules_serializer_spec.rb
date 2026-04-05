@@ -19,6 +19,11 @@ RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer do
       models: {
         "User" => { table_name: "users", semantic_tier: "core_entity", associations: [ { type: "has_many", name: "posts" } ], validations: [] },
         "Post" => { table_name: "posts", semantic_tier: "supporting", associations: [ { type: "belongs_to", name: "user" } ], validations: [] }
+      },
+      non_ar_models: {
+        non_ar_models: [
+          { name: "OrderCalculator", relative_path: "app/models/order_calculator.rb", tag: "POJO/Service" }
+        ]
       }
     }
   end
@@ -47,6 +52,8 @@ RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer do
       expect(content).to include("User")
       expect(content).to include("tier: core_entity")
       expect(content).to include("rails_get_model_details")
+      expect(content).to include("OrderCalculator")
+      expect(content).to include("POJO/Service")
 
       tools_file = File.join(dir, ".claude", "rules", "rails-mcp-tools.md")
       expect(File.exist?(tools_file)).to be true
@@ -78,11 +85,75 @@ RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer do
     end
   end
 
-  it "skips models rule when no models" do
+  it "skips models rule when there are no AR models and no non-AR rows" do
     context[:models] = {}
+    context[:non_ar_models] = { non_ar_models: [] }
     Dir.mktmpdir do |dir|
       result = described_class.new(context).call(dir)
       expect(result[:written].size).to eq(3) # context + schema + mcp-tools
+    end
+  end
+
+  it "writes rails-models.md with only non-AR classes when the models hash is empty" do
+    context[:models] = {}
+    Dir.mktmpdir do |dir|
+      result = described_class.new(context).call(dir)
+      expect(result[:written].size).to eq(4)
+
+      models_file = File.join(dir, ".claude", "rules", "rails-models.md")
+      body = File.read(models_file)
+      expect(body).to include("# ActiveRecord Models (0)")
+      expect(body).to include("OrderCalculator")
+      expect(body).to include("## Non-ActiveRecord classes (POJO/Service)")
+    end
+  end
+
+  describe "rails-models.md non-ActiveRecord section" do
+    let(:many_non_ar) do
+      (1..21).map do |i|
+        { name: "Service#{i}", relative_path: "app/models/service#{i}.rb", tag: "POJO/Service" }
+      end
+    end
+
+    let(:heavy_non_ar_context) do
+      context.merge(non_ar_models: { non_ar_models: many_non_ar })
+    end
+
+    def non_ar_bullet_lines(body)
+      body.lines.select { |l| l.match?(/\A- \*\*\[POJO\/Service\]\*\*/) }
+    end
+
+    it "caps non-AR rows in compact context_mode with the same overflow hint as tier lists" do
+      previous_mode = RailsAiBridge.configuration.context_mode
+      RailsAiBridge.configuration.context_mode = :compact
+      Dir.mktmpdir do |dir|
+        described_class.new(heavy_non_ar_context).call(dir)
+        body = File.read(File.join(dir, ".claude", "rules", "rails-models.md"))
+        expect(non_ar_bullet_lines(body).size).to eq(described_class::SEMANTIC_TIER_LIST_CAP)
+        expect(body).to include("+1 more")
+        expect(body).to include('rails_get_model_details(detail:"summary")')
+      end
+    ensure
+      RailsAiBridge.configuration.context_mode = previous_mode
+    end
+
+    context "when context_mode is :full" do
+      around do |example|
+        previous = RailsAiBridge.configuration.context_mode
+        RailsAiBridge.configuration.context_mode = :full
+        example.run
+      ensure
+        RailsAiBridge.configuration.context_mode = previous
+      end
+
+      it "lists every non-AR row without overflow" do
+        Dir.mktmpdir do |dir|
+          described_class.new(heavy_non_ar_context).call(dir)
+          body = File.read(File.join(dir, ".claude", "rules", "rails-models.md"))
+          expect(non_ar_bullet_lines(body).size).to eq(21)
+          expect(body).not_to include("+1 more")
+        end
+      end
     end
   end
 
@@ -98,6 +169,8 @@ RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer do
     end
 
     it "caps names per tier in compact mode with an MCP overflow hint" do
+      previous_mode = RailsAiBridge.configuration.context_mode
+      RailsAiBridge.configuration.context_mode = :compact
       Dir.mktmpdir do |dir|
         described_class.new(bulky_context).call(dir)
         body = File.read(File.join(dir, ".claude", "rules", "rails-context.md"))
@@ -106,6 +179,8 @@ RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer do
         expect(body).to include("+1 more")
         expect(body).to include("rails_get_model_details")
       end
+    ensure
+      RailsAiBridge.configuration.context_mode = previous_mode
     end
 
     context "when context_mode is :full" do

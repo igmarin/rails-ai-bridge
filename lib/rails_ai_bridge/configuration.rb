@@ -31,7 +31,7 @@ module RailsAiBridge
     }.freeze
 
     INTROSPECTION_CATEGORY_INTROSPECTORS = {
-      domain_metadata: %i[schema models migrations],
+      domain_metadata: %i[schema models non_ar_models migrations],
       api_surface: %i[api],
       ui_stack: %i[views stimulus turbo i18n]
     }.freeze

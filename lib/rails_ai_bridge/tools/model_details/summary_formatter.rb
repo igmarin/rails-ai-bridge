@@ -2,24 +2,19 @@
 
 module RailsAiBridge
   module Tools
-    # Markdown formatters for {Tools::GetModelDetails}.
     module ModelDetails
-      # Renders a bare list of model names with a total count.
+      # Renders a bare list of ActiveRecord model names with optional semantic-tier annotations.
       class SummaryFormatter
-        # @param models [Hash{String => Hash}] model name => introspection payload
-        ##
-        # Construct a new SummaryFormatter with the given model introspection data.
-        # @param [Hash<String, Hash>] models - Mapping of model name to its introspection payload; keys are model names and values are hashes (may contain :semantic_tier).
-        def initialize(models:)
+        # @param models [Hash{String => Hash}] model name => introspection payload (may include +:semantic_tier+)
+        # @param non_ar_models [Hash, nil] optional +:non_ar_models+ section; appended via {NonArModelsAppendix}
+        def initialize(models:, non_ar_models: nil)
           @models = models
+          @non_ar_models = non_ar_models
         end
 
-        ##
-        # Produce a Markdown summary listing available model names with optional semantic-tier annotations and a total count.
-        # The list is sorted by model name; each entry is rendered as a bullet point and includes " (tier)" when a model's `:semantic_tier` is present.
-        ##
-        # Builds a Markdown summary of available models including the total count, an alphabetized bullet list with optional semantic-tier annotations, and a usage footer.
-        # @return [String] The Markdown-formatted summary containing a header `# Available models (N)`, a newline-separated bullet list where each item is `- Name` optionally suffixed with ` (tier)`, and the footer `_Use `model:"Name"` for full detail._`
+        # Builds Markdown with header `# Available models (N)`, sorted ActiveRecord bullets, footer, and optional POJO appendix.
+        #
+        # @return [String] Markdown document
         def call
           model_list = @models.keys.sort.map do |m|
             data = @models[m]
@@ -27,7 +22,8 @@ module RailsAiBridge
             suffix = tier.present? ? " (#{tier})" : ""
             "- #{m}#{suffix}"
           end.join("\n")
-          "# Available models (#{@models.size})\n\n#{model_list}\n\n_Use `model:\"Name\"` for full detail._"
+          base = "# Available models (#{@models.size})\n\n#{model_list}\n\n_Use `model:\"Name\"` for full detail._"
+          base + NonArModelsAppendix.append_markdown(@non_ar_models)
         end
       end
     end

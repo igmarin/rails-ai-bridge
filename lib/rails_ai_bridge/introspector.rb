@@ -41,6 +41,7 @@ module RailsAiBridge
     BUILTIN_INTROSPECTORS = {
       schema: Introspectors::SchemaIntrospector,
       models: Introspectors::ModelIntrospector,
+      non_ar_models: Introspectors::NonArModelsIntrospector,
       routes: Introspectors::RouteIntrospector,
       jobs: Introspectors::JobIntrospector,
       gems: Introspectors::GemIntrospector,

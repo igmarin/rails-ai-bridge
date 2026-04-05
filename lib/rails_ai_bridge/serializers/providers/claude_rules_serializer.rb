@@ -186,17 +186,21 @@ module RailsAiBridge
         end
 
         ##
-        # Builds a Markdown index of ActiveRecord models from the introspection `context`.
-        # The output includes a header with the model count and a per-model bullet that may
-        # show the table name, semantic tier, number of associations, and number of validations.
-        ##
-        # Builds a Markdown reference listing ActiveRecord models and brief metadata.
-        # Produces a document with a header showing the model count, instructions for `rails_get_model_details`, and one bullet per model including optional table name, semantic tier, association count, and validation count.
-        # @return [String, nil] The generated Markdown string, or `nil` when models are missing, empty, or the models hash contains an `:error`.
+        # Builds a Markdown reference listing ActiveRecord models (when any) and optional
+        # non-AR +app/models+ classes from {Tools::ModelDetails::NonArModelsAppendix}.
+        #
+        # Non-AR rows follow the same compact cap as semantic tier lists ({semantic_tier_names_cap} /
+        # {SEMANTIC_TIER_LIST_CAP}); +:full+ {Configuration#context_mode} lists all rows.
+        #
+        # @return [String, nil] Markdown, or +nil+ when +:models+ is invalid or has +:error+,
+        #   or when there are no ActiveRecord models and no non-AR rows to list
         def render_models_reference
           models = context[:models]
           return nil unless models.is_a?(Hash) && !models[:error]
-          return nil if models.empty?
+
+          non_ar_section = context[:non_ar_models]
+          non_ar_entries = RailsAiBridge::Tools::ModelDetails::NonArModelsAppendix.entries_from(non_ar_section)
+          return nil if models.empty? && non_ar_entries.empty?
 
           lines = [
             "# ActiveRecord Models (#{models.size})",
@@ -219,7 +223,37 @@ module RailsAiBridge
             lines << line
           end
 
+          append_non_ar_models_to_rules(lines, non_ar_entries, semantic_tier_names_cap)
+
           lines.join("\n")
+        end
+
+        # Appends a Markdown subsection for {Introspectors::NonArModelsIntrospector} rows to +lines+.
+        #
+        # In compact {Configuration#context_mode}, lists at most {SEMANTIC_TIER_LIST_CAP} rows and adds
+        # an overflow hint (same pattern as {append_tier_model_bullets}). In +:full+ mode, lists every row.
+        #
+        # @param lines [Array<String>] mutable buffer for {render_models_reference}
+        # @param entries [Array<Hash>] normalized rows from {Tools::ModelDetails::NonArModelsAppendix.entries_from}
+        # @param cap [Integer, nil] maximum rows when compact; +nil+ lists all entries
+        # @return [void]
+        def append_non_ar_models_to_rules(lines, entries, cap)
+          return if entries.empty?
+
+          lines << ""
+          lines << "## Non-ActiveRecord classes (POJO/Service)"
+          visible = cap.nil? ? entries : entries.first(cap)
+          visible.each do |row|
+            name = row[:name] || row["name"]
+            path = row[:relative_path] || row["relative_path"]
+            tag = row[:tag] || row["tag"] || RailsAiBridge::Tools::ModelDetails::NonArModelsAppendix::DEFAULT_TAG
+            lines << "- **[#{tag}]** `#{name}` — `#{path}`"
+          end
+
+          remaining = entries.size - visible.size
+          return unless remaining.positive?
+
+          lines << "- … +#{remaining} more (use `rails_get_model_details(detail:\"summary\")` for full list)"
         end
 
         # @return [String] MCP tool reference markdown for Claude rules.
@@ -243,6 +277,7 @@ module RailsAiBridge
             "- `rails_get_model_details(detail:\"summary\")` — list all model names",
             "- `rails_get_model_details(model:\"User\")` — associations, validations, scopes, enums, callbacks",
             "- `rails_get_model_details(detail:\"full\")` — all models with full association lists",
+            "- Plain Ruby classes under app/models (not ActiveRecord) appear in listings as [POJO/Service]; `model:\"Name\"` returns a short file-path summary.",
             "",
             "## rails_get_routes",
             "Params: `controller`, `detail`, `limit`, `offset`",

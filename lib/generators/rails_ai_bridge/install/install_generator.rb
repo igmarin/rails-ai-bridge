@@ -54,9 +54,9 @@ module RailsAiBridge
             # config.preset = :standard
 
             # Or cherry-pick individual introspectors:
-            # config.introspectors += %i[views turbo auth api]
+            # config.introspectors += %i[non_ar_models views turbo auth api]
 
-            # Disable whole product categories at runtime (schema + models + migrations, api, views/turbo/i18n):
+            # Disable whole product categories at runtime (schema + models + migrations, optional :non_ar_models, api, views/turbo/i18n):
             # config.disabled_introspection_categories << :domain_metadata
 
             # --- Security exclusions ---

@@ -18,7 +18,7 @@ The test suite uses [Combustion](https://github.com/pat/combustion) to boot a mi
 
 ```
 lib/rails_ai_bridge/
-├── introspectors/     # 27 introspectors (schema, models, routes, etc.)
+├── introspectors/     # Built-in introspectors (schema, models, non_ar_models, routes, …)
 ├── tools/             # 11 built-in MCP tools (detail levels, pagination, extensible)
 ├── serializers/       # Per-assistant formatters (claude, cursor, windsurf, copilot, JSON)
 ├── server.rb          # MCP server setup (stdio + HTTP)
@@ -30,7 +30,7 @@ lib/rails_ai_bridge/
 
 1. Create `lib/rails_ai_bridge/introspectors/your_introspector.rb` (auto-loaded by Zeitwerk)
 2. Implement `#initialize(app)` and `#call` → returns a Hash (never raises)
-3. Register it in `lib/rails_ai_bridge/introspector.rb` (the `INTROSPECTOR_MAP`)
+3. Register it in `lib/rails_ai_bridge/introspector.rb` (`BUILTIN_INTROSPECTORS`)
 4. Add the key to the appropriate preset(s) in `Configuration::PRESETS` (`:standard` for core, `:full` for all)
 5. Write specs in `spec/lib/rails_ai_bridge/your_introspector_spec.rb`
 
@@ -45,6 +45,8 @@ lib/rails_ai_bridge/
 ## Code Style
 
 - Follow `rubocop-rails-omakase` style (run `bundle exec rubocop`)
+- Optional complexity check: `bundle exec skunk lib/rails_ai_bridge/…` (gem in `:development`/`:test`) — keep new or refactored files lean (project goal: Skunk score around **≤ 25** where practical).
+
 - Ruby 3.2+ features welcome (pattern matching, etc.)
 - Every introspector must return a Hash and never raise — wrap errors in `{ error: msg }`
 - MCP tools return `MCP::Tool::Response` objects
