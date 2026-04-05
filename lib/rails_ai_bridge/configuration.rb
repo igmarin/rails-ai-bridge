@@ -23,8 +23,8 @@ module RailsAiBridge
     extend Forwardable
 
     PRESETS = {
-      standard: %i[schema models non_ar_models routes jobs gems conventions controllers tests migrations],
-      full: %i[schema models non_ar_models routes jobs gems conventions stimulus controllers views turbo
+      standard: %i[schema models routes jobs gems conventions controllers tests migrations],
+      full: %i[schema models routes jobs gems conventions stimulus controllers views turbo
                i18n config active_storage action_text auth api tests rake_tasks assets
                devops action_mailbox migrations seeds middleware engines multi_database],
       regulated: %i[routes jobs gems conventions controllers tests]

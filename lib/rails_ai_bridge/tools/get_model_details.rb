@@ -66,9 +66,14 @@ module RailsAiBridge
           @model && !model_data && !pojo_entry
         end
 
-        # @return [String] user-facing message listing available ActiveRecord model names
+        # @return [String] user-facing message listing available ActiveRecord and non-AR +app/models+ class names (sorted, deduplicated)
         def model_not_found_message
-          "Model '#{@model}' not found. Available AR: #{@models.keys.sort.join(', ')}"
+          pojo_names = ModelDetails::NonArModelsAppendix.entries_from(@non_ar_models).filter_map do |e|
+            n = e[:name] || e["name"]
+            n.to_s.presence
+          end
+          available = (@models.keys.map(&:to_s) + pojo_names).uniq.sort
+          "Model '#{@model}' not found. Available: #{available.join(', ')}"
         end
 
         # @return [Boolean] +true+ when the matched ActiveRecord payload contains +:error+

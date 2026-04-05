@@ -56,7 +56,7 @@ RSpec.describe RailsAiBridge::Config::Introspection do
   describe "#preset=" do
     it "sets introspectors from a named preset" do
       introspection.preset = :full
-      expect(introspection.introspectors.size).to eq(27)
+      expect(introspection.introspectors.size).to eq(26)
     end
 
     it "raises on unknown preset" do

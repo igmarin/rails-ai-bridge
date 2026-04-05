@@ -32,7 +32,7 @@ flowchart LR
   app --> intro --> mcp --> clients
 ```
 
-1. **Up to 27 introspectors** scan schema, models, routes, controllers, jobs, gems, conventions, and more (preset `:standard` runs 10 core ones by default; `:full` runs all).
+1. **Up to 26 introspectors** in the `:full` preset scan schema, models, routes, controllers, jobs, gems, conventions, and more (`:standard` runs 9 core ones by default). Opt-in extras (e.g. `non_ar_models`, `database_stats`) are not in those presets.
 2. **`rails ai:bridge`** writes bounded bridge files for Claude, Cursor, Copilot, Codex, Windsurf, Gemini, and JSON.
 3. **`rails ai:serve`** exposes **11 built-in MCP tools** (plus any `additional_tools`) so assistants pull detail on demand (`detail: "summary"` first, then drill down).
 
@@ -176,7 +176,7 @@ Each file respects the AI tool's format and size limits. **Commit these files** 
 | **DevOps** | Puma, Procfile, Docker, deployment tools, asset pipeline |
 | **Architecture** | Service objects, STI, polymorphism, state machines, multi-tenancy, engines |
 
-27 introspectors total. The `:standard` preset runs 10 core ones by default; use `:full` for all 27.
+The `:full` preset runs 26 introspectors. The `:standard` preset runs 9 core ones by default. Add symbols such as `:non_ar_models` or `:database_stats` to `config.introspectors` when you need them.
 
 ---
 
@@ -370,14 +370,14 @@ This keeps token usage low and answer quality high. Requesting full detail on ev
 
 | Preset | Introspectors | Best for |
 |--------|--------------|---------|
-| `:standard` (default) | 10 core | Most apps — schema, models, non-AR POJOs, routes, jobs, gems, conventions |
-| `:full` | 27 | Full-stack apps where frontend, auth, API, and DevOps context matter |
+| `:standard` (default) | 9 core | Most apps — schema, models, routes, jobs, gems, conventions |
+| `:full` | 26 | Full-stack apps where frontend, auth, API, and DevOps context matter |
 
 Add individual introspectors on top of a preset for targeted additions:
 
 ```ruby
 config.preset = :standard
-config.introspectors += %i[views auth api]
+config.introspectors += %i[non_ar_models views auth api]
 ```
 
 ### Check your readiness score
@@ -395,11 +395,11 @@ Prints a 0–100 AI readiness score and flags anything missing: `.mcp.json`, gen
 ```ruby
 # config/initializers/rails_ai_bridge.rb
 RailsAiBridge.configure do |config|
-  # Presets: :standard (10 introspectors, default) or :full (all 27)
+  # Presets: :standard (9 introspectors, default) or :full (26). Add :non_ar_models etc. as needed.
   config.preset = :standard
 
   # Cherry-pick on top of a preset
-  # config.introspectors += %i[views turbo auth api]
+  # config.introspectors += %i[non_ar_models views turbo auth api]
 
   # Context mode: :compact (≤150 lines, default) or :full (dump everything)
   # config.context_mode = :compact
@@ -424,7 +424,7 @@ end
 | Option | Default | Description |
 |--------|---------|-------------|
 | `preset` | `:standard` | Introspector preset (`:standard` or `:full`) |
-| `introspectors` | 10 core | Array of introspector symbols |
+| `introspectors` | 9 core | Array of introspector symbols |
 | `context_mode` | `:compact` | `:compact` (≤150 lines) or `:full` (dump everything) |
 | `claude_max_lines` | `150` | Max lines for CLAUDE.md in compact mode |
 | `max_tool_response_chars` | `120_000` | Safety cap for MCP tool responses |

@@ -18,13 +18,15 @@ module RailsAiBridge
         #
         # @param section [Hash, nil] payload from {Introspectors::NonArModelsIntrospector#call}, or +nil+
         # @option section [Array<Hash>] :non_ar_models rows (String or Symbol keys allowed per row)
+        # @option section [Array<Hash>] "non_ar_models" same as +:non_ar_models+ when the hash uses string keys (e.g. JSON)
         # @option section [String] :error when introspection failed; treated as empty list
+        # @option section [String] "error" same as +:error+ for string-keyed hashes
         # @return [Array<Hash>] rows for {append_markdown}; each row may include +:name+, +:relative_path+, +:tag+
         def entries_from(section)
           return [] unless section.is_a?(Hash)
-          return [] if section[:error].present?
+          return [] if section[:error].present? || section["error"].present?
 
-          Array(section[:non_ar_models])
+          Array(section[:non_ar_models] || section["non_ar_models"])
         end
 
         # Appends a "## Non-ActiveRecord classes (...)" Markdown block when rows exist.

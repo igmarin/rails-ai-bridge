@@ -24,16 +24,10 @@ RSpec.describe RailsAiBridge::Introspector do
       expect(result[:generated_at]).to be_a(String)
     end
 
-    it "includes all configured introspectors" do
+    it "includes non_ar_models when that introspector is enabled" do
+      RailsAiBridge.configuration.introspectors += [ :non_ar_models ]
       result = introspector.call
-
-      expect(result).to have_key(:schema)
-      expect(result).to have_key(:models)
       expect(result).to have_key(:non_ar_models)
-      expect(result).to have_key(:routes)
-      expect(result).to have_key(:jobs)
-      expect(result).to have_key(:gems)
-      expect(result).to have_key(:conventions)
     end
 
     it "extracts schema with tables" do

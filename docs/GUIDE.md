@@ -655,7 +655,7 @@ end
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `preset` | Symbol | `:standard` | Introspector preset (`:standard` or `:full`) |
-| `introspectors` | Array | 10 core symbols | Which introspectors to run |
+| `introspectors` | Array | 9 core symbols | Which introspectors to run |
 | `context_mode` | Symbol | `:compact` | `:compact` or `:full` |
 | `claude_max_lines` | Integer | `150` | Max lines for CLAUDE.md in compact mode |
 | `max_tool_response_chars` | Integer | `120_000` | Safety cap for MCP tool responses |
@@ -683,7 +683,7 @@ end
 
 ## Introspectors — Full List
 
-### Standard preset (10 introspectors)
+### Standard preset (9 introspectors)
 
 These run by default. Fast and cover core Rails structure.
 
@@ -691,7 +691,6 @@ These run by default. Fast and cover core Rails structure.
 |-------------|-------------------|
 | `schema` | Tables, columns, types, indexes, foreign keys, primary keys. Falls back to `db/schema.rb` parsing when no DB connected. |
 | `models` | Associations, validations, scopes, enums, callbacks, concerns, instance methods, class methods. Source-level macros: `has_secure_password`, `encrypts`, `normalizes`, `delegate`, `serialize`, `store`, `generates_token_for`, `has_one_attached`, `has_many_attached`, `has_rich_text`, `broadcasts_to`. **Semantic tier** per model: `core_entity` (from `config.core_models`), `pure_join` / `rich_join` (through join tables), or `supporting`. |
-| `non_ar_models` | Ruby **classes** under `app/models` that are **not** subclasses of `ActiveRecord::Base`, tagged **`[POJO/Service]`** in `rails_get_model_details` listings and Claude `rails-models.md`. Uses `Object.const_source_location` after eager load. |
 | `routes` | All routes with HTTP verbs, paths, controller actions, route names, API namespaces, mounted engines. |
 | `jobs` | ActiveJob classes with queue names. Mailers with action methods. Action Cable channels. |
 | `gems` | 70+ notable gems categorized: auth, background_jobs, admin, monitoring, search, pagination, forms, file_upload, testing, linting, security, api, frontend, utilities. |
@@ -700,7 +699,9 @@ These run by default. Fast and cover core Rails structure.
 | `tests` | Test framework (rspec/minitest), factories/fixtures with locations and counts, system tests, CI config files, coverage tool, test helpers, VCR cassettes. |
 | `migrations` | Total count, schema version, pending migrations, recent migration history with detected actions (create_table, add_column, etc.), migration statistics. |
 
-### Full preset (27 introspectors)
+**Opt-in:** `non_ar_models` — Ruby classes under `app/models` that are not subclasses of `ActiveRecord::Base`, tagged **`[POJO/Service]`** in `rails_get_model_details` listings and Claude `rails-models.md`. Enable with `config.introspectors << :non_ar_models` (typically immediately after `:models`). Uses `Object.const_source_location` after eager load.
+
+### Full preset (26 introspectors)
 
 Includes all standard introspectors plus:
 

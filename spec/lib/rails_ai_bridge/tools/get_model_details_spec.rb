@@ -69,7 +69,22 @@ RSpec.describe RailsAiBridge::Tools::GetModelDetails do
       let(:params) { { model: "Missing" } }
 
       it "returns a helpful error message" do
-        expect(content).to include("Model 'Missing' not found. Available AR: Post, User")
+        expect(content).to include("Model 'Missing' not found. Available: Post, User")
+      end
+    end
+
+    context "when model is not found and non_ar_models lists extra classes" do
+      let(:non_ar_empty) do
+        {
+          non_ar_models: [
+            { name: "OrderCalculator", relative_path: "app/models/order_calculator.rb", tag: "POJO/Service" }
+          ]
+        }
+      end
+      let(:params) { { model: "Missing" } }
+
+      it "includes non-AR names in the available list" do
+        expect(content).to include("Model 'Missing' not found. Available: OrderCalculator, Post, User")
       end
     end
 
