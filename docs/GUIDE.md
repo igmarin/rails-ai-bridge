@@ -626,6 +626,9 @@ RailsAiBridge.configure do |config|
   # Primary domain models (semantic tier: core_entity in introspection + Claude rules)
   # config.core_models += %w[User Order Project]
 
+  # Opt-in: Non-ActiveRecord models (POJO/Service classes under app/models)
+  # config.introspectors << :non_ar_models
+
   # Paths to exclude from code search
   config.excluded_paths += %w[vendor/bundle]
 
@@ -661,7 +664,8 @@ end
 | `max_tool_response_chars` | Integer | `120_000` | Safety cap for MCP tool responses |
 | `cache_ttl` | Integer | `30` | Cache TTL in seconds for introspection results |
 | `excluded_models` | Array | internal Rails models | Models to skip |
-| `core_models` | Array | `[]` | Model names tagged as `core_entity` in introspection output and `.claude/rules/rails-context.md` |
+| `core_models` | Array | `[]` | Model names tagged as `core_entity` in introspection output and `.claude/rules/rails-context.md`. Used by `RailsAiBridge::ModelSemanticClassifier` to mark primary domain models. |
+| `introspectors` | Array | 9 core symbols | Which introspectors to run. Add `:non_ar_models` to include non-ActiveRecord classes under `app/models`. |
 | `excluded_paths` | Array | `node_modules tmp log vendor .git` | Paths excluded from code search |
 | `output_dir` | String | `nil` (Rails.root) | Where to write context files |
 | `auto_mount` | Boolean | `false` | Auto-mount HTTP MCP endpoint |

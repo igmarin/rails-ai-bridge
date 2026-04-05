@@ -5,9 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-_Targeting **v2.2.0** when Phase 2–3 and final review are done; gem version remains **2.1.0** until that release tag._
+## [2.2.0] - 2026-04-04
 
 ### Added
 
@@ -23,6 +21,10 @@ _Targeting **v2.2.0** when Phase 2–3 and final review are done; gem version re
 - **Claude rules `rails-models.md`** — Each model line includes `tier: …` when present.
 - **`rails_get_model_details` formatters** — Summary, standard, full, and single-model views include semantic tier where applicable.
 - **Combustion test setup** — `Combustion.path` is set to `spec/internal`, `Combustion::Database.setup` runs after boot so `:memory:` SQLite has schema before examples, and the internal `ExampleJob` no longer subclasses `ActiveJob::Base` (Active Job is not loaded in the minimal stack).
+
+## [Unreleased]
+
+_Targeting **v2.3.0** when Phase 2–3 and final review are done; gem version remains **2.2.0** until that release tag._
 
 ## [2.1.0] - 2026-04-02
 

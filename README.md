@@ -163,6 +163,7 @@ Each file respects the AI tool's format and size limits. **Commit these files** 
 |----------|-------------------|
 | **Database** | Every table, column, index, foreign key, and migration |
 | **Models** | Associations, validations, scopes, enums, callbacks, concerns, macros (`has_secure_password`, `encrypts`, `normalizes`, etc.), **semantic tier** (`core_entity`, `pure_join`, `rich_join`, `supporting`) |
+| **Non-AR Models** | Ruby classes under `app/models` that aren't ActiveRecord, tagged as `[POJO/Service]` (opt-in via `:non_ar_models` introspector) |
 | **Routing** | Every route with HTTP verbs, paths, controller actions, API namespaces |
 | **Controllers** | Actions, filters, strong params, concerns, API controllers |
 | **Views** | Layouts, templates, partials, helpers, template engines, view components |
@@ -187,7 +188,7 @@ The gem exposes **11 built-in tools** via MCP that AI clients call on-demand (ho
 | Tool | What it returns |
 |------|----------------|
 | `rails_get_schema` | Tables, columns, indexes, foreign keys |
-| `rails_get_model_details` | Associations, validations, scopes, enums, callbacks |
+| `rails_get_model_details` | Associations, validations, scopes, enums, callbacks, semantic tier, non-AR models (when enabled) |
 | `rails_get_routes` | HTTP verbs, paths, controller actions |
 | `rails_get_controllers` | Actions, filters, strong params, concerns |
 | `rails_get_config` | Cache, session, timezone, middleware, initializers |
