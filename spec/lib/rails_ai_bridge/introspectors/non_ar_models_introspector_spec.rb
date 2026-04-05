@@ -52,6 +52,68 @@ RSpec.describe RailsAiBridge::Introspectors::NonArModelsIntrospector do
         expect(result).to have_key(:error)
         expect(result[:error]).to be_a(String)
       end
+
+      it "sanitizes error messages to prevent path disclosure" do
+        # Test with file path in error message
+        allow(introspector).to receive(:eager_load!)
+          .and_raise(StandardError.new("Failed to load /path/to/secret/file"))
+
+        result = introspector.call
+        expect(result[:error]).to eq("Failed to load /[REDACTED]")
+        expect(result[:error]).not_to include("/path/to/secret/file")
+      end
+
+      it "truncates long error messages" do
+        long_message = "a" * 250  # 250 character error message
+        allow(introspector).to receive(:eager_load!)
+          .and_raise(StandardError.new(long_message))
+
+        result = introspector.call
+        expect(result[:error].length).to be <= 200
+        expect(result[:error]).to end_with("...")
+      end
+    end
+  end
+
+  describe "#collect_entries" do
+    context "security boundaries" do
+      it "filters classes to app/models directory only" do
+        result = introspector.call
+        entries = result[:non_ar_models] || []
+
+        # All entries should be within app/models
+        entries.each do |entry|
+          expect(entry[:relative_path]).to start_with("app/models/")
+        end
+      end
+
+      it "validates class names before processing" do
+        result = introspector.call
+        entries = result[:non_ar_models] || []
+
+        # All entries should have valid Ruby class names
+        entries.each do |entry|
+          name = entry[:name]
+          expect(name).to match(/\A[A-Z][A-Za-z0-9_:]*\z/)
+          expect(name).not_to include(".")
+          expect(name).not_to be_nil
+          expect(name).not_to be_empty
+        end
+      end
+
+      it "excludes ActiveRecord classes" do
+        result = introspector.call
+        entries = result[:non_ar_models] || []
+        names = entries.map { |e| e[:name] }
+
+        # Should not include any ActiveRecord models
+        ar_models = ActiveRecord::Base.descendants.map(&:name)
+        ar_models.compact!
+
+        names.each do |name|
+          expect(ar_models).not_to include(name)
+        end
+      end
     end
   end
 

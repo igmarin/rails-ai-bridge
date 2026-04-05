@@ -43,17 +43,74 @@ module RailsAiBridge
 
         { non_ar_models: entries.values.sort_by { |h| h[:name] } }
       rescue StandardError => e
-        { error: e.message }
+        { error: sanitize_error_message(e.message) }
+      end
+
+      # Sanitizes error messages to prevent potential path disclosure
+      # @param message [String] The original error message
+      # @return [String] Sanitized error message safe for logging
+      # @example Sanitizing an error with a file path
+      #   sanitize_error_message("Failed to load /path/to/secret/file")
+      #   # => "Failed to load /[REDACTED]"
+      #   sanitize_error_message("Very long error message that should be truncated...")
+      #   # => "Very long error message that should be trunc..."
+      def sanitize_error_message(message)
+        return "Introspection failed" if message.nil? || message.empty?
+
+        # Remove potential file paths that could expose directory structure
+        sanitized = message.gsub(%r{/[^\s]*[/][^/\s]+}, "/[REDACTED]")
+
+        # Limit length to prevent log flooding and information disclosure
+        if sanitized.length > 200
+          "#{sanitized[0...197]}..."
+        else
+          sanitized
+        end
       end
 
       private
 
       def collect_entries(models_root)
         entries = {}
+        collect_safe_object_space_entries(models_root, entries)
+        entries
+      end
+
+      # Safely iterates through ObjectSpace with security boundaries and validation.
+      # @param models_root [String] The absolute path to app/models directory
+      # @param entries [Hash] Hash to populate with discovered entries
+      # @return [Hash] The populated entries hash
+      # @example Basic usage
+      #   collect_safe_object_space_entries("/path/to/app/models", {})
+      #   # => { "OrderCalculator" => { name: "OrderCalculator", relative_path: "app/models/order_calculator.rb", tag: "POJO/Service" } }
+      def collect_safe_object_space_entries(models_root, entries)
         ObjectSpace.each_object(Class) do |klass|
+          next unless safe_to_process?(klass)
+
           record_if_non_ar_model(klass, models_root, entries)
+        rescue => e
+          # Log security-relevant errors without exposing details
+          Rails.logger.warn "NonArModelsIntrospector: Error processing class: #{e.class.name}" if defined?(Rails.logger)
         end
         entries
+      end
+
+      # Security check before processing a class from ObjectSpace
+      # @param klass [Class] The class to validate
+      # @return [Boolean] true if safe to process
+      # @example Checking if a class is safe
+      #   safe_to_process?(OrderCalculator) # => true
+      #   safe_to_process?(ActiveRecord::Base) # => false
+      def safe_to_process?(klass)
+        name = klass.name
+        return false if name.nil? || name.empty?
+        return false if name.include?(".")
+        return false unless name.match?(/\A[A-Z][A-Za-z0-9_:]*\z/)
+        return false if klass < ActiveRecord::Base
+        true
+      rescue => e
+        Rails.logger.warn "NonArModelsIntrospector: Error validating class: #{e.class.name}" if defined?(Rails.logger)
+        false
       end
 
       def record_if_non_ar_model(klass, models_root, entries)
@@ -61,7 +118,6 @@ module RailsAiBridge
         return if name.nil? || name.empty?
         return if name.include?(".")
         return unless name.match?(/\A[A-Z][A-Za-z0-9_:]*\z/)
-
         return if klass < ActiveRecord::Base
 
         loc = safe_const_source_location(name)
