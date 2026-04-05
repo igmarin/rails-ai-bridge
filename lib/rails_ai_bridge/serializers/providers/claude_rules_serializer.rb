@@ -6,6 +6,9 @@ module RailsAiBridge
       # Generates `.claude/rules/` markdown files for Claude Code auto-discovery.
       # Quick-reference lists keep {ClaudeSerializer} output smaller.
       class ClaudeRulesSerializer
+        # Max model names listed per semantic tier in `rails-context.md` when {Configuration#context_mode} is `:compact`.
+        SEMANTIC_TIER_LIST_CAP = 20
+
         # @return [Hash] Introspection context passed to serializers.
         attr_reader :context
 
@@ -93,12 +96,13 @@ module RailsAiBridge
           lines << ""
 
           grouped = group_models_by_semantic_tier(models)
+          cap = semantic_tier_names_cap
           %w[core_entity pure_join rich_join supporting].each do |tier|
             names = grouped[tier] || []
             next if names.empty?
 
             lines << "### #{tier.tr('_', ' ')} (#{names.size})"
-            names.sort.each { |n| lines << "- #{n}" }
+            append_tier_model_bullets(lines, names, cap)
             lines << ""
           end
 
@@ -116,7 +120,7 @@ module RailsAiBridge
         # @param [Hash{String=>Object}] models - Mapping of model name to metadata (typically a Hash with optional `:semantic_tier` and/or `:error`).
         ##
         # Groups model names by their semantic tier.
-        # 
+        #
         # @param [Hash{String => Hash, String => Object}] models - A mapping from model name to its metadata. Models whose metadata is a Hash containing `:error` are skipped. If a model's metadata does not provide a `:semantic_tier` (or it is blank), the model is placed in the "supporting" tier.
         # @return [Hash{String => Array<String>}] A hash where each key is a semantic tier and each value is an array of model names assigned to that tier.
         def group_models_by_semantic_tier(models)
@@ -126,6 +130,30 @@ module RailsAiBridge
             tier = (data.is_a?(Hash) && data[:semantic_tier].presence) || "supporting"
             acc[tier] << name
           end
+        end
+
+        # @return [Integer, nil] cap per tier, or +nil+ when all names should be listed (+:full+ context mode).
+        def semantic_tier_names_cap
+          return nil if RailsAiBridge.configuration.context_mode == :full
+
+          SEMANTIC_TIER_LIST_CAP
+        end
+
+        # @param lines [Array<String>]
+        # @param names [Array<String>]
+        # @param cap [Integer, nil]
+        def append_tier_model_bullets(lines, names, cap)
+          sorted = names.sort
+          if cap.nil?
+            sorted.each { |n| lines << "- #{n}" }
+            return
+          end
+
+          sorted.first(cap).each { |n| lines << "- #{n}" }
+          remaining = sorted.size - cap
+          return unless remaining.positive?
+
+          lines << "- … +#{remaining} more (use `rails_get_model_details(detail:\"summary\")` for full list)"
         end
 
         ##

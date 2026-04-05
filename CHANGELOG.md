@@ -18,6 +18,7 @@ _Targeting **v2.2.0** when Phase 2–3 and final review are done; gem version re
 
 ### Changed
 
+- **`rails-context.md` tier lists** — In compact `context_mode`, at most 20 model names per `semantic_tier` with an overflow line referencing `rails_get_model_details(detail:"summary")`; full mode lists all names per tier.
 - **Claude rules `rails-models.md`** — Each model line includes `tier: …` when present.
 - **`rails_get_model_details` formatters** — Summary, standard, full, and single-model views include semantic tier where applicable.
 - **Combustion test setup** — `Combustion.path` is set to `spec/internal`, `Combustion::Database.setup` runs after boot so `:memory:` SQLite has schema before examples, and the internal `ExampleJob` no longer subclasses `ActiveJob::Base` (Active Job is not loaded in the minimal stack).

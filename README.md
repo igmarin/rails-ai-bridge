@@ -112,7 +112,7 @@ your-rails-app/
 ├── 🟣 Claude Code
 │   ├── CLAUDE.md                                         ≤150 lines (compact)
 │   └── .claude/rules/
-│       ├── rails-context.md                              semantic layer (tiers + app metadata)
+│       ├── rails-context.md                              semantic layer (compact: capped per tier + MCP hint)
 │       ├── rails-schema.md                               table listing
 │       ├── rails-models.md                               model listing (includes semantic tier)
 │       └── rails-mcp-tools.md                            full tool reference

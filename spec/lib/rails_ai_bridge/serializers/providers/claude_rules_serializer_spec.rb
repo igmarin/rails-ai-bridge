@@ -85,4 +85,47 @@ RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer do
       expect(result[:written].size).to eq(3) # context + schema + mcp-tools
     end
   end
+
+  describe "rails-context.md semantic tier lists" do
+    let(:twenty_one_supporting) do
+      (1..21).each_with_object({}) do |i, h|
+        h["M#{i}"] = { semantic_tier: "supporting", associations: [], validations: [] }
+      end
+    end
+
+    let(:bulky_context) do
+      context.merge(models: twenty_one_supporting)
+    end
+
+    it "caps names per tier in compact mode with an MCP overflow hint" do
+      Dir.mktmpdir do |dir|
+        described_class.new(bulky_context).call(dir)
+        body = File.read(File.join(dir, ".claude", "rules", "rails-context.md"))
+        listed = body.lines.count { |l| l.match?(/\A- M\d+\s*\z/) }
+        expect(listed).to eq(described_class::SEMANTIC_TIER_LIST_CAP)
+        expect(body).to include("+1 more")
+        expect(body).to include("rails_get_model_details")
+      end
+    end
+
+    context "when context_mode is :full" do
+      around do |example|
+        previous = RailsAiBridge.configuration.context_mode
+        RailsAiBridge.configuration.context_mode = :full
+        example.run
+      ensure
+        RailsAiBridge.configuration.context_mode = previous
+      end
+
+      it "lists every model in each tier without overflow" do
+        Dir.mktmpdir do |dir|
+          described_class.new(bulky_context).call(dir)
+          body = File.read(File.join(dir, ".claude", "rules", "rails-context.md"))
+          listed = body.lines.count { |l| l.match?(/\A- M\d+\s*\z/) }
+          expect(listed).to eq(21)
+          expect(body).not_to include("+1 more")
+        end
+      end
+    end
+  end
 end

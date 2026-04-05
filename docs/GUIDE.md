@@ -134,7 +134,7 @@ end
 | File | Purpose | Notes |
 |------|---------|-------|
 | `CLAUDE.md` | Main context file | ≤150 lines in compact mode. Claude Code reads this automatically. |
-| `.claude/rules/rails-context.md` | Semantic layer | App metadata + models grouped by `semantic_tier` (`core_entity`, `pure_join`, `rich_join`, `supporting`). |
+| `.claude/rules/rails-context.md` | Semantic layer | App metadata + models grouped by `semantic_tier`. In **compact** mode, at most 20 names per tier with an overflow line pointing to `rails_get_model_details`; **full** mode lists all. |
 | `.claude/rules/rails-schema.md` | Database table listing | Auto-loaded by Claude Code alongside CLAUDE.md. |
 | `.claude/rules/rails-models.md` | Model listing with associations | Includes `tier: …` per model when introspection provides it. |
 | `.claude/rules/rails-mcp-tools.md` | Full MCP tool reference | Parameters, detail levels, pagination, workflow guide. |
