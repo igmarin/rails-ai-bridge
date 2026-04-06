@@ -22,7 +22,8 @@ module RailsAiBridge
     #     puts result.data
     #   end
     class FileManagementService < RailsAiBridge::Service
-      # @param operation [Symbol] one of +:write+, +:read+, +:delete+, +:exist?+
+      # @param operation [Symbol, nil] one of +:write+, +:read+, +:delete+, +:exist?+; +nil+ is rejected
+      #   with a failure result (see {#call})
       # @param kwargs [Hash] operation-specific arguments (+:path+ required for all supported operations;
       #   +:content+ required for +:write+)
       # @return [RailsAiBridge::Service::Result] success or failure with errors
@@ -30,12 +31,16 @@ module RailsAiBridge
         new.call(operation, **kwargs)
       end
 
-      # Dispatches the file operation after path validation.
+      # Dispatches the file operation after validating +operation+ and (for supported ops) the path.
       #
-      # @param operation [Symbol] +:write+, +:read+, +:delete+, +:exist?+, or other (unsupported)
+      # @param operation [Symbol, nil] +:write+, +:read+, +:delete+, +:exist?+, another value (unsupported),
+      #   or +nil+. When +nil+, returns failure with error +"Operation cannot be nil"+ and does not touch
+      #   the filesystem.
       # @param kwargs [Hash] forwarded to the underlying operation (+:path+, +:content+, etc.)
       # @return [RailsAiBridge::Service::Result]
       def call(operation, **kwargs)
+        return Service::Result.new(false, errors: [ "Operation cannot be nil" ]) if operation.nil?
+
         case operation.to_sym
         when :write
           write_file(**kwargs)

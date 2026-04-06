@@ -62,10 +62,24 @@ RSpec.describe RailsAiBridge::Services::FileManagementService do
       expect(result.failure?).to be(true)
       expect(result.errors.first).to match(/Permission denied/)
     end
+
+    it "returns failure when operation is nil" do
+      result = RailsAiBridge::Services::FileManagementService.call(nil, path: test_file)
+
+      expect(result.failure?).to be(true)
+      expect(result.errors).to eq([ "Operation cannot be nil" ])
+    end
   end
 
   describe "#call" do
     subject { RailsAiBridge::Services::FileManagementService.new }
+
+    it "returns failure when operation is nil" do
+      result = subject.call(nil, path: test_file)
+
+      expect(result.failure?).to be(true)
+      expect(result.errors).to eq([ "Operation cannot be nil" ])
+    end
 
     it "supports write operation" do
       path = File.join(test_dir, "write_test.txt")
