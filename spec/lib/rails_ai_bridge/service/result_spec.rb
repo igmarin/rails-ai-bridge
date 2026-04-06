@@ -98,5 +98,37 @@ RSpec.describe RailsAiBridge::Service::Result do
       result = described_class.new(true, metadata: metadata)
       expect(result.metadata).to be_frozen
     end
+
+    it "does not freeze the caller's metadata hash" do
+      metadata = { key: "value" }
+      described_class.new(true, metadata: metadata)
+      expect(metadata).not_to be_frozen
+    end
+
+    it "uses a distinct empty errors array per instance" do
+      a = described_class.new(false)
+      b = described_class.new(false)
+      expect(a.errors).to eq([])
+      expect(a.errors).not_to equal(b.errors)
+    end
+
+    it "freezes errors" do
+      result = described_class.new(false, errors: [ "x" ])
+      expect(result.errors).to be_frozen
+    end
+
+    it "dupes caller errors so mutating the original does not affect the result" do
+      errs = [ "a" ]
+      result = described_class.new(false, errors: errs)
+      errs << "b"
+      expect(result.errors).to eq([ "a" ])
+    end
+
+    it "uses a distinct empty metadata hash per instance" do
+      a = described_class.new(true)
+      b = described_class.new(true)
+      expect(a.metadata).to eq({})
+      expect(a.metadata).not_to equal(b.metadata)
+    end
   end
 end

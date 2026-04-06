@@ -6,6 +6,8 @@ module RailsAiBridge
     #
     # Provides a standardized way to return success/failure states with associated
     # data and error messages. Supports method chaining via on_success/on_failure.
+    # {#errors} and {#metadata} are defensive copies, frozen, so callers do not share
+    # mutable default state and cannot mutate the internal arrays/hashes in place.
     #
     # @example Success Result
     #   result = Service::Result.new(true, data: {users: ["alice", "bob"]})
@@ -27,13 +29,15 @@ module RailsAiBridge
       #
       # @param success [Boolean] whether the operation succeeded
       # @param data [Object] result data (nil for failures)
-      # @param errors [Array<String>] error messages (empty for success)
-      # @param metadata [Hash] additional metadata
-      def initialize(success, data: nil, errors: [], metadata: {})
+      # @param errors [Array<String>, String, nil] error messages; `nil` means no errors (same as empty).
+      #   Stored as a duplicated, frozen Array so defaults are not shared across instances.
+      # @param metadata [Hash, nil] additional metadata; `nil` is treated like `{}`. A duplicate is frozen
+      #   so the caller's Hash is never frozen in place.
+      def initialize(success, data: nil, errors: nil, metadata: nil)
         @success = success
         @data = data
-        @errors = Array(errors)
-        @metadata = metadata.dup.freeze
+        @errors = Array(errors).dup.freeze
+        @metadata = (metadata || {}).dup.freeze
       end
 
       # Check if the operation was successful.

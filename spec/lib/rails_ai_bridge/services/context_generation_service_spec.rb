@@ -65,6 +65,57 @@ RSpec.describe RailsAiBridge::Services::ContextGenerationService do
       result = service.call
 
       expect(result.data[:written]).to eq([ "output.json" ])
+      expect(result.data[:skipped]).to eq([])
+    end
+
+    it "normalizes nil serializer return to empty written and skipped arrays" do
+      allow(serializer_class).to receive(:new).with(context_data, format: :all).and_return(serializer_instance)
+      allow(serializer_instance).to receive(:call).and_return(nil)
+
+      result = subject.call
+
+      expect(result.success?).to be(true)
+      expect(result.data).to eq({ written: [], skipped: [] })
+    end
+
+    it "normalizes non-Hash serializer return to empty written and skipped arrays" do
+      allow(serializer_class).to receive(:new).with(context_data, format: :all).and_return(serializer_instance)
+      allow(serializer_instance).to receive(:call).and_return("unexpected")
+
+      result = subject.call
+
+      expect(result.success?).to be(true)
+      expect(result.data).to eq({ written: [], skipped: [] })
+    end
+
+    it "fills missing :written or :skipped keys with empty arrays" do
+      allow(serializer_class).to receive(:new).with(context_data, format: :all).and_return(serializer_instance)
+      allow(serializer_instance).to receive(:call).and_return({ written: [ "a.md" ] })
+
+      result = subject.call
+
+      expect(result.data[:written]).to eq([ "a.md" ])
+      expect(result.data[:skipped]).to eq([])
+    end
+
+    it "normalizes hash with only :skipped to empty :written" do
+      allow(serializer_class).to receive(:new).with(context_data, format: :all).and_return(serializer_instance)
+      allow(serializer_instance).to receive(:call).and_return({ skipped: [ "b.md" ] })
+
+      result = subject.call
+
+      expect(result.data[:written]).to eq([])
+      expect(result.data[:skipped]).to eq([ "b.md" ])
+    end
+
+    it "wraps a single path in :written as a one-element array" do
+      allow(serializer_class).to receive(:new).with(context_data, format: :all).and_return(serializer_instance)
+      allow(serializer_instance).to receive(:call).and_return({ written: "/tmp/one.md", skipped: nil })
+
+      result = subject.call
+
+      expect(result.data[:written]).to eq([ "/tmp/one.md" ])
+      expect(result.data[:skipped]).to eq([])
     end
   end
 
