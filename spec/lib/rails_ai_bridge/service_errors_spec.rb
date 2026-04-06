@@ -57,16 +57,16 @@ RSpec.describe RailsAiBridge::ServiceErrors do
   describe "error usage in services" do
     it "can be used in service result" do
       error = described_class::ConfigurationError.new("Invalid config")
-      result = RailsAiBridge::Service::Result.new(false, errors: [error.message])
-      
+      result = RailsAiBridge::Service::Result.new(false, errors: [ error.message ])
+
       expect(result.failure?).to be(true)
-      expect(result.errors).to eq([error.message])
+      expect(result.errors).to eq([ error.message ])
     end
 
     it "maintains error taxonomy consistency" do
       # Service errors that inherit from top-level errors should be catchable by both
       service_error = described_class::ConfigurationError.new("Config error")
-      
+
       expect(service_error).to be_a(described_class::ConfigurationError)
       expect(service_error).to be_a(::RailsAiBridge::ConfigurationError)
       expect(service_error).to be_a(StandardError)

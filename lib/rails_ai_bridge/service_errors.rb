@@ -24,8 +24,7 @@ module RailsAiBridge
     class ValidationError < BaseError; end
 
     # Raised when a requested resource is not found.
-    # Inherits from top-level NotFoundError for consistency.
-    class NotFoundError < ::RailsAiBridge::NotFoundError; end
+    class NotFoundError < BaseError; end
 
     # Raised when authorization fails.
     class AuthorizationError < BaseError; end
