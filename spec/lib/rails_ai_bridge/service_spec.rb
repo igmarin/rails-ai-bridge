@@ -23,12 +23,12 @@ RSpec.describe RailsAiBridge::Service do
         end
 
         def call
-          {arg1: @arg1, kwarg1: @kwarg1}
+          { arg1: @arg1, kwarg1: @kwarg1 }
         end
       end
 
       result = service_class.call("test_arg", kwarg1: "test_kwarg")
-      expect(result).to eq({arg1: "test_arg", kwarg1: "test_kwarg"})
+      expect(result).to eq({ arg1: "test_arg", kwarg1: "test_kwarg" })
     end
   end
 

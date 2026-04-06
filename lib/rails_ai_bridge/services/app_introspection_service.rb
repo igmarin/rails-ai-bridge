@@ -14,10 +14,10 @@ module RailsAiBridge
     def call(only: nil)
       introspector = @introspector_class.new(@app)
       introspection_result = introspector.call(only: only)
-      
+
       Service::Result.new(true, data: introspection_result)
     rescue StandardError => e
-      Service::Result.new(false, errors: [e.message])
+      Service::Result.new(false, errors: [ e.message ])
     end
   end
 end

@@ -38,10 +38,10 @@ RSpec.describe RailsAiBridge::ServiceErrors do
   describe "error usage in services" do
     it "can be used in service result" do
       error = described_class::ConfigurationError.new("Invalid config")
-      result = RailsAiBridge::Service::Result.new(false, errors: [error.message])
-      
+      result = RailsAiBridge::Service::Result.new(false, errors: [ error.message ])
+
       expect(result.failure?).to be(true)
-      expect(result.errors).to eq([error.message])
+      expect(result.errors).to eq([ error.message ])
     end
   end
 end
