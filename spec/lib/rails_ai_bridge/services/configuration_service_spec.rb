@@ -3,10 +3,10 @@
 require "spec_helper"
 require "rails_ai_bridge/services/configuration_service"
 
-RSpec.describe RailsAiBridge::ConfigurationService do
+RSpec.describe RailsAiBridge::Services::ConfigurationService do
   describe ".call" do
     it "returns current configuration" do
-      result = described_class.call
+      result = RailsAiBridge::Services::ConfigurationService.call
 
       expect(result.success?).to be(true)
       expect(result.data).to be_a(RailsAiBridge::Configuration)
@@ -15,7 +15,7 @@ RSpec.describe RailsAiBridge::ConfigurationService do
     it "allows configuration updates via block" do
       original_cache_ttl = RailsAiBridge.configuration.introspection.cache_ttl
 
-      result = described_class.call do |config|
+      result = RailsAiBridge::Services::ConfigurationService.call do |config|
         config.introspection.cache_ttl = 3600
       end
 
@@ -29,7 +29,7 @@ RSpec.describe RailsAiBridge::ConfigurationService do
     it "handles configuration errors" do
       allow(RailsAiBridge).to receive(:configuration).and_raise("Config error")
 
-      result = described_class.call
+      result = RailsAiBridge::Services::ConfigurationService.call
 
       expect(result.failure?).to be(true)
       expect(result.errors).to eq([ "Config error" ])
@@ -37,7 +37,7 @@ RSpec.describe RailsAiBridge::ConfigurationService do
   end
 
   describe "#call" do
-    subject { described_class.new }
+    subject { RailsAiBridge::Services::ConfigurationService.new }
 
     it "returns configuration without block" do
       result = subject.call
@@ -72,7 +72,7 @@ RSpec.describe RailsAiBridge::ConfigurationService do
 
   describe "configuration access" do
     it "provides access to all configuration sections" do
-      result = described_class.call
+      result = RailsAiBridge::Services::ConfigurationService.call
       config = result.data
 
       expect(config).to respond_to(:introspection)
@@ -83,7 +83,7 @@ RSpec.describe RailsAiBridge::ConfigurationService do
     end
 
     it "allows reading configuration values" do
-      result = described_class.call
+      result = RailsAiBridge::Services::ConfigurationService.call
       config = result.data
 
       # Test reading some default values
@@ -97,14 +97,14 @@ RSpec.describe RailsAiBridge::ConfigurationService do
     it "captures StandardError during configuration" do
       allow(RailsAiBridge).to receive(:configuration).and_raise("Config error")
 
-      result = described_class.call
+      result = RailsAiBridge::Services::ConfigurationService.call
 
       expect(result.failure?).to be(true)
       expect(result.errors).to eq([ "Config error" ])
     end
 
     it "handles block errors gracefully" do
-      result = described_class.call do |config|
+      result = RailsAiBridge::Services::ConfigurationService.call do |config|
         raise "Block error"
       end
 
@@ -115,7 +115,7 @@ RSpec.describe RailsAiBridge::ConfigurationService do
 
   describe "result format" do
     it "returns Service::Result with configuration" do
-      result = described_class.call
+      result = RailsAiBridge::Services::ConfigurationService.call
 
       expect(result).to be_a(RailsAiBridge::Service::Result)
       expect(result.success?).to be(true)

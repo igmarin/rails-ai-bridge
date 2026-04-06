@@ -4,7 +4,7 @@ require "spec_helper"
 require "rails_ai_bridge/services/file_management_service"
 require "fileutils"
 
-RSpec.describe RailsAiBridge::FileManagementService do
+RSpec.describe RailsAiBridge::Services::FileManagementService do
   let(:test_dir) { "/tmp/rails_ai_bridge_test" }
   let(:test_file) { "#{test_dir}/test_file.txt" }
 
@@ -18,7 +18,7 @@ RSpec.describe RailsAiBridge::FileManagementService do
 
   describe ".call" do
     it "writes content to file successfully" do
-      result = described_class.call(:write, path: test_file, content: "test content")
+      result = RailsAiBridge::Services::FileManagementService.call(:write, path: test_file, content: "test content")
 
       expect(result.success?).to be(true)
       expect(File.exist?(test_file)).to be(true)
@@ -28,7 +28,7 @@ RSpec.describe RailsAiBridge::FileManagementService do
     it "reads content from file successfully" do
       File.write(test_file, "existing content")
 
-      result = described_class.call(:read, path: test_file)
+      result = RailsAiBridge::Services::FileManagementService.call(:read, path: test_file)
 
       expect(result.success?).to be(true)
       expect(result.data).to eq("existing content")
@@ -38,14 +38,14 @@ RSpec.describe RailsAiBridge::FileManagementService do
       File.write(test_file, "content")
       expect(File.exist?(test_file)).to be(true)
 
-      result = described_class.call(:delete, path: test_file)
+      result = RailsAiBridge::Services::FileManagementService.call(:delete, path: test_file)
 
       expect(result.success?).to be(true)
       expect(File.exist?(test_file)).to be(false)
     end
 
     it "handles file not found errors" do
-      result = described_class.call(:read, path: "/nonexistent/file.txt")
+      result = RailsAiBridge::Services::FileManagementService.call(:read, path: "/nonexistent/file.txt")
 
       expect(result.failure?).to be(true)
       expect(result.errors.first).to match(/No such file or directory/)
@@ -54,7 +54,7 @@ RSpec.describe RailsAiBridge::FileManagementService do
     it "handles permission errors gracefully" do
       # Test with a real permission error by trying to write to root
       # This should fail gracefully
-      result = described_class.call(:write, path: "/permission_test_file.txt", content: "content")
+      result = RailsAiBridge::Services::FileManagementService.call(:write, path: "/permission_test_file.txt", content: "content")
 
       # We expect it to either succeed (if we have permission) or fail gracefully
       if result.failure?
@@ -67,7 +67,7 @@ RSpec.describe RailsAiBridge::FileManagementService do
   end
 
   describe "#call" do
-    subject { described_class.new }
+    subject { RailsAiBridge::Services::FileManagementService.new }
 
     it "supports write operation" do
       result = subject.call(:write, path: "#{test_dir}/write_test.txt", content: "written")
@@ -118,7 +118,7 @@ RSpec.describe RailsAiBridge::FileManagementService do
     it "creates directories if needed for write" do
       nested_path = "#{test_dir}/nested/dir/file.txt"
 
-      result = described_class.call(:write, path: nested_path, content: "nested content")
+      result = RailsAiBridge::Services::FileManagementService.call(:write, path: nested_path, content: "nested content")
 
       expect(result.success?).to be(true)
       expect(File.exist?(nested_path)).to be(true)
@@ -126,7 +126,7 @@ RSpec.describe RailsAiBridge::FileManagementService do
 
     it "handles directory creation errors" do
       # Test error handling by trying to create in a protected location
-      result = described_class.call(:write, path: "/root/protected/nested/file.txt", content: "content")
+      result = RailsAiBridge::Services::FileManagementService.call(:write, path: "/root/protected/nested/file.txt", content: "content")
 
       # Should fail gracefully if we don't have permission
       if result.failure?
@@ -138,15 +138,15 @@ RSpec.describe RailsAiBridge::FileManagementService do
   describe "result format" do
     it "returns Service::Result for all operations" do
       # Write operation
-      write_result = described_class.call(:write, path: "#{test_dir}/result_test.txt", content: "test")
+      write_result = RailsAiBridge::Services::FileManagementService.call(:write, path: "#{test_dir}/result_test.txt", content: "test")
       expect(write_result).to be_a(RailsAiBridge::Service::Result)
 
       # Read operation
-      read_result = described_class.call(:read, path: "#{test_dir}/result_test.txt")
+      read_result = RailsAiBridge::Services::FileManagementService.call(:read, path: "#{test_dir}/result_test.txt")
       expect(read_result).to be_a(RailsAiBridge::Service::Result)
 
       # Delete operation
-      delete_result = described_class.call(:delete, path: "#{test_dir}/result_test.txt")
+      delete_result = RailsAiBridge::Services::FileManagementService.call(:delete, path: "#{test_dir}/result_test.txt")
       expect(delete_result).to be_a(RailsAiBridge::Service::Result)
     end
   end

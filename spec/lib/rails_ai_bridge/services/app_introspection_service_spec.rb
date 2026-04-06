@@ -4,7 +4,7 @@ require "spec_helper"
 require "rails_ai_bridge/services/app_introspection_service"
 require "rails_ai_bridge/introspector"
 
-RSpec.describe RailsAiBridge::AppIntrospectionService do
+RSpec.describe RailsAiBridge::Services::AppIntrospectionService do
   let(:app) { double("Rails App") }
   let(:introspector_class) { RailsAiBridge::Introspector }
   let(:introspector_instance) { instance_double(RailsAiBridge::Introspector) }
@@ -14,7 +14,7 @@ RSpec.describe RailsAiBridge::AppIntrospectionService do
       expect(introspector_class).to receive(:new).with(app).and_return(introspector_instance)
       expect(introspector_instance).to receive(:call).with(only: nil).and_return({ test: "data" })
 
-      result = described_class.call(app)
+      result = RailsAiBridge::Services::AppIntrospectionService.call(app)
 
       expect(result).to be_a(RailsAiBridge::Service::Result)
       expect(result.success?).to be(true)
@@ -25,7 +25,7 @@ RSpec.describe RailsAiBridge::AppIntrospectionService do
       expect(introspector_class).to receive(:new).with(app).and_return(introspector_instance)
       expect(introspector_instance).to receive(:call).with(only: [ :models, :routes ]).and_return({})
 
-      result = described_class.call(app, only: [ :models, :routes ])
+      result = RailsAiBridge::Services::AppIntrospectionService.call(app, only: [ :models, :routes ])
       expect(result.success?).to be(true)
     end
 
@@ -33,7 +33,7 @@ RSpec.describe RailsAiBridge::AppIntrospectionService do
       expect(introspector_class).to receive(:new).with(app).and_return(introspector_instance)
       expect(introspector_instance).to receive(:call).and_raise("Introspection failed")
 
-      result = described_class.call(app)
+      result = RailsAiBridge::Services::AppIntrospectionService.call(app)
 
       expect(result.failure?).to be(true)
       expect(result.errors).to eq([ "Introspection failed" ])
@@ -41,7 +41,7 @@ RSpec.describe RailsAiBridge::AppIntrospectionService do
   end
 
   describe "#call" do
-    subject { described_class.new(app) }
+    subject { RailsAiBridge::Services::AppIntrospectionService.new(app) }
 
     it "delegates to introspector with default class" do
       allow(introspector_class).to receive(:new).with(app).and_return(introspector_instance)
@@ -58,7 +58,7 @@ RSpec.describe RailsAiBridge::AppIntrospectionService do
       allow(custom_introspector).to receive(:new).with(app).and_return(custom_introspector)
       allow(custom_introspector).to receive(:call).with(only: nil).and_return({ custom: true })
 
-      service = described_class.new(app, introspector_class: custom_introspector)
+      service = RailsAiBridge::Services::AppIntrospectionService.new(app, introspector_class: custom_introspector)
       result = service.call
 
       expect(result.data).to eq({ custom: true })
@@ -73,7 +73,7 @@ RSpec.describe RailsAiBridge::AppIntrospectionService do
         routes: {}
       })
 
-      result = described_class.call(app)
+      result = RailsAiBridge::Services::AppIntrospectionService.call(app)
 
       expect(result).to be_a(RailsAiBridge::Service::Result)
       expect(result.success?).to be(true)

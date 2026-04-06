@@ -4,7 +4,7 @@ require "spec_helper"
 require "rails_ai_bridge/services/context_generation_service"
 require "rails_ai_bridge/serializers/context_file_serializer"
 
-RSpec.describe RailsAiBridge::ContextGenerationService do
+RSpec.describe RailsAiBridge::Services::ContextGenerationService do
   let(:context_data) { { models: [ "User" ], routes: {} } }
   let(:serializer_class) { RailsAiBridge::Serializers::ContextFileSerializer }
   let(:serializer_instance) { instance_double(serializer_class) }
@@ -17,7 +17,7 @@ RSpec.describe RailsAiBridge::ContextGenerationService do
         skipped: []
       })
 
-      result = described_class.call(context_data)
+      result = RailsAiBridge::Services::ContextGenerationService.call(context_data)
 
       expect(result.success?).to be(true)
       expect(result.data[:written]).to eq([ "/tmp/CLAUDE.md" ])
@@ -28,7 +28,7 @@ RSpec.describe RailsAiBridge::ContextGenerationService do
       expect(serializer_class).to receive(:new).with(context_data, format: :claude).and_return(serializer_instance)
       expect(serializer_instance).to receive(:call).and_return({ written: [], skipped: [] })
 
-      result = described_class.call(context_data, format: :claude)
+      result = RailsAiBridge::Services::ContextGenerationService.call(context_data, format: :claude)
       expect(result.success?).to be(true)
     end
 
@@ -36,7 +36,7 @@ RSpec.describe RailsAiBridge::ContextGenerationService do
       expect(serializer_class).to receive(:new).and_return(serializer_instance)
       expect(serializer_instance).to receive(:call).and_raise("Serialization failed")
 
-      result = described_class.call(context_data)
+      result = RailsAiBridge::Services::ContextGenerationService.call(context_data)
 
       expect(result.failure?).to be(true)
       expect(result.errors).to eq([ "Serialization failed" ])
@@ -44,7 +44,7 @@ RSpec.describe RailsAiBridge::ContextGenerationService do
   end
 
   describe "#call" do
-    subject { described_class.new(context_data) }
+    subject { RailsAiBridge::Services::ContextGenerationService.new(context_data) }
 
     it "uses default format when not specified" do
       expect(serializer_class).to receive(:new).with(context_data, format: :all).and_return(serializer_instance)
@@ -61,7 +61,7 @@ RSpec.describe RailsAiBridge::ContextGenerationService do
       allow(custom_serializer).to receive(:new).with(context_data, format: :json).and_return(custom_serializer)
       allow(custom_serializer).to receive(:call).and_return({ written: [ "output.json" ] })
 
-      service = described_class.new(context_data, serializer_class: custom_serializer, format: :json)
+      service = RailsAiBridge::Services::ContextGenerationService.new(context_data, serializer_class: custom_serializer, format: :json)
       result = service.call
 
       expect(result.data[:written]).to eq([ "output.json" ])
@@ -76,7 +76,7 @@ RSpec.describe RailsAiBridge::ContextGenerationService do
         skipped: [ "/tmp/CODEX.md" ]
       })
 
-      result = described_class.call(context_data)
+      result = RailsAiBridge::Services::ContextGenerationService.call(context_data)
 
       expect(result).to be_a(RailsAiBridge::Service::Result)
       expect(result.success?).to be(true)
@@ -89,7 +89,7 @@ RSpec.describe RailsAiBridge::ContextGenerationService do
     it "captures StandardError exceptions" do
       allow(serializer_class).to receive(:new).and_raise(ArgumentError, "Invalid format")
 
-      result = described_class.call(context_data, format: :invalid)
+      result = RailsAiBridge::Services::ContextGenerationService.call(context_data, format: :invalid)
 
       expect(result.failure?).to be(true)
       expect(result.errors).to eq([ "Invalid format" ])
