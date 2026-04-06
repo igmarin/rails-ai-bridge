@@ -52,17 +52,12 @@ RSpec.describe RailsAiBridge::Services::FileManagementService do
     end
 
     it "handles permission errors gracefully" do
-      # Test with a real permission error by trying to write to root
-      # This should fail gracefully
+      allow(FileUtils).to receive(:mkdir_p).and_raise(Errno::EACCES, "Permission denied")
+
       result = RailsAiBridge::Services::FileManagementService.call(:write, path: "/permission_test_file.txt", content: "content")
 
-      # We expect it to either succeed (if we have permission) or fail gracefully
-      if result.failure?
-        expect(result.errors.first).to match(/Permission denied|Operation not permitted|Read-only file system/)
-      else
-        # Clean up if it succeeded
-        File.delete("/permission_test_file.txt") rescue nil
-      end
+      expect(result.failure?).to be(true)
+      expect(result.errors.first).to match(/Permission denied/)
     end
   end
 
@@ -125,13 +120,12 @@ RSpec.describe RailsAiBridge::Services::FileManagementService do
     end
 
     it "handles directory creation errors" do
-      # Test error handling by trying to create in a protected location
+      allow(FileUtils).to receive(:mkdir_p).and_raise(Errno::EACCES, "Permission denied")
+
       result = RailsAiBridge::Services::FileManagementService.call(:write, path: "/root/protected/nested/file.txt", content: "content")
 
-      # Should fail gracefully if we don't have permission
-      if result.failure?
-        expect(result.errors.first).to match(/Permission denied|Operation not permitted|Read-only file system/)
-      end
+      expect(result.failure?).to be(true)
+      expect(result.errors.first).to match(/Permission denied/)
     end
   end
 

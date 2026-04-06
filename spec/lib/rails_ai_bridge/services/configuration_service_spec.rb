@@ -15,15 +15,16 @@ RSpec.describe RailsAiBridge::Services::ConfigurationService do
     it "allows configuration updates via block" do
       original_cache_ttl = RailsAiBridge.configuration.introspection.cache_ttl
 
-      result = RailsAiBridge::Services::ConfigurationService.call do |config|
-        config.introspection.cache_ttl = 3600
+      begin
+        result = RailsAiBridge::Services::ConfigurationService.call do |config|
+          config.introspection.cache_ttl = 3600
+        end
+
+        expect(result.success?).to be(true)
+        expect(result.data.introspection.cache_ttl).to eq(3600)
+      ensure
+        RailsAiBridge.configuration.introspection.cache_ttl = original_cache_ttl
       end
-
-      expect(result.success?).to be(true)
-      expect(result.data.introspection.cache_ttl).to eq(3600)
-
-      # Reset to original
-      RailsAiBridge.configuration.introspection.cache_ttl = original_cache_ttl
     end
 
     it "handles configuration errors" do
@@ -49,15 +50,16 @@ RSpec.describe RailsAiBridge::Services::ConfigurationService do
     it "yields configuration for modification" do
       original_output_dir = RailsAiBridge.configuration.output_dir
 
-      result = subject.call do |config|
-        config.output_dir = "/tmp/test"
+      begin
+        result = subject.call do |config|
+          config.output_dir = "/tmp/test"
+        end
+
+        expect(result.success?).to be(true)
+        expect(result.data.output_dir).to eq("/tmp/test")
+      ensure
+        RailsAiBridge.configuration.output_dir = original_output_dir
       end
-
-      expect(result.success?).to be(true)
-      expect(result.data.output_dir).to eq("/tmp/test")
-
-      # Reset to original
-      RailsAiBridge.configuration.output_dir = original_output_dir
     end
 
     it "handles block errors gracefully" do
