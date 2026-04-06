@@ -5,8 +5,8 @@ require "rails_ai_bridge/services/file_management_service"
 require "fileutils"
 
 RSpec.describe RailsAiBridge::Services::FileManagementService do
-  let(:test_dir) { "/tmp/rails_ai_bridge_test" }
-  let(:test_file) { "#{test_dir}/test_file.txt" }
+  let(:test_dir) { Rails.root.join("tmp", "rails_ai_bridge_test").to_s }
+  let(:test_file) { File.join(test_dir, "test_file.txt") }
 
   before do
     FileUtils.mkdir_p(test_dir)
@@ -45,16 +45,19 @@ RSpec.describe RailsAiBridge::Services::FileManagementService do
     end
 
     it "handles file not found errors" do
-      result = RailsAiBridge::Services::FileManagementService.call(:read, path: "/nonexistent/file.txt")
+      missing = File.join(test_dir, "no_such_file.txt")
+
+      result = RailsAiBridge::Services::FileManagementService.call(:read, path: missing)
 
       expect(result.failure?).to be(true)
       expect(result.errors.first).to match(/No such file or directory/)
     end
 
     it "handles permission errors gracefully" do
+      probe = Rails.root.join("tmp", "permission_probe.txt").to_s
       allow(FileUtils).to receive(:mkdir_p).and_raise(Errno::EACCES, "Permission denied")
 
-      result = RailsAiBridge::Services::FileManagementService.call(:write, path: "/permission_test_file.txt", content: "content")
+      result = RailsAiBridge::Services::FileManagementService.call(:write, path: probe, content: "content")
 
       expect(result.failure?).to be(true)
       expect(result.errors.first).to match(/Permission denied/)
@@ -65,14 +68,15 @@ RSpec.describe RailsAiBridge::Services::FileManagementService do
     subject { RailsAiBridge::Services::FileManagementService.new }
 
     it "supports write operation" do
-      result = subject.call(:write, path: "#{test_dir}/write_test.txt", content: "written")
+      path = File.join(test_dir, "write_test.txt")
+      result = subject.call(:write, path: path, content: "written")
 
       expect(result.success?).to be(true)
-      expect(File.read("#{test_dir}/write_test.txt")).to eq("written")
+      expect(File.read(path)).to eq("written")
     end
 
     it "supports read operation" do
-      test_read_file = "#{test_dir}/read_test.txt"
+      test_read_file = File.join(test_dir, "read_test.txt")
       File.write(test_read_file, "readable content")
 
       result = subject.call(:read, path: test_read_file)
@@ -82,7 +86,7 @@ RSpec.describe RailsAiBridge::Services::FileManagementService do
     end
 
     it "supports delete operation" do
-      test_delete_file = "#{test_dir}/delete_test.txt"
+      test_delete_file = File.join(test_dir, "delete_test.txt")
       File.write(test_delete_file, "content")
 
       result = subject.call(:delete, path: test_delete_file)
@@ -92,7 +96,7 @@ RSpec.describe RailsAiBridge::Services::FileManagementService do
     end
 
     it "supports file existence check" do
-      existing_file = "#{test_dir}/existing.txt"
+      existing_file = File.join(test_dir, "existing.txt")
       File.write(existing_file, "content")
 
       result = subject.call(:exist?, path: existing_file)
@@ -102,7 +106,9 @@ RSpec.describe RailsAiBridge::Services::FileManagementService do
     end
 
     it "returns false for non-existent files" do
-      result = subject.call(:exist?, path: "/nonexistent/file.txt")
+      missing = File.join(test_dir, "ghost.txt")
+
+      result = subject.call(:exist?, path: missing)
 
       expect(result.success?).to be(true)
       expect(result.data).to be(false)
@@ -111,7 +117,7 @@ RSpec.describe RailsAiBridge::Services::FileManagementService do
 
   describe "file operations" do
     it "creates directories if needed for write" do
-      nested_path = "#{test_dir}/nested/dir/file.txt"
+      nested_path = File.join(test_dir, "nested", "dir", "file.txt")
 
       result = RailsAiBridge::Services::FileManagementService.call(:write, path: nested_path, content: "nested content")
 
@@ -120,27 +126,60 @@ RSpec.describe RailsAiBridge::Services::FileManagementService do
     end
 
     it "handles directory creation errors" do
+      nested = Rails.root.join("tmp", "perm_nested", "file.txt").to_s
       allow(FileUtils).to receive(:mkdir_p).and_raise(Errno::EACCES, "Permission denied")
 
-      result = RailsAiBridge::Services::FileManagementService.call(:write, path: "/root/protected/nested/file.txt", content: "content")
+      result = RailsAiBridge::Services::FileManagementService.call(:write, path: nested, content: "content")
 
       expect(result.failure?).to be(true)
       expect(result.errors.first).to match(/Permission denied/)
     end
   end
 
+  describe "path validation" do
+    it "rejects absolute paths outside the allowed base" do
+      result = RailsAiBridge::Services::FileManagementService.call(:read, path: "/etc/passwd")
+
+      expect(result.failure?).to be(true)
+      expect(result.errors.first).to match(/Path not allowed/)
+    end
+
+    it "rejects relative paths that resolve outside the allowed base" do
+      result = RailsAiBridge::Services::FileManagementService.call(:read, path: "../../../config/database.yml")
+
+      expect(result.failure?).to be(true)
+      expect(result.errors.first).to match(/Path not allowed/)
+    end
+
+    it "rejects an empty path" do
+      result = RailsAiBridge::Services::FileManagementService.call(:read, path: "")
+
+      expect(result.failure?).to be(true)
+      expect(result.errors.first).to match(/path must be non-empty/)
+    end
+
+    it "allows paths relative to Rails.root" do
+      rel = File.join("tmp", "rails_ai_bridge_test", "relative_ok.txt")
+      full = Rails.root.join(rel).to_s
+      FileUtils.mkdir_p(File.dirname(full))
+
+      result = RailsAiBridge::Services::FileManagementService.call(:write, path: rel, content: "ok")
+
+      expect(result.success?).to be(true)
+      expect(File.read(full)).to eq("ok")
+    end
+  end
+
   describe "result format" do
     it "returns Service::Result for all operations" do
-      # Write operation
-      write_result = RailsAiBridge::Services::FileManagementService.call(:write, path: "#{test_dir}/result_test.txt", content: "test")
+      path = File.join(test_dir, "result_test.txt")
+      write_result = RailsAiBridge::Services::FileManagementService.call(:write, path: path, content: "test")
       expect(write_result).to be_a(RailsAiBridge::Service::Result)
 
-      # Read operation
-      read_result = RailsAiBridge::Services::FileManagementService.call(:read, path: "#{test_dir}/result_test.txt")
+      read_result = RailsAiBridge::Services::FileManagementService.call(:read, path: path)
       expect(read_result).to be_a(RailsAiBridge::Service::Result)
 
-      # Delete operation
-      delete_result = RailsAiBridge::Services::FileManagementService.call(:delete, path: "#{test_dir}/result_test.txt")
+      delete_result = RailsAiBridge::Services::FileManagementService.call(:delete, path: path)
       expect(delete_result).to be_a(RailsAiBridge::Service::Result)
     end
   end

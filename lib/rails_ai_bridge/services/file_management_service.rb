@@ -4,32 +4,37 @@ require "fileutils"
 
 module RailsAiBridge
   module Services
-    # Service for file system operations.
+    # Application service for file system operations confined to an allowed base directory.
     #
-    # Provides a safe, consistent interface for common file operations with
-    # proper error handling and result formatting.
+    # All paths are expanded and must lie under {Rails.root} when Rails is loaded, otherwise under
+    # {Dir.pwd}. This limits read/write/delete to the application tree and returns failures (including
+    # {SecurityError}) as {RailsAiBridge::Service::Result} instead of raising.
     #
-    # @example Write a file
-    #   result = Services::FileManagementService.call(:write, path: "config.yml", content: "key: value")
+    # @example Write a file (relative to allowed base)
+    #   result = Services::FileManagementService.call(:write, path: "tmp/config.yml", content: "key: value")
     #   if result.success?
     #     puts "File written successfully"
     #   end
     #
     # @example Read a file
-    #   result = Services::FileManagementService.call(:read, path: "config.yml")
+    #   result = Services::FileManagementService.call(:read, path: "config/database.yml")
     #   if result.success?
     #     puts result.data
     #   end
     class FileManagementService < RailsAiBridge::Service
+      # @param operation [Symbol] one of +:write+, +:read+, +:delete+, +:exist?+
+      # @param kwargs [Hash] operation-specific arguments (+:path+ required for all supported operations;
+      #   +:content+ required for +:write+)
+      # @return [RailsAiBridge::Service::Result] success or failure with errors
       def self.call(operation, **kwargs)
         new.call(operation, **kwargs)
       end
 
-      # Execute a file operation and return the result.
+      # Dispatches the file operation after path validation.
       #
-      # @param operation [Symbol] the operation to perform (:write, :read, :delete, :exist?)
-      # @param kwargs [Hash] operation-specific arguments
-      # @return [Service::Result] result of the file operation
+      # @param operation [Symbol] +:write+, +:read+, +:delete+, +:exist?+, or other (unsupported)
+      # @param kwargs [Hash] forwarded to the underlying operation (+:path+, +:content+, etc.)
+      # @return [RailsAiBridge::Service::Result]
       def call(operation, **kwargs)
         case operation.to_sym
         when :write
@@ -47,49 +52,83 @@ module RailsAiBridge
 
       private
 
-      # Write content to a file, creating directories as needed.
+      # @return [String] expanded allowed root directory
+      def default_allowed_base_dir
+        if defined?(Rails) && Rails.respond_to?(:root) && Rails.root
+          Rails.root.to_s
+        else
+          Dir.pwd
+        end
+      end
+
+      # Expands +path+ and ensures it stays within +base_dir+ (or equals it).
       #
-      # @param path [String] file path
+      # Relative paths are resolved from +base_dir+. Absolute paths are normalized and must still fall
+      # under +base_dir+.
+      #
+      # @param path [String, #to_s] filesystem path
+      # @param base_dir [String, #to_s] allowed root directory
+      # @return [String] expanded absolute path within +base_dir+
+      # @raise [ArgumentError] if +path+ is empty
+      # @raise [SecurityError] if the expanded path escapes +base_dir+
+      def validate_path!(path, base_dir = default_allowed_base_dir)
+        path_string = path.to_s
+        raise ArgumentError, "path must be non-empty" if path_string.empty?
+
+        base = File.expand_path(base_dir.to_s)
+        expanded = File.expand_path(path_string, base)
+
+        prefix =
+          if base.end_with?(File::SEPARATOR)
+            base
+          else
+            "#{base}#{File::SEPARATOR}"
+          end
+
+        return expanded if expanded == base || expanded.start_with?(prefix)
+
+        raise SecurityError, "Path not allowed: #{path}"
+      end
+
+      # @param path [String] file path (validated)
       # @param content [String] content to write
-      # @return [Service::Result] result with file info
+      # @return [Service::Result]
       def write_file(path:, content:)
-        FileUtils.mkdir_p(File.dirname(path))
-        File.write(path, content)
-        Service::Result.new(true, data: { path: path, bytes_written: content.bytesize })
-      rescue StandardError => e
+        safe_path = validate_path!(path)
+        FileUtils.mkdir_p(File.dirname(safe_path))
+        File.write(safe_path, content)
+        Service::Result.new(true, data: { path: safe_path, bytes_written: content.bytesize })
+      rescue SecurityError, StandardError => e
         Service::Result.new(false, errors: [ e.message ])
       end
 
-      # Read content from a file.
-      #
-      # @param path [String] file path
-      # @return [Service::Result] result with file content
+      # @param path [String] file path (validated)
+      # @return [Service::Result]
       def read_file(path:)
-        content = File.read(path)
+        safe_path = validate_path!(path)
+        content = File.read(safe_path)
         Service::Result.new(true, data: content)
-      rescue StandardError => e
+      rescue SecurityError, StandardError => e
         Service::Result.new(false, errors: [ e.message ])
       end
 
-      # Delete a file.
-      #
-      # @param path [String] file path
-      # @return [Service::Result] result with deletion status
+      # @param path [String] file path (validated)
+      # @return [Service::Result]
       def delete_file(path:)
-        File.delete(path)
-        Service::Result.new(true, data: { path: path, deleted: true })
-      rescue StandardError => e
+        safe_path = validate_path!(path)
+        File.delete(safe_path)
+        Service::Result.new(true, data: { path: safe_path, deleted: true })
+      rescue SecurityError, StandardError => e
         Service::Result.new(false, errors: [ e.message ])
       end
 
-      # Check if a file exists.
-      #
-      # @param path [String] file path
-      # @return [Service::Result] result with existence status
+      # @param path [String] file path (validated)
+      # @return [Service::Result]
       def file_exists?(path:)
-        exists = File.exist?(path)
+        safe_path = validate_path!(path)
+        exists = File.exist?(safe_path)
         Service::Result.new(true, data: exists)
-      rescue StandardError => e
+      rescue SecurityError, StandardError => e
         Service::Result.new(false, errors: [ e.message ])
       end
     end
