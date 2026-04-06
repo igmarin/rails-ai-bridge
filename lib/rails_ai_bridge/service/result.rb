@@ -33,7 +33,7 @@ module RailsAiBridge
         @success = success
         @data = data
         @errors = Array(errors)
-        @metadata = metadata.freeze
+        @metadata = metadata.dup.freeze
       end
 
       # Check if the operation was successful.
