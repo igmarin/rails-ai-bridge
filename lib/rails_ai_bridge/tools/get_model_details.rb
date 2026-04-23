@@ -6,7 +6,9 @@ module RailsAiBridge
     # and configurable list detail for all models.
     class GetModelDetails < BaseTool
       tool_name 'rails_get_model_details'
-      description 'Get detailed information about a specific ActiveRecord model including associations, validations, scopes, enums, callbacks, and concerns. If no model specified, lists all available models with configurable detail level. Non-ActiveRecord classes under app/models (POJO/Service) appear in listings when :non_ar_models introspection is enabled.'
+      description 'Get detailed information about a specific ActiveRecord model including associations, validations, scopes, enums,
+      callbacks, and concerns. If no model specified, lists all available models with configurable detail level. Non-ActiveRecord classes under app/models (POJO/Service) appear
+    in listings when :non_ar_models introspection is enabled.'
 
       input_schema(
         properties: {
@@ -17,7 +19,8 @@ module RailsAiBridge
           detail: {
             type: 'string',
             enum: %w[summary standard full],
-            description: 'Detail level for model listing. summary: names only. standard: names + association/validation counts (default). full: names + full association list. Ignored when specific model is given (always returns full).'
+            description: 'Detail level for model listing. summary: names only. standard: names + association/validation counts (default). full: names + full association list.
+            Ignored when specific model is given (always returns full).'
           }
         }
       )

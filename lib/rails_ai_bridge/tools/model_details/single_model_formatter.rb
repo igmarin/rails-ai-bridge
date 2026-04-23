@@ -11,7 +11,8 @@ module RailsAiBridge
         ##
         # Create a formatter for a single model using the provided introspection data.
         # @param [String] name - The model's class name.
-        # @param [Hash] data - Introspection hash containing model details (table, associations, validations, enums, scopes, callbacks, concerns, instance_methods, etc.).
+        # @param [Hash] data - Introspection hash containing model details (table, associations, validations,
+        # enums, scopes, callbacks, concerns, instance_methods, etc.).
         # The values are stored on the instance without validation.
         def initialize(name:, data:)
           @name = name
@@ -27,7 +28,8 @@ module RailsAiBridge
         # instance methods.
         ##
         # Builds a Markdown document describing the given ActiveRecord model's introspected details.
-        # The output may include table name, semantic tier and reason, associations, validations, enums, scopes, callbacks, concerns, and up to 15 key instance methods depending on the data provided.
+        # The output may include table name, semantic tier and reason, associations, validations, enums,
+        #  scopes, callbacks, concerns, and up to 15 key instance methods depending on the data provided.
         # @return [String] The Markdown-formatted representation of the model.
         def call
           lines = ["# #{@name}", '']

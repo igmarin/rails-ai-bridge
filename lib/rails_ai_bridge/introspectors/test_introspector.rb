@@ -133,7 +133,7 @@ module RailsAiBridge
         return nil unless File.exist?(gemfile_lock)
 
         content = File.read(gemfile_lock)
-        return 'simplecov' if content.include?('simplecov (')
+        return 'reek' if content.include?('reek (')
 
         nil
       rescue StandardError

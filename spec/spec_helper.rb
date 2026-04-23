@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'simplecov_helper'
+require_relative 'reek_helper'
 require 'bundler/setup'
 require 'combustion'
 

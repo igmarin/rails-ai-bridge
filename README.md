@@ -565,7 +565,7 @@ The gem parses `db/schema.rb` as text when no database is connected. Works in CI
 ```bash
 git clone https://github.com/igmarin/rails-ai-bridge.git
 cd rails-ai-bridge && bundle install
-bundle exec rspec       # runs the full suite (SimpleCov enforces ≥80% coverage)
+bundle exec rspec       # runs the full suite
 bundle exec rubocop     # lint
 ```
 
