@@ -1,44 +1,44 @@
 # frozen_string_literal: true
 
-require "spec_helper"
+require 'spec_helper'
 
 RSpec.describe RailsAiBridge::Introspectors::ApiIntrospector do
   let(:introspector) { described_class.new(Rails.application) }
 
-  describe "#call" do
+  describe '#call' do
     subject(:result) { introspector.call }
 
-    it "does not return an error" do
+    it 'does not return an error' do
       expect(result).not_to have_key(:error)
     end
 
-    it "returns api_only as false for standard app" do
+    it 'returns api_only as false for standard app' do
       expect(result[:api_only]).to be false
     end
 
-    it "returns serializers as a hash" do
+    it 'returns serializers as a hash' do
       expect(result[:serializers]).to be_a(Hash)
     end
 
-    it "returns api versioning array" do
+    it 'returns api versioning array' do
       expect(result[:api_versioning]).to be_an(Array)
     end
 
-    it "returns rate limiting as empty hash when no rate limiting" do
+    it 'returns rate limiting as empty hash when no rate limiting' do
       expect(result[:rate_limiting]).to be_a(Hash)
     end
 
-    it "detects v1 API versioning from directory structure" do
-      expect(result[:api_versioning]).to include("v1")
+    it 'detects v1 API versioning from directory structure' do
+      expect(result[:api_versioning]).to include('v1')
     end
 
-    it "returns nil for graphql when no app/graphql dir" do
+    it 'returns nil for graphql when no app/graphql dir' do
       expect(result[:graphql]).to be_nil
     end
 
-    context "with a serializer directory" do
-      let(:serializers_dir) { File.join(Rails.root, "app/serializers") }
-      let(:serializer_file) { File.join(serializers_dir, "post_serializer.rb") }
+    context 'with a serializer directory' do
+      let(:serializers_dir) { Rails.root.join('app/serializers').to_s }
+      let(:serializer_file) { File.join(serializers_dir, 'post_serializer.rb') }
 
       before do
         FileUtils.mkdir_p(serializers_dir)
@@ -53,22 +53,22 @@ RSpec.describe RailsAiBridge::Introspectors::ApiIntrospector do
 
       after { FileUtils.rm_rf(serializers_dir) }
 
-      it "detects serializer classes" do
-        expect(result[:serializers][:serializer_classes]).to include("PostSerializer")
+      it 'detects serializer classes' do
+        expect(result[:serializers][:serializer_classes]).to include('PostSerializer')
       end
     end
 
-    context "with rack-attack initializer" do
-      let(:init_path) { File.join(Rails.root, "config/initializers/rack_attack.rb") }
+    context 'with rack-attack initializer' do
+      let(:init_path) { Rails.root.join('config/initializers/rack_attack.rb').to_s }
 
       before do
         FileUtils.mkdir_p(File.dirname(init_path))
-        File.write(init_path, "# Rack::Attack config")
+        File.write(init_path, '# Rack::Attack config')
       end
 
       after { FileUtils.rm_f(init_path) }
 
-      it "detects rack_attack rate limiting" do
+      it 'detects rack_attack rate limiting' do
         expect(result[:rate_limiting]).to eq({ rack_attack: true })
       end
     end

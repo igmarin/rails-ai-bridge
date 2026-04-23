@@ -19,7 +19,7 @@ module RailsAiBridge
           docker: extract_docker_info,
           deployment: detect_deployment_tool
         }
-      rescue => e
+      rescue StandardError => e
         { error: e.message }
       end
 
@@ -30,7 +30,7 @@ module RailsAiBridge
       end
 
       def extract_puma_config
-        path = File.join(root, "config/puma.rb")
+        path = File.join(root, 'config/puma.rb')
         return nil unless File.exist?(path)
 
         content = File.read(path)
@@ -50,7 +50,7 @@ module RailsAiBridge
         end
 
         config.empty? ? nil : config
-      rescue
+      rescue StandardError
         nil
       end
 
@@ -61,8 +61,9 @@ module RailsAiBridge
 
           entries = File.readlines(path).filter_map do |line|
             line.strip!
-            next if line.empty? || line.start_with?("#")
-            parts = line.split(":", 2)
+            next if line.empty? || line.start_with?('#')
+
+            parts = line.split(':', 2)
             { name: parts[0].strip, command: parts[1]&.strip } if parts.size == 2
           end
 
@@ -71,18 +72,19 @@ module RailsAiBridge
       end
 
       def detect_health_check
-        routes_path = File.join(root, "config/routes.rb")
+        routes_path = File.join(root, 'config/routes.rb')
         return nil unless File.exist?(routes_path)
 
         content = File.read(routes_path)
         return true if content.match?(/\b(?:health|up|ping|status)\b/)
+
         nil
-      rescue
+      rescue StandardError
         nil
       end
 
       def extract_docker_info
-        dockerfile = File.join(root, "Dockerfile")
+        dockerfile = File.join(root, 'Dockerfile')
         return nil unless File.exist?(dockerfile)
 
         content = File.read(dockerfile)
@@ -92,18 +94,19 @@ module RailsAiBridge
         info[:base_images] = from_lines.flatten if from_lines.any?
         info[:multi_stage] = from_lines.size > 1
 
-        compose = File.exist?(File.join(root, "docker-compose.yml"))
+        compose = File.exist?(File.join(root, 'docker-compose.yml'))
         info[:compose] = compose
 
         info
-      rescue
+      rescue StandardError
         nil
       end
 
       def detect_deployment_tool
-        return "kamal" if File.exist?(File.join(root, "config/deploy.yml"))
-        return "capistrano" if File.exist?(File.join(root, "Capfile"))
-        return "heroku" if File.exist?(File.join(root, "app.json")) || File.exist?(File.join(root, "Procfile"))
+        return 'kamal' if File.exist?(File.join(root, 'config/deploy.yml'))
+        return 'capistrano' if File.exist?(File.join(root, 'Capfile'))
+        return 'heroku' if File.exist?(File.join(root, 'app.json')) || File.exist?(File.join(root, 'Procfile'))
+
         nil
       end
     end

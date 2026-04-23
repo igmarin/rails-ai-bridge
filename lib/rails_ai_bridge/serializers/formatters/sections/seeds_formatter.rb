@@ -12,16 +12,16 @@ module RailsAiBridge
         private
 
         def render(data)
-          lines = [ "## Database Seeds" ]
+          lines = ['## Database Seeds']
           if data[:seeds_file]
             lines << "- Seeds file: #{data[:seeds_file][:exists] ? 'exists' : 'missing'}"
-            lines << "- Uses Faker: yes" if data[:seeds_file][:uses_faker]
-            lines << "- Environment-conditional: yes" if data[:seeds_file][:environment_conditional]
+            lines << '- Uses Faker: yes' if data[:seeds_file][:uses_faker]
+            lines << '- Environment-conditional: yes' if data[:seeds_file][:environment_conditional]
           end
           lines << "- Models seeded: #{data[:models_seeded].join(', ')}" if data[:models_seeded]&.any?
 
           if data[:seed_files]&.any?
-            lines << "### Seed Files"
+            lines << '### Seed Files'
             data[:seed_files].each { |f| lines << "- `#{f[:file]}`" }
           end
 

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "yaml"
+require 'yaml'
 
 module RailsAiBridge
   module Introspectors
@@ -20,7 +20,7 @@ module RailsAiBridge
           locale_files: extract_locale_files,
           total_locale_files: count_locale_files
         }
-      rescue => e
+      rescue StandardError => e
         { error: e.message }
       end
 
@@ -31,18 +31,18 @@ module RailsAiBridge
       end
 
       def extract_locale_files
-        dir = File.join(root, "config/locales")
+        dir = File.join(root, 'config/locales')
         return [] unless Dir.exist?(dir)
 
-        Dir.glob(File.join(dir, "**/*.{yml,yaml,rb}")).filter_map do |path|
-          relative = path.sub("#{dir}/", "")
+        Dir.glob(File.join(dir, '**/*.{yml,yaml,rb}')).filter_map do |path|
+          relative = path.sub("#{dir}/", '')
           info = { file: relative }
 
-          if path.end_with?(".yml", ".yaml")
+          if path.end_with?('.yml', '.yaml')
             begin
-              data = YAML.load_file(path, permitted_classes: [ Symbol ], aliases: true) || {}
+              data = YAML.load_file(path, permitted_classes: [Symbol], aliases: true) || {}
               info[:key_count] = count_keys(data)
-            rescue
+            rescue StandardError
               info[:parse_error] = true
             end
           end
@@ -52,13 +52,15 @@ module RailsAiBridge
       end
 
       def count_locale_files
-        dir = File.join(root, "config/locales")
+        dir = File.join(root, 'config/locales')
         return 0 unless Dir.exist?(dir)
-        Dir.glob(File.join(dir, "**/*.{yml,yaml,rb}")).size
+
+        Dir.glob(File.join(dir, '**/*.{yml,yaml,rb}')).size
       end
 
       def count_keys(hash, depth: 0)
         return 0 unless hash.is_a?(Hash)
+
         hash.sum { |_, v| v.is_a?(Hash) ? count_keys(v, depth: depth + 1) : 1 }
       end
     end

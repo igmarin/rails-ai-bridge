@@ -26,11 +26,17 @@ module RailsAiBridge
         return [] unless defined?(ActiveJob::Base)
 
         ActiveJob::Base.descendants.filter_map do |job|
-          next if job.name.nil? || job.name == "ApplicationJob" ||
-                  job.name.start_with?("ActionMailer", "ActiveStorage::", "ActionMailbox::", "Turbo::", "Sentry::")
+          next if job.name.nil? || job.name == 'ApplicationJob' ||
+                  job.name.start_with?('ActionMailer', 'ActiveStorage::', 'ActionMailbox::', 'Turbo::', 'Sentry::')
 
           queue = job.queue_name
-          queue = queue.call rescue queue.to_s if queue.is_a?(Proc)
+          if queue.is_a?(Proc)
+            queue = begin
+              queue.call
+            rescue StandardError
+              queue.to_s
+            end
+          end
 
           {
             name: job.name,
@@ -38,7 +44,7 @@ module RailsAiBridge
             priority: job.priority
           }.compact
         end.sort_by { |j| j[:name] }
-      rescue
+      rescue StandardError
         []
       end
 
@@ -57,7 +63,7 @@ module RailsAiBridge
             delivery_method: mailer.delivery_method.to_s
           }
         end.sort_by { |m| m[:name] }
-      rescue
+      rescue StandardError
         []
       end
 
@@ -65,16 +71,16 @@ module RailsAiBridge
         return [] unless defined?(ActionCable::Channel::Base)
 
         ActionCable::Channel::Base.descendants.filter_map do |channel|
-          next if channel.name.nil? || channel.name == "ApplicationCable::Channel"
+          next if channel.name.nil? || channel.name == 'ApplicationCable::Channel'
 
           {
             name: channel.name,
             stream_methods: channel.instance_methods(false)
-              .select { |m| m.to_s.start_with?("stream_") || m == :subscribed }
-              .map(&:to_s)
+                            .select { |m| m.to_s.start_with?('stream_') || m == :subscribed }
+                            .map(&:to_s)
           }
         end.sort_by { |c| c[:name] }
-      rescue
+      rescue StandardError
         []
       end
     end

@@ -12,23 +12,23 @@ module RailsAiBridge
 
       def call
         root = app.root.to_s
-        controllers_dir = File.join(root, "app/javascript/controllers")
+        controllers_dir = File.join(root, 'app/javascript/controllers')
         return { controllers: [] } unless Dir.exist?(controllers_dir)
 
-        controllers = Dir.glob(File.join(controllers_dir, "**/*_controller.{js,ts}")).sort.filter_map do |path|
+        controllers = Dir.glob(File.join(controllers_dir, '**/*_controller.{js,ts}')).filter_map do |path|
           parse_controller(path, controllers_dir)
         end
 
         { controllers: controllers }
-      rescue => e
+      rescue StandardError => e
         { error: e.message }
       end
 
       private
 
       def parse_controller(path, base_dir)
-        relative = path.sub("#{base_dir}/", "")
-        name = relative.sub(/_controller\.(js|ts)\z/, "").tr("/", "--")
+        relative = path.sub("#{base_dir}/", '')
+        name = relative.sub(/_controller\.(js|ts)\z/, '').tr('/', '--')
         content = File.read(path)
 
         {
@@ -40,7 +40,7 @@ module RailsAiBridge
           outlets: extract_outlets(content),
           classes: extract_classes(content)
         }
-      rescue => e
+      rescue StandardError => e
         { name: File.basename(path), error: e.message }
       end
 
@@ -60,7 +60,10 @@ module RailsAiBridge
 
       def extract_actions(content)
         content.scan(/^\s+(?:async\s+)?(\w+)\s*\([^)]*\)\s*\{/).flatten
-               .reject { |m| %w[constructor connect disconnect initialize if else for while switch catch function].include?(m) }
+               .reject do |m|
+          %w[constructor connect disconnect initialize if else for while switch catch
+             function].include?(m)
+        end
       end
 
       def extract_outlets(content)

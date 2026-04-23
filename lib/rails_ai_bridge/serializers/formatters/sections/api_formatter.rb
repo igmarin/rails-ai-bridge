@@ -14,14 +14,12 @@ module RailsAiBridge
         def render(data)
           return unless data[:endpoints]&.any?
 
-          lines = [ "## API Endpoints" ]
+          lines = ['## API Endpoints']
           lines << "- Version: `#{data[:version]}`" if data[:version]
           lines << "- Base path: `#{data[:base_path]}`" if data[:base_path]
-          if data[:documentation_url]
-            lines << "- Documentation: [#{data[:documentation_url]}](#{data[:documentation_url]})"
-          end
-          lines << ""
-          lines << "### Endpoints"
+          lines << "- Documentation: [#{data[:documentation_url]}](#{data[:documentation_url]})" if data[:documentation_url]
+          lines << ''
+          lines << '### Endpoints'
           data[:endpoints].each do |endpoint|
             lines << "- `#{endpoint[:verb]} #{endpoint[:path]}`: `#{endpoint[:controller]}##{endpoint[:action]}`"
           end

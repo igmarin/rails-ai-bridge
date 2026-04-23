@@ -14,11 +14,11 @@ module RailsAiBridge
         def render(data)
           return unless data[:adapter] || data[:jobs]&.any?
 
-          lines = [ "## Jobs (#{data[:total_jobs] || 0})", "" ]
+          lines = ["## Jobs (#{data[:total_jobs] || 0})", '']
           lines << "- Adapter: `#{data[:adapter]}`" if data[:adapter]
 
           if data[:jobs]&.any?
-            lines << "" << "### Defined Jobs"
+            lines << '' << '### Defined Jobs'
             data[:jobs].each { |j| lines << "- `#{j}`" }
           end
           lines.join("\n")

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "digest"
+require 'digest'
 
 module RailsAiBridge
   # Computes a SHA256 fingerprint of key application files to detect changes.
@@ -41,7 +41,7 @@ module RailsAiBridge
           full_dir = File.join(root, dir)
           next unless Dir.exist?(full_dir)
 
-          Dir.glob(File.join(full_dir, "**/*.{rb,rake,js,ts,erb,haml,slim,yml}")).sort.each do |path|
+          Dir.glob(File.join(full_dir, '**/*.{rb,rake,js,ts,erb,haml,slim,yml}')).each do |path|
             digest.update(File.mtime(path).to_f.to_s)
           end
         end

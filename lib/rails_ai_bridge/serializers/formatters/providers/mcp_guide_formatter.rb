@@ -12,7 +12,7 @@ module RailsAiBridge
       class McpGuideFormatter < Base
         # @return [String] markdown block ready to embed in a compact context file
         def call
-          <<~'MARKDOWN'.rstrip
+          <<~MARKDOWN.rstrip
             ## MCP Tool Reference
 
             This project exposes live MCP tools. **Always start with `detail:"summary"`**,

@@ -12,7 +12,7 @@ module RailsAiBridge
         private
 
         def render(data)
-          lines = [ "## Migrations" ]
+          lines = ['## Migrations']
           lines << "- Total: #{data[:total]}"
           lines << "- Schema version: #{data[:schema_version]}" if data[:schema_version]
 
@@ -22,9 +22,9 @@ module RailsAiBridge
           end
 
           if data[:recent]&.any?
-            lines << "### Recent Migrations"
+            lines << '### Recent Migrations'
             data[:recent].each do |m|
-              actions = m[:actions]&.any? ? " (#{m[:actions].join(', ')})" : ""
+              actions = m[:actions]&.any? ? " (#{m[:actions].join(', ')})" : ''
               lines << "- `#{m[:version]}` #{m[:name]}#{actions}"
             end
           end

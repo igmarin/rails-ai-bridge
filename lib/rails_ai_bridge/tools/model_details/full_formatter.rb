@@ -16,13 +16,13 @@ module RailsAiBridge
         #
         # @return [String] Markdown document
         def call
-          lines = [ "# Models (#{@models.size})", "" ]
+          lines = ["# Models (#{@models.size})", '']
 
           @models.keys.sort.each do |name|
             data = @models[name]
             next if data[:error]
 
-            assocs = (data[:associations] || []).map { |a| "#{a[:type]} :#{a[:name]}" }.join(", ")
+            assocs = (data[:associations] || []).map { |a| "#{a[:type]} :#{a[:name]}" }.join(', ')
             line = "- **#{name}**"
             line += " (table: #{data[:table_name]})" if data[:table_name]
             line += " — tier: #{data[:semantic_tier]}" if data[:semantic_tier].present?
@@ -30,7 +30,7 @@ module RailsAiBridge
             lines << line
           end
 
-          lines << "" << "_Use `model:\"Name\"` for validations, scopes, callbacks, and more._"
+          lines << '' << '_Use `model:"Name"` for validations, scopes, callbacks, and more._'
           lines.join("\n") + NonArModelsAppendix.append_markdown(@non_ar_models)
         end
       end

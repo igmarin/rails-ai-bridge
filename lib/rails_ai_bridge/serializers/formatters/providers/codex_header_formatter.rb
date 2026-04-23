@@ -9,7 +9,7 @@ module RailsAiBridge
         def call
           ProviderDocumentHeader.call(
             context: context,
-            document_title: "Codex Instructions",
+            document_title: 'Codex Instructions',
             layout: :instructions,
             intro: <<~INTRO.chomp
               Codex reads AGENTS.md before starting work. Use this file as the

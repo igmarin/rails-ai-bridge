@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "mcp"
+require 'mcp'
 
 module RailsAiBridge
   # Rack middleware that intercepts requests at the configured HTTP path
@@ -17,7 +17,7 @@ module RailsAiBridge
       config = RailsAiBridge.configuration
       path = config.http_path
 
-      if env["PATH_INFO"] == path || env["PATH_INFO"] == "#{path}/"
+      if [path, "#{path}/"].include?(env['PATH_INFO'])
         rack_app.call(env)
       else
         @app.call(env)
@@ -28,7 +28,7 @@ module RailsAiBridge
 
     def transport
       @mutex.synchronize do
-        @mcp_transport ||= begin
+        @transport ||= begin
           server = Server.new(Rails.application, transport: :http).build
           MCP::Server::Transports::StreamableHTTPTransport.new(server)
         end

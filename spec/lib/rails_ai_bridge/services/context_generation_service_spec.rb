@@ -1,74 +1,75 @@
 # frozen_string_literal: true
 
-require "spec_helper"
-require "rails_ai_bridge/services/context_generation_service"
-require "rails_ai_bridge/serializers/context_file_serializer"
+require 'spec_helper'
+require 'rails_ai_bridge/services/context_generation_service'
+require 'rails_ai_bridge/serializers/context_file_serializer'
 
 RSpec.describe RailsAiBridge::Services::ContextGenerationService do
-  let(:context_data) { { models: [ "User" ], routes: {} } }
+  let(:context_data) { { models: ['User'], routes: {} } }
   let(:serializer_class) { RailsAiBridge::Serializers::ContextFileSerializer }
   let(:serializer_instance) { instance_double(serializer_class) }
 
-  describe ".call" do
-    it "generates context files with default serializer" do
-      expect(serializer_class).to receive(:new).with(context_data, format: :all).and_return(serializer_instance)
-      expect(serializer_instance).to receive(:call).and_return({
-        written: [ "/tmp/CLAUDE.md" ],
-        skipped: []
-      })
+  describe '.call' do
+    it 'generates context files with default serializer' do
+      allow(serializer_class).to receive(:new).with(context_data, format: :all).and_return(serializer_instance)
+      allow(serializer_instance).to receive(:call).and_return({
+                                                                written: ['/tmp/CLAUDE.md'],
+                                                                skipped: []
+                                                              })
 
-      result = RailsAiBridge::Services::ContextGenerationService.call(context_data)
+      result = described_class.call(context_data)
 
       expect(result.success?).to be(true)
-      expect(result.data[:written]).to eq([ "/tmp/CLAUDE.md" ])
+      expect(result.data[:written]).to eq(['/tmp/CLAUDE.md'])
       expect(result.data[:skipped]).to eq([])
     end
 
-    it "accepts custom format parameter" do
-      expect(serializer_class).to receive(:new).with(context_data, format: :claude).and_return(serializer_instance)
-      expect(serializer_instance).to receive(:call).and_return({ written: [], skipped: [] })
+    it 'accepts custom format parameter' do
+      allow(serializer_class).to receive(:new).with(context_data, format: :claude).and_return(serializer_instance)
+      allow(serializer_instance).to receive(:call).and_return({ written: [], skipped: [] })
 
-      result = RailsAiBridge::Services::ContextGenerationService.call(context_data, format: :claude)
+      result = described_class.call(context_data, format: :claude)
       expect(result.success?).to be(true)
     end
 
-    it "handles serializer errors gracefully" do
-      expect(serializer_class).to receive(:new).and_return(serializer_instance)
-      expect(serializer_instance).to receive(:call).and_raise("Serialization failed")
+    it 'handles serializer errors gracefully' do
+      allow(serializer_class).to receive(:new).and_return(serializer_instance)
+      allow(serializer_instance).to receive(:call).and_raise('Serialization failed')
 
-      result = RailsAiBridge::Services::ContextGenerationService.call(context_data)
+      result = described_class.call(context_data)
 
       expect(result.failure?).to be(true)
-      expect(result.errors).to eq([ "Serialization failed" ])
+      expect(result.errors).to eq(['Serialization failed'])
     end
   end
 
-  describe "#call" do
-    subject { RailsAiBridge::Services::ContextGenerationService.new(context_data) }
+  describe '#call' do
+    subject { described_class.new(context_data) }
 
-    it "uses default format when not specified" do
-      expect(serializer_class).to receive(:new).with(context_data, format: :all).and_return(serializer_instance)
-      allow(serializer_instance).to receive(:call).and_return({ written: [ "file1.md" ], skipped: [ "file2.md" ] })
+    it 'uses default format when not specified' do
+      allow(serializer_class).to receive(:new).with(context_data, format: :all).and_return(serializer_instance)
+      allow(serializer_instance).to receive(:call).and_return({ written: ['file1.md'], skipped: ['file2.md'] })
 
       result = subject.call
 
-      expect(result.data[:written]).to eq([ "file1.md" ])
-      expect(result.data[:skipped]).to eq([ "file2.md" ])
+      expect(result.data[:written]).to eq(['file1.md'])
+      expect(result.data[:skipped]).to eq(['file2.md'])
     end
 
-    it "allows custom serializer class" do
-      custom_serializer = double("CustomSerializer")
+    it 'allows custom serializer class' do
+      custom_serializer = double('CustomSerializer')
       allow(custom_serializer).to receive(:new).with(context_data, format: :json).and_return(custom_serializer)
-      allow(custom_serializer).to receive(:call).and_return({ written: [ "output.json" ] })
+      allow(custom_serializer).to receive(:call).and_return({ written: ['output.json'] })
 
-      service = RailsAiBridge::Services::ContextGenerationService.new(context_data, serializer_class: custom_serializer, format: :json)
+      service = described_class.new(context_data,
+                                    serializer_class: custom_serializer, format: :json)
       result = service.call
 
-      expect(result.data[:written]).to eq([ "output.json" ])
+      expect(result.data[:written]).to eq(['output.json'])
       expect(result.data[:skipped]).to eq([])
     end
 
-    it "normalizes nil serializer return to empty written and skipped arrays" do
+    it 'normalizes nil serializer return to empty written and skipped arrays' do
       allow(serializer_class).to receive(:new).with(context_data, format: :all).and_return(serializer_instance)
       allow(serializer_instance).to receive(:call).and_return(nil)
 
@@ -78,9 +79,9 @@ RSpec.describe RailsAiBridge::Services::ContextGenerationService do
       expect(result.data).to eq({ written: [], skipped: [] })
     end
 
-    it "normalizes non-Hash serializer return to empty written and skipped arrays" do
+    it 'normalizes non-Hash serializer return to empty written and skipped arrays' do
       allow(serializer_class).to receive(:new).with(context_data, format: :all).and_return(serializer_instance)
-      allow(serializer_instance).to receive(:call).and_return("unexpected")
+      allow(serializer_instance).to receive(:call).and_return('unexpected')
 
       result = subject.call
 
@@ -88,46 +89,46 @@ RSpec.describe RailsAiBridge::Services::ContextGenerationService do
       expect(result.data).to eq({ written: [], skipped: [] })
     end
 
-    it "fills missing :written or :skipped keys with empty arrays" do
+    it 'fills missing :written or :skipped keys with empty arrays' do
       allow(serializer_class).to receive(:new).with(context_data, format: :all).and_return(serializer_instance)
-      allow(serializer_instance).to receive(:call).and_return({ written: [ "a.md" ] })
+      allow(serializer_instance).to receive(:call).and_return({ written: ['a.md'] })
 
       result = subject.call
 
-      expect(result.data[:written]).to eq([ "a.md" ])
+      expect(result.data[:written]).to eq(['a.md'])
       expect(result.data[:skipped]).to eq([])
     end
 
-    it "normalizes hash with only :skipped to empty :written" do
+    it 'normalizes hash with only :skipped to empty :written' do
       allow(serializer_class).to receive(:new).with(context_data, format: :all).and_return(serializer_instance)
-      allow(serializer_instance).to receive(:call).and_return({ skipped: [ "b.md" ] })
+      allow(serializer_instance).to receive(:call).and_return({ skipped: ['b.md'] })
 
       result = subject.call
 
       expect(result.data[:written]).to eq([])
-      expect(result.data[:skipped]).to eq([ "b.md" ])
+      expect(result.data[:skipped]).to eq(['b.md'])
     end
 
-    it "wraps a single path in :written as a one-element array" do
+    it 'wraps a single path in :written as a one-element array' do
       allow(serializer_class).to receive(:new).with(context_data, format: :all).and_return(serializer_instance)
-      allow(serializer_instance).to receive(:call).and_return({ written: "/tmp/one.md", skipped: nil })
+      allow(serializer_instance).to receive(:call).and_return({ written: '/tmp/one.md', skipped: nil })
 
       result = subject.call
 
-      expect(result.data[:written]).to eq([ "/tmp/one.md" ])
+      expect(result.data[:written]).to eq(['/tmp/one.md'])
       expect(result.data[:skipped]).to eq([])
     end
   end
 
-  describe "result structure" do
-    it "returns Service::Result with written and skipped files" do
+  describe 'result structure' do
+    it 'returns Service::Result with written and skipped files' do
       allow(serializer_class).to receive(:new).with(context_data, format: :all).and_return(serializer_instance)
       allow(serializer_instance).to receive(:call).and_return({
-        written: [ "/tmp/CLAUDE.md", "/tmp/.cursorrules" ],
-        skipped: [ "/tmp/CODEX.md" ]
-      })
+                                                                written: ['/tmp/CLAUDE.md', '/tmp/.cursorrules'],
+                                                                skipped: ['/tmp/CODEX.md']
+                                                              })
 
-      result = RailsAiBridge::Services::ContextGenerationService.call(context_data)
+      result = described_class.call(context_data)
 
       expect(result).to be_a(RailsAiBridge::Service::Result)
       expect(result.success?).to be(true)
@@ -136,14 +137,14 @@ RSpec.describe RailsAiBridge::Services::ContextGenerationService do
     end
   end
 
-  describe "error handling" do
-    it "captures StandardError exceptions" do
-      allow(serializer_class).to receive(:new).and_raise(ArgumentError, "Invalid format")
+  describe 'error handling' do
+    it 'captures StandardError exceptions' do
+      allow(serializer_class).to receive(:new).and_raise(ArgumentError, 'Invalid format')
 
-      result = RailsAiBridge::Services::ContextGenerationService.call(context_data, format: :invalid)
+      result = described_class.call(context_data, format: :invalid)
 
       expect(result.failure?).to be(true)
-      expect(result.errors).to eq([ "Invalid format" ])
+      expect(result.errors).to eq(['Invalid format'])
     end
   end
 end

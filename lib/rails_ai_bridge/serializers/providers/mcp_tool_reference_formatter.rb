@@ -13,7 +13,7 @@ module RailsAiBridge
         #
         # @return [String] The formatted MCP tool reference markdown.
         def call
-          %Q{
+          %{
 ## MCP Tool Reference
 
 All introspection tools support detail:"summary"|"standard"|"full".

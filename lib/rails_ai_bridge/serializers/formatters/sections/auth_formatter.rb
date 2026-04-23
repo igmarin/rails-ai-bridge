@@ -14,13 +14,9 @@ module RailsAiBridge
         def render(data)
           return unless data[:strategies]&.any? || data[:models]&.any?
 
-          lines = [ "## Authentication (AuthN/AuthZ)" ]
-          if data[:strategies]&.any?
-            lines << "- Strategies: #{data[:strategies].map { |s| "`#{s}`" }.join(", ")}"
-          end
-          if data[:models]&.any?
-            lines << "- AuthN models: #{data[:models].map { |m| "`#{m}`" }.join(", ")}"
-          end
+          lines = ['## Authentication (AuthN/AuthZ)']
+          lines << "- Strategies: #{data[:strategies].map { |s| "`#{s}`" }.join(', ')}" if data[:strategies]&.any?
+          lines << "- AuthN models: #{data[:models].map { |m| "`#{m}`" }.join(', ')}" if data[:models]&.any?
           lines.join("\n")
         end
       end

@@ -22,7 +22,7 @@ module RailsAiBridge
           ci_config: detect_ci,
           coverage: detect_coverage
         }
-      rescue => e
+      rescue StandardError => e
         { error: e.message }
       end
 
@@ -33,25 +33,26 @@ module RailsAiBridge
       end
 
       def detect_framework
-        if Dir.exist?(File.join(root, "spec"))
-          "rspec"
-        elsif Dir.exist?(File.join(root, "test"))
-          "minitest"
+        if Dir.exist?(File.join(root, 'spec'))
+          'rspec'
+        elsif Dir.exist?(File.join(root, 'test'))
+          'minitest'
         else
-          "unknown"
+          'unknown'
         end
       end
 
       def detect_factories
         dirs = [
-          File.join(root, "spec/factories"),
-          File.join(root, "test/factories")
+          File.join(root, 'spec/factories'),
+          File.join(root, 'test/factories')
         ]
 
         dirs.each do |dir|
           next unless Dir.exist?(dir)
-          count = Dir.glob(File.join(dir, "**/*.rb")).size
-          return { location: dir.sub("#{root}/", ""), count: count } if count > 0
+
+          count = Dir.glob(File.join(dir, '**/*.rb')).size
+          return { location: dir.sub("#{root}/", ''), count: count } if count.positive?
         end
 
         nil
@@ -59,14 +60,15 @@ module RailsAiBridge
 
       def detect_fixtures
         dirs = [
-          File.join(root, "spec/fixtures"),
-          File.join(root, "test/fixtures")
+          File.join(root, 'spec/fixtures'),
+          File.join(root, 'test/fixtures')
         ]
 
         dirs.each do |dir|
           next unless Dir.exist?(dir)
-          count = Dir.glob(File.join(dir, "**/*.yml")).size
-          return { location: dir.sub("#{root}/", ""), count: count } if count > 0
+
+          count = Dir.glob(File.join(dir, '**/*.yml')).size
+          return { location: dir.sub("#{root}/", ''), count: count } if count.positive?
         end
 
         nil
@@ -74,41 +76,44 @@ module RailsAiBridge
 
       def detect_system_tests
         dirs = [
-          File.join(root, "spec/system"),
-          File.join(root, "test/system")
+          File.join(root, 'spec/system'),
+          File.join(root, 'test/system')
         ]
 
         dirs.filter_map do |dir|
           next unless Dir.exist?(dir)
-          count = Dir.glob(File.join(dir, "**/*.rb")).size
-          { location: dir.sub("#{root}/", ""), count: count } if count > 0
+
+          count = Dir.glob(File.join(dir, '**/*.rb')).size
+          { location: dir.sub("#{root}/", ''), count: count } if count.positive?
         end.first
       end
 
       def detect_test_helpers
         dirs = [
-          File.join(root, "spec/support"),
-          File.join(root, "test/helpers")
+          File.join(root, 'spec/support'),
+          File.join(root, 'test/helpers')
         ]
 
         dirs.filter_map do |dir|
           next unless Dir.exist?(dir)
-          Dir.glob(File.join(dir, "**/*.rb")).map { |f| f.sub("#{root}/", "") }
+
+          Dir.glob(File.join(dir, '**/*.rb')).map { |f| f.sub("#{root}/", '') }
         end.flatten.sort
       end
 
       def detect_vcr
         dirs = [
-          File.join(root, "spec/cassettes"),
-          File.join(root, "spec/vcr_cassettes"),
-          File.join(root, "test/cassettes"),
-          File.join(root, "test/vcr_cassettes")
+          File.join(root, 'spec/cassettes'),
+          File.join(root, 'spec/vcr_cassettes'),
+          File.join(root, 'test/cassettes'),
+          File.join(root, 'test/vcr_cassettes')
         ]
 
         dirs.each do |dir|
           next unless Dir.exist?(dir)
-          count = Dir.glob(File.join(dir, "**/*.yml")).size
-          return { location: dir.sub("#{root}/", ""), count: count } if count > 0
+
+          count = Dir.glob(File.join(dir, '**/*.yml')).size
+          return { location: dir.sub("#{root}/", ''), count: count } if count.positive?
         end
 
         nil
@@ -116,20 +121,22 @@ module RailsAiBridge
 
       def detect_ci
         configs = []
-        configs << "github_actions" if Dir.exist?(File.join(root, ".github/workflows"))
-        configs << "circleci" if File.exist?(File.join(root, ".circleci/config.yml"))
-        configs << "gitlab_ci" if File.exist?(File.join(root, ".gitlab-ci.yml"))
-        configs << "travis" if File.exist?(File.join(root, ".travis.yml"))
+        configs << 'github_actions' if Dir.exist?(File.join(root, '.github/workflows'))
+        configs << 'circleci' if File.exist?(File.join(root, '.circleci/config.yml'))
+        configs << 'gitlab_ci' if File.exist?(File.join(root, '.gitlab-ci.yml'))
+        configs << 'travis' if File.exist?(File.join(root, '.travis.yml'))
         configs
       end
 
       def detect_coverage
-        gemfile_lock = File.join(root, "Gemfile.lock")
+        gemfile_lock = File.join(root, 'Gemfile.lock')
         return nil unless File.exist?(gemfile_lock)
+
         content = File.read(gemfile_lock)
-        return "simplecov" if content.include?("simplecov (")
+        return 'simplecov' if content.include?('simplecov (')
+
         nil
-      rescue
+      rescue StandardError
         nil
       end
     end

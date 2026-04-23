@@ -49,7 +49,11 @@ jobs:
         if: matrix.ruby == '3.3' && matrix.rails == '8.0'
 
   security:
+    name: Security Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v6
 
@@ -60,7 +64,8 @@ jobs:
           bundler-cache: true
 
       - name: Run Snyk to check for vulnerabilities
-        uses: snyk/actions/ruby@master
+        if: (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && env.SNYK_TOKEN != ''
+        uses: snyk/actions/ruby@5ed1e90f8091fc49c14c6902e88169b5e9ce8671 # v0.9.0
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:

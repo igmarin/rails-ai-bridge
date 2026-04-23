@@ -12,7 +12,7 @@ module RailsAiBridge
         private
 
         def render(data)
-          lines = [ "## Custom Middleware" ]
+          lines = ['## Custom Middleware']
           if data[:custom_middleware]&.any?
             data[:custom_middleware].each do |m|
               detail = "- `#{m[:class_name]}` (#{m[:file]})"
@@ -20,7 +20,7 @@ module RailsAiBridge
               lines << detail
             end
           else
-            lines << "- No custom middleware in app/middleware/"
+            lines << '- No custom middleware in app/middleware/'
           end
           lines.join("\n")
         end

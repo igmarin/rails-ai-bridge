@@ -14,8 +14,8 @@ module RailsAiBridge
         def render(data)
           return unless data[:locales]&.any?
 
-          lines = [ "## Internationalization (I18n)" ]
-          lines << "- Locales: #{data[:locales].map { |l| "`#{l}`" }.join(", ")}"
+          lines = ['## Internationalization (I18n)']
+          lines << "- Locales: #{data[:locales].map { |l| "`#{l}`" }.join(', ')}"
           lines.join("\n")
         end
       end

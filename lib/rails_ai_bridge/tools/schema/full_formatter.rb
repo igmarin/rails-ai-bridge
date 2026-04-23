@@ -21,11 +21,11 @@ module RailsAiBridge
         # @return [String] Markdown full-detail listing
         def call
           paginated = @tables.keys.sort.drop(@offset).first(@limit)
-          lines = [ "# Schema Full Detail (#{paginated.size} of #{@total} tables)", "" ]
+          lines = ["# Schema Full Detail (#{paginated.size} of #{@total} tables)", '']
 
           paginated.each do |name|
             lines << TableFormatter.new(name: name, data: @tables[name]).call
-            lines << ""
+            lines << ''
           end
 
           if @offset + @limit < @total

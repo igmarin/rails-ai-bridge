@@ -20,7 +20,7 @@ module RailsAiBridge
           return "# Views for #{@controller}" if @controller
           return "# Partials matching #{@partial}" if @partial
 
-          "# Views"
+          '# Views'
         end
 
         def filter_view_data
@@ -83,11 +83,11 @@ module RailsAiBridge
         end
 
         def normalize_partial_matcher(partial)
-          partial.to_s.sub(%r{\A/+}, "").sub(/\A_/, "")
+          partial.to_s.sub(%r{\A/+}, '').sub(/\A_/, '')
         end
 
         def partial_match?(name, matcher)
-          normalized = name.to_s.sub(/\A_/, "")
+          normalized = name.to_s.sub(/\A_/, '')
           normalized.include?(matcher) || name.include?(matcher)
         end
       end

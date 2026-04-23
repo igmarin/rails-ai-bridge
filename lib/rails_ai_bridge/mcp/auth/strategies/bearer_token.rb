@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "digest"
+require 'digest'
 
 module RailsAiBridge
   module Mcp
@@ -31,6 +31,7 @@ module RailsAiBridge
           # @param static_token_provider [Proc] callable returning +String+ or +nil+
           # @param token_resolver [Proc, nil] +->(raw_token) { context_or_nil_or_false }+
           def initialize(static_token_provider:, token_resolver: nil)
+            super()
             @static_token_provider = static_token_provider
             @token_resolver = token_resolver
           end
@@ -66,9 +67,9 @@ module RailsAiBridge
           # @return [Array(Object, nil)] +[context, nil]+ on success
           # @return [Array(nil, Symbol)] +[nil, :resolver_error]+ when the resolver raised
           def resolve_token_context(token)
-            [ @token_resolver.call(token), nil ]
+            [@token_resolver.call(token), nil]
           rescue StandardError
-            [ nil, :resolver_error ]
+            [nil, :resolver_error]
           end
 
           def authenticate_via_static_secret(request)

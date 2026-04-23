@@ -14,7 +14,7 @@ module RailsAiBridge
         def render(data)
           return unless data[:models]&.any?
 
-          lines = [ "## Action Text" ]
+          lines = ['## Action Text']
           data[:models].each { |m| lines << "- `#{m}`" }
           lines.join("\n")
         end

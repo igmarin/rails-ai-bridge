@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "yaml"
+require 'yaml'
 
 module RailsAiBridge
   # Reads and writes which assistant formats +rails ai:bridge+ regenerates by default.
@@ -17,7 +17,7 @@ module RailsAiBridge
   # @see RailsAiBridge::Generators::InstallGenerator
   class AssistantFormatsPreference
     # Path of the preference file relative to +Rails.root+.
-    RELATIVE_PATH = "config/rails_ai_bridge/install.yml"
+    RELATIVE_PATH = 'config/rails_ai_bridge/install.yml'
 
     # All recognized format keys (order is not significant).
     FORMAT_KEYS = %i[claude codex cursor windsurf copilot json gemini].freeze
@@ -44,7 +44,7 @@ module RailsAiBridge
         data = load_yaml(path)
         return nil unless data.is_a?(Hash)
 
-        raw = data["formats"] || data[:formats]
+        raw = data['formats'] || data[:formats]
         return nil if raw.nil?
 
         fmts = Array(raw).map { |f| f.to_s.downcase.to_sym } & FORMAT_KEYS
@@ -58,11 +58,11 @@ module RailsAiBridge
       # @return [void]
       def write!(formats:)
         path = config_path
-        raise Error, "Rails app not available" unless path
+        raise Error, 'Rails app not available' unless path
 
         path.dirname.mkpath
         list = Array(formats).map { |f| f.to_s.downcase }.uniq & FORMAT_KEYS.map(&:to_s)
-        File.write(path.to_s, YAML.dump({ "formats" => list }))
+        File.write(path.to_s, YAML.dump({ 'formats' => list }))
       end
 
       private
@@ -70,12 +70,9 @@ module RailsAiBridge
       # @param path [Pathname]
       # @return [Hash, nil] parsed data or +nil+ on syntax/IO error
       def load_yaml(path)
-        YAML.safe_load(
-          File.read(path),
-          permitted_classes: [ Symbol ],
-          permitted_symbols: [],
-          aliases: true
-        )
+        YAML.safe_load_file(path, permitted_classes: [Symbol],
+                                  permitted_symbols: [],
+                                  aliases: true)
       rescue Psych::SyntaxError, Errno::ENOENT
         nil
       end

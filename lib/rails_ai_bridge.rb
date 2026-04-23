@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require "zeitwerk"
+require 'zeitwerk'
 
 loader = Zeitwerk::Loader.for_gem(warn_on_extra_files: false)
-loader.inflector.inflect("devops_introspector" => "DevOpsIntrospector")
+loader.inflector.inflect('devops_introspector' => 'DevOpsIntrospector')
 loader.ignore("#{__dir__}/generators")
 loader.ignore("#{__dir__}/rails-ai-bridge.rb")
 loader.setup
@@ -76,13 +76,13 @@ module RailsAiBridge
 
       unless cfg.allow_auto_mount_in_production
         raise ConfigurationError,
-              "rails_ai_bridge: auto_mount is disabled in production unless you set allow_auto_mount_in_production = true"
+              'rails_ai_bridge: auto_mount is disabled in production unless you set allow_auto_mount_in_production = true'
       end
 
       return if Mcp::Authenticator.any_configured?
 
       raise ConfigurationError,
-            "rails_ai_bridge: auto_mount in production requires an auth mechanism " \
+            'rails_ai_bridge: auto_mount in production requires an auth mechanism ' \
             "(http_mcp_token, mcp_token_resolver, mcp_jwt_decoder, or ENV['#{Mcp::Authenticator::TOKEN_ENV_KEY}'])"
     end
 
@@ -97,11 +97,11 @@ module RailsAiBridge
       return if Mcp::Authenticator.any_configured?
 
       raise ConfigurationError,
-            "rails_ai_bridge: HTTP MCP in production requires an auth mechanism " \
+            'rails_ai_bridge: HTTP MCP in production requires an auth mechanism ' \
             "(http_mcp_token, mcp_token_resolver, mcp_jwt_decoder, or ENV['#{Mcp::Authenticator::TOKEN_ENV_KEY}'])"
     end
   end
 end
 
 # Rails integration — loaded by Bundler.require after Rails is booted
-require_relative "rails_ai_bridge/engine" if defined?(Rails::Engine)
+require_relative 'rails_ai_bridge/engine' if defined?(Rails::Engine)

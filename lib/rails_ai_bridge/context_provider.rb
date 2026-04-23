@@ -19,9 +19,7 @@ module RailsAiBridge
           return rebuild(app) unless cached[:full]
 
           current_fingerprint = Fingerprinter.snapshot(app)
-          if ttl_valid?(cached[:full]) && current_fingerprint == cached[:full][:fingerprint]
-            return cached[:full][:context]
-          end
+          return cached[:full][:context] if ttl_valid?(cached[:full]) && current_fingerprint == cached[:full][:fingerprint]
 
           rebuild(app, fingerprint: current_fingerprint)
         end
@@ -40,9 +38,7 @@ module RailsAiBridge
           current_fingerprint = Fingerprinter.snapshot(app)
 
           full = cached[:full]
-          if full && ttl_valid?(full) && current_fingerprint == full[:fingerprint]
-            return full[:context][section]
-          end
+          return full[:context][section] if full && ttl_valid?(full) && current_fingerprint == full[:fingerprint]
 
           section_entry = cached[:sections][section]
           if section_entry && ttl_valid?(section_entry) && current_fingerprint == section_entry[:fingerprint]
@@ -94,7 +90,7 @@ module RailsAiBridge
       end
 
       def rebuild_section(section, app, fingerprint:)
-        context = RailsAiBridge.introspect(app, only: [ section ])
+        context = RailsAiBridge.introspect(app, only: [section])
         cache[cache_key(app)][:sections][section] = {
           context: context[section],
           fingerprint: fingerprint,

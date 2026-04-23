@@ -7,14 +7,15 @@ module RailsAiBridge
       class ModelsChecker < BaseChecker
         # @return [Doctor::Check] +:pass+ when model files exist; +:warn+ otherwise
         def call
-          models_path = File.join(app.root, "app/models", "**/*.rb")
+          models_path = File.join(app.root, 'app/models', '**/*.rb')
           models = Dir.glob(models_path)
 
           check(
-            "Models",
+            'Models',
             models.any?,
             pass: { message: "#{models.size} model files found" },
-            fail: { status: :warn, message: "No model files found in app/models/", fix: "Generate models with `rails generate model`" }
+            fail: { status: :warn, message: 'No model files found in app/models/',
+                    fix: 'Generate models with `rails generate model`' }
           )
         end
       end

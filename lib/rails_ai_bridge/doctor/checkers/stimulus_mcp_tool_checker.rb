@@ -7,22 +7,25 @@ module RailsAiBridge
       class StimulusMcpToolChecker < BaseChecker
         # @return [Doctor::Check] +:pass+, +:warn+, or +:fail+ depending on Stimulus files and tool registration
         def call
-          return new_check(name: "Stimulus MCP tool", status: :pass, message: "No Stimulus controllers detected; stimulus MCP tool not required", fix: nil) unless stimulus_files_present?
+          unless stimulus_files_present?
+            return new_check(name: 'Stimulus MCP tool', status: :pass,
+                             message: 'No Stimulus controllers detected; stimulus MCP tool not required', fix: nil)
+          end
 
           unless RailsAiBridge.configuration.introspectors.include?(:stimulus)
             return new_check(
-              name: "Stimulus MCP tool",
+              name: 'Stimulus MCP tool',
               status: :warn,
-              message: "Stimulus controllers detected but :stimulus introspector is disabled",
-              fix: "Enable it with `RailsAiBridge.configure { |c| c.introspectors |= [:stimulus] }`"
+              message: 'Stimulus controllers detected but :stimulus introspector is disabled',
+              fix: 'Enable it with `RailsAiBridge.configure { |c| c.introspectors |= [:stimulus] }`'
             )
           end
 
           check(
-            "Stimulus MCP tool",
-            tool_registered?("rails_get_stimulus"),
-            pass: { message: "rails_get_stimulus available for Hotwire UI inspection" },
-            fail: { status: :fail, message: "rails_get_stimulus is not registered", fix: "Register `RailsAiBridge::Tools::GetStimulus` in the MCP server" }
+            'Stimulus MCP tool',
+            tool_registered?('rails_get_stimulus'),
+            pass: { message: 'rails_get_stimulus available for Hotwire UI inspection' },
+            fail: { status: :fail, message: 'rails_get_stimulus is not registered', fix: 'Register `RailsAiBridge::Tools::GetStimulus` in the MCP server' }
           )
         end
 
@@ -33,8 +36,8 @@ module RailsAiBridge
         end
 
         def stimulus_files_present?
-          dir = File.join(app.root, "app/javascript/controllers")
-          Dir.exist?(dir) && Dir.glob(File.join(dir, "**/*_controller.{js,ts}")).any?
+          dir = File.join(app.root, 'app/javascript/controllers')
+          Dir.exist?(dir) && Dir.glob(File.join(dir, '**/*_controller.{js,ts}')).any?
         end
       end
     end

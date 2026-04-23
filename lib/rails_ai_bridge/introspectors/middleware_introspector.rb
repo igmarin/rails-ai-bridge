@@ -19,7 +19,7 @@ module RailsAiBridge
           middleware_stack: extract_middleware_stack,
           middleware_count: middleware_count(custom)
         }
-      rescue => e
+      rescue StandardError => e
         { error: e.message }
       end
 
@@ -30,33 +30,33 @@ module RailsAiBridge
       end
 
       def discover_custom_middleware
-        middleware_dir = File.join(root, "app/middleware")
+        middleware_dir = File.join(root, 'app/middleware')
         return [] unless Dir.exist?(middleware_dir)
 
-        Dir.glob(File.join(middleware_dir, "**/*.rb")).sort.map do |path|
+        Dir.glob(File.join(middleware_dir, '**/*.rb')).map do |path|
           content = File.read(path)
-          class_name = File.basename(path, ".rb").camelize
+          class_name = File.basename(path, '.rb').camelize
 
           info = {
-            file: path.sub("#{root}/", ""),
+            file: path.sub("#{root}/", ''),
             class_name: class_name,
             has_call_method: content.match?(/def\s+call\b/),
             initializes_app: content.match?(/def\s+initialize\s*\(\s*app/)
           }
 
           patterns = []
-          patterns << "authentication" if content.match?(/auth|token|session|jwt/i)
-          patterns << "rate_limiting" if content.match?(/rate.?limit|throttl/i)
-          patterns << "logging" if content.match?(/log|Logger/i)
-          patterns << "cors" if content.match?(/cors|origin|Access-Control/i)
-          patterns << "caching" if content.match?(/cache|Cache-Control|etag/i)
-          patterns << "error_handling" if content.match?(/rescue|error|exception/i)
-          patterns << "tenant" if content.match?(/tenant|subdomain|account/i)
+          patterns << 'authentication' if content.match?(/auth|token|session|jwt/i)
+          patterns << 'rate_limiting' if content.match?(/rate.?limit|throttl/i)
+          patterns << 'logging' if content.match?(/log|Logger/i)
+          patterns << 'cors' if content.match?(/cors|origin|Access-Control/i)
+          patterns << 'caching' if content.match?(/cache|Cache-Control|etag/i)
+          patterns << 'error_handling' if content.match?(/rescue|error|exception/i)
+          patterns << 'tenant' if content.match?(/tenant|subdomain|account/i)
           info[:detected_patterns] = patterns if patterns.any?
 
           info
-        rescue => e
-          { file: path.sub("#{root}/", ""), error: e.message }
+        rescue StandardError => e
+          { file: path.sub("#{root}/", ''), error: e.message }
         end
       end
 
@@ -65,7 +65,7 @@ module RailsAiBridge
           name = middleware.name || middleware.klass.to_s
           { name: name, category: categorize_middleware(name) }
         end
-      rescue
+      rescue StandardError
         []
       end
 
@@ -74,23 +74,23 @@ module RailsAiBridge
           total: app.middleware.size,
           custom: custom.size
         }
-      rescue
+      rescue StandardError
         {}
       end
 
       def categorize_middleware(name)
         case name
-        when /ActionDispatch::SSL|ForceSSL/ then "security"
-        when /Session|Cookie/ then "session"
-        when /Cache|ETag|Conditional/ then "caching"
-        when /Logger|RequestId/ then "logging"
-        when /Static|Files/ then "static_files"
-        when /Rack::Attack/ then "rate_limiting"
-        when /Cors|CORS/ then "cors"
-        when /Executor|Reloader/ then "rails_internal"
-        when /ActionDispatch/ then "request_handling"
-        when /ActiveRecord/ then "database"
-        else "other"
+        when /ActionDispatch::SSL|ForceSSL/ then 'security'
+        when /Session|Cookie/ then 'session'
+        when /Cache|ETag|Conditional/ then 'caching'
+        when /Logger|RequestId/ then 'logging'
+        when /Static|Files/ then 'static_files'
+        when /Rack::Attack/ then 'rate_limiting'
+        when /Cors|CORS/ then 'cors'
+        when /Executor|Reloader/ then 'rails_internal'
+        when /ActionDispatch/ then 'request_handling'
+        when /ActiveRecord/ then 'database'
+        else 'other'
         end
       end
     end

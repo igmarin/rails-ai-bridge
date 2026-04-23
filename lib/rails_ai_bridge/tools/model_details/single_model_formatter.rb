@@ -30,7 +30,7 @@ module RailsAiBridge
         # The output may include table name, semantic tier and reason, associations, validations, enums, scopes, callbacks, concerns, and up to 15 key instance methods depending on the data provided.
         # @return [String] The Markdown-formatted representation of the model.
         def call
-          lines = [ "# #{@name}", "" ]
+          lines = ["# #{@name}", '']
           lines << "**Table:** `#{@data[:table_name]}`" if @data[:table_name]
           if @data[:semantic_tier].present?
             lines << "**Semantic tier:** `#{@data[:semantic_tier]}`"
@@ -38,52 +38,52 @@ module RailsAiBridge
           end
 
           if @data[:associations]&.any?
-            lines << "" << "## Associations"
+            lines << '' << '## Associations'
             @data[:associations].each do |a|
               line = "- `#{a[:type]}` **#{a[:name]}**"
               line += " (class: #{a[:class_name]})" if a[:class_name] && a[:class_name] != a[:name].to_s.classify
               line += " through: #{a[:through]}" if a[:through]
-              line += " [polymorphic]" if a[:polymorphic]
+              line += ' [polymorphic]' if a[:polymorphic]
               line += " dependent: #{a[:dependent]}" if a[:dependent]
               lines << line
             end
           end
 
           if @data[:validations]&.any?
-            lines << "" << "## Validations"
+            lines << '' << '## Validations'
             @data[:validations].each do |v|
-              attrs = v[:attributes].join(", ")
-              opts  = v[:options]&.any? ? " (#{v[:options].map { |k, val| "#{k}: #{val}" }.join(', ')})" : ""
+              attrs = v[:attributes].join(', ')
+              opts  = v[:options]&.any? ? " (#{v[:options].map { |k, val| "#{k}: #{val}" }.join(', ')})" : ''
               lines << "- `#{v[:kind]}` on #{attrs}#{opts}"
             end
           end
 
           if @data[:enums]&.any?
-            lines << "" << "## Enums"
+            lines << '' << '## Enums'
             @data[:enums].each do |attr, values|
               lines << "- `#{attr}`: #{values.join(', ')}"
             end
           end
 
           if @data[:scopes]&.any?
-            lines << "" << "## Scopes"
+            lines << '' << '## Scopes'
             lines << @data[:scopes].map { |s| "- `#{s}`" }.join("\n")
           end
 
           if @data[:callbacks]&.any?
-            lines << "" << "## Callbacks"
+            lines << '' << '## Callbacks'
             @data[:callbacks].each do |type, methods|
               lines << "- `#{type}`: #{methods.join(', ')}"
             end
           end
 
           if @data[:concerns]&.any?
-            lines << "" << "## Concerns"
+            lines << '' << '## Concerns'
             lines << @data[:concerns].map { |c| "- #{c}" }.join("\n")
           end
 
           if @data[:instance_methods]&.any?
-            lines << "" << "## Key instance methods"
+            lines << '' << '## Key instance methods'
             lines << @data[:instance_methods].first(15).map { |m| "- `#{m}`" }.join("\n")
           end
 

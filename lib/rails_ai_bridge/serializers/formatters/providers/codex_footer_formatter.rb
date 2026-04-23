@@ -7,7 +7,7 @@ module RailsAiBridge
       class CodexFooterFormatter < Base
         # @return [String]
         def call
-          RegenerationFooter.markdown(command: "rails ai:bridge:codex", variant: :auto_short)
+          RegenerationFooter.markdown(command: 'rails ai:bridge:codex', variant: :auto_short)
         end
       end
     end

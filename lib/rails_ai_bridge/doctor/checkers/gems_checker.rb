@@ -7,12 +7,12 @@ module RailsAiBridge
       class GemsChecker < BaseChecker
         # @return [Doctor::Check] +:pass+ when lockfile exists; +:warn+ otherwise
         def call
-          lock_path = File.join(app.root, "Gemfile.lock")
+          lock_path = File.join(app.root, 'Gemfile.lock')
           check(
-            "Gems",
+            'Gems',
             File.exist?(lock_path),
-            pass: { message: "Gemfile.lock found" },
-            fail: { status: :warn, message: "Gemfile.lock not found", fix: "Run `bundle install` to generate it" }
+            pass: { message: 'Gemfile.lock found' },
+            fail: { status: :warn, message: 'Gemfile.lock not found', fix: 'Run `bundle install` to generate it' }
           )
         end
       end

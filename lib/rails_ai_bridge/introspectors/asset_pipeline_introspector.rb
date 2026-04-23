@@ -19,7 +19,7 @@ module RailsAiBridge
           js_bundler: detect_js_bundler,
           manifest_files: detect_manifests
         }
-      rescue => e
+      rescue StandardError => e
         { error: e.message }
       end
 
@@ -31,18 +31,19 @@ module RailsAiBridge
 
       def detect_pipeline
         lock_content = read_gemfile_lock
-        return "propshaft" if lock_content&.include?("propshaft (")
-        return "sprockets" if lock_content&.include?("sprockets (")
-        "none"
+        return 'propshaft' if lock_content&.include?('propshaft (')
+        return 'sprockets' if lock_content&.include?('sprockets (')
+
+        'none'
       end
 
       def extract_importmap_pins
-        path = File.join(root, "config/importmap.rb")
+        path = File.join(root, 'config/importmap.rb')
         return [] unless File.exist?(path)
 
         content = File.read(path)
         content.scan(/pin\s+["']([^"']+)["']/).flatten.sort
-      rescue
+      rescue StandardError
         []
       end
 
@@ -50,41 +51,44 @@ module RailsAiBridge
         lock_content = read_gemfile_lock
         return nil unless lock_content
 
-        return "tailwindcss" if lock_content.include?("tailwindcss-rails (")
-        return "bootstrap" if lock_content.include?("bootstrap (") || package_json_has?("bootstrap")
-        return "bulma" if package_json_has?("bulma")
+        return 'tailwindcss' if lock_content.include?('tailwindcss-rails (')
+        return 'bootstrap' if lock_content.include?('bootstrap (') || package_json_has?('bootstrap')
+        return 'bulma' if package_json_has?('bulma')
+
         nil
       end
 
       def detect_js_bundler
-        return "importmap" if File.exist?(File.join(root, "config/importmap.rb"))
-        return "esbuild" if package_json_has?("esbuild")
-        return "webpack" if File.exist?(File.join(root, "config/webpack")) || package_json_has?("webpack")
-        return "vite" if Dir.glob(File.join(root, "vite.config.*")).any?
-        return "rollup" if package_json_has?("rollup")
+        return 'importmap' if File.exist?(File.join(root, 'config/importmap.rb'))
+        return 'esbuild' if package_json_has?('esbuild')
+        return 'webpack' if File.exist?(File.join(root, 'config/webpack')) || package_json_has?('webpack')
+        return 'vite' if Dir.glob(File.join(root, 'vite.config.*')).any?
+        return 'rollup' if package_json_has?('rollup')
+
         nil
       end
 
       def detect_manifests
         manifests = []
-        manifests << "manifest.js" if File.exist?(File.join(root, "app/assets/config/manifest.js"))
-        manifests << "package.json" if File.exist?(File.join(root, "package.json"))
-        manifests << "importmap.rb" if File.exist?(File.join(root, "config/importmap.rb"))
+        manifests << 'manifest.js' if File.exist?(File.join(root, 'app/assets/config/manifest.js'))
+        manifests << 'package.json' if File.exist?(File.join(root, 'package.json'))
+        manifests << 'importmap.rb' if File.exist?(File.join(root, 'config/importmap.rb'))
         manifests
       end
 
       def read_gemfile_lock
-        path = File.join(root, "Gemfile.lock")
+        path = File.join(root, 'Gemfile.lock')
         File.exist?(path) ? File.read(path) : nil
-      rescue
+      rescue StandardError
         nil
       end
 
       def package_json_has?(package)
-        path = File.join(root, "package.json")
+        path = File.join(root, 'package.json')
         return false unless File.exist?(path)
+
         File.read(path).include?("\"#{package}\"")
-      rescue
+      rescue StandardError
         false
       end
     end

@@ -12,7 +12,7 @@ module RailsAiBridge
     # @since 2.2.0
     class NonArModelsIntrospector
       # Default label attached to each discovered non-AR class in tool and rules output.
-      TAG = "POJO/Service"
+      TAG = 'POJO/Service'
 
       # @param app [Rails::Application] host application whose +root+ and paths are used
       # @example Basic usage
@@ -49,7 +49,7 @@ module RailsAiBridge
       #   - `{ error: String }` containing a sanitized, truncated error message.
       def call
         eager_load!
-        models_dir = File.join(@root, "app", "models")
+        models_dir = File.join(@root, 'app', 'models')
         return { non_ar_models: [] } unless Dir.exist?(models_dir)
 
         models_root = File.expand_path(models_dir)
@@ -72,10 +72,10 @@ module RailsAiBridge
       # @param [String, nil] message - The original error message which may contain file paths.
       # @return [String] A message with filesystem paths replaced by "/[REDACTED]" and limited to 200 characters; returns "Introspection failed" if the input is nil or empty.
       def sanitize_error_message(message)
-        return "Introspection failed" if message.nil? || message.empty?
+        return 'Introspection failed' if message.blank?
 
         # Remove potential file paths that could expose directory structure
-        sanitized = message.gsub(%r{/[^\s]*[/][^/\s]+}, "/[REDACTED]")
+        sanitized = message.gsub(%r{/[^\s]*/[^/\s]+}, '/[REDACTED]')
 
         # Limit length to prevent log flooding and information disclosure
         if sanitized.length > 200
@@ -118,7 +118,7 @@ module RailsAiBridge
           next unless safe_to_process?(klass)
 
           record_if_non_ar_model(klass, models_root, entries)
-        rescue => e
+        rescue StandardError => e
           # Log security-relevant errors without exposing details
           Rails.logger.warn "NonArModelsIntrospector: Error processing class: #{e.class.name}" if defined?(Rails.logger)
         end
@@ -137,12 +137,13 @@ module RailsAiBridge
       # @return [Boolean] `true` if the class meets the naming and inheritance criteria, `false` otherwise (also returns `false` on error).
       def safe_to_process?(klass)
         name = klass.name
-        return false if name.nil? || name.empty?
-        return false if name.include?(".")
+        return false if name.blank?
+        return false if name.include?('.')
         return false unless name.match?(/\A[A-Z][A-Za-z0-9_:]*\z/)
         return false if klass < ActiveRecord::Base
+
         true
-      rescue => e
+      rescue StandardError => e
         Rails.logger.warn "NonArModelsIntrospector: Error validating class: #{e.class.name}" if defined?(Rails.logger)
         false
       end
@@ -158,8 +159,8 @@ module RailsAiBridge
       # @param [Hash] entries - Mutable hash that will be populated with discovered entries keyed by class name.
       def record_if_non_ar_model(klass, models_root, entries)
         name = klass.name
-        return if name.nil? || name.empty?
-        return if name.include?(".")
+        return if name.blank?
+        return if name.include?('.')
         return unless name.match?(/\A[A-Z][A-Za-z0-9_:]*\z/)
         return if klass < ActiveRecord::Base
 
@@ -171,7 +172,6 @@ module RailsAiBridge
 
         entries[name] = { name: name, relative_path: relative_to_root(path), tag: TAG }
       end
-
 
       def safe_const_source_location(name)
         Object.const_source_location(name)
@@ -193,7 +193,7 @@ module RailsAiBridge
       end
 
       def eager_load_app_models_dir
-        paths = Rails.application.paths["app/models"].to_a
+        paths = Rails.application.paths['app/models'].to_a
         return if paths.empty?
 
         dir = paths.first

@@ -16,7 +16,7 @@ module RailsAiBridge
         #
         # @return [String] Markdown document
         def call
-          lines = [ "# Models (#{@models.size})", "" ]
+          lines = ["# Models (#{@models.size})", '']
 
           @models.keys.sort.each do |name|
             data = @models[name]
@@ -26,11 +26,13 @@ module RailsAiBridge
             val_count   = (data[:validations] || []).size
             line = "- **#{name}**"
             line += " — tier: #{data[:semantic_tier]}" if data[:semantic_tier].present?
-            line += " — #{assoc_count} associations, #{val_count} validations" if assoc_count > 0 || val_count > 0
+            if assoc_count.positive? || val_count.positive?
+              line += " — #{assoc_count} associations, #{val_count} validations"
+            end
             lines << line
           end
 
-          lines << "" << "_Use `model:\"Name\"` for full detail, or `detail:\"full\"` for association lists._"
+          lines << '' << '_Use `model:"Name"` for full detail, or `detail:"full"` for association lists._'
           lines.join("\n") + NonArModelsAppendix.append_markdown(@non_ar_models)
         end
       end

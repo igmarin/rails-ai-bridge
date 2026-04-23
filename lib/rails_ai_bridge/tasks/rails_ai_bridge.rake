@@ -18,40 +18,40 @@ def print_result(result)
 end
 
 def apply_context_mode_override
-  if ENV["CONTEXT_MODE"]
-    mode = ENV["CONTEXT_MODE"].to_sym
-    RailsAiBridge.configuration.context_mode = mode
-    puts "📐 Context mode: #{mode}"
-  end
+  return unless ENV['CONTEXT_MODE']
+
+  mode = ENV['CONTEXT_MODE'].to_sym
+  RailsAiBridge.configuration.context_mode = mode
+  puts "📐 Context mode: #{mode}"
 end
 
 namespace :ai do
-  desc "Generate AI bridge files (CLAUDE.md, .cursorrules, .windsurfrules, .github/copilot-instructions.md)"
+  desc 'Generate AI bridge files (CLAUDE.md, .cursorrules, .windsurfrules, .github/copilot-instructions.md)'
   task bridge: :environment do
-    require "rails_ai_bridge"
+    require 'rails_ai_bridge'
 
     apply_context_mode_override
 
     puts "🔍 Introspecting #{Rails.application.class.module_parent_name}..."
 
-    puts "📝 Writing bridge files..."
+    puts '📝 Writing bridge files...'
     result = RailsAiBridge.generate_context(format: :all)
 
     print_result(result)
-    puts ""
-    puts "Done! Your AI assistants now understand your Rails app."
-    puts "Commit these files so your whole team benefits."
-    puts ""
+    puts ''
+    puts 'Done! Your AI assistants now understand your Rails app.'
+    puts 'Commit these files so your whole team benefits.'
+    puts ''
     puts ASSISTANT_TABLE
   end
 
-  desc "Generate AI bridge output in a specific format (claude, codex, cursor, windsurf, copilot, json)"
-  task :bridge_for, [ :format ] => :environment do |_t, args|
-    require "rails_ai_bridge"
+  desc 'Generate AI bridge output in a specific format (claude, codex, cursor, windsurf, copilot, json)'
+  task :bridge_for, [:format] => :environment do |_t, args|
+    require 'rails_ai_bridge'
 
     apply_context_mode_override
 
-    format = (args[:format] || ENV["FORMAT"] || "claude").to_sym
+    format = (args[:format] || ENV['FORMAT'] || 'claude').to_sym
     puts "🔍 Introspecting #{Rails.application.class.module_parent_name}..."
 
     puts "📝 Writing #{format} bridge file..."
@@ -61,11 +61,11 @@ namespace :ai do
   end
 
   namespace :bridge do
-    { claude: "CLAUDE.md", codex: "AGENTS.md", cursor: ".cursorrules", windsurf: ".windsurfrules",
-      copilot: ".github/copilot-instructions.md", json: ".ai-context.json", gemini: "GEMINI.md" }.each do |fmt, file|
+    { claude: 'CLAUDE.md', codex: 'AGENTS.md', cursor: '.cursorrules', windsurf: '.windsurfrules',
+      copilot: '.github/copilot-instructions.md', json: '.ai-context.json', gemini: 'GEMINI.md' }.each do |fmt, file|
       desc "Generate #{file} bridge file"
       task fmt => :environment do
-        require "rails_ai_bridge"
+        require 'rails_ai_bridge'
 
         apply_context_mode_override
 
@@ -74,53 +74,53 @@ namespace :ai do
         result = RailsAiBridge.generate_context(format: fmt)
 
         print_result(result)
-        puts ""
-        puts "Tip: Run `rails ai:bridge` to generate all formats at once."
+        puts ''
+        puts 'Tip: Run `rails ai:bridge` to generate all formats at once.'
       end
     end
 
-    desc "Generate AI bridge files in full mode (dumps everything)"
+    desc 'Generate AI bridge files in full mode (dumps everything)'
     task full: :environment do
-      require "rails_ai_bridge"
+      require 'rails_ai_bridge'
 
       RailsAiBridge.configuration.context_mode = :full
       puts "🔍 Introspecting #{Rails.application.class.module_parent_name} (full mode)..."
-      puts "📝 Writing bridge files..."
+      puts '📝 Writing bridge files...'
       result = RailsAiBridge.generate_context(format: :all)
 
       print_result(result)
-      puts ""
-      puts "Done! Full bridge files generated (all details included)."
+      puts ''
+      puts 'Done! Full bridge files generated (all details included).'
     end
   end
 
-  desc "Start the MCP server (stdio transport, for Claude Code / Cursor)"
+  desc 'Start the MCP server (stdio transport, for Claude Code / Cursor)'
   task serve: :environment do
-    require "rails_ai_bridge"
+    require 'rails_ai_bridge'
 
     RailsAiBridge.start_mcp_server(transport: :stdio)
   end
 
-  desc "Start the MCP server with HTTP transport"
+  desc 'Start the MCP server with HTTP transport'
   task serve_http: :environment do
-    require "rails_ai_bridge"
+    require 'rails_ai_bridge'
 
     RailsAiBridge.start_mcp_server(transport: :http)
   end
 
-  desc "Print introspection summary to stdout (useful for debugging)"
+  desc 'Print introspection summary to stdout (useful for debugging)'
   task inspect: :environment do
-    require "rails_ai_bridge"
-    require "json"
+    require 'rails_ai_bridge'
+    require 'json'
 
     context = RailsAiBridge.introspect
 
-    puts "=" * 60
+    puts '=' * 60
     puts " #{context[:app_name]} — AI Context Summary"
-    puts "=" * 60
-    puts ""
+    puts '=' * 60
+    puts ''
     puts "Rails #{context[:rails_version]} | Ruby #{context[:ruby_version]}"
-    puts ""
+    puts ''
 
     if context[:schema] && !context[:schema][:error]
       puts "📦 Database: #{context[:schema][:total_tables]} tables (#{context[:schema][:adapter]})"
@@ -132,9 +132,7 @@ namespace :ai do
       puts "🏗️  Models: #{context[:models].size}"
     end
 
-    if context[:routes] && !context[:routes][:error]
-      puts "🛤️  Routes: #{context[:routes][:total_routes]}"
-    end
+    puts "🛤️  Routes: #{context[:routes][:total_routes]}" if context[:routes] && !context[:routes][:error]
 
     if context[:jobs]
       puts "⚡ Jobs: #{context[:jobs][:jobs]&.size || 0}"
@@ -146,39 +144,39 @@ namespace :ai do
       puts "🏛️  Architecture: #{arch.join(', ')}" if arch.any?
     end
 
-    puts ""
+    puts ''
     puts ASSISTANT_TABLE
-    puts ""
-    puts "Run `rails ai:bridge` to generate bridge files."
+    puts ''
+    puts 'Run `rails ai:bridge` to generate bridge files.'
   end
 
-  desc "Watch for changes and auto-regenerate bridge files (requires listen gem)"
+  desc 'Watch for changes and auto-regenerate bridge files (requires listen gem)'
   task watch: :environment do
-    require "rails_ai_bridge"
+    require 'rails_ai_bridge'
 
     RailsAiBridge::Watcher.new.start
   end
 
-  desc "Run diagnostic checks and report AI readiness score"
+  desc 'Run diagnostic checks and report AI readiness score'
   task doctor: :environment do
-    require "rails_ai_bridge"
+    require 'rails_ai_bridge'
 
-    puts "🩺 Running AI readiness diagnostics..."
-    puts ""
+    puts '🩺 Running AI readiness diagnostics...'
+    puts ''
 
     result = RailsAiBridge::Doctor.new.run
 
     result[:checks].each do |check|
       icon = case check.status
-      when :pass then "✅"
-      when :warn then "⚠️ "
-      when :fail then "❌"
-      end
+             when :pass then '✅'
+             when :warn then '⚠️ '
+             when :fail then '❌'
+             end
       puts "  #{icon} #{check.name}: #{check.message}"
       puts "     Fix: #{check.fix}" if check.fix
     end
 
-    puts ""
+    puts ''
     puts "AI Readiness Score: #{result[:score]}/100"
   end
 end

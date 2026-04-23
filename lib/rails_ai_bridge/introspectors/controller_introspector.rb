@@ -17,12 +17,12 @@ module RailsAiBridge
 
         result = controllers.each_with_object({}) do |ctrl, hash|
           hash[ctrl.name] = extract_controller_details(ctrl)
-        rescue => e
+        rescue StandardError => e
           hash[ctrl.name] = { error: e.message }
         end
 
         { controllers: result }
-      rescue => e
+      rescue StandardError => e
         { error: e.message }
       end
 
@@ -30,19 +30,19 @@ module RailsAiBridge
 
       def eager_load_controllers!
         Rails.application.eager_load! unless Rails.application.config.eager_load
-      rescue
+      rescue StandardError
         nil
       end
 
       def discover_controllers
         return [] unless defined?(ActionController::Base)
 
-        bases = [ ActionController::Base ]
+        bases = [ActionController::Base]
         bases << ActionController::API if defined?(ActionController::API)
 
         bases.flat_map(&:descendants).reject do |ctrl|
-          ctrl.name.nil? || ctrl.name == "ApplicationController" ||
-            ctrl.name.start_with?("Rails::", "ActionMailbox::", "ActiveStorage::")
+          ctrl.name.nil? || ctrl.name == 'ApplicationController' ||
+            ctrl.name.start_with?('Rails::', 'ActionMailbox::', 'ActiveStorage::')
         end.uniq.sort_by(&:name)
       end
 
@@ -62,12 +62,13 @@ module RailsAiBridge
 
       def api_controller?(ctrl)
         return true if defined?(ActionController::API) && ctrl.ancestors.include?(ActionController::API)
+
         false
       end
 
       def extract_actions(ctrl)
         ctrl.action_methods.to_a.sort
-      rescue
+      rescue StandardError
         []
       end
 
@@ -75,32 +76,36 @@ module RailsAiBridge
         return [] unless ctrl.respond_to?(:_process_action_callbacks)
 
         ctrl._process_action_callbacks.filter_map do |cb|
-          next if cb.filter.is_a?(Proc) || cb.filter.to_s.start_with?("_")
+          next if cb.filter.is_a?(Proc) || cb.filter.to_s.start_with?('_')
 
           filter = { name: cb.filter.to_s, kind: cb.kind.to_s }
           filter[:only] = cb.instance_variable_get(:@if)&.filter_map { |c| extract_action_condition(c) }&.flatten
           filter[:except] = cb.instance_variable_get(:@unless)&.filter_map { |c| extract_action_condition(c) }&.flatten
-          filter.delete(:only) if filter[:only]&.empty?
-          filter.delete(:except) if filter[:except]&.empty?
+          filter.delete(:only) if filter[:only] && filter[:only].empty?
+          filter.delete(:except) if filter[:except] && filter[:except].empty?
           filter
         end
-      rescue
+      rescue StandardError
         []
       end
 
       def extract_action_condition(condition)
         return nil unless condition.is_a?(String) || condition.respond_to?(:to_s)
+
         match = condition.to_s.match(/action_name\s*==\s*['"](\w+)['"]/)
-        match ? [ match[1] ] : nil
+        match ? [match[1]] : nil
       end
 
       def extract_concerns(ctrl)
         ctrl.ancestors
-          .select { |mod| mod.is_a?(Module) && !mod.is_a?(Class) }
-          .reject { |mod| mod.name&.start_with?("ActionController", "ActionDispatch", "ActiveSupport", "AbstractController") }
+            .select { |mod| mod.is_a?(Module) && !mod.is_a?(Class) }
+            .reject do |mod|
+          mod.name&.start_with?('ActionController', 'ActionDispatch', 'ActiveSupport',
+                                'AbstractController')
+        end
           .map(&:name)
           .compact
-      rescue
+      rescue StandardError
         []
       end
 
@@ -120,15 +125,16 @@ module RailsAiBridge
       def read_source(ctrl)
         path = source_path(ctrl)
         return nil unless path && File.exist?(path)
+
         File.read(path)
-      rescue
+      rescue StandardError
         nil
       end
 
       def source_path(ctrl)
         root = app.root.to_s
         underscored = ctrl.name.underscore
-        File.join(root, "app", "controllers", "#{underscored}.rb")
+        File.join(root, 'app', 'controllers', "#{underscored}.rb")
       end
     end
   end

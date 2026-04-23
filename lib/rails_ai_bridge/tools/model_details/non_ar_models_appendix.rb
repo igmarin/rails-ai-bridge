@@ -9,10 +9,10 @@ module RailsAiBridge
         module_function
 
         # Fallback tag when a row omits +:tag+.
-        DEFAULT_TAG = "POJO/Service"
+        DEFAULT_TAG = 'POJO/Service'
 
         # Human-readable subsection title embedded in the generated Markdown heading.
-        SECTION_TITLE = "POJO/Service under app/models"
+        SECTION_TITLE = 'POJO/Service under app/models'
 
         # Normalizes the +:non_ar_models+ introspector payload into an array of row hashes.
         #
@@ -24,9 +24,9 @@ module RailsAiBridge
         # @return [Array<Hash>] rows for {append_markdown}; each row may include +:name+, +:relative_path+, +:tag+
         def entries_from(section)
           return [] unless section.is_a?(Hash)
-          return [] if section[:error].present? || section["error"].present?
+          return [] if section[:error].present? || section['error'].present?
 
-          Array(section[:non_ar_models] || section["non_ar_models"])
+          Array(section[:non_ar_models] || section['non_ar_models'])
         end
 
         # Appends a "## Non-ActiveRecord classes (...)" Markdown block when rows exist.
@@ -35,16 +35,16 @@ module RailsAiBridge
         # @return [String] Markdown suffix (empty when there are no rows)
         def append_markdown(section)
           rows = entries_from(section)
-          return "" if rows.empty?
+          return '' if rows.empty?
 
-          lines = [ "", "## Non-ActiveRecord classes (#{SECTION_TITLE})", "" ]
+          lines = ['', "## Non-ActiveRecord classes (#{SECTION_TITLE})", '']
           rows.each do |row|
-            name = row[:name] || row["name"]
-            path = row[:relative_path] || row["relative_path"]
-            tag = row[:tag] || row["tag"] || DEFAULT_TAG
+            name = row[:name] || row['name']
+            path = row[:relative_path] || row['relative_path']
+            tag = row[:tag] || row['tag'] || DEFAULT_TAG
             lines << "- **[#{tag}]** `#{name}` — `#{path}`"
           end
-          lines << ""
+          lines << ''
           lines.join("\n")
         end
       end

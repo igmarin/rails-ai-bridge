@@ -29,15 +29,15 @@ module RailsAiBridge
       # @see RailsAiBridge::Introspectors::SchemaIntrospector
       class StaticSchemaParser
         # Regex matching a +create_table+ declaration line.
-        TABLE_LINE   = /create_table\s+"(\w+)"/.freeze
+        TABLE_LINE   = /create_table\s+"(\w+)"/
 
         # Regex matching a column definition inside a table block (+t.<type> "name"+).
-        COLUMN_LINE  = /t\.(\w+)\s+"(\w+)"/.freeze
+        COLUMN_LINE  = /t\.(\w+)\s+"(\w+)"/
 
         # Regex matching an +add_index+ statement (bare or array column form).
         # Only the first column is captured for multi-column indexes — sufficient
         # for context output but not a complete representation.
-        INDEX_LINE   = /add_index\s+"(\w+)",\s+\[?"(\w+)"/.freeze
+        INDEX_LINE   = /add_index\s+"(\w+)",\s+\[?"(\w+)"/
 
         # Rails-managed tables that must never appear in introspection output.
         INTERNAL_TABLES = %w[ar_internal_metadata schema_migrations].freeze
@@ -60,14 +60,15 @@ module RailsAiBridge
           @content.each_line do |line|
             next if parse_table_line(line)
             next if parse_column_line(line)
+
             parse_index_line(line)
           end
 
           {
-            adapter:      "static_parse",
-            tables:       @tables,
+            adapter: 'static_parse',
+            tables: @tables,
             total_tables: @tables.size,
-            note:         "Parsed from db/schema.rb (no DB connection)"
+            note: 'Parsed from db/schema.rb (no DB connection)'
           }
         end
 

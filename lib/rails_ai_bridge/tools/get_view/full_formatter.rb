@@ -10,18 +10,18 @@ module RailsAiBridge
           filtered = filter_view_data
           return "View introspection failed: #{filtered[:error]}" if filtered[:error]
 
-          lines = [ StandardFormatter.new(context: @context, controller: @controller, partial: @partial).call ]
+          lines = [StandardFormatter.new(context: @context, controller: @controller, partial: @partial).call]
 
           if filtered[:helpers].any?
-            lines << "" << "## Helpers"
+            lines << '' << '## Helpers'
             filtered[:helpers].each do |helper|
-              methods = Array(helper[:methods]).join(", ")
+              methods = Array(helper[:methods]).join(', ')
               lines << "- `#{helper[:file]}`: #{methods}"
             end
           end
 
           if filtered[:view_components].any?
-            lines << "" << "## View Components"
+            lines << '' << '## View Components'
             filtered[:view_components].each { |component| lines << "- `#{component}`" }
           end
 

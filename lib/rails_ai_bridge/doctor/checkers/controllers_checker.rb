@@ -7,14 +7,15 @@ module RailsAiBridge
       class ControllersChecker < BaseChecker
         # @return [Doctor::Check] +:pass+ when controller files exist; +:warn+ otherwise
         def call
-          controllers_path = File.join(app.root, "app/controllers", "**/*.rb")
+          controllers_path = File.join(app.root, 'app/controllers', '**/*.rb')
           controllers = Dir.glob(controllers_path)
 
           check(
-            "Controllers",
+            'Controllers',
             controllers.any?,
             pass: { message: "#{controllers.size} controller files found" },
-            fail: { status: :warn, message: "No controller files found in app/controllers/", fix: "Generate controllers with `rails generate controller`" }
+            fail: { status: :warn, message: 'No controller files found in app/controllers/',
+                    fix: 'Generate controllers with `rails generate controller`' }
           )
         end
       end

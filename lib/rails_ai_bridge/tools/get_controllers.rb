@@ -4,19 +4,19 @@ module RailsAiBridge
   module Tools
     # MCP tool listing controllers with actions, filters, and strong params.
     class GetControllers < BaseTool
-      tool_name "rails_get_controllers"
-      description "Get controller information including actions, filters, strong params, and concerns. Optionally filter by controller name. Supports detail levels."
+      tool_name 'rails_get_controllers'
+      description 'Get controller information including actions, filters, strong params, and concerns. Optionally filter by controller name. Supports detail levels.'
 
       input_schema(
         properties: {
           controller: {
-            type: "string",
+            type: 'string',
             description: "Optional: specific controller name (e.g. 'PostsController'). Omit for all controllers."
           },
           detail: {
-            type: "string",
+            type: 'string',
             enum: %w[summary standard full],
-            description: "Detail level for controller listing. summary: names + action counts. standard: names + action list (default). full: everything. Ignored when specific controller is given."
+            description: 'Detail level for controller listing. summary: names + action counts. standard: names + action list (default). full: everything. Ignored when specific controller is given.'
           }
         }
       )
@@ -27,9 +27,9 @@ module RailsAiBridge
       # @param detail [String] +summary+, +standard+, or +full+ for listings
       # @param server_context [Object, nil] reserved for MCP transport metadata
       # @return [MCP::Tool::Response] markdown controller summary or an error message
-      def self.call(controller: nil, detail: "standard", server_context: nil)
+      def self.call(controller: nil, detail: 'standard', server_context: nil)
         data = cached_section(:controllers)
-        return text_response("Controller introspection not available. Add :controllers to introspectors.") unless data
+        return text_response('Controller introspection not available. Add :controllers to introspectors.') unless data
         return text_response("Controller introspection failed: #{data[:error]}") if data[:error]
 
         formatter = ResponseFormatter.new(data[:controllers] || {}, controller: controller, detail: detail)
@@ -58,6 +58,7 @@ module RailsAiBridge
         def format
           if @controller
             return "Error inspecting #{controller_key}: #{controller_info[:error]}" if controller_info[:error]
+
             format_single_controller
           else
             format_all_controllers
@@ -76,46 +77,44 @@ module RailsAiBridge
 
         def format_all_controllers
           case @detail
-          when "summary" then format_summary
-          when "standard" then format_standard
-          when "full" then format_full
+          when 'summary' then format_summary
+          when 'standard' then format_standard
+          when 'full' then format_full
           else format_name_list
           end
         end
 
         def format_summary
-          lines = [ "# Controllers (#{@controllers.size})", "" ]
+          lines = ["# Controllers (#{@controllers.size})", '']
           @controllers.keys.sort.each do |name|
             info = @controllers[name]
             action_count = info[:actions]&.size || 0
             lines << "- **#{name}** — #{action_count} actions"
           end
-          lines << "" << "_Use `controller:\"Name\"` for full detail._"
+          lines << '' << '_Use `controller:"Name"` for full detail._'
           lines.join("\n")
         end
 
         def format_standard
-          lines = [ "# Controllers (#{@controllers.size})", "" ]
+          lines = ["# Controllers (#{@controllers.size})", '']
           @controllers.keys.sort.each do |name|
             info = @controllers[name]
-            actions = info[:actions]&.join(", ") || "none"
+            actions = info[:actions]&.join(', ') || 'none'
             lines << "- **#{name}** — #{actions}"
           end
-          lines << "" << "_Use `controller:\"Name\"` for filters and strong params, or `detail:\"full\"` for everything._"
+          lines << '' << '_Use `controller:"Name"` for filters and strong params, or `detail:"full"` for everything._'
           lines.join("\n")
         end
 
         def format_full
-          lines = [ "# Controllers (#{@controllers.size})", "" ]
+          lines = ["# Controllers (#{@controllers.size})", '']
           @controllers.keys.sort.each do |name|
             info = @controllers[name]
             lines << "## #{name}"
             lines << "- Actions: #{info[:actions]&.join(', ')}" if info[:actions]&.any?
-            if info[:filters]&.any?
-              lines << "- Filters: #{info[:filters].map { |f| "#{f[:kind]} #{f[:name]}" }.join(', ')}"
-            end
+            lines << "- Filters: #{info[:filters].map { |f| "#{f[:kind]} #{f[:name]}" }.join(', ')}" if info[:filters]&.any?
             lines << "- Strong params: #{info[:strong_params].join(', ')}" if info[:strong_params]&.any?
-            lines << ""
+            lines << ''
           end
           lines.join("\n")
         end
@@ -126,17 +125,17 @@ module RailsAiBridge
         end
 
         def format_single_controller
-          lines = [ "# #{controller_key}", "" ]
+          lines = ["# #{controller_key}", '']
           lines << "**Parent:** `#{controller_info[:parent_class]}`" if controller_info[:parent_class]
-          lines << "**API controller:** yes" if controller_info[:api_controller]
+          lines << '**API controller:** yes' if controller_info[:api_controller]
 
           if controller_info[:actions]&.any?
-            lines << "" << "## Actions"
+            lines << '' << '## Actions'
             lines << controller_info[:actions].map { |a| "- `#{a}`" }.join("\n")
           end
 
           if controller_info[:filters]&.any?
-            lines << "" << "## Filters"
+            lines << '' << '## Filters'
             controller_info[:filters].each do |f|
               detail = "- `#{f[:kind]}` **#{f[:name]}**"
               detail += " (only: #{f[:only].join(', ')})" if f[:only]&.any?
@@ -145,7 +144,7 @@ module RailsAiBridge
           end
 
           if controller_info[:strong_params]&.any?
-            lines << "" << "## Strong Params"
+            lines << '' << '## Strong Params'
             lines << controller_info[:strong_params].map { |p| "- `#{p}`" }.join("\n")
           end
 

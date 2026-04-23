@@ -22,17 +22,17 @@ module RailsAiBridge
         # @param output_dir [String] Absolute path to the Rails application root (or configured output directory).
         # @return [Hash{Symbol=>Array<String>}] +:written+ => paths written, +:skipped+ => paths skipped (unchanged content).
         def call(output_dir)
-          dir = File.join(output_dir, ".codex")
+          dir = File.join(output_dir, '.codex')
           FileUtils.mkdir_p(dir)
 
-          filepath = File.join(dir, "README.md")
+          filepath = File.join(dir, 'README.md')
           content = render_readme
 
           if File.exist?(filepath) && File.read(filepath) == content
-            { written: [], skipped: [ filepath ] }
+            { written: [], skipped: [filepath] }
           else
             File.write(filepath, content)
-            { written: [ filepath ], skipped: [] }
+            { written: [filepath], skipped: [] }
           end
         end
 

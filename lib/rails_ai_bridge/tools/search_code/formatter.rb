@@ -14,8 +14,7 @@ module RailsAiBridge
             return "No results found for '#{pattern}'#{" in #{path}" if path}."
           end
 
-          output = results.map { |r| "#{r[:file]}:#{r[:line_number]}: #{r[:content].strip}" }.join("
-")
+          output = results.map { |r| "#{r[:file]}:#{r[:line_number]}: #{r[:content].strip}" }.join("\n")
           header = "# Search: `#{pattern}`
 **#{results.size} results**#{" in #{path}" if path}
 

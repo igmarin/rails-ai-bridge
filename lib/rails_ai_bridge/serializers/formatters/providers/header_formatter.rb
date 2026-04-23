@@ -9,7 +9,7 @@ module RailsAiBridge
         def call
           ProviderDocumentHeader.call(
             context: context,
-            document_title: "AI Context",
+            document_title: 'AI Context',
             layout: :ai_context,
             intro: <<~INTRO.chomp
               This file gives AI assistants (Claude Code, Cursor, Copilot) deep context

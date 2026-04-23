@@ -4,27 +4,29 @@ module RailsAiBridge
   module Tools
     # MCP tool summarizing +Gemfile.lock+ and notable gems by category.
     class GetGems < BaseTool
-      tool_name "rails_get_gems"
-      description "Analyze the app's Gemfile.lock to identify notable gems, their categories (auth, jobs, frontend, API, database, testing, deploy), and what they mean for the app's architecture."
+      tool_name 'rails_get_gems'
+      description "Analyze the app's Gemfile.lock to identify notable gems, their categories (auth, jobs,
+      frontend, API, database, testing, deploy), and what they mean for the app's architecture."
 
       input_schema(
         properties: {
           category: {
-            type: "string",
+            type: 'string',
             enum: %w[auth jobs frontend api database files testing deploy all],
-            description: "Filter by category. Default: all."
+            description: 'Filter by category. Default: all.'
           }
         }
       )
 
       annotations(read_only_hint: true, destructive_hint: false, idempotent_hint: true, open_world_hint: false)
 
-      # @param category [String] filter: +auth+, +jobs+, +frontend+, +api+, +database+, +files+, +testing+, +deploy+, or +all+
+      # @param category [String] filter: +auth+, +jobs+, +frontend+, +api+, +database+, +files+, +testing+, +deploy+,
+      # or +all+
       # @param server_context [Object, nil] reserved for MCP transport metadata
       # @return [MCP::Tool::Response] markdown gem analysis or an error message
-      def self.call(category: "all", server_context: nil)
+      def self.call(category: 'all', server_context: nil)
         gems = cached_section(:gems)
-        return text_response("Gem introspection not available. Add :gems to introspectors.") unless gems
+        return text_response('Gem introspection not available. Add :gems to introspectors.') unless gems
         return text_response("Gem introspection failed: #{gems[:error]}") if gems[:error]
 
         formatter = ResponseFormatter.new(gems, category: category)
@@ -41,16 +43,16 @@ module RailsAiBridge
         end
 
         def format
-          lines = [ "# Gem Analysis", "" ]
+          lines = ['# Gem Analysis', '']
           lines << "Total gems: #{@gems_data[:total_gems]}"
-          lines << ""
+          lines << ''
 
           if @notable.any?
             current_cat = nil
-            @notable.sort_by { |g| [ g[:category], g[:name] ] }.each do |g|
+            @notable.sort_by { |g| [g[:category], g[:name]] }.each do |g|
               if g[:category] != current_cat
                 current_cat = g[:category]
-                lines << "" << "## #{current_cat.capitalize}"
+                lines << '' << "## #{current_cat.capitalize}"
               end
               lines << "- **#{g[:name]}** (#{g[:version]}): #{g[:note]}"
             end
@@ -65,7 +67,7 @@ module RailsAiBridge
 
         def filter_notable_gems
           notable = @gems_data[:notable_gems] || []
-          @category == "all" ? notable : notable.select { |g| g[:category] == @category }
+          @category == 'all' ? notable : notable.select { |g| g[:category] == @category }
         end
       end
     end

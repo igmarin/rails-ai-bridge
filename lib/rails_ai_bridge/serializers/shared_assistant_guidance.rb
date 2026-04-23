@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "pathname"
+require 'pathname'
 
 module RailsAiBridge
   module Serializers
@@ -16,37 +16,37 @@ module RailsAiBridge
       # @return [Array<String>] markdown lines including heading and trailing blank line
       def compact_engineering_rules_lines
         [
-          "## Engineering rules (read first)",
-          "",
-          "Defaults for this codebase unless existing files clearly show a different pattern.",
-          "",
-          "### Controllers & strong parameters",
-          "- Permit attributes explicitly; never pass raw `params` into `Model.new`, `update`, or `assign_attributes`.",
-          "- Extend `permit` lists deliberately when adding fields; mirror neighboring actions in the same controller.",
-          "",
-          "### Authentication & authorization",
+          '## Engineering rules (read first)',
+          '',
+          'Defaults for this codebase unless existing files clearly show a different pattern.',
+          '',
+          '### Controllers & strong parameters',
+          '- Permit attributes explicitly; never pass raw `params` into `Model.new`, `update`, or `assign_attributes`.',
+          '- Extend `permit` lists deliberately when adding fields; mirror neighboring actions in the same controller.',
+          '',
+          '### Authentication & authorization',
           "- Guard mutating and sensitive reads with the app's existing auth (e.g. `before_action` filters, policies). A public route does not imply public data.",
-          "- Use `rails_get_controllers` for filters and `rails_get_conventions` for architecture hints when unsure.",
-          "",
-          "### Data access & performance",
-          "- Avoid N+1: use `includes` / `preload` / `eager_load` for associations used in views or serializers.",
-          "- Do not load unbounded collections: paginate list endpoints, use `find_each` in jobs, stream large exports.",
-          "- Large or hot tables: check indexes before new `WHERE`/`ORDER BY`; use `rails_get_schema` before heavy queries.",
-          "",
-          "### Security & inputs",
-          "- Treat external input as untrusted; avoid `constantize` / `send` / `eval` on user-controlled strings and raw SQL string interpolation.",
-          "- Allow-list host or path for any redirect built from user input (open-redirect risk).",
-          "",
-          "### Testing",
-          "- Prefer request or system specs for HTTP flows and integration; keep model specs tight for business rules.",
+          '- Use `rails_get_controllers` for filters and `rails_get_conventions` for architecture hints when unsure.',
+          '',
+          '### Data access & performance',
+          '- Avoid N+1: use `includes` / `preload` / `eager_load` for associations used in views or serializers.',
+          '- Do not load unbounded collections: paginate list endpoints, use `find_each` in jobs, stream large exports.',
+          '- Large or hot tables: check indexes before new `WHERE`/`ORDER BY`; use `rails_get_schema` before heavy queries.',
+          '',
+          '### Security & inputs',
+          '- Treat external input as untrusted; avoid `constantize` / `send` / `eval` on user-controlled strings and raw SQL string interpolation.',
+          '- Allow-list host or path for any redirect built from user input (open-redirect risk).',
+          '',
+          '### Testing',
+          '- Prefer request or system specs for HTTP flows and integration; keep model specs tight for business rules.',
           "- Run the project's test suite after substantive edits (often `bundle exec rspec` — confirm framework via `rails_get_test_info`).",
-          "",
-          "### Repo-specific constraints",
-          "- Hot tables, tenant/auth scoping, mandatory spec types, and internal policies belong in `config/rails_ai_bridge/overrides.md`.",
-          "- Remove the first-line `<!-- rails-ai-bridge:omit-merge -->` stub marker before that file is merged into Copilot/Codex; use `overrides.md.example` as a starting outline.",
-          "",
-          "_Regenerated files are snapshots. Re-merge team-specific performance, security, or compliance rules at the top after `rails ai:bridge`, or keep them in separate committed instruction files._",
-          ""
+          '',
+          '### Repo-specific constraints',
+          '- Hot tables, tenant/auth scoping, mandatory spec types, and internal policies belong in `config/rails_ai_bridge/overrides.md`.',
+          '- Remove the first-line `<!-- rails-ai-bridge:omit-merge -->` stub marker before that file is merged into Copilot/Codex; use `overrides.md.example` as a starting outline.',
+          '',
+          '_Regenerated files are snapshots. Re-merge team-specific performance, security, or compliance rules at the top after `rails ai:bridge`, or keep them in separate committed instruction files._',
+          ''
         ]
       end
 
@@ -55,14 +55,14 @@ module RailsAiBridge
       # @return [Array<String>] markdown lines including heading; no trailing blank line required (caller adds spacing)
       def rails_performance_examples_lines
         [
-          "### Rails patterns (large data & hot paths)",
-          "- Never use `Model.all` (or unscoped relations) in request cycles — use `where`, `limit`, or pagination.",
-          "- Background jobs: iterate with `find_each` or `in_batches` instead of `each` on large relations.",
-          "- Prefer `exists?` / `count` with care on huge tables; narrow with `where` first; avoid `length` on loaded associations for big sets.",
-          "- Wide rows: fetch only needed columns with `select` / `pluck` when you do not need full records.",
-          "- Enable or use `strict_loading` in development/test to catch accidental N+1s early.",
-          "- Before adding filters or `ORDER BY` on high-volume tables, confirm indexes via `rails_get_schema` and migrations.",
-          ""
+          '### Rails patterns (large data & hot paths)',
+          '- Never use `Model.all` (or unscoped relations) in request cycles — use `where`, `limit`, or pagination.',
+          '- Background jobs: iterate with `find_each` or `in_batches` instead of `each` on large relations.',
+          '- Prefer `exists?` / `count` with care on huge tables; narrow with `where` first; avoid `length` on loaded associations for big sets.',
+          '- Wide rows: fetch only needed columns with `select` / `pluck` when you do not need full records.',
+          '- Enable or use `strict_loading` in development/test to catch accidental N+1s early.',
+          '- Before adding filters or `ORDER BY` on high-volume tables, confirm indexes via `rails_get_schema` and migrations.',
+          ''
         ]
       end
 
@@ -72,22 +72,22 @@ module RailsAiBridge
       # @return [Array<String>] markdown body lines (no YAML frontmatter)
       def cursor_engineering_mdc_body_lines(show_overrides_pointer: false)
         lines = [
-          "# Engineering essentials",
-          "",
-          "- **Strong params**: permit explicitly; never mass-assign raw `params`.",
-          "- **Auth**: protect mutations and sensitive reads; public route ≠ public data.",
-          "- **N+1**: `includes` / `preload` / `eager_load` for associations in views and serializers.",
-          "- **Bounds**: paginate HTTP lists; `find_each` / `in_batches` in jobs; no `Model.all` in requests.",
-          "- **Large tables**: narrow queries; check indexes before new filters/sorts; use `rails_get_schema`.",
-          "- **Security**: no `constantize`/`send`/`eval` on user input; no SQL string interpolation; allow-list redirects.",
-          "- **Tests**: request/system specs for HTTP; confirm runner with `rails_get_test_info`.",
-          "",
-          "Generated files are **snapshots** — prefer `rails_*` MCP tools for current structure.",
-          "Full engineering rules: `.github/copilot-instructions.md` or `AGENTS.md`.",
-          "MCP tool reference: `rails-mcp-tools.mdc`."
+          '# Engineering essentials',
+          '',
+          '- **Strong params**: permit explicitly; never mass-assign raw `params`.',
+          '- **Auth**: protect mutations and sensitive reads; public route ≠ public data.',
+          '- **N+1**: `includes` / `preload` / `eager_load` for associations in views and serializers.',
+          '- **Bounds**: paginate HTTP lists; `find_each` / `in_batches` in jobs; no `Model.all` in requests.',
+          '- **Large tables**: narrow queries; check indexes before new filters/sorts; use `rails_get_schema`.',
+          '- **Security**: no `constantize`/`send`/`eval` on user input; no SQL string interpolation; allow-list redirects.',
+          '- **Tests**: request/system specs for HTTP; confirm runner with `rails_get_test_info`.',
+          '',
+          'Generated files are **snapshots** — prefer `rails_*` MCP tools for current structure.',
+          'Full engineering rules: `.github/copilot-instructions.md` or `AGENTS.md`.',
+          'MCP tool reference: `rails-mcp-tools.mdc`.'
         ]
-        lines << "Repo-specific performance/security: `config/rails_ai_bridge/overrides.md`." if show_overrides_pointer
-        lines << ""
+        lines << 'Repo-specific performance/security: `config/rails_ai_bridge/overrides.md`.' if show_overrides_pointer
+        lines << ''
         lines
       end
 
@@ -127,7 +127,7 @@ module RailsAiBridge
         cfg = RailsAiBridge.configuration
         raw = cfg.assistant_overrides_path
         if raw.nil? || raw.to_s.empty?
-          File.join(base, "config/rails_ai_bridge/overrides.md")
+          File.join(base, 'config/rails_ai_bridge/overrides.md')
         else
           p = raw.to_s
           Pathname.new(p).absolute? ? p : File.join(base, p)
@@ -140,10 +140,10 @@ module RailsAiBridge
         return [] unless body
 
         [
-          "## Repo-specific guidance",
-          "",
+          '## Repo-specific guidance',
+          '',
           body,
-          ""
+          ''
         ]
       end
 
@@ -153,19 +153,19 @@ module RailsAiBridge
       # @return [Array<String>] markdown lines (join with newlines for a string)
       def claude_full_footer_lines(context)
         arch = context.dig(:conventions, :architecture)
-        arch_summary = arch&.any? ? arch.join(", ") : nil
+        arch_summary = arch&.any? ? arch.join(', ') : nil
 
         lines = [
-          "## Behavioral Rules",
-          "",
-          "When working in this codebase:",
-          "- Follow existing patterns and conventions detected above",
-          "- Use the database schema as the source of truth for column names and types",
-          "- Respect existing associations and validations when modifying models"
+          '## Behavioral Rules',
+          '',
+          'When working in this codebase:',
+          '- Follow existing patterns and conventions detected above',
+          '- Use the database schema as the source of truth for column names and types',
+          '- Respect existing associations and validations when modifying models'
         ]
         lines << "- Match the project's architecture style (#{arch_summary})" if arch_summary
         lines << "- Run `#{ContextSummary.test_command(context)}` after making changes to verify correctness"
-        lines.concat(RegenerationFooter.continuation_lines(command: "rails ai:bridge", variant: :context_file))
+        lines.concat(RegenerationFooter.continuation_lines(command: 'rails ai:bridge', variant: :context_file))
         lines
       end
 
@@ -174,23 +174,23 @@ module RailsAiBridge
       # @param context [Hash] introspection context (+:conventions+ optional for architecture line)
       # @param rules_heading [String] markdown `## ...` line opening the rules section (default: `## Rules`)
       # @return [Array<String>] markdown lines
-      def compact_engineering_rules_footer_lines(context, rules_heading: "## Rules")
+      def compact_engineering_rules_footer_lines(context, rules_heading: '## Rules')
         arch = context.dig(:conventions, :architecture)
-        arch_summary = arch&.any? ? arch.join(", ") : nil
+        arch_summary = arch&.any? ? arch.join(', ') : nil
 
         lines = [
           rules_heading,
-          "",
-          "- **Adhere to Conventions:** Strictly follow the existing patterns and conventions outlined in this document.",
-          "- **Schema as Source of Truth:** Always use the database schema as the definitive source for column names, types, and relationships.",
-          "- **Respect Existing Logic:** Ensure all new code respects existing associations, validations, and service objects.",
-          "- **Write Tests:** All new features and bug fixes must be accompanied by corresponding tests."
+          '',
+          '- **Adhere to Conventions:** Strictly follow the existing patterns and conventions outlined in this document.',
+          '- **Schema as Source of Truth:** Always use the database schema as the definitive source for column names, types, and relationships.',
+          '- **Respect Existing Logic:** Ensure all new code respects existing associations, validations, and service objects.',
+          '- **Write Tests:** All new features and bug fixes must be accompanied by corresponding tests.'
         ]
         lines << "- **Match Architecture:** Align with the project's architectural style (#{arch_summary})." if arch_summary
         lines << "- **Verify Correctness:** Run `#{ContextSummary.test_command(context)}` and `bundle exec rubocop` after making changes to ensure correctness and style adherence."
-        lines << ""
-        lines << "---"
-        lines << RegenerationFooter.message_line(command: "rails ai:bridge", variant: :context_file)
+        lines << ''
+        lines << '---'
+        lines << RegenerationFooter.message_line(command: 'rails ai:bridge', variant: :context_file)
         lines
       end
 

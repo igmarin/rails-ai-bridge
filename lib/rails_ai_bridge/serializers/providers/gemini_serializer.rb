@@ -10,16 +10,15 @@ module RailsAiBridge
         # @param context [Hash] Introspection hash from {Introspector#call}.
         # @param config [RailsAiBridge::Configuration] Bridge configuration.
         def initialize(context, config: RailsAiBridge.configuration)
-          super(context, config: config)
+          super
         end
 
         # @return [String] Markdown written to `GEMINI.md` by {ContextFileSerializer}.
         def call
           if @config.context_mode == :full
             MarkdownSerializer.new(context,
-              header_class: Formatters::Providers::GeminiHeaderFormatter,
-              footer_class: Formatters::Providers::GeminiFooterFormatter
-            ).call
+                                   header_class: Formatters::Providers::GeminiHeaderFormatter,
+                                   footer_class: Formatters::Providers::GeminiFooterFormatter).call
           else
             render_compact
           end

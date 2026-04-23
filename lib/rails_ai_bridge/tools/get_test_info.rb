@@ -4,8 +4,8 @@ module RailsAiBridge
   module Tools
     # MCP tool summarizing test framework, factories, fixtures, CI, and coverage setup.
     class GetTestInfo < BaseTool
-      tool_name "rails_get_test_info"
-      description "Get test infrastructure information including framework, factories/fixtures, CI config, and coverage setup."
+      tool_name 'rails_get_test_info'
+      description 'Get test infrastructure information including framework, factories/fixtures, CI config, and coverage setup.'
 
       input_schema(properties: {})
 
@@ -15,7 +15,7 @@ module RailsAiBridge
       # @return [MCP::Tool::Response] markdown test infrastructure summary or an error message
       def self.call(server_context: nil)
         data = cached_section(:tests)
-        return text_response("Test introspection not available. Add :tests to introspectors.") unless data
+        return text_response('Test introspection not available. Add :tests to introspectors.') unless data
         return text_response("Test introspection failed: #{data[:error]}") if data[:error]
 
         formatted_text = ResponseFormatter.new(data).format
@@ -30,9 +30,11 @@ module RailsAiBridge
         end
 
         def format
-          lines = [ "# Test Infrastructure", "" ]
+          lines = ['# Test Infrastructure', '']
           lines << "- **Framework:** #{@data[:framework]}"
-          lines << "- **Factories:** #{@data[:factories][:location]} (#{@data[:factories][:count]} files)" if @data[:factories]
+          if @data[:factories]
+            lines << "- **Factories:** #{@data[:factories][:location]} (#{@data[:factories][:count]} files)"
+          end
           lines << "- **Fixtures:** #{@data[:fixtures][:location]} (#{@data[:fixtures][:count]} files)" if @data[:fixtures]
           lines << "- **System tests:** #{@data[:system_tests][:location]}" if @data[:system_tests]
           lines << "- **CI:** #{@data[:ci_config].join(', ')}" if @data[:ci_config]&.any?
@@ -48,7 +50,7 @@ module RailsAiBridge
         def format_helpers(lines)
           return unless @data[:test_helpers]&.any?
 
-          lines << "" << "## Test Helpers"
+          lines << '' << '## Test Helpers'
           @data[:test_helpers].each { |h| lines << "- `#{h}`" }
         end
       end

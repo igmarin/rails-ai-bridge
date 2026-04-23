@@ -49,7 +49,7 @@ module RailsAiBridge
       def adapter_name
         ActiveRecord::Base.connection.adapter_name
       rescue StandardError
-        "unknown"
+        'unknown'
       end
 
       def connection
@@ -58,14 +58,14 @@ module RailsAiBridge
 
       def table_names
         @table_names ||= begin
-          names = connection.tables.reject { |t| t.start_with?("ar_internal_metadata", "schema_migrations") }
+          names = connection.tables.reject { |t| t.start_with?('ar_internal_metadata', 'schema_migrations') }
           names.reject { |t| config.excluded_table?(t) }
         end
       end
 
       def extract_tables
-        table_names.each_with_object({}) do |table, hash|
-          hash[table] = {
+        table_names.index_with do |table|
+          {
             columns: extract_columns(table),
             indexes: extract_indexes(table),
             foreign_keys: extract_foreign_keys(table),
@@ -116,15 +116,15 @@ module RailsAiBridge
       end
 
       def current_schema_version
-        if File.exist?(schema_file_path)
-          content = File.read(schema_file_path)
-          match = content.match(/version:\s*([\d_]+)/)
-          match ? match[1].delete("_") : nil
-        end
+        return unless File.exist?(schema_file_path)
+
+        content = File.read(schema_file_path)
+        match = content.match(/version:\s*([\d_]+)/)
+        match ? match[1].delete('_') : nil
       end
 
       def schema_file_path
-        File.join(app.root, "db", "schema.rb")
+        File.join(app.root, 'db', 'schema.rb')
       end
 
       # Fallback: parse db/schema.rb as text when the DB is not connected.

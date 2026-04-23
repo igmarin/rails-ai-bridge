@@ -21,7 +21,7 @@ module RailsAiBridge
         # @return [String] Markdown summary listing
         def call
           paginated = @tables.keys.sort.drop(@offset).first(@limit)
-          lines = [ "# Schema Summary (#{@total} tables)", "" ]
+          lines = ["# Schema Summary (#{@total} tables)", '']
 
           paginated.each do |name|
             data = @tables[name]
@@ -31,8 +31,8 @@ module RailsAiBridge
           end
 
           if @offset + @limit < @total
-            lines << "" << "_Showing #{paginated.size} of #{@total}. " \
-              "Use `offset:#{@offset + @limit}` for more, or `table:\"name\"` for full detail._"
+            lines << '' << "_Showing #{paginated.size} of #{@total}. " \
+                           "Use `offset:#{@offset + @limit}` for more, or `table:\"name\"` for full detail._"
           end
 
           lines.join("\n")

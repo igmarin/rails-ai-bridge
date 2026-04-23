@@ -29,10 +29,10 @@ module RailsAiBridge
       attr_accessor :additional_resources
 
       def initialize
-        @server_name        = "rails-ai-bridge"
+        @server_name        = 'rails-ai-bridge'
         @server_version     = RailsAiBridge::VERSION
-        @http_path          = "/mcp"
-        @http_bind          = "127.0.0.1"
+        @http_path          = '/mcp'
+        @http_bind          = '127.0.0.1'
         @http_port          = 6029
         @auto_mount         = false
         @additional_tools   = []

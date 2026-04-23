@@ -23,18 +23,18 @@ module RailsAiBridge
     #
     # @return [void]
     def start
-      require "listen"
+      require 'listen'
 
       root = app.root.to_s
       dirs = WatchDirectories.resolve(root)
 
       if dirs.empty?
-        $stderr.puts "[rails-ai-bridge] No watchable directories found"
+        warn '[rails-ai-bridge] No watchable directories found'
         return
       end
 
-      $stderr.puts "[rails-ai-bridge] Watching for changes..."
-      $stderr.puts "[rails-ai-bridge] Directories: #{dirs.map { |d| d.sub("#{root}/", "") }.join(", ")}"
+      warn '[rails-ai-bridge] Watching for changes...'
+      warn "[rails-ai-bridge] Directories: #{dirs.map { |d| d.sub("#{root}/", '') }.join(', ')}"
 
       listener = Listen.to(*dirs) do |modified, added, removed|
         next if (modified + added + removed).empty?
@@ -47,13 +47,13 @@ module RailsAiBridge
       loop do
         sleep 1
       rescue Interrupt
-        $stderr.puts "\n[rails-ai-bridge] Stopping watcher..."
+        warn "\n[rails-ai-bridge] Stopping watcher..."
         listener.stop
         break
       end
     rescue LoadError
-      $stderr.puts "Error: The `listen` gem is required for watch mode."
-      $stderr.puts "Add to your Gemfile:  gem 'listen', group: :development"
+      warn 'Error: The `listen` gem is required for watch mode.'
+      warn "Add to your Gemfile:  gem 'listen', group: :development"
       exit 1
     end
 
@@ -62,12 +62,12 @@ module RailsAiBridge
     def handle_change
       return unless @regenerator.change_pending?
 
-      $stderr.puts "[rails-ai-bridge] Changes detected, regenerating bridge files..."
+      warn '[rails-ai-bridge] Changes detected, regenerating bridge files...'
       result = @regenerator.regenerate!
-      result[:written].each { |f| $stderr.puts "  Updated: #{f}" }
-      result[:skipped].each { |f| $stderr.puts "  Unchanged: #{f}" }
+      result[:written].each { |f| warn "  Updated: #{f}" }
+      result[:skipped].each { |f| warn "  Unchanged: #{f}" }
     rescue StandardError => e
-      $stderr.puts "[rails-ai-bridge] Error regenerating: #{e.message}"
+      warn "[rails-ai-bridge] Error regenerating: #{e.message}"
     end
   end
 end

@@ -20,11 +20,9 @@ module RailsAiBridge
           initializers: extract_initializers,
           current_attributes: detect_current_attributes
         }
-        if RailsAiBridge.configuration.expose_credentials_key_names
-          result[:credentials_keys] = extract_credentials_keys
-        end
+        result[:credentials_keys] = extract_credentials_keys if RailsAiBridge.configuration.expose_credentials_key_names
         result
-      rescue => e
+      rescue StandardError => e
         { error: e.message }
       end
 
@@ -41,45 +39,48 @@ module RailsAiBridge
         when Array then store.first.to_s
         else store.class.name
         end
-      rescue
-        "unknown"
+      rescue StandardError
+        'unknown'
       end
 
       def detect_session_store
-        app.config.session_store&.name rescue "unknown"
+        app.config.session_store&.name
+      rescue StandardError
+        'unknown'
       end
 
       def extract_middleware
         app.middleware.map { |m| m.name || m.klass.to_s }.uniq
-      rescue
+      rescue StandardError
         []
       end
 
       def extract_initializers
-        dir = File.join(root, "config/initializers")
+        dir = File.join(root, 'config/initializers')
         return [] unless Dir.exist?(dir)
 
-        Dir.glob(File.join(dir, "*.rb")).map { |f| File.basename(f) }.sort
+        Dir.glob(File.join(dir, '*.rb')).map { |f| File.basename(f) }.sort
       end
 
       def extract_credentials_keys
         creds = app.credentials
         return [] unless creds.respond_to?(:config)
+
         creds.config.keys.map(&:to_s).sort
-      rescue
+      rescue StandardError
         []
       end
 
       def detect_current_attributes
-        models_dir = File.join(root, "app/models")
+        models_dir = File.join(root, 'app/models')
         return [] unless Dir.exist?(models_dir)
 
-        Dir.glob(File.join(models_dir, "**/*.rb")).filter_map do |path|
+        Dir.glob(File.join(models_dir, '**/*.rb')).filter_map do |path|
           content = File.read(path)
           if content.match?(/< ActiveSupport::CurrentAttributes|< Rails::CurrentAttributes/)
-            File.basename(path, ".rb").camelize
+            File.basename(path, '.rb').camelize
           end
-        rescue
+        rescue StandardError
           nil
         end
       end

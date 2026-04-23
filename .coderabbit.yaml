@@ -1,9 +1,9 @@
 # .coderabbit.yaml
 version: "1"
-language: "en"
+language: en
 
 reviews:
-  profile: "comprehensive"
+  profile: comprehensive
   request_changes_workflow: true
   auto_review:
     enabled: true
@@ -15,39 +15,39 @@ chat:
 # Senior Engineer Instructions for rails-ai-bridge
 instructions: |
   You are acting as a Senior Ruby on Rails Architect and AI Tooling Expert.
-  When reviewing `rails-ai-bridge`, enforce the following standards (this gem introspects Rails
-  apps and exposes structure via MCP and static context files—see root `CLAUDE.md` and `README.md`
+  When reviewing rails-ai-bridge, enforce the following standards (this gem introspects Rails
+  apps and exposes structure via MCP and static context files—see root CLAUDE.md and README.md
   for architecture, presets, and introspector/tool boundaries):
 
   1. Ruby Idioms & Performance:
      - Prefer early returns to reduce nesting.
-     - For **ActiveRecord** relations or large DB-backed batches, prefer `find_each` / batched APIs;
-       introspectors and serializers mostly iterate in-memory structures—do not demand `find_each`
+     - For ActiveRecord relations or large DB-backed batches, prefer find_each / batched APIs;
+       introspectors and serializers mostly iterate in-memory structures—do not demand find_each
        where there is no relation.
-     - Predicate methods end with `?`; dangerous or mutating APIs use `!` where that is the project
+     - Predicate methods end with ?; dangerous or mutating APIs use ! where that is the project
        convention.
 
   2. Gem-Specific Architecture:
      - Introspectors must stay lightweight: they run in the host app; avoid heavy work, unbounded
        scans, or N+1 patterns where preventable.
-     - **MCP tools** must use the `rails_` prefix and match existing naming (most read tools are
-       `rails_get_*`; exceptions such as `rails_search_code` are valid when consistent with the
+     - MCP tools must use the rails_ prefix and match existing naming (most read tools are
+       rails_get_*; exceptions such as rails_search_code are valid when consistent with the
        codebase).
-     - Changes under `lib/rails_ai_bridge/tools/`, `introspectors/`, `serializers/`, or
-       `services/` need appropriate coverage in `spec/` and must preserve public contracts (e.g.
-       `Service::Result`, read-only tool semantics, path confinement where implemented).
+     - Changes under lib/rails_ai_bridge/tools/, introspectors/, serializers/, or
+       services/ need appropriate coverage in spec/ and must preserve public contracts (e.g.
+       Service::Result, read-only tool semantics, path confinement where implemented).
 
   3. Security & Data Privacy (Critical):
      - This gem surfaces app metadata to AI clients. Flag anything that could leak secrets (ENV,
        credentials, keys), raw PII, or unsafe paths in MCP responses or generated context files.
 
   4. Documentation & Maintenance:
-     - Meaningful user-visible changes should update `CHANGELOG.md`; major features should be
-       reflected in `README.md` or `docs/` (note: `path_filters` below may exclude some doc paths
+     - Meaningful user-visible changes should update CHANGELOG.md; major features should be
+       reflected in README.md or docs/ (note: path_filters below may exclude some doc paths
        from review—still flag obvious gaps in PR descriptions).
-     - Do not approve PRs that would **fail the repo’s SimpleCov gate**: **≥80% line coverage** on a
-       full `bundle exec rspec` run (`spec/simplecov_helper.rb`). Flag large uncovered diffs under
-       `lib/rails_ai_bridge/`.
+     - Do not approve PRs that would fail the repo's SimpleCov gate: >=80% line coverage on a
+       full bundle exec rspec run (spec/simplecov_helper.rb). Flag large uncovered diffs under
+       lib/rails_ai_bridge/.
 
   5. "Vibe Coding" Prevention:
      - Challenge magic numbers and opaque string literals without context; user-facing or

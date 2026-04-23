@@ -5,19 +5,19 @@ module RailsAiBridge
     # MCP tool returning ActiveRecord model metadata, optional non-AR +app/models+ listings,
     # and configurable list detail for all models.
     class GetModelDetails < BaseTool
-      tool_name "rails_get_model_details"
-      description "Get detailed information about a specific ActiveRecord model including associations, validations, scopes, enums, callbacks, and concerns. If no model specified, lists all available models with configurable detail level. Non-ActiveRecord classes under app/models (POJO/Service) appear in listings when :non_ar_models introspection is enabled."
+      tool_name 'rails_get_model_details'
+      description 'Get detailed information about a specific ActiveRecord model including associations, validations, scopes, enums, callbacks, and concerns. If no model specified, lists all available models with configurable detail level. Non-ActiveRecord classes under app/models (POJO/Service) appear in listings when :non_ar_models introspection is enabled.'
 
       input_schema(
         properties: {
           model: {
-            type: "string",
+            type: 'string',
             description: "Model class name (e.g. 'User', 'Post'). Omit to list all models."
           },
           detail: {
-            type: "string",
+            type: 'string',
             enum: %w[summary standard full],
-            description: "Detail level for model listing. summary: names only. standard: names + association/validation counts (default). full: names + full association list. Ignored when specific model is given (always returns full)."
+            description: 'Detail level for model listing. summary: names only. standard: names + association/validation counts (default). full: names + full association list. Ignored when specific model is given (always returns full).'
           }
         }
       )
@@ -34,9 +34,9 @@ module RailsAiBridge
       # @param detail [String] +summary+, +standard+, or +full+ when listing (ignored when +model+ is set)
       # @param server_context [Object, nil] reserved for MCP transport metadata
       # @return [MCP::Tool::Response] Markdown body or an error string wrapped for the MCP client
-      def self.call(model: nil, detail: "standard", server_context: nil)
+      def self.call(model: nil, detail: 'standard', server_context: nil)
         models = cached_section(:models)
-        return text_response("Model introspection not available. Add :models to introspectors.") unless models
+        return text_response('Model introspection not available. Add :models to introspectors.') unless models
         return text_response("Model introspection failed: #{models[:error]}") if models[:error]
 
         non_ar = cached_section(:non_ar_models)
@@ -69,7 +69,7 @@ module RailsAiBridge
         # @return [String] user-facing message listing available ActiveRecord and non-AR +app/models+ class names (sorted, deduplicated)
         def model_not_found_message
           pojo_names = ModelDetails::NonArModelsAppendix.entries_from(@non_ar_models).filter_map do |e|
-            n = e[:name] || e["name"]
+            n = e[:name] || e['name']
             n.to_s.presence
           end
           available = (@models.keys.map(&:to_s) + pojo_names).uniq.sort
@@ -94,10 +94,10 @@ module RailsAiBridge
             ModelDetails::SingleModelFormatter.new(name: model_key, data: model_data).call
           else
             formatter_class = case @detail
-            when "summary" then ModelDetails::SummaryFormatter
-            when "full"    then ModelDetails::FullFormatter
-            else                ModelDetails::StandardFormatter
-            end
+                              when 'summary' then ModelDetails::SummaryFormatter
+                              when 'full'    then ModelDetails::FullFormatter
+                              else ModelDetails::StandardFormatter
+                              end
             formatter_class.new(models: @models, non_ar_models: @non_ar_models).call
           end
         end
@@ -108,16 +108,16 @@ module RailsAiBridge
           return @pojo_entry if defined?(@pojo_entry)
 
           @pojo_entry = ModelDetails::NonArModelsAppendix.entries_from(@non_ar_models).find do |e|
-            name = e[:name] || e["name"]
+            name = e[:name] || e['name']
             name.to_s.casecmp?(@model.to_s)
           end
         end
 
         def pojo_detail_markdown
           e = pojo_entry
-          name = e[:name] || e["name"]
-          path = e[:relative_path] || e["relative_path"]
-          tag = e[:tag] || e["tag"] || ModelDetails::NonArModelsAppendix::DEFAULT_TAG
+          name = e[:name] || e['name']
+          path = e[:relative_path] || e['relative_path']
+          tag = e[:tag] || e['tag'] || ModelDetails::NonArModelsAppendix::DEFAULT_TAG
           <<~MD.strip
             # #{name} (#{tag})
 

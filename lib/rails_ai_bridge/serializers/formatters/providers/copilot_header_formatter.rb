@@ -9,7 +9,7 @@ module RailsAiBridge
         def call
           ProviderDocumentHeader.call(
             context: context,
-            document_title: "Copilot Instructions",
+            document_title: 'Copilot Instructions',
             layout: :instructions,
             intro: "Use this context to generate code that fits this project's structure and patterns."
           )

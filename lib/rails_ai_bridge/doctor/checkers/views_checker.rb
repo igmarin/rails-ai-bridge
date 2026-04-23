@@ -7,14 +7,15 @@ module RailsAiBridge
       class ViewsChecker < BaseChecker
         # @return [Doctor::Check] +:pass+ when view files exist; +:warn+ otherwise
         def call
-          views_path = File.join(app.root, "app/views", "**/*")
+          views_path = File.join(app.root, 'app/views', '**/*')
           views = Dir.glob(views_path).reject { |f| File.directory?(f) }
 
           check(
-            "Views",
+            'Views',
             views.any?,
             pass: { message: "#{views.size} view files found" },
-            fail: { status: :warn, message: "No view files found in app/views/", fix: "Views are generated alongside controllers" }
+            fail: { status: :warn, message: 'No view files found in app/views/',
+                    fix: 'Views are generated alongside controllers' }
           )
         end
       end
