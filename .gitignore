@@ -15,3 +15,11 @@ spec/internal/log/
 .mcpregistry_*
 .DS_Store
 vendor/
+
+# Security audit scripts (temporary)
+check_mfa*.rb
+mfa_audit.rb
+
+# Snyk local configuration
+.snyk
+.claude/

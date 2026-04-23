@@ -56,11 +56,9 @@ Gem::Specification.new do |spec|
   spec.add_dependency "zeitwerk", "~> 2.6"         # Autoloading
 
   # Dev dependencies
-  spec.add_development_dependency "appraisal", "~> 2.5"
   spec.add_development_dependency "combustion", "~> 1.5" # Test Rails engines in isolation
   spec.add_development_dependency "rspec", "~> 3.13"
   spec.add_development_dependency "rubocop", "~> 1.86"
-  spec.add_development_dependency "rubocop-rails-omakase", "~> 1.1"
-  spec.add_development_dependency "simplecov", "~> 0.22"
-  spec.add_development_dependency "yard", "~> 0.9"
+  spec.add_development_dependency "reek", "~> 6.0" # MFA enabled - replaces simplecov for code quality
+  spec.add_development_dependency "rubycritic", "~> 4.0" # MFA enabled - additional code metrics
 end
