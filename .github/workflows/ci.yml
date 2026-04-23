@@ -22,7 +22,6 @@ jobs:
 
     env:
       RAILS_VERSION: ${{ matrix.rails }}
-      COVERAGE: ${{ matrix.ruby == '3.3' && matrix.rails == '8.0' && 'true' || 'false' }}
 
     steps:
       - uses: actions/checkout@v6
@@ -35,14 +34,6 @@ jobs:
 
       - name: Run specs
         run: bundle exec rspec
-
-      - name: Upload coverage HTML
-        if: matrix.ruby == '3.3' && matrix.rails == '8.0'
-        uses: actions/upload-artifact@v7
-        with:
-          name: coverage-ruby-3.3-rails-8.0
-          path: coverage/
-          if-no-files-found: ignore
 
       - name: Run RuboCop
         run: bundle exec rubocop --parallel
@@ -85,7 +76,3 @@ jobs:
       - name: RuboCop
         run: bundle exec rubocop --parallel
 
-      - name: YARD documentation coverage
-        run: |
-          bundle exec yard stats --list-undoc
-          echo "Documentation stats printed above"
