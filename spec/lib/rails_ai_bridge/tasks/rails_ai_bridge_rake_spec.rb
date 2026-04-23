@@ -37,8 +37,7 @@ RSpec.describe 'rails_ai_bridge rake tasks' do
       result[:written] = ['/foo/CLAUDE.md']
       result[:skipped] = ['/foo/.cursorrules']
 
-      expect { rake['ai:bridge'].invoke }.to output(%r{✅ /foo/CLAUDE\.md}).to_stdout
-      expect { rake['ai:bridge'].invoke }.to output(%r{⏭️  /foo/\.cursorrules \(unchanged\)}).to_stdout
+      expect { rake['ai:bridge'].invoke }.to output(%r{✅ /foo/CLAUDE\.md.*⏭️  /foo/\.cursorrules \(unchanged\)}m).to_stdout
     end
   end
 
@@ -96,12 +95,9 @@ RSpec.describe 'rails_ai_bridge rake tasks' do
                                                                 conventions: { architecture: ['Service Objects'] }
                                                               })
 
-      expect { rake['ai:inspect'].invoke }.to output(/TestApp — AI Context Summary/).to_stdout
-      expect { rake['ai:inspect'].invoke }.to output(/Rails 7\.1\.3 \| Ruby 3\.3\.0/).to_stdout
-      expect { rake['ai:inspect'].invoke }.to output(/📦 Database: 5 tables \(postgresql\)/).to_stdout
-      expect { rake['ai:inspect'].invoke }.to output(/🏗️  Models: 2/).to_stdout
-      expect { rake['ai:inspect'].invoke }.to output(/🛤️  Routes: 10/).to_stdout
-      expect { rake['ai:inspect'].invoke }.to output(/🏛️  Architecture: Service Objects/).to_stdout
+      expect { rake['ai:inspect'].invoke }.to output(
+        /TestApp — AI Context Summary.*Rails 7\.1\.3 \| Ruby 3\.3\.0.*📦 Database: 5 tables \(postgresql\).*🏗️  Models: 2.*🛤️  Routes: 10.*🏛️  Architecture: Service Objects/m
+      ).to_stdout
     end
 
     it 'handles introspection errors gracefully' do
@@ -123,9 +119,9 @@ RSpec.describe 'rails_ai_bridge rake tasks' do
       doctor_instance = double('Doctor', run: doctor_result)
       allow(RailsAiBridge::Doctor).to receive(:new).and_return(doctor_instance)
 
-      expect { rake['ai:doctor'].invoke }.to output(/🩺 Running AI readiness diagnostics\.\.\./).to_stdout
-      expect { rake['ai:doctor'].invoke }.to output(/✅ Check1: OK/).to_stdout
-      expect { rake['ai:doctor'].invoke }.to output(%r{AI Readiness Score: 100/100}).to_stdout
+      expect { rake['ai:doctor'].invoke }.to output(
+        /🩺 Running AI readiness diagnostics\.\.\..*✅ Check1: OK.*AI Readiness Score: 100\/100/m
+      ).to_stdout
     end
   end
 

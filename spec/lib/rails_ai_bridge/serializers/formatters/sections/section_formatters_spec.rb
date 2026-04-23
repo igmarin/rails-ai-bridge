@@ -4,6 +4,7 @@ module RailsAiBridge
   module Serializers
     module Formatters::Sections
       RSpec.describe 'Section formatter classes' do
+        # :reek:UtilityFunction
         def render(klass, ctx)
           klass.new(ctx).call
         end

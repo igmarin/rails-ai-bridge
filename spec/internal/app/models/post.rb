@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Represents a blog post written by a user
 class Post < ApplicationRecord
   belongs_to :user
   has_many :categorizations, dependent: :destroy

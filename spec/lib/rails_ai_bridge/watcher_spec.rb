@@ -2,14 +2,15 @@
 
 require 'spec_helper'
 
+# Module stubbing Listen gem for testing without the actual dependency
 module WatcherSpecListenStub
   # Listen substitute with a real `.to` method so RSpec partial doubles stay valid without the listen gem.
   def self.minimal_module
-    m = Module.new
-    m.define_singleton_method(:to) do |*_dirs, &_block|
+    listen_module = Module.new
+    listen_module.define_singleton_method(:to) do |*_dirs, &_block|
       raise NotImplementedError, 'stub with allow(Listen).to receive(:to)'
     end
-    m
+    listen_module
   end
 end
 

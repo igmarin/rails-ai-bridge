@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# Controller for managing posts in the test application
+# :reek:InstanceVariableAssumption
 class PostsController < ApplicationController
   before_action :set_post, only: %i[show edit update destroy]
 
@@ -16,15 +18,7 @@ class PostsController < ApplicationController
 
   def create
     @post = Post.new(post_params)
-    respond_to do |format|
-      if @post.save
-        format.html { redirect_to @post }
-        format.json { render json: @post, status: :created }
-      else
-        format.html { render :new }
-        format.json { render json: @post.errors, status: :unprocessable_entity }
-      end
-    end
+    respond_to_formats(@post.save)
   end
 
   def edit
@@ -41,6 +35,23 @@ class PostsController < ApplicationController
   end
 
   private
+
+  def respond_to_formats(saved)
+    respond_to do |format|
+      handle_save_response(format, saved)
+    end
+  end
+
+  # :reek:ControlParameter :reek:DuplicateMethodCall :reek:InstanceVariableAssumption :reek:TooManyStatements
+  def handle_save_response(format, saved)
+    if saved
+      format.html { redirect_to @post }
+      format.json { render json: @post, status: :created }
+    else
+      format.html { render :new }
+      format.json { render json: @post.errors, status: :unprocessable_entity }
+    end
+  end
 
   def set_post
     @post = Post.find(params[:id])

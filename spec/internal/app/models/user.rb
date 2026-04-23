@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Represents a user of the test application
 class User < ApplicationRecord
   has_many :posts, dependent: :destroy
   has_many :memberships, dependent: :destroy

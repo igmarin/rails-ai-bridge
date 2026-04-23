@@ -23,10 +23,11 @@ group :development, :test do
 
   # Development dependencies
   gem 'combustion', '~> 1.5' # Test Rails engines in isolation
-  gem 'reek', '~> 6.0' # MFA enabled - replaces simplecov for code quality
+  gem 'reek', '~> 6.0' # MFA enabled - code quality analysis
   gem 'rspec', '~> 3.13'
   gem 'rubocop', '~> 1.86'
   gem 'rubocop-rails', '~> 2.0' # MFA enabled - Rails-specific cops
   gem 'rubocop-rspec', '~> 3.0' # MFA enabled - RSpec-specific cops
   gem 'rubycritic', '~> 4.0' # MFA enabled - additional code metrics
+  gem 'yard', '~> 0.9' # MFA enabled - documentation generation
 end

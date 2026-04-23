@@ -121,6 +121,7 @@ RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer do
       context.merge(non_ar_models: { non_ar_models: many_non_ar })
     end
 
+    # :reek:UtilityFunction
     def non_ar_bullet_lines(body)
       body.lines.grep(%r{\A- \*\*\[POJO/Service\]\*\*})
     end

@@ -3,6 +3,7 @@
 require 'spec_helper'
 
 RSpec.describe RailsAiBridge::Mcp::Auth::Strategies::BearerToken do
+  # :reek:UtilityFunction
   def build_request(token: nil)
     headers = token ? { 'HTTP_AUTHORIZATION' => "Bearer #{token}" } : {}
     Rack::Request.new(Rack::MockRequest.env_for('/mcp', headers))

@@ -22,7 +22,7 @@ RSpec.describe 'RailsAiBridge extensibility integration' do
       description 'Returns custom extension context for integration testing.'
       input_schema(properties: {})
 
-      def self.call(server_context: nil)
+      def self.call(_server_context: nil)
         data = cached_section(:custom)
         text_response(data[:items].join(', '))
       end

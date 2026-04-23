@@ -17,19 +17,19 @@ RSpec.describe RailsAiBridge::Service do
 
     it 'passes arguments to initialize and call' do
       service_class = Class.new(described_class) do
-        def initialize(arg1, kwarg1: nil)
+        def initialize(first_arg, keyword_arg: nil)
           super()
-          @arg1 = arg1
-          @kwarg1 = kwarg1
+          @first_arg = first_arg
+          @keyword_arg = keyword_arg
         end
 
         def call
-          { arg1: @arg1, kwarg1: @kwarg1 }
+          { first_arg: @first_arg, keyword_arg: @keyword_arg }
         end
       end
 
-      result = service_class.call('test_arg', kwarg1: 'test_kwarg')
-      expect(result).to eq({ arg1: 'test_arg', kwarg1: 'test_kwarg' })
+      result = service_class.call('test_arg', keyword_arg: 'test_kwarg')
+      expect(result).to eq({ first_arg: 'test_arg', keyword_arg: 'test_kwarg' })
     end
   end
 
