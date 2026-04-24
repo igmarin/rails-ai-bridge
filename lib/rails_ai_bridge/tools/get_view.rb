@@ -38,9 +38,9 @@ module RailsAiBridge
       # @param controller [String, nil] controller view folder filter
       # @param partial [String, nil] partial name or path fragment filter
       # @param detail [String] one of `summary`, `standard`, or `full`
-      # @param server_context [Object, nil] MCP server context
+      # @param _server_context [Object, nil] MCP server context (unused)
       # @return [MCP::Tool::Response] formatted view information
-      def self.call(path: nil, controller: nil, partial: nil, detail: 'standard', server_context: nil)
+      def self.call(path: nil, controller: nil, partial: nil, detail: 'standard', _server_context: nil)
         data = cached_section(:views)
         return text_response('View introspection not available. Add :views to introspectors.') unless data
         return text_response("View introspection failed: #{data[:error]}") if data[:error]

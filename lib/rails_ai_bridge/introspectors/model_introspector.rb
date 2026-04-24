@@ -25,8 +25,10 @@ module RailsAiBridge
       # `{ error: <message> }` for that model.
       ##
       # Builds a metadata map for all discovered ActiveRecord models.
-      # For each model, the map contains the extracted metadata hash; if extraction fails for a model, its value will be a hash with an `:error` key and the error message.
-      # @return [Hash<String, Hash>] Mapping from model name to its metadata hash or `{ error: String }` on failure.
+      # For each model, the map contains the extracted metadata hash; if extraction fails for a model,
+      # its value will be a hash with an `:error` key and the error message.
+      # @return [Hash<String, Hash>] Mapping from model name to its metadata hash or
+      #   `{ error: String }` on failure.
       def call
         eager_load_models!
         models = discover_models
@@ -55,7 +57,9 @@ module RailsAiBridge
       ##
       # Determines whether the model's database table is excluded by the inspector configuration.
       # @param [Class] model - The ActiveRecord model class whose table name will be checked.
-      # @return [Boolean] `true` if the model's table name is listed as excluded in the configuration, `false` otherwise (returns `false` if the model has no table name or if an error occurs while retrieving it).
+      # @return [Boolean] `true` if the model's table name is listed as excluded in the configuration,
+      #   `false` otherwise (returns `false` if the model has no table name or if an error occurs
+      #   while retrieving it).
       def model_table_excluded?(model)
         # model.table_name can raise on STI subclasses that inherit a non-existent table
         tn = model.table_name
@@ -76,7 +80,9 @@ module RailsAiBridge
       # - models whose name appears in `config.excluded_models`,
       # - models whose table is excluded via `model_table_excluded?`.
       ##
-      # Finds all non-abstract ActiveRecord model classes in the application, excluding models with no name, models listed in configuration, or models whose table is excluded, and returns them sorted by class name.
+      # Finds all non-abstract ActiveRecord model classes in the application, excluding models
+      # with no name, models listed in configuration, or models whose table is excluded, and
+      # returns them sorted by class name.
       # Returns an empty array if `ActiveRecord::Base` is not defined.
       # @return [Array<Class>] Array of discovered model classes sorted by name.
       def discover_models
@@ -93,7 +99,8 @@ module RailsAiBridge
       ##
       # Builds a hash of introspected metadata for the given ActiveRecord model.
       # @param [Class] model - The ActiveRecord model class to inspect.
-      # @param [#call] classifier - An object that responds to `call(model)` and returns a hash containing `:tier` and `:reason` for semantic classification.
+      # @param [#call] classifier - An object that responds to `call(model)` and returns a hash
+      #   containing `:tier` and `:reason` for semantic classification.
       # @return [Hash] A compacted hash of model metadata including:
       #   - :table_name => String model's table name
       #   - :associations => Array of association descriptors
@@ -108,9 +115,11 @@ module RailsAiBridge
       #   - :semantic_tier_reason => Value returned as `:reason` by the classifier
       ##
       # Build a metadata hash describing the given ActiveRecord model.
-      # Populates model structural metadata, semantic classification results, and source-derived macro signals.
+      # Populates model structural metadata, semantic classification results, and source-derived
+      # macro signals.
       # @param [Class] model - The ActiveRecord model class to introspect.
-      # @param [Object] classifier - A semantic classifier responding to `call(model)` that returns a hash with `:tier` and `:reason`.
+      # @param [Object] classifier - A semantic classifier responding to `call(model)` that returns
+      #   a hash with `:tier` and `:reason`.
       # @return [Hash] A compacted hash of metadata including:
       #   - `:table_name` - model's table name
       #   - `:associations` - array of association descriptors

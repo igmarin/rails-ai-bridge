@@ -98,7 +98,7 @@ module RailsAiBridge
         when :dev        then true
         when :hybrid     then !Rails.env.production?
         when :production then false
-        else false
+        else false # default for unknown modes
         end
       end
 
@@ -109,7 +109,7 @@ module RailsAiBridge
         when :strict   then 60
         when :balanced then 300
         when :relaxed  then 1_200
-        else 300
+        else 300 # default matches :balanced
         end
       end
     end

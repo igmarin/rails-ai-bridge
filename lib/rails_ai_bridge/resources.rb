@@ -10,7 +10,8 @@ module RailsAiBridge
     STATIC_RESOURCES = {
       'rails://bridge/meta' => {
         name: 'Bridge Metadata',
-        description: 'Bridge runtime metadata including version, enabled introspectors, tools, resources, and cache settings',
+        description: 'Bridge runtime metadata including version, enabled introspectors, tools, ' \
+                     'resources, and cache settings',
         mime_type: 'application/json'
       },
       'rails://schema' => {

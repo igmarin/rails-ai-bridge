@@ -46,9 +46,9 @@ module RailsAiBridge
       # @param limit [Integer, nil] max tables (or rows) depending on formatter defaults
       # @param offset [Integer] pagination offset for table listings
       # @param format [String] +markdown+ or +json+
-      # @param server_context [Object, nil] reserved for MCP transport metadata
+      # @param _server_context [Object, nil] reserved for MCP transport metadata (unused)
       # @return [MCP::Tool::Response] schema markdown/JSON or an error message
-      def self.call(table: nil, detail: 'standard', limit: nil, offset: 0, format: 'markdown', server_context: nil)
+      def self.call(table: nil, detail: 'standard', limit: nil, offset: 0, format: 'markdown', _server_context: nil)
         schema = cached_section(:schema)
         return text_response('Schema introspection not available. Add :schema to introspectors.') unless schema
         return text_response("Schema introspection not available: #{schema[:error]}") if schema[:error]

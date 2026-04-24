@@ -11,6 +11,10 @@ AllCops:
     - "spec/internal/**/*"
     - "gemfiles/**/*"
 
+Naming/FileName:
+  Exclude:
+    - "lib/rails-ai-bridge.rb"
+
 Style/Documentation:
   Enabled: false
 

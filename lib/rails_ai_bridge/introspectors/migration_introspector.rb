@@ -36,27 +36,27 @@ module RailsAiBridge
 
       # Parse all migration files from db/migrate/
       def all_migrations
-        @all_migrations ||= begin
-          return [] unless Dir.exist?(migrate_dir)
+        @all_migrations ||= if Dir.exist?(migrate_dir)
+                              Dir.glob(File.join(migrate_dir, '*.rb')).map do |path|
+                                filename = File.basename(path, '.rb')
+                                version = filename.split('_').first
+                                name = filename.sub(/\A\d+_/, '').tr('_', ' ').capitalize
 
-          Dir.glob(File.join(migrate_dir, '*.rb')).map do |path|
-            filename = File.basename(path, '.rb')
-            version = filename.split('_').first
-            name = filename.sub(/\A\d+_/, '').tr('_', ' ').capitalize
+                                content = File.read(path)
+                                actions = detect_migration_actions(content)
 
-            content = File.read(path)
-            actions = detect_migration_actions(content)
-
-            {
-              version: version,
-              name: name,
-              filename: File.basename(path),
-              actions: actions
-            }
-          rescue StandardError => e
-            { version: 'unknown', name: File.basename(path), error: e.message }
-          end
-        end
+                                {
+                                  version: version,
+                                  name: name,
+                                  filename: File.basename(path),
+                                  actions: actions
+                                }
+                              rescue StandardError => e
+                                { version: 'unknown', name: File.basename(path), error: e.message }
+                              end
+                            else
+                              []
+                            end
       end
 
       def recent_migrations(count)

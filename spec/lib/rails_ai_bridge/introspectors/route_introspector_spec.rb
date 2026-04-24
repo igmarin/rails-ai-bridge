@@ -5,6 +5,10 @@ require 'spec_helper'
 RSpec.describe RailsAiBridge::Introspectors::RouteIntrospector do
   let(:introspector) { described_class.new(Rails.application) }
 
+  before do
+    Rails.application.reload_routes!
+  end
+
   describe '#call' do
     subject(:result) { introspector.call }
 

@@ -36,8 +36,6 @@ module RailsAiBridge
       context
     end
 
-    private
-
     BUILTIN_INTROSPECTORS = {
       schema: Introspectors::SchemaIntrospector,
       models: Introspectors::ModelIntrospector,

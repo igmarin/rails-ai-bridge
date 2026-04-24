@@ -35,9 +35,9 @@ module RailsAiBridge
       # @param detail [String] +summary+, +standard+, or +full+
       # @param limit [Integer, nil] max routes to include
       # @param offset [Integer] pagination offset
-      # @param server_context [Object, nil] reserved for MCP transport metadata
+      # @param _server_context [Object, nil] reserved for MCP transport metadata (unused)
       # @return [MCP::Tool::Response] markdown routes output or an error message
-      def self.call(controller: nil, detail: 'standard', limit: nil, offset: 0, server_context: nil)
+      def self.call(controller: nil, detail: 'standard', limit: nil, offset: 0, _server_context: nil)
         routes = cached_section(:routes)
         return text_response('Route introspection not available. Add :routes to introspectors.') unless routes
         return text_response("Route introspection failed: #{routes[:error]}") if routes[:error]

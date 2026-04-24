@@ -22,9 +22,9 @@ module RailsAiBridge
 
       # @param category [String] filter: +auth+, +jobs+, +frontend+, +api+, +database+, +files+, +testing+, +deploy+,
       # or +all+
-      # @param server_context [Object, nil] reserved for MCP transport metadata
+      # @param _server_context [Object, nil] reserved for MCP transport metadata (unused)
       # @return [MCP::Tool::Response] markdown gem analysis or an error message
-      def self.call(category: 'all', server_context: nil)
+      def self.call(category: 'all', _server_context: nil)
         gems = cached_section(:gems)
         return text_response('Gem introspection not available. Add :gems to introspectors.') unless gems
         return text_response("Gem introspection failed: #{gems[:error]}") if gems[:error]

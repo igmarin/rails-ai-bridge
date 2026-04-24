@@ -11,9 +11,9 @@ module RailsAiBridge
 
       annotations(read_only_hint: true, destructive_hint: false, idempotent_hint: true, open_world_hint: false)
 
-      # @param server_context [Object, nil] reserved for MCP transport metadata
+      # @param _server_context [Object, nil] reserved for MCP transport metadata (unused)
       # @return [MCP::Tool::Response] markdown convention summary or an error message
-      def self.call(server_context: nil)
+      def self.call(_server_context: nil)
         conventions = cached_section(:conventions)
         return text_response('Convention detection not available. Add :conventions to introspectors.') unless conventions
         return text_response("Convention detection failed: #{conventions[:error]}") if conventions[:error]

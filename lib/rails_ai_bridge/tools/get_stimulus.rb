@@ -30,9 +30,9 @@ module RailsAiBridge
       #
       # @param controller [String, nil] specific Stimulus controller name
       # @param detail [String] one of `summary`, `standard`, or `full`
-      # @param server_context [Object, nil] MCP server context
+      # @param _server_context [Object, nil] MCP server context (unused)
       # @return [MCP::Tool::Response] formatted Stimulus controller information
-      def self.call(controller: nil, detail: 'standard', server_context: nil)
+      def self.call(controller: nil, detail: 'standard', _server_context: nil)
         data = cached_section(:stimulus)
         return text_response('Stimulus introspection not available. Add :stimulus to introspectors.') unless data
         return text_response("Stimulus introspection failed: #{data[:error]}") if data[:error]

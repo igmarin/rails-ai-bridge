@@ -25,9 +25,9 @@ module RailsAiBridge
 
       # @param controller [String, nil] when set, return detail for that controller only
       # @param detail [String] +summary+, +standard+, or +full+ for listings
-      # @param server_context [Object, nil] reserved for MCP transport metadata
+      # @param _server_context [Object, nil] reserved for MCP transport metadata (unused)
       # @return [MCP::Tool::Response] markdown controller summary or an error message
-      def self.call(controller: nil, detail: 'standard', server_context: nil)
+      def self.call(controller: nil, detail: 'standard', _server_context: nil)
         data = cached_section(:controllers)
         return text_response('Controller introspection not available. Add :controllers to introspectors.') unless data
         return text_response("Controller introspection failed: #{data[:error]}") if data[:error]

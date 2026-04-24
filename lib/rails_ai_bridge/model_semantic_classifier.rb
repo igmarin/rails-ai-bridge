@@ -39,11 +39,14 @@ module RailsAiBridge
     # @param core_model_names [Array<String, Symbol>] from {Configuration#core_models}
     ##
     # Initialize the classifier with configured core and through-join model names.
-    # @param [Array<String>, Set<String>] core_model_names - Model class names treated as core entities; entries are converted to strings and stored as a Set.
+    # @param [Array<String>, Set<String>] core_model_names - Model class names treated as core entities;
+    #   entries are converted to strings and stored as a Set.
     ##
     # Initialize the classifier with configured core and through model names.
     # @param [Array<String>] core_model_names - Names of models considered core; entries are converted to strings and stored as a Set.
-    # @param [Set<String>, Array<String>] through_model_names - Model class names identified as through/join models (typically from `.through_join_model_names`); entries are converted to strings and stored as a Set.
+    # @param [Set<String>, Array<String>] through_model_names - Model class names identified as
+    #   through/join models (typically from `.through_join_model_names`); entries are converted to
+    #   strings and stored as a Set.
     def initialize(core_model_names: [], through_model_names: Set.new)
       @core = core_model_names.to_set(&:to_s)
       @through = through_model_names.to_set(&:to_s)

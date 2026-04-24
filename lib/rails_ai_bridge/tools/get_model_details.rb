@@ -35,9 +35,9 @@ module RailsAiBridge
       # @param model [String, nil] ActiveRecord class name for full detail via {ModelDetails::SingleModelFormatter};
       #   omit to list all ActiveRecord models with +detail+.
       # @param detail [String] +summary+, +standard+, or +full+ when listing (ignored when +model+ is set)
-      # @param server_context [Object, nil] reserved for MCP transport metadata
+      # @param _server_context [Object, nil] reserved for MCP transport metadata (unused)
       # @return [MCP::Tool::Response] Markdown body or an error string wrapped for the MCP client
-      def self.call(model: nil, detail: 'standard', server_context: nil)
+      def self.call(model: nil, detail: 'standard', _server_context: nil)
         models = cached_section(:models)
         return text_response('Model introspection not available. Add :models to introspectors.') unless models
         return text_response("Model introspection failed: #{models[:error]}") if models[:error]

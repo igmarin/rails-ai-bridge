@@ -120,7 +120,7 @@ RSpec.describe 'rails_ai_bridge rake tasks' do
       allow(RailsAiBridge::Doctor).to receive(:new).and_return(doctor_instance)
 
       expect { rake['ai:doctor'].invoke }.to output(
-        /🩺 Running AI readiness diagnostics\.\.\..*✅ Check1: OK.*AI Readiness Score: 100\/100/m
+        %r{🩺 Running AI readiness diagnostics\.\.\..*✅ Check1: OK.*AI Readiness Score: 100/100}m
       ).to_stdout
     end
   end
