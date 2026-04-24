@@ -29,7 +29,7 @@ module RailsAiBridge
         dir = File.join(root, 'app/mailboxes')
         return [] unless Dir.exist?(dir)
 
-        Dir.glob(File.join(dir, '**/*.rb')).filter_map do |path|
+        mailboxes = Dir.glob(File.join(dir, '**/*.rb')).filter_map do |path|
           relative = path.sub("#{dir}/", '')
           next if relative == 'application_mailbox.rb'
 
@@ -43,7 +43,9 @@ module RailsAiBridge
           { name: name, file: relative, routing: routing }
         rescue StandardError
           nil
-        end.sort_by { |m| m[:name] }
+        end
+
+        mailboxes.sort_by { |mailbox| mailbox[:name] }
       end
     end
   end

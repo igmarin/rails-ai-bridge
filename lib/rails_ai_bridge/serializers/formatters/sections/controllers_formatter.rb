@@ -23,9 +23,7 @@ module RailsAiBridge
             lines << '- API controller: yes' if info[:api_controller]
             lines << "- Actions: #{info[:actions].map { |a| "`#{a}`" }.join(', ')}" if info[:actions]&.any?
 
-            if info[:filters]&.any?
-              lines << "- Filters: #{info[:filters].map { |f| "`#{f[:kind]} #{f[:name]}`" }.join(', ')}"
-            end
+            lines << "- Filters: #{info[:filters].map { |f| "`#{f[:kind]} #{f[:name]}`" }.join(', ')}" if info[:filters]&.any?
             lines << "- Strong params: #{info[:strong_params].map { |p| "`#{p}`" }.join(', ')}" if info[:strong_params]&.any?
             lines << ''
           end

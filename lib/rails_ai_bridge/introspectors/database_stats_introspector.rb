@@ -15,9 +15,7 @@ module RailsAiBridge
         return { skipped: true, reason: 'ActiveRecord not available' } unless defined?(ActiveRecord::Base)
 
         adapter = ActiveRecord::Base.connection.adapter_name.downcase
-        unless adapter.include?('postgresql')
-          return { skipped: true, reason: "Only available for PostgreSQL (current: #{adapter})" }
-        end
+        return { skipped: true, reason: "Only available for PostgreSQL (current: #{adapter})" } unless adapter.include?('postgresql')
 
         rows = ActiveRecord::Base.connection.select_all(<<~SQL.squish)
           SELECT relname AS table_name,

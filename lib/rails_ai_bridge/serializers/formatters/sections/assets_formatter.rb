@@ -17,9 +17,7 @@ module RailsAiBridge
           lines = ['## Asset Pipeline', '']
           lines << "- **Precompiler:** `#{data[:precompiler]}`" if data[:precompiler]
           lines << "- **JavaScript bundler:** `#{data[:js_bundler]}`" if data[:js_bundler]
-          if data[:importmap_pins]&.any?
-            lines << "  - Importmap pins: #{data[:importmap_pins].map { |p| "`#{p}`" }.join(', ')}"
-          end
+          lines << "  - Importmap pins: #{data[:importmap_pins].map { |p| "`#{p}`" }.join(', ')}" if data[:importmap_pins]&.any?
           lines << "- **CSS framework:** `#{data[:css_framework]}`" if data[:css_framework]
           lines << "- **Manifest files:** `#{data[:manifest_files].join(', ')}`" if data[:manifest_files]&.any?
           lines.join("\n")

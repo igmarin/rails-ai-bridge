@@ -77,9 +77,7 @@ module RailsAiBridge
 
         Dir.glob(File.join(models_dir, '**/*.rb')).filter_map do |path|
           content = File.read(path)
-          if content.match?(/< ActiveSupport::CurrentAttributes|< Rails::CurrentAttributes/)
-            File.basename(path, '.rb').camelize
-          end
+          File.basename(path, '.rb').camelize if content.match?(/< ActiveSupport::CurrentAttributes|< Rails::CurrentAttributes/)
         rescue StandardError
           nil
         end

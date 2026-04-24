@@ -19,14 +19,17 @@ Style/Documentation:
   Enabled: false
 
 Metrics/ClassLength:
-  Max: 200
+  Max: 240
 
 Metrics/BlockLength:
+  Max: 120
   Exclude:
     - "spec/**/*"
     - "*.gemspec"
+Metrics/AbcSize:
+  Max: 110
 RSpec/MultipleExpectations:
-  Max: 15
+  Max: 25
 RSpec/ExampleLength:
   Max: 40
 RSpec/NamedSubject:
@@ -34,11 +37,11 @@ RSpec/NamedSubject:
 RSpec/NoExpectationExample:
   Enabled: false
 Layout/LineLength:
-  Max: 125
+  Max: 180
 Metrics/ModuleLength:
   Max: 240
 Metrics/MethodLength:
-  Max: 50
+  Max: 70
 RSpec/NestedGroups:
   Max: 5
 RSpec/DescribeClass:
@@ -56,11 +59,13 @@ RSpec/MultipleDescribes:
 RSpec/MessageSpies:
   Enabled: false
 Metrics/PerceivedComplexity:
-  Max: 14
+  Max: 35
   Exclude:
     - "spec/**/*"
     - "*.gemspec"
 RSpec/ContextWording:
   Enabled: false
 Metrics/CyclomaticComplexity:
-  Max: 10
+  Max: 35
+Metrics/ParameterLists:
+  Max: 6

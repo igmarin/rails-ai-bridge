@@ -16,7 +16,8 @@ module RailsAiBridge
           detail: {
             type: 'string',
             enum: %w[summary standard full],
-            description: 'Detail level for controller listing. summary: names + action counts. standard: names + action list (default). full: everything. Ignored when specific controller is given.'
+            description: 'Detail level for controller listing. summary: names + action counts. standard: names + action list (default). ' \
+                         'full: everything. Ignored when specific controller is given.'
           }
         }
       )

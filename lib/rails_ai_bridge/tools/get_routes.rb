@@ -5,7 +5,8 @@ module RailsAiBridge
     # MCP tool listing routes with optional controller filter, detail level, and pagination.
     class GetRoutes < BaseTool
       tool_name 'rails_get_routes'
-      description 'Get all routes for the Rails app, optionally filtered by controller. Shows HTTP verb, path, controller#action, and route name. Supports detail levels and pagination.'
+      description 'Get all routes for the Rails app, optionally filtered by controller. Shows HTTP verb, path, controller#action, ' \
+                  'and route name. Supports detail levels and pagination.'
 
       input_schema(
         properties: {
@@ -118,9 +119,7 @@ module RailsAiBridge
             lines.concat(ctrl_lines)
             lines << ''
           end
-          if @routes[:total_routes] > limit
-            lines << '_Use `detail:"summary"` for overview, or `detail:"full"` for route names._'
-          end
+          lines << '_Use `detail:"summary"` for overview, or `detail:"full"` for route names._' if @routes[:total_routes] > limit
           lines.join("\n")
         end
 

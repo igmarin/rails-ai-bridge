@@ -95,7 +95,7 @@ module RailsAiBridge
       def discover_rails_engines
         return [] unless defined?(Rails::Engine)
 
-        Rails::Engine.subclasses.filter_map do |engine|
+        engines = Rails::Engine.subclasses.filter_map do |engine|
           next if engine.name.nil?
           next if engine.name == 'RailsAiBridge::Engine'
           next if engine.name.start_with?('Rails::', 'ActionPack::', 'ActionView::', 'ActiveModel::')
@@ -103,7 +103,9 @@ module RailsAiBridge
           { name: engine.name, root: engine.root.to_s.sub("#{Gem.dir}/gems/", '') }
         rescue StandardError
           nil
-        end.sort_by { |e| e[:name] }
+        end
+
+        engines.sort_by { |engine| engine[:name] }
       rescue StandardError
         []
       end

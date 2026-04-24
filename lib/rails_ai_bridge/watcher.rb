@@ -54,7 +54,7 @@ module RailsAiBridge
     rescue LoadError
       warn 'Error: The `listen` gem is required for watch mode.'
       warn "Add to your Gemfile:  gem 'listen', group: :development"
-      exit 1
+      raise SystemExit, 1
     end
 
     private

@@ -5,7 +5,8 @@ module RailsAiBridge
     # MCP tool exposing detected architecture, patterns, directory layout, and config files.
     class GetConventions < BaseTool
       tool_name 'rails_get_conventions'
-      description 'Detect architectural patterns and conventions used in this Rails app. Returns info about architecture style (API-only, Hotwire, GraphQL), design patterns (service objects, STI, polymorphism), directory structure, and config files present.'
+      description 'Detect architectural patterns and conventions used in this Rails app. Returns architecture style, design patterns, ' \
+                  'directory structure, and config files present.'
 
       input_schema(properties: {})
 
@@ -61,16 +62,6 @@ module RailsAiBridge
           lines.join("\n")
         end
 
-        private
-
-        def humanize_arch(key)
-          ARCH_LABELS[key] || key.humanize
-        end
-
-        def humanize_pattern(key)
-          PATTERN_LABELS[key] || key.humanize
-        end
-
         ARCH_LABELS = {
           'api_only' => 'API-only mode (no views/assets)',
           'hotwire' => 'Hotwire (Turbo + Stimulus)',
@@ -100,6 +91,16 @@ module RailsAiBridge
           'sluggable' => 'Friendly URLs/slugs',
           'nested_set' => 'Tree/nested set structures'
         }.freeze
+
+        private
+
+        def humanize_arch(key)
+          ARCH_LABELS[key] || key.humanize
+        end
+
+        def humanize_pattern(key)
+          PATTERN_LABELS[key] || key.humanize
+        end
       end
     end
   end

@@ -6,7 +6,8 @@ module RailsAiBridge
     # file-focused inspection for editing workflows.
     class GetView < BaseTool
       tool_name 'rails_get_view'
-      description 'Get view-layer information including layouts, templates, partials, helpers, and components. Optionally inspect a specific view file or filter by controller/partial.'
+      description 'Get view-layer information including layouts, templates, partials, helpers, and components. ' \
+                  'Optionally inspect a specific view file or filter by controller/partial.'
 
       input_schema(
         properties: {

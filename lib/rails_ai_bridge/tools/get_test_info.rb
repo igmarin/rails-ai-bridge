@@ -32,9 +32,7 @@ module RailsAiBridge
         def format
           lines = ['# Test Infrastructure', '']
           lines << "- **Framework:** #{@data[:framework]}"
-          if @data[:factories]
-            lines << "- **Factories:** #{@data[:factories][:location]} (#{@data[:factories][:count]} files)"
-          end
+          lines << "- **Factories:** #{@data[:factories][:location]} (#{@data[:factories][:count]} files)" if @data[:factories]
           lines << "- **Fixtures:** #{@data[:fixtures][:location]} (#{@data[:fixtures][:count]} files)" if @data[:fixtures]
           lines << "- **System tests:** #{@data[:system_tests][:location]}" if @data[:system_tests]
           lines << "- **CI:** #{@data[:ci_config].join(', ')}" if @data[:ci_config]&.any?

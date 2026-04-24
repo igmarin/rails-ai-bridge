@@ -97,20 +97,14 @@ module RailsAiBridge
         case (@mode || :hybrid).to_sym
         when :dev        then true
         when :hybrid     then !Rails.env.production?
-        when :production then false
-        else false # default for unknown modes
+        else false
         end
       end
 
       private
 
       def security_profile_rate_limit_max
-        case (@security_profile || :balanced).to_sym
-        when :strict   then 60
-        when :balanced then 300
-        when :relaxed  then 1_200
-        else 300 # default matches :balanced
-        end
+        { strict: 60, balanced: 300, relaxed: 1_200 }.fetch((@security_profile || :balanced).to_sym, 300)
       end
     end
   end

@@ -78,13 +78,14 @@ RSpec.describe RailsAiBridge::Watcher do
         regenerator = instance_spy(RailsAiBridge::Watcher::BridgeRegenerator)
         allow(RailsAiBridge::Watcher::BridgeRegenerator).to receive(:new).with(app).and_return(regenerator)
         allow(regenerator).to receive_messages(change_pending?: true, regenerate!: { written: %w[/a], skipped: [] })
+        watcher.instance_variable_set(:@regenerator, regenerator)
 
         allow(Listen).to receive(:to) do |*_dirs, &block|
           block&.call(['x'], [], [])
           listener
         end
 
-        described_class.new(app).start
+        watcher.start
 
         expect(regenerator).to have_received(:change_pending?).at_least(:once)
         expect(regenerator).to have_received(:regenerate!)

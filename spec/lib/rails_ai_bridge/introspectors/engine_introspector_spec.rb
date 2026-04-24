@@ -15,6 +15,7 @@ RSpec.describe RailsAiBridge::Introspectors::EngineIntrospector do
       let(:original_backup) { original_content }
 
       before do
+        original_backup
         File.write(routes_path, <<~RUBY)
           Rails.application.routes.draw do
             mount Sidekiq::Web => "/sidekiq"
@@ -32,6 +33,7 @@ RSpec.describe RailsAiBridge::Introspectors::EngineIntrospector do
         else
           FileUtils.rm_f(routes_path)
         end
+        app.reload_routes!
       end
 
       it 'discovers mounted engines' do
@@ -63,6 +65,7 @@ RSpec.describe RailsAiBridge::Introspectors::EngineIntrospector do
       let(:original_backup) { original_content }
 
       before do
+        original_backup
         File.write(routes_path, <<~RUBY)
           Rails.application.routes.draw do
             resources :posts
@@ -76,6 +79,7 @@ RSpec.describe RailsAiBridge::Introspectors::EngineIntrospector do
         else
           FileUtils.rm_f(routes_path)
         end
+        app.reload_routes!
       end
 
       it 'returns empty array' do

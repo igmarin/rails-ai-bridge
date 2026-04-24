@@ -25,7 +25,7 @@ module RailsAiBridge
       def extract_jobs
         return [] unless defined?(ActiveJob::Base)
 
-        ActiveJob::Base.descendants.filter_map do |job|
+        jobs = ActiveJob::Base.descendants.filter_map do |job|
           next if job.name.nil? || job.name == 'ApplicationJob' ||
                   job.name.start_with?('ActionMailer', 'ActiveStorage::', 'ActionMailbox::', 'Turbo::', 'Sentry::')
 
@@ -43,7 +43,9 @@ module RailsAiBridge
             queue: queue.to_s,
             priority: job.priority
           }.compact
-        end.sort_by { |j| j[:name] }
+        end
+
+        jobs.sort_by { |job| job[:name] }
       rescue StandardError
         []
       end
@@ -51,7 +53,7 @@ module RailsAiBridge
       def extract_mailers
         return [] unless defined?(ActionMailer::Base)
 
-        ActionMailer::Base.descendants.filter_map do |mailer|
+        mailers = ActionMailer::Base.descendants.filter_map do |mailer|
           next if mailer.name.nil?
 
           actions = mailer.instance_methods(false).map(&:to_s).sort
@@ -62,7 +64,9 @@ module RailsAiBridge
             actions: actions,
             delivery_method: mailer.delivery_method.to_s
           }
-        end.sort_by { |m| m[:name] }
+        end
+
+        mailers.sort_by { |mailer| mailer[:name] }
       rescue StandardError
         []
       end
@@ -70,7 +74,7 @@ module RailsAiBridge
       def extract_channels
         return [] unless defined?(ActionCable::Channel::Base)
 
-        ActionCable::Channel::Base.descendants.filter_map do |channel|
+        channels = ActionCable::Channel::Base.descendants.filter_map do |channel|
           next if channel.name.nil? || channel.name == 'ApplicationCable::Channel'
 
           {
@@ -79,7 +83,9 @@ module RailsAiBridge
                             .select { |m| m.to_s.start_with?('stream_') || m == :subscribed }
                             .map(&:to_s)
           }
-        end.sort_by { |c| c[:name] }
+        end
+
+        channels.sort_by { |channel| channel[:name] }
       rescue StandardError
         []
       end

@@ -1,13 +1,54 @@
-# .coderabbit.yaml
-version: "1"
-language: en
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "en-US"
+early_access: false
 
 reviews:
-  profile: comprehensive
+  profile: assertive
   request_changes_workflow: true
+  high_level_summary: true
+  review_status: true
+  review_details: true
+  collapse_walkthrough: false
+  poem: false
+  in_progress_fortune: false
   auto_review:
     enabled: true
     drafts: false
+    auto_incremental_review: true
+  tools:
+    actionlint:
+      enabled: true
+    gitleaks:
+      enabled: true
+    semgrep:
+      enabled: true
+    rubocop:
+      enabled: true
+    brakeman:
+      enabled: true
+    osvScanner:
+      enabled: true
+  path_filters:
+    - "!coverage/**"
+    - "!log/**"
+    - "!tmp/**"
+    - "!pkg/**"
+    - "!*.gem"
+  path_instructions:
+    - path: ".github/**"
+      instructions: >
+        Review workflows and Dependabot configuration for least-privilege permissions,
+        safe secret usage, fork pull request behavior, OIDC scope, release publishing
+        boundaries, and supply-chain risk from third-party actions.
+    - path: "lib/**"
+      instructions: >
+        Prioritize leaks of credentials, ENV values, Rails credentials, raw PII,
+        unsafe filesystem traversal, unbounded host-app introspection, destructive
+        MCP tool behavior, and public API compatibility for this gem.
+    - path: "spec/**"
+      instructions: >
+        Watch for order-dependent tests, lazy fixture backups, global Rails state
+        leakage, and missing coverage for security-sensitive behavior.
 
 chat:
   auto_reply: true
@@ -54,10 +95,3 @@ instructions: |
        protocol-stable strings may need to stay explicit.
      - Prefer clear, deterministic logic over heavy metaprogramming so generated AI context stays
        predictable and debuggable.
-
-path_filters:
-  - "!docs/**"
-  - "!examples/**"
-  - "!*.md"
-  - "!LICENSE"
-  - "!.github/**"

@@ -122,13 +122,10 @@ namespace :ai do
     puts "Rails #{context[:rails_version]} | Ruby #{context[:ruby_version]}"
     puts ''
 
-    if context[:schema] && !context[:schema][:error]
-      puts "📦 Database: #{context[:schema][:total_tables]} tables (#{context[:schema][:adapter]})"
-    end
+    puts "📦 Database: #{context[:schema][:total_tables]} tables (#{context[:schema][:adapter]})" if context[:schema] && !context[:schema][:error]
 
-    if context[:models] && !context[:models].is_a?(Hash)
-      puts "🏗️  Models: #{context[:models].size}"
-    elsif context[:models].is_a?(Hash) && !context[:models][:error]
+    if (context[:models] && !context[:models].is_a?(Hash)) ||
+       (context[:models].is_a?(Hash) && !context[:models][:error])
       puts "🏗️  Models: #{context[:models].size}"
     end
 
@@ -167,11 +164,7 @@ namespace :ai do
     result = RailsAiBridge::Doctor.new.run
 
     result[:checks].each do |check|
-      icon = case check.status
-             when :pass then '✅'
-             when :warn then '⚠️ '
-             when :fail then '❌'
-             end
+      icon = { pass: '✅', warn: '⚠️ ', fail: '❌' }[check.status]
       puts "  #{icon} #{check.name}: #{check.message}"
       puts "     Fix: #{check.fix}" if check.fix
     end

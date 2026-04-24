@@ -28,9 +28,7 @@ module RailsAiBridge
             lines << ''
           end
 
-          if @offset + @limit < @total
-            lines << "_Showing #{paginated.size} of #{@total}. Use `offset:#{@offset + @limit}` for more._"
-          end
+          lines << "_Showing #{paginated.size} of #{@total}. Use `offset:#{@offset + @limit}` for more._" if @offset + @limit < @total
 
           lines.join("\n")
         end

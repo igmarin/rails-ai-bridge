@@ -5,7 +5,8 @@ module RailsAiBridge
     # MCP tool returning database schema tables, columns, indexes, and foreign keys.
     class GetSchema < BaseTool
       tool_name 'rails_get_schema'
-      description 'Get the database schema for the Rails app including tables, columns, indexes, and foreign keys. Optionally filter by table name. Supports detail levels and pagination for large schemas.'
+      description 'Get the database schema for the Rails app including tables, columns, indexes, and foreign keys. ' \
+                  'Optionally filter by table name. Supports detail levels and pagination for large schemas.'
 
       input_schema(
         properties: {
@@ -16,7 +17,8 @@ module RailsAiBridge
           detail: {
             type: 'string',
             enum: %w[summary standard full],
-            description: 'Detail level. summary: table names + column counts. standard: table names + column names/types (default). full: everything including indexes, FKs, comments.'
+            description: 'Detail level. summary: table names + column counts. standard: table names + column names/types (default). ' \
+                         'full: everything including indexes, FKs, comments.'
           },
           limit: {
             type: 'integer',

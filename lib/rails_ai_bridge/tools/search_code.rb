@@ -174,9 +174,7 @@ module RailsAiBridge
 
       private_class_method def self.normalize_file_type(file_type)
         normalized = file_type.to_s.downcase.strip.delete_prefix('.')
-        unless normalized.match?(/\A[a-z0-9]+\z/)
-          return text_response('Invalid file_type: use only a single safe extension (letters and digits).')
-        end
+        return text_response('Invalid file_type: use only a single safe extension (letters and digits).') unless normalized.match?(/\A[a-z0-9]+\z/)
 
         normalized
       end

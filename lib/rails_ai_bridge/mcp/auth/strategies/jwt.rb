@@ -22,9 +22,7 @@ module RailsAiBridge
           # @raise [ArgumentError] when +decoder+ is not +nil+ and does not respond to +#call+
           def initialize(decoder:)
             super()
-            if !decoder.nil? && !decoder.respond_to?(:call)
-              raise ArgumentError, "decoder must respond to #call (got #{decoder.class})"
-            end
+            raise ArgumentError, "decoder must respond to #call (got #{decoder.class})" if !decoder.nil? && !decoder.respond_to?(:call)
 
             @decoder = decoder
           end

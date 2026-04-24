@@ -99,12 +99,8 @@ module RailsAiBridge
           return [] unless @context[:tests] || @context[:config]
 
           lines = ['## Key Development Considerations']
-          if @context[:tests] && @context[:tests][:framework]
-            lines << "- **Test Framework:** `#{@context[:tests][:framework]}`"
-          end
-          if @context[:config] && @context[:config][:cache_store]
-            lines << "- **Cache Store:** `#{@context[:config][:cache_store]}`"
-          end
+          lines << "- **Test Framework:** `#{@context[:tests][:framework]}`" if @context[:tests] && @context[:tests][:framework]
+          lines << "- **Cache Store:** `#{@context[:config][:cache_store]}`" if @context[:config] && @context[:config][:cache_store]
           lines
         end
 

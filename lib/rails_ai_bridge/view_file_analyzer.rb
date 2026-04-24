@@ -15,9 +15,7 @@ module RailsAiBridge
         views_root = File.expand_path('app/views', root.to_s)
         requested = File.expand_path(relative_path.to_s, views_root)
 
-        unless requested.start_with?("#{views_root}/") || requested == views_root
-          raise SecurityError, "Path not allowed: #{relative_path}"
-        end
+        raise SecurityError, "Path not allowed: #{relative_path}" unless requested.start_with?("#{views_root}/") || requested == views_root
 
         raise Errno::ENOENT, relative_path unless File.file?(requested)
 

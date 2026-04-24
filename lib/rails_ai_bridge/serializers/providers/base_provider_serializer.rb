@@ -186,8 +186,10 @@ module RailsAiBridge
         def render_key_considerations
           [
             '## Key Considerations',
-            '- **Performance:** For large or frequently accessed tables, always consider database performance. Use the `rails_get_schema` tool to verify indexes and be mindful of N+1 queries by using `includes` and other ActiveRecord optimizations.',
-            '- **Security:** Treat all user-provided input as untrusted. Always use strong parameters in controllers and be aware of potential security vulnerabilities when using gems like `ransack` or `pg_search`.',
+            '- **Performance:** For large or frequently accessed tables, always consider database performance. ' \
+            'Use the `rails_get_schema` tool to verify indexes and be mindful of N+1 queries by using `includes` and other ActiveRecord optimizations.',
+            '- **Security:** Treat all user-provided input as untrusted. Always use strong parameters in controllers ' \
+            'and be aware of potential security vulnerabilities when using gems like `ransack` or `pg_search`.',
             '- **Data Drift:** This document is a snapshot. For the most up-to-date information, especially regarding schema and routes, use the live MCP tools.',
             '- **MCP Exposure:** The MCP tools are read-only but expose sensitive application structure. Avoid exposing the HTTP transport on untrusted networks.',
             ''

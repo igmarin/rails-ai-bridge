@@ -41,9 +41,7 @@ module RailsAiBridge
           return full[:context][section] if full && ttl_valid?(full) && current_fingerprint == full[:fingerprint]
 
           section_entry = cached[:sections][section]
-          if section_entry && ttl_valid?(section_entry) && current_fingerprint == section_entry[:fingerprint]
-            return section_entry[:context]
-          end
+          return section_entry[:context] if section_entry && ttl_valid?(section_entry) && current_fingerprint == section_entry[:fingerprint]
 
           rebuild_section(section, app, fingerprint: current_fingerprint)
         end

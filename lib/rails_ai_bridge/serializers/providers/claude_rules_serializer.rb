@@ -26,7 +26,8 @@ module RailsAiBridge
         ##
         # Writes Claude rule Markdown files into the given output directory, creating or updating files under ".claude/rules".
         # @param [String] output_dir - Base directory where the ".claude/rules" folder will be created.
-        # @return [Hash{Symbol => Array<String>}] A hash with `:written` and `:skipped` arrays of absolute file paths; `:written` lists files that were created or updated, `:skipped` lists files that were left unchanged because their existing content matched the generated content.
+        # @return [Hash{Symbol => Array<String>}] Absolute file paths grouped by
+        #   whether they were written or skipped because content was unchanged.
         def call(output_dir)
           rules_dir = File.join(output_dir, '.claude', 'rules')
           FileUtils.mkdir_p(rules_dir)
@@ -63,8 +64,8 @@ module RailsAiBridge
         #
         # Includes application metadata, a model classification guide, and model names grouped by semantic tier.
         ##
-        # Builds a Markdown summary of the application's Rails semantic context, including app metadata, model classification, grouped model lists, and pointers to schema/model MCP tools.
-        # The output is intended for Claude auto-discovery and includes a regeneration note, application info (when present), a tags guide, models grouped by semantic tier, and pointers to schema and model-detail tools.
+        # Builds a Markdown summary of the application's Rails semantic context
+        # for Claude auto-discovery.
         # @return [String, nil] The generated Markdown string, or nil when models are missing or contain an error.
         def render_context_reference
           models = context[:models]
@@ -121,7 +122,9 @@ module RailsAiBridge
         ##
         # Groups model names by their semantic tier.
         #
-        # @param [Hash{String => Hash, String => Object}] models - A mapping from model name to its metadata. Models whose metadata is a Hash containing `:error` are skipped. If a model's metadata does not provide a `:semantic_tier` (or it is blank), the model is placed in the "supporting" tier.
+        # @param [Hash{String => Hash, String => Object}] models - Model metadata
+        #   keyed by name. Error entries are skipped; blank tiers become
+        #   "supporting".
         # @return [Hash{String => Array<String>}] A hash where each key is a semantic tier and each value is an array of model names assigned to that tier.
         def group_models_by_semantic_tier(models)
           models.each_with_object(Hash.new { |h, k| h[k] = [] }) do |(name, data), acc|
@@ -160,7 +163,8 @@ module RailsAiBridge
         # Produce a Markdown listing of database tables from the context schema.
         ##
         # Produces a Markdown listing of database tables with column counts and primary keys.
-        # @return [String, nil] The Markdown string describing each table as "- name (N cols, pk: key)", or `nil` if the schema is missing, contains an `:error` key, or has no tables.
+        # @return [String, nil] Markdown table summaries, or `nil` when schema
+        #   context is missing, errored, or empty.
         def render_schema_reference
           schema = context[:schema]
           return nil unless schema.is_a?(Hash) && !schema[:error]

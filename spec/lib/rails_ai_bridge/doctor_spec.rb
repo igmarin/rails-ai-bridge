@@ -62,7 +62,7 @@ RSpec.describe RailsAiBridge::Doctor do
       result[:checks].each do |check|
         expect(check.name).to be_a(String)
         expect(check.message).to be_a(String)
-        expect(%i[pass warn fail]).to include(check.status)
+        expect(check.status).to be_in(%i[pass warn fail])
       end
     end
   end

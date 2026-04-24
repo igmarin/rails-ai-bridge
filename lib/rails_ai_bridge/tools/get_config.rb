@@ -15,9 +15,7 @@ module RailsAiBridge
       # @return [MCP::Tool::Response] markdown configuration summary or an error message
       def self.call(_server_context: nil)
         data = cached_section(:config)
-        unless data
-          return text_response('Config introspection not available. Add :config to introspectors or use `config.preset = :full`.')
-        end
+        return text_response('Config introspection not available. Add :config to introspectors or use `config.preset = :full`.') unless data
         return text_response("Config introspection failed: #{data[:error]}") if data[:error]
 
         formatter = ResponseFormatter.new(data)

@@ -34,7 +34,7 @@ module RailsAiBridge
         dir = File.join(root, 'config/locales')
         return [] unless Dir.exist?(dir)
 
-        Dir.glob(File.join(dir, '**/*.{yml,yaml,rb}')).filter_map do |path|
+        files = Dir.glob(File.join(dir, '**/*.{yml,yaml,rb}')).filter_map do |path|
           relative = path.sub("#{dir}/", '')
           info = { file: relative }
 
@@ -48,7 +48,9 @@ module RailsAiBridge
           end
 
           info
-        end.sort_by { |f| f[:file] }
+        end
+
+        files.sort_by { |file| file[:file] }
       end
 
       def count_locale_files

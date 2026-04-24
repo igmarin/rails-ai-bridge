@@ -58,10 +58,10 @@ module RailsAiBridge
         #   +:total_tables+, and +:note+
         def call
           @content.each_line do |line|
-            next if parse_table_line(line)
-            next if parse_column_line(line)
+            next if parse_table_line?(line)
+            next if parse_column_line?(line)
 
-            parse_index_line(line)
+            parse_index_line?(line)
           end
 
           {
@@ -79,7 +79,7 @@ module RailsAiBridge
         #
         # @param line [String]
         # @return [Boolean] +true+ if the line matched
-        def parse_table_line(line)
+        def parse_table_line?(line)
           match = TABLE_LINE.match(line)
           return false unless match
 
@@ -94,7 +94,7 @@ module RailsAiBridge
         #
         # @param line [String]
         # @return [Boolean] +true+ if the line matched
-        def parse_column_line(line)
+        def parse_column_line?(line)
           return false unless @current_table
 
           match = COLUMN_LINE.match(line)
@@ -109,7 +109,7 @@ module RailsAiBridge
         #
         # @param line [String]
         # @return [Boolean] +true+ if the line matched
-        def parse_index_line(line)
+        def parse_index_line?(line)
           match = INDEX_LINE.match(line)
           return false unless match
 

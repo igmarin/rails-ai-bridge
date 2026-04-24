@@ -102,7 +102,8 @@ module RailsAiBridge
           lines << '- `rails_get_conventions` — architecture patterns, directory structure'
           lines << '- `rails_search_code(pattern:"regex", file_type:"rb", max_results:20)` — codebase search'
           lines << ''
-          lines << '_The same MCP reference also appears under `.github/instructions/rails-mcp-tools.instructions.md` and `.cursor/rules/rails-mcp-tools.mdc` for path-scoped clients._'
+          lines << '_The same MCP reference also appears under `.github/instructions/rails-mcp-tools.instructions.md` ' \
+                   'and `.cursor/rules/rails-mcp-tools.mdc` for path-scoped clients._'
           lines << ''
           lines
         end

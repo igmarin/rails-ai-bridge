@@ -112,9 +112,7 @@ module RailsAiBridge
             lines << "## #{entry[:name]}"
             lines << "- File: #{entry[:file]}" if entry[:file]
             lines << "- Targets: #{Array(entry[:targets]).join(', ')}" if Array(entry[:targets]).any?
-            if entry[:values].is_a?(Hash) && entry[:values].any?
-              lines << "- Values: #{entry[:values].map { |name, value_type| "#{name}: #{value_type}" }.join(', ')}"
-            end
+            lines << "- Values: #{entry[:values].map { |name, value_type| "#{name}: #{value_type}" }.join(', ')}" if entry[:values].is_a?(Hash) && entry[:values].any?
             lines << "- Actions: #{Array(entry[:actions]).join(', ')}" if Array(entry[:actions]).any?
             lines << "- Outlets: #{Array(entry[:outlets]).join(', ')}" if Array(entry[:outlets]).any?
             lines << "- Classes: #{Array(entry[:classes]).join(', ')}" if Array(entry[:classes]).any?

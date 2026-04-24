@@ -13,7 +13,7 @@ RSpec.describe RailsAiBridge::Introspectors::TestIntrospector do
     end
 
     it 'returns framework as a known string' do
-      expect(%w[rspec minitest unknown]).to include(result[:framework])
+      expect(result[:framework]).to be_in(%w[rspec minitest unknown])
     end
 
     it 'returns CI config as array' do

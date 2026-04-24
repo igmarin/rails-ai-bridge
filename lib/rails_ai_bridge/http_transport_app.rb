@@ -18,9 +18,7 @@ module RailsAiBridge
                      end
 
         lambda do |env|
-          unless [path, "#{path}/"].include?(env['PATH_INFO'])
-            return [404, { 'Content-Type' => 'application/json' }, ['{"error":"Not found"}']]
-          end
+          return [404, { 'Content-Type' => 'application/json' }, ['{"error":"Not found"}']] unless [path, "#{path}/"].include?(env['PATH_INFO'])
 
           request = Rack::Request.new(env)
 

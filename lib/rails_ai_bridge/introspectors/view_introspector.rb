@@ -88,7 +88,7 @@ module RailsAiBridge
         dir = File.join(root, 'app/helpers')
         return [] unless Dir.exist?(dir)
 
-        Dir.glob(File.join(dir, '**/*.rb')).filter_map do |path|
+        helpers = Dir.glob(File.join(dir, '**/*.rb')).filter_map do |path|
           relative = path.sub("#{dir}/", '')
           content = File.read(path)
           methods = content.scan(/^\s*def\s+(\w+)/).flatten
@@ -98,7 +98,9 @@ module RailsAiBridge
           }
         rescue StandardError
           nil
-        end.sort_by { |h| h[:file] }
+        end
+
+        helpers.sort_by { |helper| helper[:file] }
       end
 
       def extract_view_components

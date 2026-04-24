@@ -56,11 +56,7 @@ module RailsAiBridge
 
       result = RailsAiBridge::Doctor.new.run
       result[:checks].each do |check|
-        icon = case check.status
-               when :pass then 'PASS'
-               when :warn then 'WARN'
-               when :fail then 'FAIL'
-               end
+        icon = { pass: 'PASS', warn: 'WARN', fail: 'FAIL' }[check.status]
         warn "  [#{icon}] #{check.name}: #{check.message}"
         warn "         Fix: #{check.fix}" if check.fix
       end

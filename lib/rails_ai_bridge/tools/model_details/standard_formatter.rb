@@ -26,9 +26,7 @@ module RailsAiBridge
             val_count   = (data[:validations] || []).size
             line = "- **#{name}**"
             line += " — tier: #{data[:semantic_tier]}" if data[:semantic_tier].present?
-            if assoc_count.positive? || val_count.positive?
-              line += " — #{assoc_count} associations, #{val_count} validations"
-            end
+            line += " — #{assoc_count} associations, #{val_count} validations" if assoc_count.positive? || val_count.positive?
             lines << line
           end
 

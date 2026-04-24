@@ -61,7 +61,9 @@ module RailsAiBridge
     ##
     # Classifies an ActiveRecord model into a semantic tier and provides a machine-oriented reason code.
     # @param [Class] model - The ActiveRecord model class to classify.
-    # @return [Hash] A hash with keys :tier and :reason. :tier is a string such as "core_entity", "pure_join", "rich_join", or "supporting". :reason is a machine-oriented code explaining the classification. On unexpected errors the method returns a :tier of "supporting" and a :reason beginning with "classification_error: ".
+    # @return [Hash] A hash with :tier and :reason keys. On unexpected errors,
+    #   returns a :tier of "supporting" and a :reason starting with
+    #   "classification_error: ".
     def call(model)
       return tier(:supporting, 'unnamed_model') if model.name.blank?
       return tier(:core_entity, 'configured_core_model') if @core.include?(model.name)

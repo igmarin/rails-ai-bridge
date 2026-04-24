@@ -13,9 +13,7 @@ module RailsAiBridge
           lines << "- Partial: #{analysis[:partial] ? 'yes' : 'no'}"
           lines << "- Renders: #{analysis[:renders].join(', ')}" if analysis[:renders].any?
           lines << "- Turbo frames: #{analysis[:turbo_frames].join(', ')}" if analysis[:turbo_frames].any?
-          if analysis[:stimulus_controllers].any?
-            lines << "- Stimulus controllers: #{analysis[:stimulus_controllers].join(', ')}"
-          end
+          lines << "- Stimulus controllers: #{analysis[:stimulus_controllers].join(', ')}" if analysis[:stimulus_controllers].any?
           lines << "- Stimulus actions: #{analysis[:stimulus_actions].join(', ')}" if analysis[:stimulus_actions].any?
           lines << ''
           lines << '## Source'
