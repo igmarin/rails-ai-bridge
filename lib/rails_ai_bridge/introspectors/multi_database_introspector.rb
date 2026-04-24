@@ -21,7 +21,7 @@ module RailsAiBridge
           model_connections: detect_model_connections,
           multi_db: dbs.size > 1
         }
-      rescue => e
+      rescue StandardError => e
         { error: e.message }
       end
 
@@ -43,7 +43,7 @@ module RailsAiBridge
         else
           parse_database_yml
         end
-      rescue
+      rescue StandardError
         parse_database_yml
       end
 
@@ -56,41 +56,43 @@ module RailsAiBridge
         else
           []
         end
-      rescue
+      rescue StandardError
         []
       end
 
       def detect_sharding
-        database_yml = File.join(root, "config/database.yml")
+        database_yml = File.join(root, 'config/database.yml')
         return nil unless File.exist?(database_yml)
 
         content = File.read(database_yml)
-        { detected: true, note: "Sharding configuration found in database.yml" } if content.match?(/shard/i)
-      rescue
+        { detected: true, note: 'Sharding configuration found in database.yml' } if content.match?(/shard/i)
+      rescue StandardError
         nil
       end
 
       def detect_model_connections
-        models_dir = File.join(root, "app/models")
+        models_dir = File.join(root, 'app/models')
         return [] unless Dir.exist?(models_dir)
 
         connections = []
-        Dir.glob(File.join(models_dir, "**/*.rb")).each do |path|
+        Dir.glob(File.join(models_dir, '**/*.rb')).each do |path|
           content = File.read(path)
-          model_name = File.basename(path, ".rb").camelize
+          model_name = File.basename(path, '.rb').camelize
 
           if (match = content.match(/connects_to\s+(.*?\n(?:\s+.*\n)*)/m))
-            connects_to_text = match[1].strip.gsub(/\s+/, " ")
+            connects_to_text = match[1].strip.gsub(/\s+/, ' ')
             connections << {
               model: model_name,
               connects_to: connects_to_text
             }
           end
 
-          if content.match?(/connected_to\b/)
-            connections << { model: model_name, uses_connected_to: true } unless connections.any? { |c| c[:model] == model_name }
+          if content.match?(/connected_to\b/) && connections.none? do |c|
+            c[:model] == model_name
           end
-        rescue
+            connections << { model: model_name, uses_connected_to: true }
+          end
+        rescue StandardError
           next
         end
 
@@ -98,12 +100,12 @@ module RailsAiBridge
       end
 
       def parse_database_yml
-        path = File.join(root, "config/database.yml")
+        path = File.join(root, 'config/database.yml')
         return [] unless File.exist?(path)
 
         content = File.read(path)
         databases = []
-        current_env = defined?(Rails) ? Rails.env : "development"
+        current_env = defined?(Rails) ? Rails.env : 'development'
         in_env = false
         skip_keys = %w[adapter database host port username password encoding pool timeout socket url]
 
@@ -117,27 +119,27 @@ module RailsAiBridge
 
           next unless in_env
 
-          if line.match?(/\A\s{2}(\w+):/) && !line.include?("<<")
-            db_name = line.strip.chomp(":")
+          if line.match?(/\A\s{2}(\w+):/) && line.exclude?('<<')
+            db_name = line.strip.chomp(':')
             databases << { name: db_name } unless skip_keys.include?(db_name)
           end
         end
 
         databases
-      rescue
+      rescue StandardError
         []
       end
 
       def anonymize_db_name(name)
         return name unless name
 
-        if name.start_with?("postgres://", "mysql://", "sqlite://")
-          URI.parse(name).path.sub("/", "")
+        if name.start_with?('postgres://', 'mysql://', 'sqlite://')
+          URI.parse(name).path.sub('/', '')
         else
           name
         end
-      rescue
-        "external"
+      rescue StandardError
+        'external'
       end
     end
   end

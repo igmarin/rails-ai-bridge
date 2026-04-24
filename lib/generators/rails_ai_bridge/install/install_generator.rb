@@ -1,28 +1,30 @@
 # frozen_string_literal: true
 
-require "json"
+require 'json'
 
 module RailsAiBridge
   module Generators
     class InstallGenerator < Rails::Generators::Base
-      source_root File.expand_path("templates", __dir__)
+      source_root File.expand_path('templates', __dir__)
 
-      desc "Install rails-ai-bridge: creates initializer, MCP config, and generates initial bridge files."
+      desc 'Install rails-ai-bridge: creates initializer, MCP config, and generates initial bridge files.'
 
       ##
       # Creates a `.mcp.json` MCP server definition named "rails-ai-bridge".
-      # The created file configures an MCP server that runs `bundle exec rails ai:serve` and is intended for auto-discovery by tools such as Claude Code and Cursor.
+      # The created file configures an MCP server that runs `bundle exec rails ai:serve` and is intended
+      # for auto-discovery by tools such as Claude Code and Cursor.
       def create_mcp_config
-        create_file ".mcp.json", JSON.pretty_generate({
+        mcp_config = {
           mcpServers: {
-            "rails-ai-bridge" => {
-              command: "bundle",
-              args: [ "exec", "rails", "ai:serve" ]
+            'rails-ai-bridge' => {
+              command: 'bundle',
+              args: ['exec', 'rails', 'ai:serve']
             }
           }
-        }) + "\n"
+        }
+        create_file '.mcp.json', "#{JSON.pretty_generate(mcp_config)}\n"
 
-        say "Created .mcp.json (auto-discovered by Claude Code, Cursor, etc.)", :green
+        say 'Created .mcp.json (auto-discovered by Claude Code, Cursor, etc.)', :green
       end
 
       ##
@@ -33,17 +35,17 @@ module RailsAiBridge
       # security exclusions, context/output controls, assistant override guidance, and
       # HTTP MCP auto-mount settings. Writes the initializer to disk and prints a
       ##
-      # Creates config/initializers/rails_ai_bridge.rb containing a commented configuration guide for rails-ai-bridge.
-      # The generated initializer documents introspector presets (with interpolated counts), options for enabling/disabling introspectors,
-      # security exclusions (tables, models, paths), primary domain model hints, context/output controls, assistant override guidance,
-      # and a SECURITY CRITICAL HTTP MCP / auto_mount section with recommended authentication approaches.
-      # Writes the initializer file to config/initializers/rails_ai_bridge.rb and prints a green confirmation message.
+      # Creates config/initializers/rails_ai_bridge.rb containing a commented configuration guide
+      # for rails-ai-bridge. The generated initializer documents introspector presets (with interpolated
+      # counts), options for enabling/disabling introspectors, security exclusions (tables, models,
+      # paths), primary domain model hints, context/output controls, assistant override guidance, and
+      # a SECURITY CRITICAL HTTP MCP / auto_mount section with recommended authentication approaches.
       def create_initializer
         standard_count = RailsAiBridge::Configuration::PRESETS[:standard].size
         full_count     = RailsAiBridge::Configuration::PRESETS[:full].size
         regulated_count = RailsAiBridge::Configuration::PRESETS[:regulated].size
 
-        create_file "config/initializers/rails_ai_bridge.rb", <<~RUBY
+        create_file 'config/initializers/rails_ai_bridge.rb', <<~RUBY
           # frozen_string_literal: true
 
           RailsAiBridge.configure do |config|
@@ -121,14 +123,14 @@ module RailsAiBridge
           end
         RUBY
 
-        say "Created config/initializers/rails_ai_bridge.rb", :green
+        say 'Created config/initializers/rails_ai_bridge.rb', :green
       end
 
       def create_assistant_overrides_template
-        dir = "config/rails_ai_bridge"
+        dir = 'config/rails_ai_bridge'
         FileUtils.mkdir_p(File.join(destination_root, dir))
 
-        stub = File.join(destination_root, dir, "overrides.md")
+        stub = File.join(destination_root, dir, 'overrides.md')
         unless File.exist?(stub)
           create_file "#{dir}/overrides.md", <<~MD
             <!-- rails-ai-bridge:omit-merge -->
@@ -137,81 +139,81 @@ module RailsAiBridge
           say "Created #{dir}/overrides.md (stub — remove omit-merge line when adding real rules)", :green
         end
 
-        example = File.join(destination_root, dir, "overrides.md.example")
-        unless File.exist?(example)
-          copy_file "overrides.md.example", "#{dir}/overrides.md.example"
-          say "Created #{dir}/overrides.md.example (reference outline, not merged)", :green
-        end
+        example = File.join(destination_root, dir, 'overrides.md.example')
+        return if File.exist?(example)
+
+        copy_file 'overrides.md.example', "#{dir}/overrides.md.example"
+        say "Created #{dir}/overrides.md.example (reference outline, not merged)", :green
       end
 
       def add_to_gitignore
-        gitignore = Rails.root.join(".gitignore")
+        gitignore = Rails.root.join('.gitignore')
         return unless File.exist?(gitignore)
 
         content = File.read(gitignore)
         append = []
-        append << ".ai-context.json" unless content.include?(".ai-context.json")
+        append << '.ai-context.json' unless content.include?('.ai-context.json')
 
-        if append.any?
-          File.open(gitignore, "a") do |f|
-            f.puts ""
-            f.puts "# rails-ai-bridge (JSON cache — markdown files should be committed)"
-            append.each { |line| f.puts line }
-          end
-          say "Updated .gitignore", :green
+        return unless append.any?
+
+        File.open(gitignore, 'a') do |f|
+          f.puts ''
+          f.puts '# rails-ai-bridge (JSON cache — markdown files should be committed)'
+          append.each { |line| f.puts line }
         end
+        say 'Updated .gitignore', :green
       end
 
       def generate_context_files
-        say ""
-        say "Generating AI bridge files...", :yellow
+        say ''
+        say 'Generating AI bridge files...', :yellow
 
         if Rails.application
-          require "rails_ai_bridge"
+          require 'rails_ai_bridge'
           result = RailsAiBridge.generate_context(format: :all)
           result[:written].each { |file| say "  Created #{file}", :green }
           result[:skipped].each { |file| say "  Unchanged #{file}", :blue }
         else
-          say "  Skipped (Rails app not fully loaded). Run `rails ai:bridge` after install.", :yellow
+          say '  Skipped (Rails app not fully loaded). Run `rails ai:bridge` after install.', :yellow
         end
       end
 
       def show_instructions
-        say ""
-        say "=" * 50, :cyan
-        say " rails-ai-bridge installed!", :cyan
-        say "=" * 50, :cyan
-        say ""
-        say "Quick start:", :yellow
-        say "  rails ai:bridge         # Generate all bridge files"
-        say "  rails ai:bridge:claude   # Generate CLAUDE.md only"
-        say "  rails ai:bridge:codex    # Generate AGENTS.md only"
-        say "  rails ai:bridge:cursor   # Generate .cursorrules only"
-        say "  rails ai:bridge:gemini   # Generate GEMINI.md only"
-        say "  rails ai:serve           # Start MCP server (stdio)"
-        say "  rails ai:inspect         # Print introspection summary"
-        say ""
-        say "Generated files per AI tool:", :yellow
-        say "  Claude Code    → CLAUDE.md + .claude/rules/*.md"
-        say "  OpenAI Codex   → AGENTS.md + .codex/README.md"
-        say "  Cursor         → .cursorrules + .cursor/rules/*.mdc (incl. rails-engineering.mdc)"
-        say "  Windsurf       → .windsurfrules + .windsurf/rules/*.md"
-        say "  GitHub Copilot → .github/copilot-instructions.md + .github/instructions/*.instructions.md"
-        say "  Gemini         → GEMINI.md"
-        say ""
-        say "MCP auto-discovery:", :yellow
-        say "  .mcp.json is auto-detected by Claude Code and Cursor."
-        say "  No manual MCP config needed — just open your project."
-        say ""
-        say "Bridge modes:", :yellow
-        say "  rails ai:bridge         # compact mode (default, smart for any app size)"
-        say "  rails ai:bridge:full    # full dump (good for small apps)"
-        say ""
-        say "Repo-specific Copilot/Codex rules:", :yellow
-        say "  Edit config/rails_ai_bridge/overrides.md — remove the first-line omit-merge comment to enable merge."
-        say "  See overrides.md.example for a suggested outline."
-        say ""
-        say "Commit bridge files and .mcp.json so your team benefits!", :green
+        say ''
+        say '=' * 50, :cyan
+        say ' rails-ai-bridge installed!', :cyan
+        say '=' * 50, :cyan
+        say ''
+        say 'Quick start:', :yellow
+        say '  rails ai:bridge         # Generate all bridge files'
+        say '  rails ai:bridge:claude   # Generate CLAUDE.md only'
+        say '  rails ai:bridge:codex    # Generate AGENTS.md only'
+        say '  rails ai:bridge:cursor   # Generate .cursorrules only'
+        say '  rails ai:bridge:gemini   # Generate GEMINI.md only'
+        say '  rails ai:serve           # Start MCP server (stdio)'
+        say '  rails ai:inspect         # Print introspection summary'
+        say ''
+        say 'Generated files per AI tool:', :yellow
+        say '  Claude Code    → CLAUDE.md + .claude/rules/*.md'
+        say '  OpenAI Codex   → AGENTS.md + .codex/README.md'
+        say '  Cursor         → .cursorrules + .cursor/rules/*.mdc (incl. rails-engineering.mdc)'
+        say '  Windsurf       → .windsurfrules + .windsurf/rules/*.md'
+        say '  GitHub Copilot → .github/copilot-instructions.md + .github/instructions/*.instructions.md'
+        say '  Gemini         → GEMINI.md'
+        say ''
+        say 'MCP auto-discovery:', :yellow
+        say '  .mcp.json is auto-detected by Claude Code and Cursor.'
+        say '  No manual MCP config needed — just open your project.'
+        say ''
+        say 'Bridge modes:', :yellow
+        say '  rails ai:bridge         # compact mode (default, smart for any app size)'
+        say '  rails ai:bridge:full    # full dump (good for small apps)'
+        say ''
+        say 'Repo-specific Copilot/Codex rules:', :yellow
+        say '  Edit config/rails_ai_bridge/overrides.md — remove the first-line omit-merge comment to enable merge.'
+        say '  See overrides.md.example for a suggested outline.'
+        say ''
+        say 'Commit bridge files and .mcp.json so your team benefits!', :green
       end
     end
   end

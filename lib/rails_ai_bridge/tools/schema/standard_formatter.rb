@@ -21,19 +21,19 @@ module RailsAiBridge
         # @return [String] Markdown listing with column signatures
         def call
           paginated = @tables.keys.sort.drop(@offset).first(@limit)
-          lines = [ "# Schema (#{@total} tables, showing #{paginated.size})", "" ]
+          lines = ["# Schema (#{@total} tables, showing #{paginated.size})", '']
 
           paginated.each do |name|
             data = @tables[name]
-            cols = (data[:columns] || []).map { |c| "#{c[:name]}:#{c[:type]}" }.join(", ")
+            cols = (data[:columns] || []).map { |c| "#{c[:name]}:#{c[:type]}" }.join(', ')
             lines << "### #{name}"
             lines << cols
-            lines << ""
+            lines << ''
           end
 
           if @offset + @limit < @total
             lines << "_Use `detail:\"summary\"` for all #{@total} tables, " \
-              "`detail:\"full\"` for indexes/FKs, or `table:\"name\"` for one table._"
+                     '`detail:"full"` for indexes/FKs, or `table:"name"` for one table._'
           end
 
           lines.join("\n")

@@ -29,6 +29,7 @@ module RailsAiBridge
       # @param app [Rails::Application] the Rails application to introspect
       # @param introspector_class [Class] introspector class to use (defaults to {RailsAiBridge::Introspector})
       def initialize(app, introspector_class: Introspector)
+        super()
         @app = app
         @introspector_class = introspector_class
       end
@@ -46,8 +47,14 @@ module RailsAiBridge
         introspector = @introspector_class.new(@app)
         introspection_result = introspector.call(only: only)
 
-        return Service::Result.new(false, errors: [ "Introspector must return a Hash" ]) unless introspection_result.is_a?(Hash)
-        return Service::Result.new(false, errors: [ "Introspector returned error: #{introspection_result[:error]}" ]) if introspection_result.key?(:error)
+        unless introspection_result.is_a?(Hash)
+          return Service::Result.new(false,
+                                     errors: ['Introspector must return a Hash'])
+        end
+        if introspection_result.key?(:error)
+          return Service::Result.new(false,
+                                     errors: ["Introspector returned error: #{introspection_result[:error]}"])
+        end
 
         nested_errors = introspection_result.filter_map do |name, payload|
           next unless payload.is_a?(Hash) && payload.key?(:error)
@@ -58,7 +65,7 @@ module RailsAiBridge
 
         Service::Result.new(true, data: introspection_result)
       rescue StandardError => e
-        Service::Result.new(false, errors: [ e.message ])
+        Service::Result.new(false, errors: [e.message])
       end
     end
   end

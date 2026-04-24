@@ -12,19 +12,19 @@ module RailsAiBridge
         private
 
         def render(data)
-          lines = [ "## Views" ]
+          lines = ['## Views']
           lines << "- Layouts: #{data[:layouts].join(', ')}" if data[:layouts]&.any?
           lines << "- Template engines: #{data[:template_engines].join(', ')}" if data[:template_engines]&.any?
 
           if data[:templates]&.any?
-            lines << "### Templates by controller"
+            lines << '### Templates by controller'
             data[:templates].each do |ctrl, templates|
               lines << "- `#{ctrl}/`: #{templates.join(', ')}"
             end
           end
 
           if data[:helpers]&.any?
-            lines << "### Helpers"
+            lines << '### Helpers'
             data[:helpers].each { |h| lines << "- `#{h[:file]}`: #{h[:methods].join(', ')}" }
           end
 

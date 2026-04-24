@@ -14,7 +14,7 @@ module RailsAiBridge
         def render(data)
           return unless data[:mounted]&.any?
 
-          lines = [ "## Rails Engines", "" ]
+          lines = ['## Rails Engines', '']
           data[:mounted].each { |e| lines << "- `#{e}`" }
           lines.join("\n")
         end

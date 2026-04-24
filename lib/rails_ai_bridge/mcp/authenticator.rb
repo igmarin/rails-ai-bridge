@@ -40,7 +40,7 @@ module RailsAiBridge
     # @see Auth::Strategies::Jwt
     # @see AuthResult
     class Authenticator
-      TOKEN_ENV_KEY = "RAILS_AI_BRIDGE_MCP_TOKEN"
+      TOKEN_ENV_KEY = 'RAILS_AI_BRIDGE_MCP_TOKEN'
 
       class << self
         # Authenticate an incoming Rack request against the configured strategy.
@@ -73,10 +73,10 @@ module RailsAiBridge
           [
             401,
             {
-              "Content-Type" => "application/json",
-              "WWW-Authenticate" => 'Bearer realm="rails-ai-bridge-mcp"'
+              'Content-Type' => 'application/json',
+              'WWW-Authenticate' => 'Bearer realm="rails-ai-bridge-mcp"'
             },
-            [ '{"error":"Unauthorized"}' ]
+            ['{"error":"Unauthorized"}']
           ]
         end
 
@@ -86,13 +86,11 @@ module RailsAiBridge
         #
         # @return [Auth::BaseStrategy, nil] +nil+ means no auth is required (open access)
         def resolve_strategy(auth_cfg = RailsAiBridge.configuration.auth)
-          if auth_cfg.mcp_jwt_decoder.present?
-            return Auth::Strategies::Jwt.new(decoder: auth_cfg.mcp_jwt_decoder)
-          end
+          return Auth::Strategies::Jwt.new(decoder: auth_cfg.mcp_jwt_decoder) if auth_cfg.mcp_jwt_decoder.present?
 
           if auth_cfg.mcp_token_resolver.present?
             return Auth::Strategies::BearerToken.new(
-              static_token_provider: -> { nil },
+              static_token_provider: -> {},
               token_resolver: auth_cfg.mcp_token_resolver
             )
           end
@@ -111,7 +109,7 @@ module RailsAiBridge
         # @param auth_cfg [Config::Auth]
         # @return [String, nil] normalized token, or +nil+ when not configured
         def effective_static_token(auth_cfg = RailsAiBridge.configuration.auth)
-          env_t = ENV.fetch(TOKEN_ENV_KEY, "").to_s.strip
+          env_t = ENV.fetch(TOKEN_ENV_KEY, '').to_s.strip
           return env_t if env_t.present?
 
           auth_cfg.http_mcp_token.to_s.strip.presence

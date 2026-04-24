@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "mcp"
+require 'mcp'
 
 module RailsAiBridge
   module Tools
@@ -52,13 +52,13 @@ module RailsAiBridge
             suffix = "\n\n---\n_Response truncated (#{text.length} chars). Use `detail:\"summary\"` for an overview, or filter by a specific item (e.g. `table:\"users\"`)._"
             available_chars = max - suffix.length
             truncated = if available_chars.positive?
-              "#{text[0...available_chars]}#{suffix}"
-            else
-              suffix[0...max]
-            end
-            MCP::Tool::Response.new([ { type: "text", text: truncated } ])
+                          "#{text[0...available_chars]}#{suffix}"
+                        else
+                          suffix[0...max]
+                        end
+            MCP::Tool::Response.new([{ type: 'text', text: truncated }])
           else
-            MCP::Tool::Response.new([ { type: "text", text: text } ])
+            MCP::Tool::Response.new([{ type: 'text', text: text }])
           end
         end
       end

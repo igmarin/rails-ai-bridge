@@ -12,12 +12,10 @@ module RailsAiBridge
       # @raise [SecurityError] when the path escapes `app/views`
       # @raise [Errno::ENOENT] when the file does not exist
       def call(root:, relative_path:)
-        views_root = File.expand_path("app/views", root.to_s)
+        views_root = File.expand_path('app/views', root.to_s)
         requested = File.expand_path(relative_path.to_s, views_root)
 
-        unless requested.start_with?("#{views_root}/") || requested == views_root
-          raise SecurityError, "Path not allowed: #{relative_path}"
-        end
+        raise SecurityError, "Path not allowed: #{relative_path}" unless requested.start_with?("#{views_root}/") || requested == views_root
 
         raise Errno::ENOENT, relative_path unless File.file?(requested)
 
@@ -26,8 +24,8 @@ module RailsAiBridge
 
         {
           path: relative,
-          template_engine: File.extname(relative).delete("."),
-          partial: File.basename(relative).start_with?("_"),
+          template_engine: File.extname(relative).delete('.'),
+          partial: File.basename(relative).start_with?('_'),
           renders: extract_renders(content),
           turbo_frames: extract_turbo_frames(content),
           stimulus_controllers: extract_stimulus_controllers(content),

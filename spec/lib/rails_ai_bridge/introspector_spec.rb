@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "spec_helper"
+require 'spec_helper'
 
 RSpec.describe RailsAiBridge::Introspector do
   let(:introspector) { described_class.new(Rails.application) }
@@ -14,23 +14,23 @@ RSpec.describe RailsAiBridge::Introspector do
     RailsAiBridge.configuration.additional_introspectors = original_additional
   end
 
-  describe "#call" do
-    it "returns a complete context hash" do
+  describe '#call' do
+    it 'returns a complete context hash' do
       result = introspector.call
 
       expect(result[:ruby_version]).to eq(RUBY_VERSION)
       expect(result[:rails_version]).to eq(Rails.version)
-      expect(result[:generator]).to include("rails-ai-bridge")
+      expect(result[:generator]).to include('rails-ai-bridge')
       expect(result[:generated_at]).to be_a(String)
     end
 
-    it "includes non_ar_models when that introspector is enabled" do
-      RailsAiBridge.configuration.introspectors += [ :non_ar_models ]
+    it 'includes non_ar_models when that introspector is enabled' do
+      RailsAiBridge.configuration.introspectors += [:non_ar_models]
       result = introspector.call
       expect(result).to have_key(:non_ar_models)
     end
 
-    it "extracts schema with tables" do
+    it 'extracts schema with tables' do
       result = introspector.call
       schema = result[:schema]
 
@@ -39,15 +39,15 @@ RSpec.describe RailsAiBridge::Introspector do
       # fall back to verifying static parse produces tables from schema.rb
       if schema[:tables].empty?
         static = RailsAiBridge::Introspectors::SchemaIntrospector.new(Rails.application).send(:static_schema_parse)
-        expect(static[:tables]).to have_key("users")
-        expect(static[:tables]).to have_key("posts")
+        expect(static[:tables]).to have_key('users')
+        expect(static[:tables]).to have_key('posts')
       else
-        expect(schema[:tables]).to have_key("users")
-        expect(schema[:tables]).to have_key("posts")
+        expect(schema[:tables]).to have_key('users')
+        expect(schema[:tables]).to have_key('posts')
       end
     end
 
-    it "supports configured custom introspectors" do
+    it 'supports configured custom introspectors' do
       custom_introspector = Class.new do
         def initialize(_app); end
 
@@ -57,7 +57,7 @@ RSpec.describe RailsAiBridge::Introspector do
       end
 
       RailsAiBridge.configuration.additional_introspectors[:custom] = custom_introspector
-      RailsAiBridge.configuration.introspectors = [ :custom ]
+      RailsAiBridge.configuration.introspectors = [:custom]
 
       result = introspector.call
 

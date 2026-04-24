@@ -12,9 +12,9 @@ module RailsAiBridge
         private
 
         def render(data)
-          lines = [ "## Database Schema (#{data[:total_tables]} tables)" ]
+          lines = ["## Database Schema (#{data[:total_tables]} tables)"]
           data[:tables]&.each do |name, table|
-            cols = (table[:columns] || []).map { |c| "`#{c[:name]}` (#{c[:type]})" }.join(", ")
+            cols = (table[:columns] || []).map { |c| "`#{c[:name]}` (#{c[:type]})" }.join(', ')
             lines << "### #{name}"
             lines << cols
           end

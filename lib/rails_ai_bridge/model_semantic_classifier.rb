@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "set"
-
 module RailsAiBridge
   # Heuristic classification of ActiveRecord models for semantic context:
   # * +core_entity+ — listed in {Config::Introspection#core_models}
@@ -41,14 +39,17 @@ module RailsAiBridge
     # @param core_model_names [Array<String, Symbol>] from {Configuration#core_models}
     ##
     # Initialize the classifier with configured core and through-join model names.
-    # @param [Array<String>, Set<String>] core_model_names - Model class names treated as core entities; entries are converted to strings and stored as a Set.
+    # @param [Array<String>, Set<String>] core_model_names - Model class names treated as core entities;
+    #   entries are converted to strings and stored as a Set.
     ##
     # Initialize the classifier with configured core and through model names.
     # @param [Array<String>] core_model_names - Names of models considered core; entries are converted to strings and stored as a Set.
-    # @param [Set<String>, Array<String>] through_model_names - Model class names identified as through/join models (typically from `.through_join_model_names`); entries are converted to strings and stored as a Set.
+    # @param [Set<String>, Array<String>] through_model_names - Model class names identified as
+    #   through/join models (typically from `.through_join_model_names`); entries are converted to
+    #   strings and stored as a Set.
     def initialize(core_model_names: [], through_model_names: Set.new)
-      @core = core_model_names.map(&:to_s).to_set
-      @through = through_model_names.map(&:to_s).to_set
+      @core = core_model_names.to_set(&:to_s)
+      @through = through_model_names.to_set(&:to_s)
     end
 
     # @param model [Class] ActiveRecord model
@@ -60,13 +61,15 @@ module RailsAiBridge
     ##
     # Classifies an ActiveRecord model into a semantic tier and provides a machine-oriented reason code.
     # @param [Class] model - The ActiveRecord model class to classify.
-    # @return [Hash] A hash with keys :tier and :reason. :tier is a string such as "core_entity", "pure_join", "rich_join", or "supporting". :reason is a machine-oriented code explaining the classification. On unexpected errors the method returns a :tier of "supporting" and a :reason beginning with "classification_error: ".
+    # @return [Hash] A hash with :tier and :reason keys. On unexpected errors,
+    #   returns a :tier of "supporting" and a :reason starting with
+    #   "classification_error: ".
     def call(model)
-      return tier(:supporting, "unnamed_model") if model.name.blank?
-      return tier(:core_entity, "configured_core_model") if @core.include?(model.name)
+      return tier(:supporting, 'unnamed_model') if model.name.blank?
+      return tier(:core_entity, 'configured_core_model') if @core.include?(model.name)
 
       column_names = safe_column_names(model)
-      return tier(:supporting, "no_columns_loaded") if column_names.empty?
+      return tier(:supporting, 'no_columns_loaded') if column_names.empty?
 
       belongs = model.reflect_on_all_associations.select { |a| a.macro == :belongs_to }
       fk_columns = belongs.filter_map { |a| a.foreign_key&.to_s }.uniq
@@ -93,9 +96,9 @@ module RailsAiBridge
     # @return [Hash] A hash with keys `:tier` (the tier name as a string) and `:reason` (a machine-oriented reason string).
     def classify_without_payload(is_through, belongs_count)
       if is_through && belongs_count >= 2
-        tier(:pure_join, "through_join_without_payload_columns")
+        tier(:pure_join, 'through_join_without_payload_columns')
       else
-        tier(:supporting, "not_classified_as_join_table")
+        tier(:supporting, 'not_classified_as_join_table')
       end
     end
 
@@ -110,9 +113,9 @@ module RailsAiBridge
     # @return [Hash] A hash with keys `:tier` (String) and `:reason` (String) describing the classification.
     def classify_with_payload(is_through, belongs_count)
       if is_through && belongs_count >= 2
-        tier(:rich_join, "through_join_with_payload_columns")
+        tier(:rich_join, 'through_join_with_payload_columns')
       else
-        tier(:supporting, "domain_or_misc_model")
+        tier(:supporting, 'domain_or_misc_model')
       end
     end
 
@@ -158,7 +161,7 @@ module RailsAiBridge
       meta = BASE_METADATA.select { |c| column_names.include?(c) }
       inc = model.inheritance_column.to_s
       meta << inc if column_names.include?(inc)
-      meta << "lock_version" if column_names.include?("lock_version")
+      meta << 'lock_version' if column_names.include?('lock_version')
       meta.uniq
     end
   end

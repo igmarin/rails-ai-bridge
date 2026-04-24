@@ -48,7 +48,7 @@ module RailsAiBridge
             if rt && rt != ic
               " (#{rt} names in routing — can exceed class count when routes reference engines or non-file controllers)"
             else
-              ""
+              ''
             end
           "- Routes: #{total} total — #{ic} controller classes#{suffix}"
         elsif rt
@@ -80,7 +80,7 @@ module RailsAiBridge
       # @return [String] copy-pastable test command
       def test_command(context)
         framework = context.dig(:tests, :framework).to_s.strip.downcase
-        framework == "minitest" ? "bin/rails test" : "bundle exec rspec"
+        framework == 'minitest' ? 'bin/rails test' : 'bundle exec rspec'
       end
 
       # Top non-housekeeping columns for a model's table.
@@ -96,7 +96,7 @@ module RailsAiBridge
         columns = Array(table_data[:columns])
 
         columns
-          .reject { |c| HOUSEKEEPING_COLUMNS.include?(c[:name]) || c[:name].to_s.end_with?("_id") }
+          .reject { |c| HOUSEKEEPING_COLUMNS.include?(c[:name]) || c[:name].to_s.end_with?('_id') }
           .first(3)
           .map { |c| { name: c[:name], type: c[:type] } }
       end
@@ -111,12 +111,12 @@ module RailsAiBridge
       def recently_migrated?(table_name, migrations)
         return false unless table_name && migrations.is_a?(Hash)
 
-        cutoff = Date.today - 30
+        cutoff = Time.zone.today - 30
         Array(migrations[:recent]).any? do |m|
           version = m[:version].to_s
           next false unless version.length >= 8
 
-          migration_date = Date.strptime(version[0..7], "%Y%m%d")
+          migration_date = Date.strptime(version[0..7], '%Y%m%d')
           migration_date >= cutoff && m[:filename].to_s.include?(table_name)
         rescue ArgumentError
           false
@@ -128,11 +128,11 @@ module RailsAiBridge
       # @return [Array<String>] markdown lines (including heading)
       def compact_performance_security_section
         [
-          "## Performance & security (baseline)",
-          "- Large or hot tables: mind indexes and N+1s; use `includes`, batching, and bounded queries — validate with `rails_get_schema` and real load patterns.",
-          "- Treat generated context as **snapshots** that can drift; prefer `rails_*` MCP tools for authoritative structure when in doubt.",
-          "- Merge team-specific rules (performance, auth, compliance) into these files or companion rules — generated output is generic.",
-          "- MCP is read-only but exposes app structure; avoid exposing the HTTP transport on untrusted networks."
+          '## Performance & security (baseline)',
+          '- Large or hot tables: mind indexes and N+1s; use `includes`, batching, and bounded queries — validate with `rails_get_schema` and real load patterns.',
+          '- Treat generated context as **snapshots** that can drift; prefer `rails_*` MCP tools for authoritative structure when in doubt.',
+          '- Merge team-specific rules (performance, auth, compliance) into these files or companion rules — generated output is generic.',
+          '- MCP is read-only but exposes app structure; avoid exposing the HTTP transport on untrusted networks.'
         ]
       end
     end

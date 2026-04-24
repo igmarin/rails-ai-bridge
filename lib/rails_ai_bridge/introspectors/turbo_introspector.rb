@@ -16,7 +16,7 @@ module RailsAiBridge
           turbo_streams: extract_turbo_stream_templates,
           model_broadcasts: extract_model_broadcasts
         }
-      rescue => e
+      rescue StandardError => e
         { error: e.message }
       end
 
@@ -27,16 +27,16 @@ module RailsAiBridge
       end
 
       def views_dir
-        File.join(root, "app/views")
+        File.join(root, 'app/views')
       end
 
       def extract_turbo_frames
         return [] unless Dir.exist?(views_dir)
 
         frames = []
-        Dir.glob(File.join(views_dir, "**/*.{erb,haml,slim}")).each do |path|
+        Dir.glob(File.join(views_dir, '**/*.{erb,haml,slim}')).each do |path|
           content = File.read(path)
-          relative = path.sub("#{views_dir}/", "")
+          relative = path.sub("#{views_dir}/", '')
 
           content.scan(/turbo_frame_tag\s+[:"']?(\w+)/).each do |match|
             frames << { id: match[0], file: relative }
@@ -44,26 +44,26 @@ module RailsAiBridge
         end
 
         frames.sort_by { |f| f[:id] }
-      rescue
+      rescue StandardError
         []
       end
 
       def extract_turbo_stream_templates
         return [] unless Dir.exist?(views_dir)
 
-        Dir.glob(File.join(views_dir, "**/*.turbo_stream.erb")).filter_map do |path|
-          path.sub("#{views_dir}/", "")
+        Dir.glob(File.join(views_dir, '**/*.turbo_stream.erb')).filter_map do |path|
+          path.sub("#{views_dir}/", '')
         end.sort
       end
 
       def extract_model_broadcasts
-        models_dir = File.join(root, "app/models")
+        models_dir = File.join(root, 'app/models')
         return [] unless Dir.exist?(models_dir)
 
         broadcasts = []
-        Dir.glob(File.join(models_dir, "**/*.rb")).each do |path|
+        Dir.glob(File.join(models_dir, '**/*.rb')).each do |path|
           content = File.read(path)
-          model_name = File.basename(path, ".rb").camelize
+          model_name = File.basename(path, '.rb').camelize
 
           broadcast_methods = content.scan(/\b(broadcasts_to|broadcasts_refreshes_to|broadcasts)\b/).flatten.uniq
           next if broadcast_methods.empty?
@@ -72,7 +72,7 @@ module RailsAiBridge
         end
 
         broadcasts.sort_by { |b| b[:model] }
-      rescue
+      rescue StandardError
         []
       end
     end

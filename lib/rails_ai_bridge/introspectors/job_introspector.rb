@@ -25,27 +25,35 @@ module RailsAiBridge
       def extract_jobs
         return [] unless defined?(ActiveJob::Base)
 
-        ActiveJob::Base.descendants.filter_map do |job|
-          next if job.name.nil? || job.name == "ApplicationJob" ||
-                  job.name.start_with?("ActionMailer", "ActiveStorage::", "ActionMailbox::", "Turbo::", "Sentry::")
+        jobs = ActiveJob::Base.descendants.filter_map do |job|
+          next if job.name.nil? || job.name == 'ApplicationJob' ||
+                  job.name.start_with?('ActionMailer', 'ActiveStorage::', 'ActionMailbox::', 'Turbo::', 'Sentry::')
 
           queue = job.queue_name
-          queue = queue.call rescue queue.to_s if queue.is_a?(Proc)
+          if queue.is_a?(Proc)
+            queue = begin
+              queue.call
+            rescue StandardError
+              queue.to_s
+            end
+          end
 
           {
             name: job.name,
             queue: queue.to_s,
             priority: job.priority
           }.compact
-        end.sort_by { |j| j[:name] }
-      rescue
+        end
+
+        jobs.sort_by { |job| job[:name] }
+      rescue StandardError
         []
       end
 
       def extract_mailers
         return [] unless defined?(ActionMailer::Base)
 
-        ActionMailer::Base.descendants.filter_map do |mailer|
+        mailers = ActionMailer::Base.descendants.filter_map do |mailer|
           next if mailer.name.nil?
 
           actions = mailer.instance_methods(false).map(&:to_s).sort
@@ -56,25 +64,29 @@ module RailsAiBridge
             actions: actions,
             delivery_method: mailer.delivery_method.to_s
           }
-        end.sort_by { |m| m[:name] }
-      rescue
+        end
+
+        mailers.sort_by { |mailer| mailer[:name] }
+      rescue StandardError
         []
       end
 
       def extract_channels
         return [] unless defined?(ActionCable::Channel::Base)
 
-        ActionCable::Channel::Base.descendants.filter_map do |channel|
-          next if channel.name.nil? || channel.name == "ApplicationCable::Channel"
+        channels = ActionCable::Channel::Base.descendants.filter_map do |channel|
+          next if channel.name.nil? || channel.name == 'ApplicationCable::Channel'
 
           {
             name: channel.name,
             stream_methods: channel.instance_methods(false)
-              .select { |m| m.to_s.start_with?("stream_") || m == :subscribed }
-              .map(&:to_s)
+                            .select { |m| m.to_s.start_with?('stream_') || m == :subscribed }
+                            .map(&:to_s)
           }
-        end.sort_by { |c| c[:name] }
-      rescue
+        end
+
+        channels.sort_by { |channel| channel[:name] }
+      rescue StandardError
         []
       end
     end

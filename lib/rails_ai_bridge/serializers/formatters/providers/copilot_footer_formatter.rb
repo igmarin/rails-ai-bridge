@@ -7,7 +7,7 @@ module RailsAiBridge
       class CopilotFooterFormatter < Base
         # @return [String]
         def call
-          RegenerationFooter.markdown(command: "rails ai:bridge", variant: :auto_short)
+          RegenerationFooter.markdown(command: 'rails ai:bridge', variant: :auto_short)
         end
       end
     end

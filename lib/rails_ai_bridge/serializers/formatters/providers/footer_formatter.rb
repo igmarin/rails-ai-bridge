@@ -7,7 +7,7 @@ module RailsAiBridge
       class FooterFormatter < Base
         # @return [String]
         def call
-          RegenerationFooter.markdown(command: "rails ai:bridge", variant: :context_file)
+          RegenerationFooter.markdown(command: 'rails ai:bridge', variant: :context_file)
         end
       end
     end

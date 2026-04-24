@@ -12,7 +12,7 @@ module RailsAiBridge
         # @param context [Hash] Introspection hash from {Introspector#call}.
         # @param config [RailsAiBridge::Configuration] Bridge configuration.
         def initialize(context, config: RailsAiBridge.configuration)
-          super(context, config: config)
+          super
         end
 
         # @return [String] Windsurf rules file body, capped at +MAX_CHARS+ when over the limit.
@@ -33,7 +33,7 @@ module RailsAiBridge
         def render
           lines = []
           lines << "# #{context[:app_name]} — Rails #{context[:rails_version]}"
-          lines << ""
+          lines << ''
 
           # Stack (very compact)
           lines.concat(render_stack_overview)
@@ -42,13 +42,13 @@ module RailsAiBridge
           gems = context[:gems]
           if gems.is_a?(Hash) && !gems[:error]
             notable = gems[:notable_gems] || gems[:notable] || gems[:detected] || []
-            grouped = notable.group_by { |g| g[:category]&.to_s || "other" }
+            grouped = notable.group_by { |g| g[:category]&.to_s || 'other' }
             grouped.first(6).each do |cat, gem_list|
               lines << "#{cat}: #{gem_list.map { |g| g[:name] }.first(4).join(', ')}"
             end
           end
 
-          lines << ""
+          lines << ''
 
           # Key models — complexity-sorted, with column hints and migration flags
           models = context[:models]
@@ -56,7 +56,7 @@ module RailsAiBridge
             schema_tables = context.dig(:schema, :tables) || {}
             migrations    = context[:migrations]
 
-            lines << "## Key Models"
+            lines << '## Key Models'
             sorted = models.sort_by { |_name, data| -ContextSummary.model_complexity_score(data) }
             sorted.first(20).each do |name, data|
               table_name = data[:table_name]
@@ -65,37 +65,37 @@ module RailsAiBridge
               cols = ContextSummary.top_columns(schema_tables[table_name])
               line += " [cols: #{cols.map { |c| "#{c[:name]}:#{c[:type]}" }.join(', ')}]" if cols.any?
 
-              line += " [recently migrated]" if table_name && ContextSummary.recently_migrated?(table_name, migrations)
+              line += ' [recently migrated]' if table_name && ContextSummary.recently_migrated?(table_name, migrations)
 
               lines << line
             end
             lines << "- ...#{models.size - 20} more" if models.size > 20
-            lines << ""
+            lines << ''
           end
 
           # Architecture
           lines.concat(render_architecture)
 
           # Key Config Files (compacted version from BaseProviderSerializer)
-          lines << "## Key Config Files"
+          lines << '## Key Config Files'
           config_files = context.dig(:conventions, :config_files) || []
           config_files.first(3).each { |f| lines << "- `#{f}`" }
-          lines << ""
+          lines << ''
 
           # Key Considerations (Performance & Security - compacted version)
-          lines << "## Key Considerations"
-          lines << "- Performance: N+1s, indexes. Use `rails_get_schema`."
-          lines << "- Security: Sanitize input, strong params."
-          lines << "- Data Drift: Use MCP tools for live data."
-          lines << ""
+          lines << '## Key Considerations'
+          lines << '- Performance: N+1s, indexes. Use `rails_get_schema`.'
+          lines << '- Security: Sanitize input, strong params.'
+          lines << '- Data Drift: Use MCP tools for live data.'
+          lines << ''
 
           # Commands (compacted version)
-          lines << "## Commands"
-          lines << "- `bin/dev` — dev server"
+          lines << '## Commands'
+          lines << '- `bin/dev` — dev server'
           lines << "- `#{ContextSummary.test_command(context)}` — run tests"
-          lines << "- `bundle exec rubocop` — linter"
-          lines << "- `rails db:migrate` — migrations"
-          lines << ""
+          lines << '- `bundle exec rubocop` — linter'
+          lines << '- `rails db:migrate` — migrations'
+          lines << ''
 
           # MCP tools — compact but complete (character budget is tight)
           lines << '## MCP Tools (detail:"summary"|"standard"|"full")'
@@ -103,19 +103,19 @@ module RailsAiBridge
           lines << '- rails_get_model_details(model:"Name"|detail:"sum")'
           lines << '- rails_get_routes(controller:"name"|detail:"sum"|limit:N)'
           lines << '- rails_get_controllers(controller:"Name"|detail:"sum")'
-          lines << "- rails_get_config — cache, session, middleware"
-          lines << "- rails_get_test_info — framework, factories, CI"
-          lines << "- rails_get_gems — categorized gems"
-          lines << "- rails_get_conventions — architecture patterns"
+          lines << '- rails_get_config — cache, session, middleware'
+          lines << '- rails_get_test_info — framework, factories, CI'
+          lines << '- rails_get_gems — categorized gems'
+          lines << '- rails_get_conventions — architecture patterns'
           lines << '- `rails_search_code(pattern:"regex"|file_type:"rb"|max_results:N)`'
           lines << 'Start with detail:"summary", then drill into specifics.'
-          lines << ""
-          lines << "## Behavioral Rules"
-          lines << "- Adhere to Conventions"
-          lines << "- Schema as Source of Truth"
-          lines << "- Respect Existing Logic"
-          lines << "- Write Tests"
-          lines << "- Verify Correctness with `rubocop` and tests"
+          lines << ''
+          lines << '## Behavioral Rules'
+          lines << '- Adhere to Conventions'
+          lines << '- Schema as Source of Truth'
+          lines << '- Respect Existing Logic'
+          lines << '- Write Tests'
+          lines << '- Verify Correctness with `rubocop` and tests'
 
           lines.join("\n")
         end

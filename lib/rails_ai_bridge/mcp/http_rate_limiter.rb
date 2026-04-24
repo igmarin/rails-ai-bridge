@@ -18,7 +18,7 @@ module RailsAiBridge
       # @param ip [String, nil] client identifier (blank values share the +unknown+ bucket)
       # @return [Boolean] +true+ if the request may proceed
       def allow?(ip)
-        key = ip.to_s.presence || "unknown"
+        key = ip.to_s.presence || 'unknown'
         now = @clock.call
         window_start = now - @window_seconds
 

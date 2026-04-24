@@ -15,7 +15,7 @@ module RailsAiBridge
           installed: defined?(ActionMailbox) ? true : false,
           mailboxes: extract_mailboxes
         }
-      rescue => e
+      rescue StandardError => e
         { error: e.message }
       end
 
@@ -26,24 +26,26 @@ module RailsAiBridge
       end
 
       def extract_mailboxes
-        dir = File.join(root, "app/mailboxes")
+        dir = File.join(root, 'app/mailboxes')
         return [] unless Dir.exist?(dir)
 
-        Dir.glob(File.join(dir, "**/*.rb")).filter_map do |path|
-          relative = path.sub("#{dir}/", "")
-          next if relative == "application_mailbox.rb"
+        mailboxes = Dir.glob(File.join(dir, '**/*.rb')).filter_map do |path|
+          relative = path.sub("#{dir}/", '')
+          next if relative == 'application_mailbox.rb'
 
           content = File.read(path)
-          name = File.basename(path, ".rb").camelize
+          name = File.basename(path, '.rb').camelize
 
           routing = content.scan(/routing\s+(.+?)\s+=>\s+:(\w+)/).map do |match|
             { pattern: match[0], action: match[1] }
           end
 
           { name: name, file: relative, routing: routing }
-        rescue
+        rescue StandardError
           nil
-        end.sort_by { |m| m[:name] }
+        end
+
+        mailboxes.sort_by { |mailbox| mailbox[:name] }
       end
     end
   end

@@ -61,6 +61,7 @@ module RailsAiBridge
       # @return [Result] self for chaining
       def on_success(&block)
         return self unless success && block
+
         tap(&block)
       end
 
@@ -71,6 +72,7 @@ module RailsAiBridge
       # @return [Result] self for chaining
       def on_failure(&block)
         return self unless failure? && block
+
         tap(&block)
       end
 

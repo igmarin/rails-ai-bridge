@@ -4,33 +4,34 @@ module RailsAiBridge
   module Introspectors
     # Discovers mounted Rails engines and Rack apps from config/routes.rb.
     # Identifies well-known engines and provides context about what each does.
-    class EngineIntrospector # rubocop:disable Metrics/ClassLength
+    class EngineIntrospector
       attr_reader :app
 
       KNOWN_ENGINES = {
-        "Sidekiq::Web" => { category: :admin, description: "Sidekiq background job dashboard" },
-        "GoodJob::Engine" => { category: :admin, description: "GoodJob dashboard for background jobs" },
-        "MissionControl::Jobs::Engine" => { category: :admin, description: "Rails Mission Control for SolidQueue jobs" },
-        "ActiveAdmin::Engine" => { category: :admin, description: "ActiveAdmin administration framework" },
-        "RailsAdmin::Engine" => { category: :admin, description: "Rails Admin dashboard" },
-        "Administrate::Engine" => { category: :admin, description: "Thoughtbot Administrate dashboard" },
-        "Avo::Engine" => { category: :admin, description: "Avo admin panel" },
-        "Madmin::Engine" => { category: :admin, description: "Madmin admin interface" },
-        "Flipper::UI" => { category: :feature_flags, description: "Flipper feature flag dashboard" },
-        "Flipper::Api" => { category: :feature_flags, description: "Flipper feature flag API" },
-        "PgHero::Engine" => { category: :monitoring, description: "PgHero PostgreSQL performance dashboard" },
-        "Blazer::Engine" => { category: :monitoring, description: "Blazer SQL query dashboard" },
-        "Coverband::Engine" => { category: :monitoring, description: "Coverband code coverage in production" },
-        "Rswag::Api::Engine" => { category: :api_docs, description: "Rswag API documentation (Swagger)" },
-        "Rswag::Ui::Engine" => { category: :api_docs, description: "Rswag Swagger UI" },
-        "GraphiQL::Rails::Engine" => { category: :api_docs, description: "GraphiQL in-browser IDE for GraphQL" },
-        "Lookbook::Engine" => { category: :ui, description: "Lookbook ViewComponent previews" },
-        "LetterOpenerWeb::Engine" => { category: :dev_tools, description: "Letter Opener Web email preview" },
-        "ActionCable.server" => { category: :realtime, description: "Action Cable WebSocket server" },
-        "Devise::Engine" => { category: :auth, description: "Devise authentication engine" },
-        "Doorkeeper::Engine" => { category: :auth, description: "Doorkeeper OAuth 2 provider" },
-        "ActionMailbox::Engine" => { category: :mail, description: "Action Mailbox inbound email processing" },
-        "ActiveStorage::Engine" => { category: :storage, description: "Active Storage file uploads" }
+        'Sidekiq::Web' => { category: :admin, description: 'Sidekiq background job dashboard' },
+        'GoodJob::Engine' => { category: :admin, description: 'GoodJob dashboard for background jobs' },
+        'MissionControl::Jobs::Engine' => { category: :admin,
+                                            description: 'Rails Mission Control for SolidQueue jobs' },
+        'ActiveAdmin::Engine' => { category: :admin, description: 'ActiveAdmin administration framework' },
+        'RailsAdmin::Engine' => { category: :admin, description: 'Rails Admin dashboard' },
+        'Administrate::Engine' => { category: :admin, description: 'Thoughtbot Administrate dashboard' },
+        'Avo::Engine' => { category: :admin, description: 'Avo admin panel' },
+        'Madmin::Engine' => { category: :admin, description: 'Madmin admin interface' },
+        'Flipper::UI' => { category: :feature_flags, description: 'Flipper feature flag dashboard' },
+        'Flipper::Api' => { category: :feature_flags, description: 'Flipper feature flag API' },
+        'PgHero::Engine' => { category: :monitoring, description: 'PgHero PostgreSQL performance dashboard' },
+        'Blazer::Engine' => { category: :monitoring, description: 'Blazer SQL query dashboard' },
+        'Coverband::Engine' => { category: :monitoring, description: 'Coverband code coverage in production' },
+        'Rswag::Api::Engine' => { category: :api_docs, description: 'Rswag API documentation (Swagger)' },
+        'Rswag::Ui::Engine' => { category: :api_docs, description: 'Rswag Swagger UI' },
+        'GraphiQL::Rails::Engine' => { category: :api_docs, description: 'GraphiQL in-browser IDE for GraphQL' },
+        'Lookbook::Engine' => { category: :ui, description: 'Lookbook ViewComponent previews' },
+        'LetterOpenerWeb::Engine' => { category: :dev_tools, description: 'Letter Opener Web email preview' },
+        'ActionCable.server' => { category: :realtime, description: 'Action Cable WebSocket server' },
+        'Devise::Engine' => { category: :auth, description: 'Devise authentication engine' },
+        'Doorkeeper::Engine' => { category: :auth, description: 'Doorkeeper OAuth 2 provider' },
+        'ActionMailbox::Engine' => { category: :mail, description: 'Action Mailbox inbound email processing' },
+        'ActiveStorage::Engine' => { category: :storage, description: 'Active Storage file uploads' }
       }.freeze
 
       def initialize(app)
@@ -43,7 +44,7 @@ module RailsAiBridge
           mounted_engines: discover_mounted_engines,
           rails_engines: discover_rails_engines
         }
-      rescue => e
+      rescue StandardError => e
         { error: e.message }
       end
 
@@ -54,7 +55,7 @@ module RailsAiBridge
       end
 
       def discover_mounted_engines
-        routes_path = File.join(root, "config/routes.rb")
+        routes_path = File.join(root, 'config/routes.rb')
         return [] unless File.exist?(routes_path)
 
         content = File.read(routes_path)
@@ -82,7 +83,7 @@ module RailsAiBridge
 
           engines << {
             engine: engine_name,
-            path: "unknown",
+            path: 'unknown',
             category: known[:category].to_s,
             description: known[:description]
           }
@@ -94,16 +95,18 @@ module RailsAiBridge
       def discover_rails_engines
         return [] unless defined?(Rails::Engine)
 
-        Rails::Engine.subclasses.filter_map do |engine|
+        engines = Rails::Engine.subclasses.filter_map do |engine|
           next if engine.name.nil?
-          next if engine.name == "RailsAiBridge::Engine"
-          next if engine.name.start_with?("Rails::", "ActionPack::", "ActionView::", "ActiveModel::")
+          next if engine.name == 'RailsAiBridge::Engine'
+          next if engine.name.start_with?('Rails::', 'ActionPack::', 'ActionView::', 'ActiveModel::')
 
-          { name: engine.name, root: engine.root.to_s.sub("#{Gem.dir}/gems/", "") }
-        rescue
+          { name: engine.name, root: engine.root.to_s.sub("#{Gem.dir}/gems/", '') }
+        rescue StandardError
           nil
-        end.sort_by { |e| e[:name] }
-      rescue
+        end
+
+        engines.sort_by { |engine| engine[:name] }
+      rescue StandardError
         []
       end
     end

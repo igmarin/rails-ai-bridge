@@ -28,8 +28,8 @@ module RailsAiBridge
       # @param args [Array] positional arguments passed to initialize
       # @param kwargs [Hash] keyword arguments passed to initialize
       # @return [Service::Result] result from the service call
-      def call(*args, **kwargs)
-        new(*args, **kwargs).call
+      def call(*, **)
+        new(*, **).call
       end
     end
 

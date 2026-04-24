@@ -31,8 +31,8 @@ module RailsAiBridge
           next if route.defaults[:controller].blank?
 
           {
-            verb: route.verb.presence || "ANY",
-            path: route.path.spec.to_s.gsub("(.:format)", ""),
+            verb: route.verb.presence || 'ANY',
+            path: route.path.spec.to_s.gsub('(.:format)', ''),
             controller: route.defaults[:controller],
             action: route.defaults[:action],
             name: route.name,
@@ -44,7 +44,7 @@ module RailsAiBridge
       def extract_constraints(route)
         constraints = route.constraints.to_s
         constraints.empty? ? nil : constraints
-      rescue
+      rescue StandardError
         nil
       end
 
@@ -66,17 +66,18 @@ module RailsAiBridge
 
       def detect_mounted_engines
         app.routes.routes
-          .select { |r| r.app.respond_to?(:app) && r.app.app.is_a?(Class) }
-          .filter_map do |r|
-            engine_class = r.app.app
-            next unless engine_class < Rails::Engine
-            {
-              engine: engine_class.name,
-              path: r.path.spec.to_s
-            }
-          rescue
-            nil
-          end
+           .select { |r| r.app.respond_to?(:app) && r.app.app.is_a?(Class) }
+           .filter_map do |r|
+             engine_class = r.app.app
+             next unless engine_class < Rails::Engine
+
+             {
+               engine: engine_class.name,
+               path: r.path.spec.to_s
+             }
+           rescue StandardError
+             nil
+           end
       end
     end
   end

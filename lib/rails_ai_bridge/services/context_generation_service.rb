@@ -34,6 +34,7 @@ module RailsAiBridge
       # @param serializer_class [Class] Serializer class (see {.call})
       # @param format [Symbol] Output format passed to the serializer
       def initialize(context_data, serializer_class: Serializers::ContextFileSerializer, format: :all)
+        super()
         @context_data = context_data
         @serializer_class = serializer_class
         @format = format
@@ -56,7 +57,7 @@ module RailsAiBridge
 
         Service::Result.new(true, data: normalized)
       rescue StandardError => e
-        Service::Result.new(false, errors: [ e.message ])
+        Service::Result.new(false, errors: [e.message])
       end
     end
   end

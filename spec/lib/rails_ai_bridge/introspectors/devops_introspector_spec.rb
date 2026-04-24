@@ -1,35 +1,35 @@
 # frozen_string_literal: true
 
-require "spec_helper"
+require 'spec_helper'
 
 RSpec.describe RailsAiBridge::Introspectors::DevOpsIntrospector do
   let(:introspector) { described_class.new(Rails.application) }
 
-  describe "#call" do
+  describe '#call' do
     subject(:result) { introspector.call }
 
-    it "does not return an error" do
+    it 'does not return an error' do
       expect(result).not_to have_key(:error)
     end
 
-    it "returns nil for puma when no config exists" do
+    it 'returns nil for puma when no config exists' do
       expect(result[:puma]).to be_nil
     end
 
-    it "returns empty procfile array when no Procfile exists" do
+    it 'returns empty procfile array when no Procfile exists' do
       expect(result[:procfile]).to eq([])
     end
 
-    it "returns nil for deployment when no deploy config exists" do
+    it 'returns nil for deployment when no deploy config exists' do
       expect(result[:deployment]).to be_nil
     end
 
-    it "returns nil for docker when no Dockerfile exists" do
+    it 'returns nil for docker when no Dockerfile exists' do
       expect(result[:docker]).to be_nil
     end
 
-    context "with a Puma config" do
-      let(:puma_config) { File.join(Rails.root, "config/puma.rb") }
+    context 'with a Puma config' do
+      let(:puma_config) { Rails.root.join('config/puma.rb').to_s }
 
       before do
         File.write(puma_config, <<~RUBY)
@@ -41,22 +41,22 @@ RSpec.describe RailsAiBridge::Introspectors::DevOpsIntrospector do
 
       after { FileUtils.rm_f(puma_config) }
 
-      it "extracts Puma threads" do
+      it 'extracts Puma threads' do
         expect(result[:puma][:threads_min]).to eq(5)
         expect(result[:puma][:threads_max]).to eq(10)
       end
 
-      it "extracts Puma workers" do
+      it 'extracts Puma workers' do
         expect(result[:puma][:workers]).to eq(2)
       end
 
-      it "extracts Puma port" do
+      it 'extracts Puma port' do
         expect(result[:puma][:port]).to eq(3000)
       end
     end
 
-    context "with a Procfile" do
-      let(:procfile) { File.join(Rails.root, "Procfile") }
+    context 'with a Procfile' do
+      let(:procfile) { Rails.root.join('Procfile').to_s }
 
       before do
         File.write(procfile, <<~PROCFILE)
@@ -67,15 +67,15 @@ RSpec.describe RailsAiBridge::Introspectors::DevOpsIntrospector do
 
       after { FileUtils.rm_f(procfile) }
 
-      it "parses Procfile entries" do
+      it 'parses Procfile entries' do
         entries = result[:procfile].flat_map { |p| p[:entries] }
-        names = entries.map { |e| e[:name] }
-        expect(names).to include("web", "worker")
+        names = entries.pluck(:name)
+        expect(names).to include('web', 'worker')
       end
     end
 
-    context "with a Dockerfile" do
-      let(:dockerfile) { File.join(Rails.root, "Dockerfile") }
+    context 'with a Dockerfile' do
+      let(:dockerfile) { Rails.root.join('Dockerfile').to_s }
 
       before do
         File.write(dockerfile, <<~DOCKER)
@@ -87,23 +87,23 @@ RSpec.describe RailsAiBridge::Introspectors::DevOpsIntrospector do
 
       after { FileUtils.rm_f(dockerfile) }
 
-      it "detects multi-stage Docker build" do
+      it 'detects multi-stage Docker build' do
         expect(result[:docker][:multi_stage]).to be true
-        expect(result[:docker][:base_images]).to include("ruby:3.3-slim AS base")
+        expect(result[:docker][:base_images]).to include('ruby:3.3-slim AS base')
       end
     end
 
-    context "with health check route" do
-      let(:routes_file) { File.join(Rails.root, "config/routes.rb") }
+    context 'with health check route' do
+      let(:routes_file) { Rails.root.join('config/routes.rb').to_s }
       let(:original_routes) { File.read(routes_file) }
 
       before do
-        File.write(routes_file, original_routes + "\n# get \"up\" => \"rails/health#show\"\n")
+        File.write(routes_file, "#{original_routes}\n# get \"up\" => \"rails/health#show\"\n")
       end
 
       after { File.write(routes_file, original_routes) }
 
-      it "detects health check with word boundary" do
+      it 'detects health check with word boundary' do
         expect(result[:health_check]).to be true
       end
     end

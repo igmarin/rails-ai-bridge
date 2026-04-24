@@ -1,23 +1,23 @@
 # frozen_string_literal: true
 
-require "spec_helper"
+require 'spec_helper'
 
 RSpec.describe RailsAiBridge::Fingerprinter do
-  describe ".compute" do
-    it "returns a hex digest string" do
+  describe '.compute' do
+    it 'returns a hex digest string' do
       result = described_class.compute(Rails.application)
       expect(result).to match(/\A[a-f0-9]{64}\z/)
     end
 
-    it "returns the same value on repeated calls with no changes" do
+    it 'returns the same value on repeated calls with no changes' do
       a = described_class.compute(Rails.application)
       b = described_class.compute(Rails.application)
       expect(a).to eq(b)
     end
 
-    it "detects changes to .rake files" do
+    it 'detects changes to .rake files' do
       before = described_class.compute(Rails.application)
-      rake_file = File.join(Rails.root, "lib/tasks/example.rake")
+      rake_file = Rails.root.join('lib/tasks/example.rake').to_s
       original_mtime = File.mtime(rake_file)
 
       # Touch the file to change mtime
@@ -30,9 +30,9 @@ RSpec.describe RailsAiBridge::Fingerprinter do
       expect(before).not_to eq(after)
     end
 
-    it "detects changes to .erb view files" do
+    it 'detects changes to .erb view files' do
       before = described_class.compute(Rails.application)
-      erb_file = File.join(Rails.root, "app/views/posts/index.html.erb")
+      erb_file = Rails.root.join('app/views/posts/index.html.erb').to_s
       original_mtime = File.mtime(erb_file)
 
       FileUtils.touch(erb_file)
@@ -43,30 +43,30 @@ RSpec.describe RailsAiBridge::Fingerprinter do
       expect(before).not_to eq(after)
     end
 
-    it "detects changes to .js stimulus controllers" do
-      controllers_dir = File.join(Rails.root, "app/javascript/controllers")
+    it 'detects changes to .js stimulus controllers' do
+      controllers_dir = Rails.root.join('app/javascript/controllers').to_s
       FileUtils.mkdir_p(controllers_dir)
-      js_file = File.join(controllers_dir, "test_controller.js")
-      File.write(js_file, "// test")
+      js_file = File.join(controllers_dir, 'test_controller.js')
+      File.write(js_file, '// test')
 
       before = described_class.compute(Rails.application)
       FileUtils.touch(js_file)
       after = described_class.compute(Rails.application)
 
-      FileUtils.rm_rf(File.join(Rails.root, "app/javascript"))
+      FileUtils.rm_rf(Rails.root.join('app/javascript').to_s)
 
       expect(before).not_to eq(after)
     end
   end
 
-  describe ".changed?" do
-    it "returns false when fingerprint matches" do
+  describe '.changed?' do
+    it 'returns false when fingerprint matches' do
       current = described_class.compute(Rails.application)
       expect(described_class.changed?(Rails.application, current)).to be false
     end
 
-    it "returns true when fingerprint differs" do
-      expect(described_class.changed?(Rails.application, "stale")).to be true
+    it 'returns true when fingerprint differs' do
+      expect(described_class.changed?(Rails.application, 'stale')).to be true
     end
   end
 end

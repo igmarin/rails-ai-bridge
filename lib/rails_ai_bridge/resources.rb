@@ -1,82 +1,83 @@
 # frozen_string_literal: true
 
-require "cgi"
-require "mcp"
+require 'cgi'
+require 'mcp'
 
 module RailsAiBridge
   # Registers MCP resources and resource templates that expose
   # static introspection data AI clients can read directly.
   module Resources
     STATIC_RESOURCES = {
-      "rails://bridge/meta" => {
-        name: "Bridge Metadata",
-        description: "Bridge runtime metadata including version, enabled introspectors, tools, resources, and cache settings",
-        mime_type: "application/json"
+      'rails://bridge/meta' => {
+        name: 'Bridge Metadata',
+        description: 'Bridge runtime metadata including version, enabled introspectors, tools, ' \
+                     'resources, and cache settings',
+        mime_type: 'application/json'
       },
-      "rails://schema" => {
-        name: "Database Schema",
-        description: "Full database schema including tables, columns, indexes, and foreign keys",
-        mime_type: "application/json",
+      'rails://schema' => {
+        name: 'Database Schema',
+        description: 'Full database schema including tables, columns, indexes, and foreign keys',
+        mime_type: 'application/json',
         key: :schema
       },
-      "rails://routes" => {
-        name: "Application Routes",
-        description: "All routes with HTTP verbs, paths, and controller actions",
-        mime_type: "application/json",
+      'rails://routes' => {
+        name: 'Application Routes',
+        description: 'All routes with HTTP verbs, paths, and controller actions',
+        mime_type: 'application/json',
         key: :routes
       },
-      "rails://conventions" => {
-        name: "Conventions & Patterns",
-        description: "Detected architecture patterns, conventions, and directory structure",
-        mime_type: "application/json",
+      'rails://conventions' => {
+        name: 'Conventions & Patterns',
+        description: 'Detected architecture patterns, conventions, and directory structure',
+        mime_type: 'application/json',
         key: :conventions
       },
-      "rails://gems" => {
-        name: "Notable Gems",
-        description: "Gem dependencies categorized by function with explanations",
-        mime_type: "application/json",
+      'rails://gems' => {
+        name: 'Notable Gems',
+        description: 'Gem dependencies categorized by function with explanations',
+        mime_type: 'application/json',
         key: :gems
       },
-      "rails://controllers" => {
-        name: "Controllers",
-        description: "All controllers with actions, filters, strong params, and concerns",
-        mime_type: "application/json",
+      'rails://controllers' => {
+        name: 'Controllers',
+        description: 'All controllers with actions, filters, strong params, and concerns',
+        mime_type: 'application/json',
         key: :controllers
       },
-      "rails://config" => {
-        name: "Application Config",
-        description: "Application configuration including cache, sessions, middleware, and initializers",
-        mime_type: "application/json",
+      'rails://config' => {
+        name: 'Application Config',
+        description: 'Application configuration including cache, sessions, middleware, and initializers',
+        mime_type: 'application/json',
         key: :config
       },
-      "rails://tests" => {
-        name: "Test Infrastructure",
-        description: "Test framework, factories, fixtures, CI, and coverage configuration",
-        mime_type: "application/json",
+      'rails://tests' => {
+        name: 'Test Infrastructure',
+        description: 'Test framework, factories, fixtures, CI, and coverage configuration',
+        mime_type: 'application/json',
         key: :tests
       },
-      "rails://migrations" => {
-        name: "Migrations",
-        description: "Migration history, pending migrations, and migration statistics",
-        mime_type: "application/json",
+      'rails://migrations' => {
+        name: 'Migrations',
+        description: 'Migration history, pending migrations, and migration statistics',
+        mime_type: 'application/json',
         key: :migrations
       },
-      "rails://engines" => {
-        name: "Mounted Engines",
-        description: "Mounted Rails engines and Rack apps with paths and descriptions",
-        mime_type: "application/json",
+      'rails://engines' => {
+        name: 'Mounted Engines',
+        description: 'Mounted Rails engines and Rack apps with paths and descriptions',
+        mime_type: 'application/json',
         key: :engines
       },
-      "rails://views" => {
-        name: "Views",
-        description: "View layer structure including layouts, templates, partials, helpers, and components",
-        mime_type: "application/json",
+      'rails://views' => {
+        name: 'Views',
+        description: 'View layer structure including layouts, templates, partials, helpers, and components',
+        mime_type: 'application/json',
         key: :views
       },
-      "rails://stimulus" => {
-        name: "Stimulus Controllers",
-        description: "Stimulus controller inventory with targets, values, actions, outlets, and classes",
-        mime_type: "application/json",
+      'rails://stimulus' => {
+        name: 'Stimulus Controllers',
+        description: 'Stimulus controller inventory with targets, values, actions, outlets, and classes',
+        mime_type: 'application/json',
         key: :stimulus
       }
     }.freeze
@@ -111,22 +112,22 @@ module RailsAiBridge
       def build_templates
         [
           MCP::ResourceTemplate.new(
-            uri_template: "rails://models/{name}",
-            name: "Model Details",
-            description: "Detailed information about a specific ActiveRecord model",
-            mime_type: "application/json"
+            uri_template: 'rails://models/{name}',
+            name: 'Model Details',
+            description: 'Detailed information about a specific ActiveRecord model',
+            mime_type: 'application/json'
           ),
           MCP::ResourceTemplate.new(
-            uri_template: "rails://views/{path}",
-            name: "View Details",
-            description: "Detailed information about a specific view template or partial",
-            mime_type: "application/json"
+            uri_template: 'rails://views/{path}',
+            name: 'View Details',
+            description: 'Detailed information about a specific view template or partial',
+            mime_type: 'application/json'
           ),
           MCP::ResourceTemplate.new(
-            uri_template: "rails://stimulus/{name}",
-            name: "Stimulus Controller Details",
-            description: "Detailed information about a specific Stimulus controller",
-            mime_type: "application/json"
+            uri_template: 'rails://stimulus/{name}',
+            name: 'Stimulus Controller Details',
+            description: 'Detailed information about a specific Stimulus controller',
+            mime_type: 'application/json'
           )
         ]
       end
@@ -138,7 +139,7 @@ module RailsAiBridge
       # @param server [MCP::Server] server instance to register the handler on
       # @return [void]
       def register(server)
-        require "json"
+        require 'json'
 
         server.resources_read_handler do |params|
           handle_read(params)
@@ -165,7 +166,7 @@ module RailsAiBridge
       end
 
       def read_static_resource(uri)
-        return bridge_metadata if uri == "rails://bridge/meta"
+        return bridge_metadata if uri == 'rails://bridge/meta'
 
         definition = resource_definitions[uri]
         return unless definition
@@ -233,7 +234,9 @@ module RailsAiBridge
       def read_stimulus_resource(name)
         data = ContextProvider.fetch_section(:stimulus) || {}
         controllers = Array(data[:controllers])
-        controllers.find { |entry| entry[:name].to_s.casecmp?(name) } || { error: "Stimulus controller '#{name}' not found" }
+        controllers.find do |entry|
+          entry[:name].to_s.casecmp?(name)
+        end || { error: "Stimulus controller '#{name}' not found" }
       end
 
       # Formats a JSON MCP resource response payload for the requested URI.
@@ -243,7 +246,7 @@ module RailsAiBridge
       # @return [Array<Hash>] MCP resource response rows
       def json_resource(uri, payload)
         content = JSON.pretty_generate(payload)
-        [ { uri: uri, mime_type: "application/json", text: content } ]
+        [{ uri: uri, mime_type: 'application/json', text: content }]
       end
     end
   end

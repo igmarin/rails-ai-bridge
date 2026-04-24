@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require "logger"
+require 'logger'
 
 module RailsAiBridge
   module Mcp
     # One-line JSON logs for the MCP HTTP Rack path when {Config::Mcp#http_log_json} is enabled.
     # Does not log tokens or Rack +env+ bodies.
     module HttpStructuredLog
-      MESSAGE_KEY = "rails_ai_bridge.mcp.http"
+      MESSAGE_KEY = 'rails_ai_bridge.mcp.http'
 
       class << self
         # Emits a single JSON line via +Rails.logger+ (or +$stdout+) when logging is on.
@@ -27,7 +27,7 @@ module RailsAiBridge
             path: request.path,
             client_ip: request.ip.to_s
           }
-          rid = request.env["action_dispatch.request_id"]
+          rid = request.env['action_dispatch.request_id']
           payload[:request_id] = rid if rid.present?
           extra.each { |k, v| payload[k] = v unless v.nil? }
 
@@ -40,7 +40,7 @@ module RailsAiBridge
           if defined?(Rails) && Rails.logger
             Rails.logger
           else
-            @fallback_logger ||= Logger.new($stdout)
+            @target_logger ||= Logger.new($stdout)
           end
         end
       end

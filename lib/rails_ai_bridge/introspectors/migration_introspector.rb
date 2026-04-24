@@ -20,7 +20,7 @@ module RailsAiBridge
           schema_version: current_schema_version,
           migration_stats: migration_stats
         }
-      rescue => e
+      rescue StandardError => e
         { error: e.message }
       end
 
@@ -31,32 +31,32 @@ module RailsAiBridge
       end
 
       def migrate_dir
-        File.join(root, "db/migrate")
+        File.join(root, 'db/migrate')
       end
 
       # Parse all migration files from db/migrate/
       def all_migrations
-        @all_migrations ||= begin
-          return [] unless Dir.exist?(migrate_dir)
+        @all_migrations ||= if Dir.exist?(migrate_dir)
+                              Dir.glob(File.join(migrate_dir, '*.rb')).map do |path|
+                                filename = File.basename(path, '.rb')
+                                version = filename.split('_').first
+                                name = filename.sub(/\A\d+_/, '').tr('_', ' ').capitalize
 
-          Dir.glob(File.join(migrate_dir, "*.rb")).sort.map do |path|
-            filename = File.basename(path, ".rb")
-            version = filename.split("_").first
-            name = filename.sub(/\A\d+_/, "").tr("_", " ").capitalize
+                                content = File.read(path)
+                                actions = detect_migration_actions(content)
 
-            content = File.read(path)
-            actions = detect_migration_actions(content)
-
-            {
-              version: version,
-              name: name,
-              filename: File.basename(path),
-              actions: actions
-            }
-          rescue => e
-            { version: "unknown", name: File.basename(path), error: e.message }
-          end
-        end
+                                {
+                                  version: version,
+                                  name: name,
+                                  filename: File.basename(path),
+                                  actions: actions
+                                }
+                              rescue StandardError => e
+                                { version: 'unknown', name: File.basename(path), error: e.message }
+                              end
+                            else
+                              []
+                            end
       end
 
       def recent_migrations(count)
@@ -73,7 +73,7 @@ module RailsAiBridge
                 { version: m.version.to_s, name: m.name }
               end
             end
-          rescue => _e
+          rescue StandardError => _e
             # Fall through to file-based detection
           end
         end
@@ -87,13 +87,13 @@ module RailsAiBridge
       end
 
       def current_schema_version
-        schema_path = File.join(root, "db/schema.rb")
+        schema_path = File.join(root, 'db/schema.rb')
         return nil unless File.exist?(schema_path)
 
         content = File.read(schema_path)
         match = content.match(/version:\s*([\d_]+)/)
-        match ? match[1].delete("_") : nil
-      rescue
+        match ? match[1].delete('_') : nil
+      rescue StandardError
         nil
       end
 
@@ -102,14 +102,14 @@ module RailsAiBridge
 
         by_year = all_migrations.group_by do |m|
           version = m[:version].to_s
-          version.length >= 4 ? version[0..3] : "unknown"
+          version.length >= 4 ? version[0..3] : 'unknown'
         end
 
         {
           by_year: by_year.transform_values(&:count),
-          total_create_table: all_migrations.count { |m| m[:actions]&.include?("create_table") },
-          total_add_column: all_migrations.count { |m| m[:actions]&.include?("add_column") },
-          total_add_index: all_migrations.count { |m| m[:actions]&.include?("add_index") }
+          total_create_table: all_migrations.count { |m| m[:actions]&.include?('create_table') },
+          total_add_column: all_migrations.count { |m| m[:actions]&.include?('add_column') },
+          total_add_index: all_migrations.count { |m| m[:actions]&.include?('add_index') }
         }
       end
 

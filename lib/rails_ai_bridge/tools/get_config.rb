@@ -4,18 +4,18 @@ module RailsAiBridge
   module Tools
     # MCP tool exposing application configuration (cache, session, timezone, middleware, initializers).
     class GetConfig < BaseTool
-      tool_name "rails_get_config"
-      description "Get Rails application configuration including cache store, session store, timezone, middleware stack, and initializers."
+      tool_name 'rails_get_config'
+      description 'Get Rails application configuration including cache store, session store, timezone, middleware stack, and initializers.'
 
       input_schema(properties: {})
 
       annotations(read_only_hint: true, destructive_hint: false, idempotent_hint: true, open_world_hint: false)
 
-      # @param server_context [Object, nil] reserved for MCP transport metadata
+      # @param _server_context [Object, nil] reserved for MCP transport metadata (unused)
       # @return [MCP::Tool::Response] markdown configuration summary or an error message
-      def self.call(server_context: nil)
+      def self.call(_server_context: nil)
         data = cached_section(:config)
-        return text_response("Config introspection not available. Add :config to introspectors or use `config.preset = :full`.") unless data
+        return text_response('Config introspection not available. Add :config to introspectors or use `config.preset = :full`.') unless data
         return text_response("Config introspection failed: #{data[:error]}") if data[:error]
 
         formatter = ResponseFormatter.new(data)
@@ -30,23 +30,23 @@ module RailsAiBridge
         end
 
         def format
-          lines = [ "# Application Configuration", "" ]
+          lines = ['# Application Configuration', '']
           lines << "- **Cache store:** #{@config_data[:cache_store]}" if @config_data[:cache_store]
           lines << "- **Session store:** #{@config_data[:session_store]}" if @config_data[:session_store]
           lines << "- **Timezone:** #{@config_data[:timezone]}" if @config_data[:timezone]
 
           if @config_data[:middleware_stack]&.any?
-            lines << "" << "## Middleware Stack"
+            lines << '' << '## Middleware Stack'
             @config_data[:middleware_stack].each { |m| lines << "- #{m}" }
           end
 
           if @config_data[:initializers]&.any?
-            lines << "" << "## Initializers"
+            lines << '' << '## Initializers'
             @config_data[:initializers].each { |i| lines << "- `#{i}`" }
           end
 
           if @config_data[:current_attributes]&.any?
-            lines << "" << "## CurrentAttributes"
+            lines << '' << '## CurrentAttributes'
             @config_data[:current_attributes].each { |c| lines << "- `#{c}`" }
           end
 

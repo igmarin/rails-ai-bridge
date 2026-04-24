@@ -14,16 +14,16 @@ module RailsAiBridge
         def render(data)
           return unless data[:multi_db]
 
-          lines = [ "## Multi-Database" ]
+          lines = ['## Multi-Database']
           if data[:databases]&.any?
             data[:databases].each do |db|
-              replica = db[:replica] ? " (replica)" : ""
+              replica = db[:replica] ? ' (replica)' : ''
               lines << "- `#{db[:name]}` — #{db[:adapter]}#{replica}"
             end
           end
 
           if data[:model_connections]&.any?
-            lines << "### Model Connections"
+            lines << '### Model Connections'
             data[:model_connections].each do |c|
               lines << "- `#{c[:model]}` → #{c[:connects_to] || 'custom connection'}"
             end

@@ -17,7 +17,7 @@ module RailsAiBridge
         # @raise [NotImplementedError] unless overridden in a concrete checker
         # @return [Doctor::Check]
         def call
-          raise NotImplementedError, "subclasses must implement #call"
+          raise NotImplementedError, 'subclasses must implement #call'
         end
 
         private

@@ -1,78 +1,72 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require "thor"
+require 'thor'
 
 module RailsAiBridge
   class CLI < Thor
-    desc "serve", "Start MCP server (stdio transport)"
-    option :transport, type: :string, default: "stdio", desc: "Transport: stdio or http"
-    option :port, type: :numeric, default: 6029, desc: "HTTP port (only for http transport)"
+    desc 'serve', 'Start MCP server (stdio transport)'
+    option :transport, type: :string, default: 'stdio', desc: 'Transport: stdio or http'
+    option :port, type: :numeric, default: 6029, desc: 'HTTP port (only for http transport)'
     def serve
       boot_rails!
-      require "rails_ai_bridge"
+      require 'rails_ai_bridge'
 
       transport = options[:transport].to_sym
-      if transport == :http
-        RailsAiBridge.configuration.http_port = options[:port]
-      end
+      RailsAiBridge.configuration.http_port = options[:port] if transport == :http
 
       RailsAiBridge.start_mcp_server(transport: transport)
     end
 
-    desc "bridge", "Generate AI bridge files"
-    option :format, type: :string, default: "all", desc: "Format: claude, cursor, windsurf, copilot, json, all"
+    desc 'bridge', 'Generate AI bridge files'
+    option :format, type: :string, default: 'all', desc: 'Format: claude, cursor, windsurf, copilot, json, all'
     def bridge
       boot_rails!
-      require "rails_ai_bridge"
+      require 'rails_ai_bridge'
 
       format = options[:format].to_sym
-      $stderr.puts "Introspecting Rails app..."
+      warn 'Introspecting Rails app...'
       result = RailsAiBridge.generate_context(format: format)
-      result[:written].each { |f| $stderr.puts "  Written: #{f}" }
-      result[:skipped].each { |f| $stderr.puts "  Skipped: #{f} (unchanged)" }
+      result[:written].each { |f| warn "  Written: #{f}" }
+      result[:skipped].each { |f| warn "  Skipped: #{f} (unchanged)" }
     end
 
-    desc "inspect", "Print introspection summary"
+    desc 'inspect', 'Print introspection summary'
     def inspect_app
       boot_rails!
-      require "rails_ai_bridge"
-      require "json"
+      require 'rails_ai_bridge'
+      require 'json'
 
       context = RailsAiBridge.introspect
       puts JSON.pretty_generate(context)
     end
 
-    desc "watch", "Watch for changes and auto-regenerate context files"
+    desc 'watch', 'Watch for changes and auto-regenerate context files'
     def watch
       boot_rails!
-      require "rails_ai_bridge"
+      require 'rails_ai_bridge'
 
       RailsAiBridge::Watcher.new.start
     end
 
-    desc "doctor", "Run diagnostic checks and report AI readiness score"
+    desc 'doctor', 'Run diagnostic checks and report AI readiness score'
     def doctor
       boot_rails!
-      require "rails_ai_bridge"
+      require 'rails_ai_bridge'
 
       result = RailsAiBridge::Doctor.new.run
       result[:checks].each do |check|
-        icon = case check.status
-        when :pass then "PASS"
-        when :warn then "WARN"
-        when :fail then "FAIL"
-        end
-        $stderr.puts "  [#{icon}] #{check.name}: #{check.message}"
-        $stderr.puts "         Fix: #{check.fix}" if check.fix
+        icon = { pass: 'PASS', warn: 'WARN', fail: 'FAIL' }[check.status]
+        warn "  [#{icon}] #{check.name}: #{check.message}"
+        warn "         Fix: #{check.fix}" if check.fix
       end
-      $stderr.puts ""
-      $stderr.puts "AI Readiness Score: #{result[:score]}/100"
+      warn ''
+      warn "AI Readiness Score: #{result[:score]}/100"
     end
 
-    desc "version", "Print version"
+    desc 'version', 'Print version'
     def version
-      require_relative "../lib/rails_ai_bridge/version"
+      require_relative '../lib/rails_ai_bridge/version'
       puts "rails-ai-bridge v#{RailsAiBridge::VERSION}"
     end
 
@@ -80,12 +74,12 @@ module RailsAiBridge
 
     def boot_rails!
       # Try to find and boot the Rails app
-      config_path = File.join(Dir.pwd, "config", "environment.rb")
+      config_path = File.join(Dir.pwd, 'config', 'environment.rb')
       if File.exist?(config_path)
         require config_path
       else
-        $stderr.puts "Error: No Rails app found in #{Dir.pwd}"
-        $stderr.puts "Run this command from your Rails app root directory."
+        warn "Error: No Rails app found in #{Dir.pwd}"
+        warn 'Run this command from your Rails app root directory.'
         exit 1
       end
     end

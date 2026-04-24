@@ -32,8 +32,8 @@ module RailsAiBridge
       # @yieldparam config [RailsAiBridge::Configuration] Current configuration singleton
       # @return [RailsAiBridge::Service::Result] Success with `data` set to the configuration,
       #   or failure with `errors` populated
-      def self.call(&block)
-        new.call(&block)
+      def self.call(&)
+        new.call(&)
       end
 
       # Returns the current configuration, optionally yielding it for in-place updates.
@@ -52,7 +52,7 @@ module RailsAiBridge
           Service::Result.new(true, data: config)
         end
       rescue StandardError => e
-        Service::Result.new(false, errors: [ e.message ])
+        Service::Result.new(false, errors: [e.message])
       end
     end
   end

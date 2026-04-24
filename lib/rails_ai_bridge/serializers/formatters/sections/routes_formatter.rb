@@ -12,7 +12,7 @@ module RailsAiBridge
         private
 
         def render(data)
-          lines = [ "## Routes (#{data[:total_routes]} total)" ]
+          lines = ["## Routes (#{data[:total_routes]} total)"]
           data[:by_controller]&.sort&.each do |ctrl, actions|
             lines << "### #{ctrl}"
             actions.each do |r|

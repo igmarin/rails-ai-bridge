@@ -93,9 +93,7 @@ module RailsAiBridge
       # @raise [ArgumentError] when the preset is unknown
       def preset=(name)
         name = name.to_sym
-        unless Configuration::PRESETS.key?(name)
-          raise ArgumentError, "Unknown preset: #{name}. Valid presets: #{Configuration::PRESETS.keys.join(', ')}"
-        end
+        raise ArgumentError, "Unknown preset: #{name}. Valid presets: #{Configuration::PRESETS.keys.join(', ')}" unless Configuration::PRESETS.key?(name)
 
         @introspectors = Configuration::PRESETS[name].dup
       end

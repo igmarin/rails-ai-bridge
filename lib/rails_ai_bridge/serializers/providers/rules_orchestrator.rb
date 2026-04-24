@@ -3,7 +3,7 @@
 module RailsAiBridge
   module Serializers
     module Providers
-      require_relative "../shared_assistant_guidance"
+      require_relative '../shared_assistant_guidance'
 
       # Orchestrates the assembly of the compact project rules document.
       # This class takes over the responsibility of gathering and arranging
@@ -24,9 +24,9 @@ module RailsAiBridge
           lines = []
           # Custom header
           lines << "# #{@context[:app_name]} — Project Rules"
-          lines << ""
+          lines << ''
           lines << "Rails #{@context[:rails_version]} | Ruby #{@context[:ruby_version]}"
-          lines << ""
+          lines << ''
           lines.concat(SharedAssistantGuidance.compact_engineering_rules_lines)
 
           # Use shared sections
@@ -35,10 +35,10 @@ module RailsAiBridge
           lines.concat(render_architecture)
           lines.concat(render_key_considerations)
 
-          lines << ""
+          lines << ''
           lines.concat(SharedAssistantGuidance.repo_specific_guidance_section_lines)
 
-          lines << ""
+          lines << ''
 
           append_compact_cursorrules_models_section(lines, @context[:models])
 
@@ -62,7 +62,7 @@ module RailsAiBridge
           # Assume app_overview section has already been formatted by a dedicated AppOverviewFormatter
           # For RulesOrchestrator, we need to extract specific points or reformat if needed.
           # For simplicity here, just re-add basics.
-          lines << "## Application Stack & Overview"
+          lines << '## Application Stack & Overview'
           lines << "- **Name:** `#{@context[:app_name]}`" if @context[:app_name]
           lines << "- **Rails:** `#{@context[:rails_version]}`" if @context[:rails_version]
           lines << "- **Ruby:** `#{@context[:ruby_version]}`" if @context[:ruby_version]
@@ -76,8 +76,8 @@ module RailsAiBridge
         def render_notable_gems
           return [] unless @context[:gems] && @context[:gems][:notable_gems]&.any?
 
-          lines = [ "## Notable Gems" ]
-          @context[:gems][:notable_gems].sort_by { |g| [ g[:category], g[:name] ] }.each do |g|
+          lines = ['## Notable Gems']
+          @context[:gems][:notable_gems].sort_by { |g| [g[:category], g[:name]] }.each do |g|
             lines << "- `#{g[:name]}` (`#{g[:version]}`): #{g[:note]}"
           end
           lines
@@ -88,7 +88,7 @@ module RailsAiBridge
         def render_architecture
           return [] unless @context[:conventions] && @context[:conventions][:architecture]&.any?
 
-          lines = [ "## Architecture & Conventions" ]
+          lines = ['## Architecture & Conventions']
           @context[:conventions][:architecture].each { |a| lines << "- #{a.humanize}" }
           lines
         end
@@ -98,13 +98,9 @@ module RailsAiBridge
         def render_key_considerations
           return [] unless @context[:tests] || @context[:config]
 
-          lines = [ "## Key Development Considerations" ]
-          if @context[:tests] && @context[:tests][:framework]
-            lines << "- **Test Framework:** `#{@context[:tests][:framework]}`"
-          end
-          if @context[:config] && @context[:config][:cache_store]
-            lines << "- **Cache Store:** `#{@context[:config][:cache_store]}`"
-          end
+          lines = ['## Key Development Considerations']
+          lines << "- **Test Framework:** `#{@context[:tests][:framework]}`" if @context[:tests] && @context[:tests][:framework]
+          lines << "- **Cache Store:** `#{@context[:config][:cache_store]}`" if @context[:config] && @context[:config][:cache_store]
           lines
         end
 
@@ -117,7 +113,7 @@ module RailsAiBridge
           limit = @config.copilot_compact_model_list_limit.to_i # uses copilot limit for now
           lines << "## Models (#{models.size} total)"
           if limit <= 0
-            lines << %Q{- _Use `rails_get_model_details(detail:"summary")` for names._}
+            lines << %{- _Use `rails_get_model_details(detail:"summary")` for names._}
           else
             models.keys.sort.first(limit).each do |name|
               data = models[name]
@@ -125,9 +121,9 @@ module RailsAiBridge
               lines << "- #{name} (#{assoc_count} associations)"
             end
             remainder = models.size - limit
-            lines << %Q{- _...#{remainder} more — `rails_get_model_details(detail:"summary")`._} if remainder.positive?
+            lines << %{- _...#{remainder} more — `rails_get_model_details(detail:"summary")`._} if remainder.positive?
           end
-          lines << ""
+          lines << ''
         end
 
         # @return [Array<String>] Markdown lines for the shared footer.

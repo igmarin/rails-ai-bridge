@@ -1,43 +1,43 @@
 # frozen_string_literal: true
 
-require "spec_helper"
+require 'spec_helper'
 
 RSpec.describe RailsAiBridge::Serializers::MarkdownSerializer do
   let(:context) { RailsAiBridge.introspect }
 
-  describe "#call" do
+  describe '#call' do
     subject(:output) { described_class.new(context).call }
 
-    it "returns a markdown string" do
+    it 'returns a markdown string' do
       expect(output).to be_a(String)
-      expect(output).to include("# ")
+      expect(output).to include('# ')
     end
 
-    it "includes the app overview or stack context in the header" do
+    it 'includes the app overview or stack context in the header' do
       expect(output).to match(/Application Overview|AI Context/)
     end
 
-    it "includes database schema section" do
-      expect(output).to include("## Database Schema")
+    it 'includes database schema section' do
+      expect(output).to include('## Database Schema')
     end
 
-    it "includes routes section" do
-      expect(output).to include("## Routes")
+    it 'includes routes section' do
+      expect(output).to include('## Routes')
     end
 
-    it "includes the footer" do
-      expect(output).to include("rails ai:bridge")
+    it 'includes the footer' do
+      expect(output).to include('rails ai:bridge')
     end
 
-    it "sections are separated by double newlines" do
+    it 'sections are separated by double newlines' do
       expect(output).to include("\n\n##")
     end
 
-    it "includes models section" do
-      expect(output).to include("## Models")
+    it 'includes models section' do
+      expect(output).to include('## Models')
     end
 
-    it "does not include nil sections (compact join)" do
+    it 'does not include nil sections (compact join)' do
       expect(output).not_to include("\n\n\n\n")
     end
   end
@@ -46,10 +46,10 @@ end
 RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeSerializer do
   let(:context) { RailsAiBridge.introspect }
 
-  describe "#call" do
+  describe '#call' do
     subject(:output) { described_class.new(context).call }
 
-    context "in compact mode (default)" do
+    context 'in compact mode (default)' do
       around do |example|
         original_context_mode = RailsAiBridge.configuration.context_mode
         RailsAiBridge.configuration.context_mode = :compact
@@ -58,20 +58,20 @@ RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeSerializer do
         RailsAiBridge.configuration.context_mode = original_context_mode
       end
 
-      it "includes AI Context header" do
-        expect(output).to include("AI Context")
+      it 'includes AI Context header' do
+        expect(output).to include('AI Context')
       end
 
-      it "includes MCP tools section" do
-        expect(output).to include("MCP tools")
+      it 'includes MCP tools section' do
+        expect(output).to include('MCP tools')
       end
 
-      it "includes rules section" do
-        expect(output).to include("## Rules")
+      it 'includes rules section' do
+        expect(output).to include('## Rules')
       end
     end
 
-    context "in full mode" do
+    context 'in full mode' do
       around do |example|
         original_context_mode = RailsAiBridge.configuration.context_mode
         RailsAiBridge.configuration.context_mode = :full
@@ -80,12 +80,12 @@ RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeSerializer do
         RailsAiBridge.configuration.context_mode = original_context_mode
       end
 
-      it "includes Claude-specific header" do
-        expect(output).to include("Claude Code")
+      it 'includes Claude-specific header' do
+        expect(output).to include('Claude Code')
       end
 
-      it "includes behavioral rules section" do
-        expect(output).to include("## Behavioral Rules")
+      it 'includes behavioral rules section' do
+        expect(output).to include('## Behavioral Rules')
       end
     end
   end
@@ -94,11 +94,11 @@ end
 RSpec.describe RailsAiBridge::Serializers::Providers::RulesSerializer do
   let(:context) { RailsAiBridge.introspect }
 
-  describe "#call" do
+  describe '#call' do
     subject(:output) { described_class.new(context).call }
 
-    it "uses compact project rules header" do
-      expect(output).to include("Project Rules")
+    it 'uses compact project rules header' do
+      expect(output).to include('Project Rules')
     end
   end
 end
@@ -106,10 +106,10 @@ end
 RSpec.describe RailsAiBridge::Serializers::Providers::CopilotSerializer do
   let(:context) { RailsAiBridge.introspect }
 
-  describe "#call" do
+  describe '#call' do
     subject(:output) { described_class.new(context).call }
 
-    context "in compact mode (default)" do
+    context 'in compact mode (default)' do
       around do |example|
         original_context_mode = RailsAiBridge.configuration.context_mode
         RailsAiBridge.configuration.context_mode = :compact
@@ -118,12 +118,12 @@ RSpec.describe RailsAiBridge::Serializers::Providers::CopilotSerializer do
         RailsAiBridge.configuration.context_mode = original_context_mode
       end
 
-      it "uses Copilot-specific header" do
-        expect(output).to include("Copilot Context")
+      it 'uses Copilot-specific header' do
+        expect(output).to include('Copilot Context')
       end
     end
 
-    context "in full mode" do
+    context 'in full mode' do
       around do |example|
         original_context_mode = RailsAiBridge.configuration.context_mode
         RailsAiBridge.configuration.context_mode = :full
@@ -132,8 +132,8 @@ RSpec.describe RailsAiBridge::Serializers::Providers::CopilotSerializer do
         RailsAiBridge.configuration.context_mode = original_context_mode
       end
 
-      it "uses Copilot Instructions header" do
-        expect(output).to include("Copilot Instructions")
+      it 'uses Copilot Instructions header' do
+        expect(output).to include('Copilot Instructions')
       end
     end
   end

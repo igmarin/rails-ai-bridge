@@ -25,8 +25,10 @@ module RailsAiBridge
       # `{ error: <message> }` for that model.
       ##
       # Builds a metadata map for all discovered ActiveRecord models.
-      # For each model, the map contains the extracted metadata hash; if extraction fails for a model, its value will be a hash with an `:error` key and the error message.
-      # @return [Hash<String, Hash>] Mapping from model name to its metadata hash or `{ error: String }` on failure.
+      # For each model, the map contains the extracted metadata hash; if extraction fails for a model,
+      # its value will be a hash with an `:error` key and the error message.
+      # @return [Hash<String, Hash>] Mapping from model name to its metadata hash or
+      #   `{ error: String }` on failure.
       def call
         eager_load_models!
         models = discover_models
@@ -38,7 +40,7 @@ module RailsAiBridge
 
         models.each_with_object({}) do |model, hash|
           hash[model.name] = extract_model_details(model, classifier)
-        rescue => e
+        rescue StandardError => e
           hash[model.name] = { error: e.message }
         end
       end
@@ -47,7 +49,7 @@ module RailsAiBridge
 
       def eager_load_models!
         Rails.application.eager_load! unless Rails.application.config.eager_load
-      rescue
+      rescue StandardError
         # In some environments (CI, Claude Code) eager_load may partially fail
         nil
       end
@@ -55,7 +57,9 @@ module RailsAiBridge
       ##
       # Determines whether the model's database table is excluded by the inspector configuration.
       # @param [Class] model - The ActiveRecord model class whose table name will be checked.
-      # @return [Boolean] `true` if the model's table name is listed as excluded in the configuration, `false` otherwise (returns `false` if the model has no table name or if an error occurs while retrieving it).
+      # @return [Boolean] `true` if the model's table name is listed as excluded in the configuration,
+      #   `false` otherwise (returns `false` if the model has no table name or if an error occurs
+      #   while retrieving it).
       def model_table_excluded?(model)
         # model.table_name can raise on STI subclasses that inherit a non-existent table
         tn = model.table_name
@@ -76,7 +80,9 @@ module RailsAiBridge
       # - models whose name appears in `config.excluded_models`,
       # - models whose table is excluded via `model_table_excluded?`.
       ##
-      # Finds all non-abstract ActiveRecord model classes in the application, excluding models with no name, models listed in configuration, or models whose table is excluded, and returns them sorted by class name.
+      # Finds all non-abstract ActiveRecord model classes in the application, excluding models
+      # with no name, models listed in configuration, or models whose table is excluded, and
+      # returns them sorted by class name.
       # Returns an empty array if `ActiveRecord::Base` is not defined.
       # @return [Array<Class>] Array of discovered model classes sorted by name.
       def discover_models
@@ -93,7 +99,8 @@ module RailsAiBridge
       ##
       # Builds a hash of introspected metadata for the given ActiveRecord model.
       # @param [Class] model - The ActiveRecord model class to inspect.
-      # @param [#call] classifier - An object that responds to `call(model)` and returns a hash containing `:tier` and `:reason` for semantic classification.
+      # @param [#call] classifier - An object that responds to `call(model)` and returns a hash
+      #   containing `:tier` and `:reason` for semantic classification.
       # @return [Hash] A compacted hash of model metadata including:
       #   - :table_name => String model's table name
       #   - :associations => Array of association descriptors
@@ -108,9 +115,11 @@ module RailsAiBridge
       #   - :semantic_tier_reason => Value returned as `:reason` by the classifier
       ##
       # Build a metadata hash describing the given ActiveRecord model.
-      # Populates model structural metadata, semantic classification results, and source-derived macro signals.
+      # Populates model structural metadata, semantic classification results, and source-derived
+      # macro signals.
       # @param [Class] model - The ActiveRecord model class to introspect.
-      # @param [Object] classifier - A semantic classifier responding to `call(model)` that returns a hash with `:tier` and `:reason`.
+      # @param [Object] classifier - A semantic classifier responding to `call(model)` that returns
+      #   a hash with `:tier` and `:reason`.
       # @return [Hash] A compacted hash of metadata including:
       #   - `:table_name` - model's table name
       #   - `:associations` - array of association descriptors
@@ -157,7 +166,7 @@ module RailsAiBridge
             class_name: assoc.class_name,
             foreign_key: assoc.foreign_key.to_s
           }
-          detail[:through]    = assoc.options[:through].to_s if assoc.options[:through]
+          detail[:through] = assoc.options[:through].to_s if assoc.options[:through]
           detail[:polymorphic] = true if assoc.options[:polymorphic]
           detail[:dependent]  = assoc.options[:dependent].to_s if assoc.options[:dependent]
           detail[:optional]   = assoc.options[:optional] if assoc.options.key?(:optional)
@@ -180,22 +189,20 @@ module RailsAiBridge
         return [] unless source_path && File.exist?(source_path)
 
         File.read(source_path).scan(/^\s*scope\s+:(\w+)/).flatten
-      rescue
+      rescue StandardError
         []
       end
 
       def model_source_path(model)
         root = app.root.to_s
         underscored = model.name.underscore
-        File.join(root, "app", "models", "#{underscored}.rb")
+        File.join(root, 'app', 'models', "#{underscored}.rb")
       end
 
       def extract_enums(model)
         return {} unless model.respond_to?(:defined_enums)
 
-        model.defined_enums.transform_values do |mapping|
-          mapping.keys
-        end
+        model.defined_enums.transform_values(&:keys)
       end
 
       def extract_callbacks(model)
@@ -217,21 +224,21 @@ module RailsAiBridge
 
           hash[type.to_s] = callbacks.map { |cb| cb.filter.to_s }
         end
-      rescue
+      rescue StandardError
         {}
       end
 
       def extract_concerns(model)
         model.ancestors
-          .select { |mod| mod.is_a?(Module) && !mod.is_a?(Class) }
-          .reject { |mod| mod.name&.start_with?("ActiveRecord", "ActiveModel", "ActiveSupport") }
-          .map(&:name)
-          .compact
+             .select { |mod| mod.is_a?(Module) && !mod.is_a?(Class) }
+             .reject { |mod| mod.name&.start_with?('ActiveRecord', 'ActiveModel', 'ActiveSupport') }
+             .map(&:name)
+             .compact
       end
 
       def extract_public_class_methods(model)
         (model.methods - ActiveRecord::Base.methods - Object.methods)
-          .reject { |m| m.to_s.start_with?("_", "autosave") }
+          .reject { |m| m.to_s.start_with?('_', 'autosave') }
           .sort
           .first(30) # Cap to avoid noise
           .map(&:to_s)
@@ -239,7 +246,7 @@ module RailsAiBridge
 
       def extract_public_instance_methods(model)
         (model.instance_methods - ActiveRecord::Base.instance_methods - Object.instance_methods)
-          .reject { |m| m.to_s.start_with?("_", "autosave", "validate_associated") }
+          .reject { |m| m.to_s.start_with?('_', 'autosave', 'validate_associated') }
           .sort
           .first(30)
           .map(&:to_s)
@@ -253,15 +260,38 @@ module RailsAiBridge
         macros = {}
 
         macros[:has_secure_password] = true if source.match?(/\bhas_secure_password\b/)
-        macros[:encrypts] = source.scan(/\bencrypts\s+(.+)/).flat_map { |m| m[0].scan(/:(\w+)/).flatten } if source.match?(/\bencrypts\s+:/)
-        macros[:normalizes] = source.scan(/\bnormalizes\s+(.+)/).flat_map { |m| m[0].scan(/:(\w+)/).flatten } if source.match?(/\bnormalizes\s+:/)
-        macros[:has_one_attached] = source.scan(/\bhas_one_attached\s+:(\w+)/).flatten if source.match?(/\bhas_one_attached\s+:/)
-        macros[:has_many_attached] = source.scan(/\bhas_many_attached\s+:(\w+)/).flatten if source.match?(/\bhas_many_attached\s+:/)
+        if source.match?(/\bencrypts\s+:/)
+          macros[:encrypts] = source.scan(/\bencrypts\s+(.+)/).flat_map do |m|
+            m[0].scan(/:(\w+)/).flatten
+          end
+        end
+        if source.match?(/\bnormalizes\s+:/)
+          macros[:normalizes] = source.scan(/\bnormalizes\s+(.+)/).flat_map do |m|
+            m[0].scan(/:(\w+)/).flatten
+          end
+        end
+        if source.match?(/\bhas_one_attached\s+:/)
+          macros[:has_one_attached] =
+            source.scan(/\bhas_one_attached\s+:(\w+)/).flatten
+        end
+        if source.match?(/\bhas_many_attached\s+:/)
+          macros[:has_many_attached] =
+            source.scan(/\bhas_many_attached\s+:(\w+)/).flatten
+        end
         macros[:has_rich_text] = source.scan(/\bhas_rich_text\s+:(\w+)/).flatten if source.match?(/\bhas_rich_text\s+:/)
-        macros[:broadcasts] = source.scan(/\b(broadcasts_to|broadcasts_refreshes_to|broadcasts)\b/).flatten.uniq if source.match?(/\bbroadcasts/)
-        macros[:generates_token_for] = source.scan(/\bgenerates_token_for\s+:(\w+)/).flatten if source.match?(/\bgenerates_token_for\s+:/)
+        if source.match?(/\bbroadcasts/)
+          macros[:broadcasts] =
+            source.scan(/\b(broadcasts_to|broadcasts_refreshes_to|broadcasts)\b/).flatten.uniq
+        end
+        if source.match?(/\bgenerates_token_for\s+:/)
+          macros[:generates_token_for] =
+            source.scan(/\bgenerates_token_for\s+:(\w+)/).flatten
+        end
         macros[:serialize] = source.scan(/\bserialize\s+:(\w+)/).flatten if source.match?(/\bserialize\s+:/)
-        macros[:store] = source.scan(/\bstore(?:_accessor)?\s+:(\w+)/).flatten if source.match?(/\bstore(?:_accessor)?\s+:/)
+        if source.match?(/\bstore(?:_accessor)?\s+:/)
+          macros[:store] =
+            source.scan(/\bstore(?:_accessor)?\s+:(\w+)/).flatten
+        end
 
         # Delegations
         delegations = source.scan(/\bdelegate\s+(.+?),\s*to:\s*:(\w+)/).map do |methods_str, target|
@@ -275,7 +305,7 @@ module RailsAiBridge
 
         # Remove empty arrays
         macros.reject { |_, v| v.is_a?(Array) && v.empty? }
-      rescue
+      rescue StandardError
         {}
       end
 

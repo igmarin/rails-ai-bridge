@@ -14,7 +14,7 @@ module RailsAiBridge
         def render(data)
           return unless data[:mailboxes]&.any?
 
-          lines = [ "## Action Mailbox" ]
+          lines = ['## Action Mailbox']
           data[:mailboxes].each { |m| lines << "- `#{m[:name]}`" }
           lines.join("\n")
         end

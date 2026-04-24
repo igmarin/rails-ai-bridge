@@ -9,13 +9,13 @@ module RailsAiBridge
       attr_reader :context, :format
 
       FORMAT_MAP = {
-        claude:    "CLAUDE.md",
-        codex:     "AGENTS.md",
-        cursor:    ".cursorrules",
-        windsurf:  ".windsurfrules",
-        copilot:   ".github/copilot-instructions.md",
-        json:      ".ai-context.json",
-        gemini:    "GEMINI.md"
+        claude: 'CLAUDE.md',
+        codex: 'AGENTS.md',
+        cursor: '.cursorrules',
+        windsurf: '.windsurfrules',
+        copilot: '.github/copilot-instructions.md',
+        json: '.ai-context.json',
+        gemini: 'GEMINI.md'
       }.freeze
 
       def initialize(context, format: :all)
@@ -34,7 +34,7 @@ module RailsAiBridge
         formats.each do |fmt|
           filename = FORMAT_MAP[fmt]
           unless filename
-            valid = FORMAT_MAP.keys.map(&:to_s).join(", ")
+            valid = FORMAT_MAP.keys.join(', ')
             raise ArgumentError, "Unknown format: #{fmt}. Valid formats: #{valid}"
           end
 
@@ -99,11 +99,11 @@ module RailsAiBridge
           skipped.concat(result[:skipped])
         end
 
-        if formats.include?(:copilot)
-          result = Providers::CopilotInstructionsSerializer.new(context).call(output_dir)
-          written.concat(result[:written])
-          skipped.concat(result[:skipped])
-        end
+        return unless formats.include?(:copilot)
+
+        result = Providers::CopilotInstructionsSerializer.new(context).call(output_dir)
+        written.concat(result[:written])
+        skipped.concat(result[:skipped])
       end
     end
   end

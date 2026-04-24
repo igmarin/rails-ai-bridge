@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require_relative "simplecov_helper"
+require_relative 'reek_helper'
 require 'bundler/setup'
-require "combustion"
+require 'combustion'
 
 # Resolve the dummy app under project ./spec/internal (gem default "/spec/internal" is an absolute path).
-Combustion.path = "spec/internal"
+Combustion.path = 'spec/internal'
 
 Combustion.initialize! :active_record, :action_controller do
   config.eager_load = false
@@ -15,7 +15,7 @@ end
 # that fires, leaving :memory: SQLite empty. Load schema synchronously for deterministic specs.
 Combustion::Database.setup
 
-require "rails_ai_bridge"
+require 'rails_ai_bridge'
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|
@@ -28,7 +28,7 @@ RSpec.configure do |config|
 
   config.shared_context_metadata_behavior = :apply_to_host_groups
   config.filter_run_when_matching :focus
-  config.example_status_persistence_file_path = "spec/examples.txt"
+  config.example_status_persistence_file_path = 'spec/examples.txt'
   config.disable_monkey_patching!
   config.order = :random
   Kernel.srand config.seed

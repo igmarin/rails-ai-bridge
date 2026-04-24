@@ -14,9 +14,9 @@ module RailsAiBridge
         def render(data)
           return unless data[:tasks]&.any?
 
-          lines = [ "## Rake Tasks" ]
+          lines = ['## Rake Tasks']
           data[:tasks].each do |task|
-            desc = task[:description] ? " — #{task[:description]}" : ""
+            desc = task[:description] ? " — #{task[:description]}" : ''
             lines << "- `#{task[:name]}`#{desc}"
           end
           lines.join("\n")

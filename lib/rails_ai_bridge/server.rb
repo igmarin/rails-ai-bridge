@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "mcp"
+require 'mcp'
 
 module RailsAiBridge
   # Configures and starts an MCP server using the official Ruby SDK.
@@ -67,8 +67,8 @@ module RailsAiBridge
     def start_stdio(server)
       transport = MCP::Server::Transports::StdioTransport.new(server)
       # Log to stderr so we don't pollute the JSON-RPC channel on stdout
-      $stderr.puts "[rails-ai-bridge] MCP server started (stdio transport)"
-      $stderr.puts "[rails-ai-bridge] Tools: #{tool_classes.map { |t| t.tool_name }.join(', ')}"
+      warn '[rails-ai-bridge] MCP server started (stdio transport)'
+      warn "[rails-ai-bridge] Tools: #{tool_classes.map(&:tool_name).join(', ')}"
       transport.open
     end
 
@@ -81,14 +81,14 @@ module RailsAiBridge
       # Build a minimal Rack app that delegates to the MCP transport
       rack_app = build_rack_app(transport, config.http_path)
 
-      $stderr.puts "[rails-ai-bridge] MCP server starting on #{config.http_bind}:#{config.http_port}#{config.http_path}"
-      $stderr.puts "[rails-ai-bridge] Tools: #{tool_classes.map { |t| t.tool_name }.join(', ')}"
+      warn "[rails-ai-bridge] MCP server starting on #{config.http_bind}:#{config.http_port}#{config.http_path}"
+      warn "[rails-ai-bridge] Tools: #{tool_classes.map(&:tool_name).join(', ')}"
 
-      require "rackup"
+      require 'rackup'
       Rackup::Handler.default.run(rack_app, Host: config.http_bind, Port: config.http_port)
     rescue LoadError
       # Fallback for older rack without rackup gem
-      require "rack/handler"
+      require 'rack/handler'
       Rack::Handler.default.run(rack_app, Host: config.http_bind, Port: config.http_port)
     end
 

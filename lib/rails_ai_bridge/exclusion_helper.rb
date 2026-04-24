@@ -15,7 +15,7 @@ module RailsAiBridge
       return false if pattern.to_s.empty? || table_name.to_s.empty?
 
       pat = pattern.to_s
-      return pat == table_name unless pat.include?("*")
+      return pat == table_name unless pat.include?('*')
 
       File.fnmatch(pat, table_name, File::FNM_EXTGLOB)
     end

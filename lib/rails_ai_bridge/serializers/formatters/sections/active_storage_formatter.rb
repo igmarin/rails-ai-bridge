@@ -14,13 +14,9 @@ module RailsAiBridge
         def render(data)
           return unless data[:models]&.any? || data[:services]&.any?
 
-          lines = [ "## Active Storage" ]
-          if data[:models]&.any?
-            lines << "- Attached to: #{data[:models].map { |m| "`#{m}`" }.join(", ")}"
-          end
-          if data[:services]&.any?
-            lines << "- Services: #{data[:services].map { |s| "`#{s}`" }.join(", ")}"
-          end
+          lines = ['## Active Storage']
+          lines << "- Attached to: #{data[:models].map { |m| "`#{m}`" }.join(', ')}" if data[:models]&.any?
+          lines << "- Services: #{data[:services].map { |s| "`#{s}`" }.join(', ')}" if data[:services]&.any?
           lines.join("\n")
         end
       end

@@ -1,16 +1,17 @@
 # frozen_string_literal: true
 
-require "spec_helper"
+require 'spec_helper'
 
 RSpec.describe RailsAiBridge::Introspectors::MiddlewareIntrospector do
   let(:app) { Rails.application }
   let(:introspector) { described_class.new(app) }
 
-  before do
-    @middleware_dir = File.join(app.root.to_s, "app/middleware")
-    FileUtils.mkdir_p(@middleware_dir)
+  let(:middleware_dir) { File.join(app.root.to_s, 'app/middleware') }
 
-    File.write(File.join(@middleware_dir, "tenant_resolver.rb"), <<~RUBY)
+  before do
+    FileUtils.mkdir_p(middleware_dir)
+
+    File.write(File.join(middleware_dir, 'tenant_resolver.rb'), <<~RUBY)
       class TenantResolver
         def initialize(app)
           @app = app
@@ -32,7 +33,7 @@ RSpec.describe RailsAiBridge::Introspectors::MiddlewareIntrospector do
       end
     RUBY
 
-    File.write(File.join(@middleware_dir, "request_logger.rb"), <<~RUBY)
+    File.write(File.join(middleware_dir, 'request_logger.rb'), <<~RUBY)
       class RequestLogger
         def initialize(app)
           @app = app
@@ -47,42 +48,42 @@ RSpec.describe RailsAiBridge::Introspectors::MiddlewareIntrospector do
   end
 
   after do
-    FileUtils.rm_rf(@middleware_dir)
+    FileUtils.rm_rf(middleware_dir)
   end
 
-  describe "#call" do
+  describe '#call' do
     subject(:result) { introspector.call }
 
-    it "discovers custom middleware files" do
+    it 'discovers custom middleware files' do
       custom = result[:custom_middleware]
       expect(custom.size).to eq(2)
-      names = custom.map { |m| m[:class_name] }
-      expect(names).to include("TenantResolver", "RequestLogger")
+      names = custom.pluck(:class_name)
+      expect(names).to include('TenantResolver', 'RequestLogger')
     end
 
-    it "detects middleware patterns" do
-      tenant = result[:custom_middleware].find { |m| m[:class_name] == "TenantResolver" }
-      expect(tenant[:detected_patterns]).to include("tenant")
+    it 'detects middleware patterns' do
+      tenant = result[:custom_middleware].find { |m| m[:class_name] == 'TenantResolver' }
+      expect(tenant[:detected_patterns]).to include('tenant')
       expect(tenant[:has_call_method]).to be true
       expect(tenant[:initializes_app]).to be true
     end
 
-    it "detects logging pattern" do
-      logger = result[:custom_middleware].find { |m| m[:class_name] == "RequestLogger" }
-      expect(logger[:detected_patterns]).to include("logging")
+    it 'detects logging pattern' do
+      logger = result[:custom_middleware].find { |m| m[:class_name] == 'RequestLogger' }
+      expect(logger[:detected_patterns]).to include('logging')
     end
 
-    it "extracts middleware stack" do
+    it 'extracts middleware stack' do
       expect(result[:middleware_stack]).to be_an(Array)
       expect(result[:middleware_stack]).not_to be_empty
     end
 
-    it "returns middleware count" do
+    it 'returns middleware count' do
       expect(result[:middleware_count][:custom]).to eq(2)
       expect(result[:middleware_count][:total]).to be > 0
     end
 
-    it "does not return an error" do
+    it 'does not return an error' do
       expect(result[:error]).to be_nil
     end
   end

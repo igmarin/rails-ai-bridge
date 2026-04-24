@@ -12,7 +12,7 @@ module RailsAiBridge
         # @param request [Rack::Request]
         # @return [String, nil] token without the +"Bearer "+ prefix, or +nil+ when absent/malformed
         def extract_bearer(request)
-          auth = request.get_header("HTTP_AUTHORIZATION")
+          auth = request.get_header('HTTP_AUTHORIZATION')
           return nil if auth.blank?
 
           match = auth.match(/\ABearer\s+(.+)\z/i)

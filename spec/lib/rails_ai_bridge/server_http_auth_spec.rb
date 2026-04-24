@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "spec_helper"
+require 'spec_helper'
 
 RSpec.describe RailsAiBridge::Server do
   let(:server) { described_class.new(Rails.application, transport: :http) }
@@ -12,27 +12,27 @@ RSpec.describe RailsAiBridge::Server do
     RailsAiBridge.configuration.http_mcp_token = saved
   end
 
-  describe "Rack app from #build_rack_app" do
-    it "returns 401 when token is set and Authorization is missing" do
+  describe 'Rack app from #build_rack_app' do
+    it 'returns 401 when token is set and Authorization is missing' do
       transport = instance_double(MCP::Server::Transports::StreamableHTTPTransport)
-      RailsAiBridge.configuration.http_mcp_token = "rack-secret"
-      rack_app = server.send(:build_rack_app, transport, "/mcp")
-      env = Rack::MockRequest.env_for("/mcp", method: "POST")
+      RailsAiBridge.configuration.http_mcp_token = 'rack-secret'
+      rack_app = server.send(:build_rack_app, transport, '/mcp')
+      env = Rack::MockRequest.env_for('/mcp', method: 'POST')
       status, headers, = rack_app.call(env)
       expect(status).to eq(401)
-      expect(headers["WWW-Authenticate"]).to include("Bearer")
+      expect(headers['WWW-Authenticate']).to include('Bearer')
     end
 
-    it "delegates to the transport when Bearer matches" do
+    it 'delegates to the transport when Bearer matches' do
       transport = instance_double(MCP::Server::Transports::StreamableHTTPTransport)
-      RailsAiBridge.configuration.http_mcp_token = "rack-secret"
-      rack_app = server.send(:build_rack_app, transport, "/mcp")
+      RailsAiBridge.configuration.http_mcp_token = 'rack-secret'
+      rack_app = server.send(:build_rack_app, transport, '/mcp')
       env = Rack::MockRequest.env_for(
-        "/mcp",
-        method: "POST",
-        "HTTP_AUTHORIZATION" => "Bearer rack-secret"
+        '/mcp',
+        method: 'POST',
+        'HTTP_AUTHORIZATION' => 'Bearer rack-secret'
       )
-      expect(transport).to receive(:handle_request).and_return([ 200, {}, [ "OK" ] ])
+      allow(transport).to receive(:handle_request).and_return([200, {}, ['OK']])
       status, = rack_app.call(env)
       expect(status).to eq(200)
     end

@@ -7,7 +7,7 @@ module RailsAiBridge
       class RulesFooterFormatter < Base
         # @return [String]
         def call
-          RegenerationFooter.markdown(command: "rails ai:bridge", variant: :auto_branded)
+          RegenerationFooter.markdown(command: 'rails ai:bridge', variant: :auto_branded)
         end
       end
     end

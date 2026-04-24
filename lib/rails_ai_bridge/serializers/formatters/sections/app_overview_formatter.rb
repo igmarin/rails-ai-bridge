@@ -14,7 +14,7 @@ module RailsAiBridge
         def render(data)
           return unless data[:app_name] || data[:rails_version]
 
-          lines = [ "# Application Overview", "" ]
+          lines = ['# Application Overview', '']
           lines << "- **Name:** `#{data[:app_name]}`" if data[:app_name]
           lines << "- **Rails:** `#{data[:rails_version]}`" if data[:rails_version]
           lines << "- **Ruby:** `#{data[:ruby_version]}`" if data[:ruby_version]

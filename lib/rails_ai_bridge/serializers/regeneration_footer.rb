@@ -43,7 +43,7 @@ module RailsAiBridge
       # @param variant [Symbol]
       # @return [Array<String>]
       def continuation_lines(command:, variant:)
-        [ "", "---", message_line(command: command, variant: variant) ]
+        ['', '---', message_line(command: command, variant: variant)]
       end
     end
   end

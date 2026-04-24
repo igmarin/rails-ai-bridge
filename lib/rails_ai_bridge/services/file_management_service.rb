@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "fileutils"
+require 'fileutils'
 
 module RailsAiBridge
   module Services
@@ -27,8 +27,8 @@ module RailsAiBridge
       # @param kwargs [Hash] operation-specific arguments (+:path+ required for all supported operations;
       #   +:content+ required for +:write+)
       # @return [RailsAiBridge::Service::Result] success or failure with errors
-      def self.call(operation, **kwargs)
-        new.call(operation, **kwargs)
+      def self.call(operation, **)
+        new.call(operation, **)
       end
 
       # Dispatches the file operation after validating +operation+ and (for supported ops) the path.
@@ -38,20 +38,20 @@ module RailsAiBridge
       #   the filesystem.
       # @param kwargs [Hash] forwarded to the underlying operation (+:path+, +:content+, etc.)
       # @return [RailsAiBridge::Service::Result]
-      def call(operation, **kwargs)
-        return Service::Result.new(false, errors: [ "Operation cannot be nil" ]) if operation.nil?
+      def call(operation, **)
+        return Service::Result.new(false, errors: ['Operation cannot be nil']) if operation.nil?
 
         case operation.to_sym
         when :write
-          write_file(**kwargs)
+          write_file(**)
         when :read
-          read_file(**kwargs)
+          read_file(**)
         when :delete
-          delete_file(**kwargs)
+          delete_file(**)
         when :exist?
-          file_exists?(**kwargs)
+          file_exists?(**)
         else
-          Service::Result.new(false, errors: [ "Unsupported operation: #{operation}" ])
+          Service::Result.new(false, errors: ["Unsupported operation: #{operation}"])
         end
       end
 
@@ -78,7 +78,7 @@ module RailsAiBridge
       # @raise [SecurityError] if the expanded path escapes +base_dir+
       def validate_path!(path, base_dir = default_allowed_base_dir)
         path_string = path.to_s
-        raise ArgumentError, "path must be non-empty" if path_string.empty?
+        raise ArgumentError, 'path must be non-empty' if path_string.empty?
 
         base = File.expand_path(base_dir.to_s)
         expanded = File.expand_path(path_string, base)
@@ -104,7 +104,7 @@ module RailsAiBridge
         File.write(safe_path, content)
         Service::Result.new(true, data: { path: safe_path, bytes_written: content.bytesize })
       rescue SecurityError, StandardError => e
-        Service::Result.new(false, errors: [ e.message ])
+        Service::Result.new(false, errors: [e.message])
       end
 
       # @param path [String] file path (validated)
@@ -114,7 +114,7 @@ module RailsAiBridge
         content = File.read(safe_path)
         Service::Result.new(true, data: content)
       rescue SecurityError, StandardError => e
-        Service::Result.new(false, errors: [ e.message ])
+        Service::Result.new(false, errors: [e.message])
       end
 
       # @param path [String] file path (validated)
@@ -124,7 +124,7 @@ module RailsAiBridge
         File.delete(safe_path)
         Service::Result.new(true, data: { path: safe_path, deleted: true })
       rescue SecurityError, StandardError => e
-        Service::Result.new(false, errors: [ e.message ])
+        Service::Result.new(false, errors: [e.message])
       end
 
       # @param path [String] file path (validated)
@@ -134,7 +134,7 @@ module RailsAiBridge
         exists = File.exist?(safe_path)
         Service::Result.new(true, data: exists)
       rescue SecurityError, StandardError => e
-        Service::Result.new(false, errors: [ e.message ])
+        Service::Result.new(false, errors: [e.message])
       end
     end
   end

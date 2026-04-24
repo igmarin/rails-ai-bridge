@@ -10,12 +10,12 @@ module RailsAiBridge
           filtered = filter_view_data
           return "View introspection failed: #{filtered[:error]}" if filtered[:error]
 
-          lines = [ heading, "" ]
-          lines[0] = lines[0].sub("# Views", "# View Summary")
+          lines = [heading, '']
+          lines[0] = lines[0].sub('# Views', '# View Summary')
           lines << "- Layouts: #{filtered[:layouts].size}"
           lines << "- Template engines: #{filtered[:template_engines].join(', ')}" if filtered[:template_engines].any?
           lines << "- Shared partials: #{filtered[:shared_partials].size}"
-          lines << ""
+          lines << ''
 
           unless @partial.present? && @controller.blank?
             filtered[:templates].keys.sort.each do |name|

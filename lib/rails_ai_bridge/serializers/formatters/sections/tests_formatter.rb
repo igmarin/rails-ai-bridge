@@ -12,7 +12,7 @@ module RailsAiBridge
         private
 
         def render(data)
-          lines = [ "## Testing" ]
+          lines = ['## Testing']
           lines << "- Framework: #{data[:framework]}"
           lines << "- Factories: #{data[:factories][:location]} (#{data[:factories][:count]} files)" if data[:factories]
           lines << "- Fixtures: #{data[:fixtures][:location]} (#{data[:fixtures][:count]} files)" if data[:fixtures]

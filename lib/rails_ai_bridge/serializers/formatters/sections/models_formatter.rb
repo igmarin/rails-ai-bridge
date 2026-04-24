@@ -12,15 +12,16 @@ module RailsAiBridge
         private
 
         def render(data)
-          lines = [ "## Models (#{data.size})" ]
+          lines = ["## Models (#{data.size})"]
           data.each do |name, info|
             next if info[:error]
-            assocs = (info[:associations] || []).map { |a| "#{a[:type]} :#{a[:name]}" }.join(", ")
+
+            assocs = (info[:associations] || []).map { |a| "#{a[:type]} :#{a[:name]}" }.join(', ')
             lines << "### #{name}"
             lines << "- Table: `#{info[:table_name]}`" if info[:table_name]
             lines << "- Associations: #{assocs}" if assocs.present?
             if info[:validations]&.any?
-              vals = info[:validations].map { |v| "#{v[:kind]} on #{v[:attributes].join(', ')}" }.join("; ")
+              vals = info[:validations].map { |v| "#{v[:kind]} on #{v[:attributes].join(', ')}" }.join('; ')
               lines << "- Validations: #{vals}"
             end
             lines << "- Enums: #{info[:enums].keys.join(', ')}" if info[:enums]&.any?

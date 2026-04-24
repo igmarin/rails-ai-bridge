@@ -1,125 +1,127 @@
 # frozen_string_literal: true
 
-require "spec_helper"
+require 'spec_helper'
 
 # Ensure test app models are loaded
-require_relative "../../../internal/app/models/application_record"
-require_relative "../../../internal/app/models/user"
-require_relative "../../../internal/app/models/post"
-require_relative "../../../internal/app/models/category"
-require_relative "../../../internal/app/models/categorization"
-require_relative "../../../internal/app/models/group"
-require_relative "../../../internal/app/models/membership"
+require_relative '../../../internal/app/models/application_record'
+require_relative '../../../internal/app/models/user'
+require_relative '../../../internal/app/models/post'
+require_relative '../../../internal/app/models/category'
+require_relative '../../../internal/app/models/categorization'
+require_relative '../../../internal/app/models/group'
+require_relative '../../../internal/app/models/membership'
 
 RSpec.describe RailsAiBridge::Introspectors::ModelIntrospector do
   let(:introspector) { described_class.new(Rails.application) }
 
-  describe "#call" do
+  describe '#call' do
     subject(:result) { introspector.call }
 
-    it "discovers User and Post models" do
-      expect(result).to have_key("User")
-      expect(result).to have_key("Post")
+    it 'discovers User and Post models' do
+      expect(result).to have_key('User')
+      expect(result).to have_key('Post')
     end
 
-    it "extracts User associations" do
-      assocs = result["User"][:associations]
-      expect(assocs).to include(a_hash_including(name: "posts", type: "has_many"))
+    it 'extracts User associations' do
+      assocs = result['User'][:associations]
+      expect(assocs).to include(a_hash_including(name: 'posts', type: 'has_many'))
     end
 
-    it "extracts Post associations" do
-      assocs = result["Post"][:associations]
-      expect(assocs).to include(a_hash_including(name: "user", type: "belongs_to"))
+    it 'extracts Post associations' do
+      assocs = result['Post'][:associations]
+      expect(assocs).to include(a_hash_including(name: 'user', type: 'belongs_to'))
     end
 
-    it "extracts validations" do
-      vals = result["User"][:validations]
-      expect(vals).to include(a_hash_including(kind: "presence", attributes: [ "email" ]))
+    it 'extracts validations' do
+      vals = result['User'][:validations]
+      expect(vals).to include(a_hash_including(kind: 'presence', attributes: ['email']))
     end
 
-    it "extracts scopes from source files" do
-      expect(result["User"][:scopes]).to include("active", "admins")
-      expect(result["Post"][:scopes]).to include("published", "recent")
+    it 'extracts scopes from source files' do
+      expect(result['User'][:scopes]).to include('active', 'admins')
+      expect(result['Post'][:scopes]).to include('published', 'recent')
     end
 
-    it "extracts enums with values" do
-      expect(result["User"][:enums]).to have_key("role")
-      expect(result["User"][:enums]["role"]).to contain_exactly("member", "admin")
+    it 'extracts enums with values' do
+      expect(result['User'][:enums]).to have_key('role')
+      expect(result['User'][:enums]['role']).to contain_exactly('member', 'admin')
     end
 
-    it "extracts table names" do
-      expect(result["User"][:table_name]).to eq("users")
-      expect(result["Post"][:table_name]).to eq("posts")
+    it 'extracts table names' do
+      expect(result['User'][:table_name]).to eq('users')
+      expect(result['Post'][:table_name]).to eq('posts')
     end
 
-    it "includes semantic_tier and semantic_tier_reason" do
-      expect(result["Categorization"][:semantic_tier]).to eq("pure_join")
-      expect(result["Membership"][:semantic_tier]).to eq("rich_join")
-      expect(result["Post"][:semantic_tier]).to eq("supporting")
-      expect(result["User"][:semantic_tier]).to eq("supporting")
-      expect(result["Categorization"][:semantic_tier_reason]).to be_a(String)
+    it 'includes semantic_tier and semantic_tier_reason' do
+      expect(result['Categorization'][:semantic_tier]).to eq('pure_join')
+      expect(result['Membership'][:semantic_tier]).to eq('rich_join')
+      expect(result['Post'][:semantic_tier]).to eq('supporting')
+      expect(result['User'][:semantic_tier]).to eq('supporting')
+      expect(result['Categorization'][:semantic_tier_reason]).to be_a(String)
     end
 
-    context "with core_models configured" do
+    context 'with core_models configured' do
       after { RailsAiBridge.configuration.core_models.clear }
 
-      it "tags configured models as core_entity" do
-        RailsAiBridge.configuration.core_models << "User"
-        data = described_class.new(Rails.application).call["User"]
-        expect(data[:semantic_tier]).to eq("core_entity")
+      it 'tags configured models as core_entity' do
+        RailsAiBridge.configuration.core_models << 'User'
+        data = described_class.new(Rails.application).call['User']
+        expect(data[:semantic_tier]).to eq('core_entity')
       end
     end
 
-    it "extracts concerns as array" do
-      expect(result["User"][:concerns]).to be_an(Array)
+    it 'extracts concerns as array' do
+      expect(result['User'][:concerns]).to be_an(Array)
     end
 
-    it "extracts class_methods as array" do
-      expect(result["User"][:class_methods]).to be_an(Array)
+    it 'extracts class_methods as array' do
+      expect(result['User'][:class_methods]).to be_an(Array)
     end
 
-    it "extracts instance_methods as array" do
-      expect(result["User"][:instance_methods]).to be_an(Array)
+    it 'extracts instance_methods as array' do
+      expect(result['User'][:instance_methods]).to be_an(Array)
     end
 
-    context "with excluded_tables configured" do
+    context 'with excluded_tables configured' do
       subject(:result) { described_class.new(Rails.application).call }
 
-      before { RailsAiBridge.configuration.excluded_tables << "users" }
+      before { RailsAiBridge.configuration.excluded_tables << 'users' }
       after  { RailsAiBridge.configuration.excluded_tables.clear }
 
-      it "omits models whose table is excluded" do
-        expect(result).not_to have_key("User")
+      it 'omits models whose table is excluded' do
+        expect(result).not_to have_key('User')
       end
 
-      it "still returns models whose table is not excluded" do
-        expect(result).to have_key("Post")
+      it 'still returns models whose table is not excluded' do
+        expect(result).to have_key('Post')
       end
     end
 
-    context "with glob excluded_tables pattern" do
+    context 'with glob excluded_tables pattern' do
       subject(:result) { described_class.new(Rails.application).call }
 
-      before { RailsAiBridge.configuration.excluded_tables << "post*" }
+      before { RailsAiBridge.configuration.excluded_tables << 'post*' }
       after  { RailsAiBridge.configuration.excluded_tables.clear }
 
-      it "omits models matching the glob" do
-        expect(result).not_to have_key("Post")
+      it 'omits models matching the glob' do
+        expect(result).not_to have_key('Post')
       end
 
-      it "keeps models not matching the glob" do
-        expect(result).to have_key("User")
+      it 'keeps models not matching the glob' do
+        expect(result).to have_key('User')
       end
     end
   end
 
-  describe "#extract_source_macros (private)" do
-    let(:fixture_model) { File.join(Rails.root, "app/models/employee.rb") }
-    let(:fake_model) { double(name: "Employee") }
+  describe '#extract_source_macros (private)' do
+    let(:fixture_model) { Rails.root.join('app/models/employee.rb').to_s }
+    let(:fake_model) { double(name: 'Employee') }
 
     after { FileUtils.rm_f(fixture_model) }
 
-    context "with all supported macros" do
+    context 'with all supported macros' do
+      subject(:macros) { introspector.send(:extract_source_macros, fake_model) }
+
       before do
         File.write(fixture_model, <<~RUBY)
           class Employee < ApplicationRecord
@@ -139,61 +141,61 @@ RSpec.describe RailsAiBridge::Introspectors::ModelIntrospector do
         RUBY
       end
 
-      subject(:macros) { introspector.send(:extract_source_macros, fake_model) }
-
-      it "detects has_secure_password" do
+      it 'detects has_secure_password' do
         expect(macros[:has_secure_password]).to be true
       end
 
-      it "detects encrypts with multiple attributes" do
-        expect(macros[:encrypts]).to contain_exactly("ssn", "secret_code")
+      it 'detects encrypts with multiple attributes' do
+        expect(macros[:encrypts]).to contain_exactly('ssn', 'secret_code')
       end
 
-      it "detects normalizes with multiple attributes" do
-        expect(macros[:normalizes]).to contain_exactly("email", "name")
+      it 'detects normalizes with multiple attributes' do
+        expect(macros[:normalizes]).to contain_exactly('email', 'name')
       end
 
-      it "detects has_one_attached" do
-        expect(macros[:has_one_attached]).to eq([ "avatar" ])
+      it 'detects has_one_attached' do
+        expect(macros[:has_one_attached]).to eq(['avatar'])
       end
 
-      it "detects has_many_attached" do
-        expect(macros[:has_many_attached]).to eq([ "documents" ])
+      it 'detects has_many_attached' do
+        expect(macros[:has_many_attached]).to eq(['documents'])
       end
 
-      it "detects has_rich_text" do
-        expect(macros[:has_rich_text]).to eq([ "bio" ])
+      it 'detects has_rich_text' do
+        expect(macros[:has_rich_text]).to eq(['bio'])
       end
 
-      it "detects broadcasts" do
-        expect(macros[:broadcasts]).to include("broadcasts_to")
+      it 'detects broadcasts' do
+        expect(macros[:broadcasts]).to include('broadcasts_to')
       end
 
-      it "detects generates_token_for" do
-        expect(macros[:generates_token_for]).to eq([ "email_verification" ])
+      it 'detects generates_token_for' do
+        expect(macros[:generates_token_for]).to eq(['email_verification'])
       end
 
-      it "detects serialize" do
-        expect(macros[:serialize]).to eq([ "preferences" ])
+      it 'detects serialize' do
+        expect(macros[:serialize]).to eq(['preferences'])
       end
 
-      it "detects store" do
-        expect(macros[:store]).to eq([ "settings" ])
+      it 'detects store' do
+        expect(macros[:store]).to eq(['settings'])
       end
 
-      it "detects delegate with target" do
+      it 'detects delegate with target' do
         expect(macros[:delegations]).to be_an(Array)
-        delegation = macros[:delegations].find { |d| d[:to] == "company" }
+        delegation = macros[:delegations].find { |d| d[:to] == 'company' }
         expect(delegation).not_to be_nil
-        expect(delegation[:methods]).to include("company_name")
+        expect(delegation[:methods]).to include('company_name')
       end
 
-      it "detects delegate_missing_to" do
-        expect(macros[:delegate_missing_to]).to eq("profile")
+      it 'detects delegate_missing_to' do
+        expect(macros[:delegate_missing_to]).to eq('profile')
       end
     end
 
-    context "with single-attribute macros" do
+    context 'with single-attribute macros' do
+      subject(:macros) { introspector.send(:extract_source_macros, fake_model) }
+
       before do
         File.write(fixture_model, <<~RUBY)
           class Employee < ApplicationRecord
@@ -203,18 +205,18 @@ RSpec.describe RailsAiBridge::Introspectors::ModelIntrospector do
         RUBY
       end
 
-      subject(:macros) { introspector.send(:extract_source_macros, fake_model) }
-
-      it "handles single normalizes attribute" do
-        expect(macros[:normalizes]).to eq([ "email" ])
+      it 'handles single normalizes attribute' do
+        expect(macros[:normalizes]).to eq(['email'])
       end
 
-      it "handles single encrypts attribute" do
-        expect(macros[:encrypts]).to eq([ "ssn" ])
+      it 'handles single encrypts attribute' do
+        expect(macros[:encrypts]).to eq(['ssn'])
       end
     end
 
-    context "with no macros" do
+    context 'with no macros' do
+      subject(:macros) { introspector.send(:extract_source_macros, fake_model) }
+
       before do
         File.write(fixture_model, <<~RUBY)
           class Employee < ApplicationRecord
@@ -222,17 +224,15 @@ RSpec.describe RailsAiBridge::Introspectors::ModelIntrospector do
         RUBY
       end
 
-      subject(:macros) { introspector.send(:extract_source_macros, fake_model) }
-
-      it "returns empty hash" do
+      it 'returns empty hash' do
         expect(macros).to eq({})
       end
     end
 
-    context "when source file does not exist" do
+    context 'when source file does not exist' do
       subject(:macros) { introspector.send(:extract_source_macros, fake_model) }
 
-      it "returns empty hash" do
+      it 'returns empty hash' do
         expect(macros).to eq({})
       end
     end

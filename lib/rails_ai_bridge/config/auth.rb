@@ -25,7 +25,7 @@ module RailsAiBridge
       attr_accessor :mcp_jwt_decoder
 
       def initialize
-        @http_mcp_token               = nil
+        @http_mcp_token = nil
         @allow_auto_mount_in_production = false
         @mcp_token_resolver           = nil
         @mcp_jwt_decoder              = nil
