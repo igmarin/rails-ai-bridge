@@ -28,6 +28,6 @@ group :development, :test do
   gem 'rubocop', '~> 1.86'
   gem 'rubocop-rails', '~> 2.0' # MFA enabled - Rails-specific cops
   gem 'rubocop-rspec', '~> 3.0' # MFA enabled - RSpec-specific cops
-  gem 'rubycritic', '~> 4.0' # MFA enabled - additional code metrics
+  gem 'rubycritic', '~> 5.0' # MFA enabled - additional code metrics
   gem 'yard', '~> 0.9' # MFA enabled - documentation generation
 end
