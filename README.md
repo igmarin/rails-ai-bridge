@@ -1,8 +1,8 @@
 # rails-ai-bridge
 
-> **The fastest way to give AI assistants deep, live knowledge of your Rails app.**
+> **Turn any Rails app into an AI-ready system — with real context, not guesswork.**
 
-**One command. Zero config. Better app awareness for AI assistants** through compact project files and live MCP tools.
+**One command. Zero config. Structured context + live introspection for AI assistants** via compact project files and an MCP server.
 
 [![Gem Version](https://badge.fury.io/rb/rails-ai-bridge.svg)](https://rubygems.org/gems/rails-ai-bridge)
 [![CI](https://github.com/igmarin/rails-ai-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/igmarin/rails-ai-bridge/actions)
@@ -10,6 +10,20 @@
 ![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/igmarin/rails-ai-bridge?utm_source=oss&utm_medium=github&utm_campaign=igmarin%2Frails-ai-bridge&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
 
 ---
+
+## Why this matters
+
+LLMs are powerful, but unreliable in real-world codebases without structure. They guess architecture, miss conventions, and waste tokens trying to understand your app.
+
+rails-ai-bridge fixes this by giving AI assistants **explicit, structured knowledge of your Rails app upfront**, plus on-demand introspection when deeper detail is needed.
+
+The result:
+- More accurate code generation
+- Faster time to first useful response
+- Less token waste on exploration
+- More predictable, production-ready outputs
+
+This shifts AI from “helpful autocomplete” → **reliable engineering assistant**
 
 ## The problem
 
@@ -177,7 +191,11 @@ Each file respects the AI tool's format and size limits. **Commit these files** 
 | **DevOps** | Puma, Procfile, Docker, deployment tools, asset pipeline |
 | **Architecture** | Service objects, STI, polymorphism, state machines, multi-tenancy, engines |
 
-The `:full` preset runs 26 introspectors. The `:standard` preset runs 9 core ones by default. Add symbols such as `:non_ar_models` or `:database_stats` to `config.introspectors` when you need them.
+The `:full` preset runs 26 introspectors. The `:standard` preset runs 9 core ones by default.
+
+Start with `:standard` for most apps, then selectively enable additional introspectors (like `:non_ar_models` or `:database_stats`) as your use case requires.
+
+This keeps context focused and avoids unnecessary token usage while still allowing deep introspection when needed.
 
 ---
 
@@ -205,11 +223,11 @@ All tools are **read-only** — they never modify your application or database.
 
 Schema, routes, models, and controllers tools support a `detail` parameter — critical for large apps:
 
-| Level | Returns | Default limit |
-|-------|---------|---------------|
-| `summary` | Names + counts | 50 |
-| `standard` | Names + key details *(default)* | 15 |
-| `full` | Everything (indexes, FKs, constraints) | 5 |
+| Level      | Returns                                | Default limit |
+| ------------| ----------------------------------------| ---------------|
+| `summary`  | Names + counts                         | 50            |
+| `standard` | Names + key details *(default)*        | 15            |
+| `full`     | Everything (indexes, FKs, constraints) | 5             |
 
 ```ruby
 # Start broad
