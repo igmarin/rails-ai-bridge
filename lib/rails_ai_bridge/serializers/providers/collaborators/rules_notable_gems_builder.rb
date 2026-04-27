@@ -6,7 +6,10 @@ module RailsAiBridge
       module Collaborators
         # Builds notable gem lines for compact rules output.
         class RulesNotableGemsBuilder
+          # Heading used for the notable gems section.
           SECTION_HEADER = '## Notable Gems'
+
+          # Format string for one notable gem row.
           GEM_ENTRY_FORMAT = '- `%s` (`%s`): %s'
 
           # @param gems [Hash, nil] gems context payload

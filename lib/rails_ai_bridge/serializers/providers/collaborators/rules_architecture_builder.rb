@@ -6,7 +6,10 @@ module RailsAiBridge
       module Collaborators
         # Builds architecture and convention lines for compact rules output.
         class RulesArchitectureBuilder
+          # Heading used for the architecture section.
           SECTION_HEADER = '## Architecture & Conventions'
+
+          # Format string for a single architecture entry.
           ARCHITECTURE_ENTRY_FORMAT = '- %s'
 
           # @param conventions [Hash, nil] conventions context payload

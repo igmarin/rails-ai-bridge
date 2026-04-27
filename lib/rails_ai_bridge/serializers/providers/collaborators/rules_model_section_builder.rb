@@ -6,9 +6,16 @@ module RailsAiBridge
       module Collaborators
         # Builds the compact models section used by split rules serializers.
         class RulesModelSectionBuilder
+          # Format string for the model section heading.
           SECTION_HEADER_FORMAT = '## Models (%d total)'
+
+          # Format string for one model summary row.
           MODEL_ENTRY_FORMAT = '- %s (%d associations)'
+
+          # Format string for the overflow hint when not all models fit.
           MODELS_OVERFLOW_FORMAT = '- _...%d more — `rails_get_model_details(detail:"summary")`._'
+
+          # Message shown when the configured model list limit is zero or negative.
           MODELS_LIMIT_ZERO_FORMAT = '- _Use `rails_get_model_details(detail:"summary")` for names._'
 
           # @param models [Hash, nil] models context keyed by model name

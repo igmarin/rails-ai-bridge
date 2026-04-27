@@ -6,7 +6,10 @@ module RailsAiBridge
       module Collaborators
         # Builds the key development considerations section for compact rules output.
         class RulesKeyConsiderationsBuilder
+          # Heading used for the key development considerations section.
           SECTION_HEADER = '## Key Development Considerations'
+
+          # Format strings for supported consideration rows.
           FORMAT_STRINGS = {
             test_framework: '- **Test Framework:** `%s`',
             cache_store: '- **Cache Store:** `%s`'

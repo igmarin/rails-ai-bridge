@@ -6,7 +6,10 @@ module RailsAiBridge
       module Collaborators
         # Assembles the full compact project rules document.
         class RulesDocumentBuilder
+          # Format string for the project rules document heading.
           PROJECT_RULES_HEADER = '# %s — Project Rules'
+
+          # Format string for Rails and Ruby version metadata.
           VERSION_INFO_FORMAT = 'Rails %s | Ruby %s'
 
           # @param context [Hash] introspection context

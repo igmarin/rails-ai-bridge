@@ -6,7 +6,10 @@ module RailsAiBridge
       module Collaborators
         # Builds stack metadata lines for compact rules output.
         class RulesStackOverviewBuilder
+          # Heading used for the stack overview section.
           SECTION_HEADER = '## Application Stack & Overview'
+
+          # Format strings for supported stack metadata fields.
           FORMAT_STRINGS = {
             app_name: '- **Name:** `%s`',
             rails_version: '- **Rails:** `%s`',
