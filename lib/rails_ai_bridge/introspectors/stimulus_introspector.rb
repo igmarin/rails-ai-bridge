@@ -20,8 +20,8 @@ module RailsAiBridge
         end
 
         { controllers: controllers }
-      rescue StandardError => e
-        { error: e.message }
+      rescue StandardError => error
+        { error: error.message }
       end
 
       private
@@ -40,8 +40,8 @@ module RailsAiBridge
           outlets: extract_outlets(content),
           classes: extract_classes(content)
         }
-      rescue StandardError => e
-        { name: File.basename(path), error: e.message }
+      rescue StandardError => error
+        { name: File.basename(path), error: error.message }
       end
 
       def extract_targets(content)

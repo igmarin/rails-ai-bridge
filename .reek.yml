@@ -74,6 +74,7 @@ detectors:
     - RailsAiBridge::ExclusionHelper#table_pattern_match?
     - RailsAiBridge::Fingerprinter#snapshot
     - RailsAiBridge::HttpTransportApp#build
+    - RailsAiBridge::Server#run_rack_server
     - RailsAiBridge::Introspector#app_name
     - RailsAiBridge::Introspector#call
     - RailsAiBridge::Introspectors::ActiveStorageIntrospector#extract_attachments
@@ -158,12 +159,6 @@ detectors:
     - RailsAiBridge::Serializers::Providers::CursorRulesSerializer#render_controllers_rule
     - RailsAiBridge::Serializers::Providers::CursorRulesSerializer#render_models_rule
     - RailsAiBridge::Serializers::Providers::CursorRulesSerializer#render_project_rule
-    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#append_compact_cursorrules_models_section
-    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#call
-    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#render_architecture
-    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#render_key_considerations
-    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#render_notable_gems
-    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#render_stack_overview
     - RailsAiBridge::Serializers::Providers::RulesSerializer#append_compact_cursorrules_models_section
     - RailsAiBridge::Serializers::Providers::RulesSerializer#render_compact
     - RailsAiBridge::Serializers::Providers::WindsurfSerializer#render
@@ -227,6 +222,8 @@ detectors:
     - RailsAiBridge::Introspectors::ConventionDetector#scan_directory_structure
     - RailsAiBridge::Introspectors::DevOpsIntrospector#extract_docker_info
     - RailsAiBridge::Introspectors::DevOpsIntrospector#extract_procfile
+    - RailsAiBridge::Server#create_mcp_server
+    - RailsAiBridge::Server#run_rack_server
     - RailsAiBridge::Introspectors::DevOpsIntrospector#extract_puma_config
     - RailsAiBridge::Introspectors::EngineIntrospector#discover_mounted_engines
     - RailsAiBridge::Introspectors::GemIntrospector#categorize_gems
@@ -270,9 +267,6 @@ detectors:
     - RailsAiBridge::Serializers::Providers::CursorRulesSerializer#render_controllers_rule
     - RailsAiBridge::Serializers::Providers::CursorRulesSerializer#render_engineering_rule
     - RailsAiBridge::Serializers::Providers::CursorRulesSerializer#render_models_rule
-    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#append_compact_cursorrules_models_section
-    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#call
-    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#render_notable_gems
     - RailsAiBridge::Serializers::Providers::RulesSerializer#append_compact_cursorrules_models_section
     - RailsAiBridge::Serializers::Providers::RulesSerializer#render_compact
     - RailsAiBridge::Serializers::Providers::WindsurfSerializer#call
@@ -300,7 +294,6 @@ detectors:
     - RailsAiBridge::Serializers::Providers::CodexSerializer
     - RailsAiBridge::Serializers::Providers::CopilotSerializer
     - RailsAiBridge::Serializers::Providers::GeminiSerializer
-    - RailsAiBridge::Serializers::Providers::RulesOrchestrator
     - RailsAiBridge::Serializers::Providers::RulesSerializer
     - RailsAiBridge::Tools::GetModelDetails::ResponseFormatter
     - RailsAiBridge::Tools::GetView::FullFormatter
@@ -448,6 +441,10 @@ detectors:
   TooManyMethods:
     exclude:
     - RailsAiBridge::Introspectors::ModelIntrospector
+  TooManyConstants:
+    exclude:
+    - RailsAiBridge::Resources
+    - RailsAiBridge::Server
   TooManyStatements:
     exclude:
     - initialize
@@ -598,10 +595,6 @@ detectors:
     - RailsAiBridge::Serializers::Providers::CursorRulesSerializer#render_controllers_rule
     - RailsAiBridge::Serializers::Providers::CursorRulesSerializer#render_models_rule
     - RailsAiBridge::Serializers::Providers::CursorRulesSerializer#render_project_rule
-    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#append_compact_cursorrules_models_section
-    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#call
-    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#render_notable_gems
-    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#render_stack_overview
     - RailsAiBridge::Serializers::Providers::RulesSerializer#append_compact_cursorrules_models_section
     - RailsAiBridge::Serializers::Providers::RulesSerializer#render_compact
     - RailsAiBridge::Serializers::Providers::WindsurfRulesSerializer#call
@@ -788,8 +781,6 @@ detectors:
     - RailsAiBridge::Serializers::Providers::CursorRulesSerializer#render_controllers_rule
     - RailsAiBridge::Serializers::Providers::CursorRulesSerializer#render_models_rule
     - RailsAiBridge::Serializers::Providers::CursorRulesSerializer#render_project_rule
-    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#render_architecture
-    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#render_notable_gems
     - RailsAiBridge::Serializers::Providers::WindsurfSerializer#render
     - RailsAiBridge::Serializers::SharedAssistantGuidance#resolved_assistant_overrides_path
     - RailsAiBridge::Services::AppIntrospectionService#call
@@ -846,11 +837,16 @@ detectors:
     exclude:
     - RailsAiBridge::Doctor::Checkers::BaseChecker#new_check
     - RailsAiBridge::Doctor::Checkers::StimulusMcpToolChecker#tool_registered?
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#extract_notable_gems
     - RailsAiBridge::Doctor::Checkers::ViewMcpToolChecker#tool_registered?
     - RailsAiBridge::Doctor#compute_score
     - RailsAiBridge::Introspectors::ControllerIntrospector#api_controller?
     - RailsAiBridge::Introspectors::ControllerIntrospector#discover_controllers
     - RailsAiBridge::Introspectors::ControllerIntrospector#eager_load_controllers!
+    - RailsAiBridge::Server#create_stdio_transport
+    - RailsAiBridge::Server#create_http_transport
+    - RailsAiBridge::Server#register_resources
+    - RailsAiBridge::Server#validate_http_server_in_production
     - RailsAiBridge::Introspectors::ControllerIntrospector#extract_action_condition
     - RailsAiBridge::Introspectors::ControllerIntrospector#extract_actions
     - RailsAiBridge::Introspectors::ControllerIntrospector#extract_concerns

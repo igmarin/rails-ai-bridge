@@ -37,8 +37,8 @@ module RailsAiBridge
           if authorize
             authorized = begin
               authorize.call(auth_result.context, request)
-            rescue StandardError => e
-              Rails.logger.error("rails_ai_bridge: authorize lambda raised #{e.class}: #{e.message}") if defined?(Rails)
+            rescue StandardError => error
+              Rails.logger.error("rails_ai_bridge: authorize lambda raised #{error.class}: #{error.message}") if defined?(Rails)
               false
             end
             unless authorized

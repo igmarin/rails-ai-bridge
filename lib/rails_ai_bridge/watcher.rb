@@ -66,8 +66,8 @@ module RailsAiBridge
       result = @regenerator.regenerate!
       result[:written].each { |f| warn "  Updated: #{f}" }
       result[:skipped].each { |f| warn "  Unchanged: #{f}" }
-    rescue StandardError => e
-      warn "[rails-ai-bridge] Error regenerating: #{e.message}"
+    rescue StandardError => error
+      warn "[rails-ai-bridge] Error regenerating: #{error.message}"
     end
   end
 end

@@ -17,13 +17,13 @@ module RailsAiBridge
 
         result = controllers.each_with_object({}) do |ctrl, hash|
           hash[ctrl.name] = extract_controller_details(ctrl)
-        rescue StandardError => e
-          hash[ctrl.name] = { error: e.message }
+        rescue StandardError => error
+          hash[ctrl.name] = { error: error.message }
         end
 
         { controllers: result }
-      rescue StandardError => e
-        { error: e.message }
+      rescue StandardError => error
+        { error: error.message }
       end
 
       private

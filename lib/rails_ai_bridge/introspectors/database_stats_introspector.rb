@@ -29,8 +29,8 @@ module RailsAiBridge
         end
 
         { adapter: 'postgresql', tables: tables, total_tables: tables.size }
-      rescue StandardError => e
-        { error: e.message }
+      rescue StandardError => error
+        { error: error.message }
       end
     end
   end

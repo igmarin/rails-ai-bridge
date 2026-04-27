@@ -5,7 +5,18 @@ module RailsAiBridge
     # Holds introspector selection, exclusion rules, and caching settings.
     class Introspection
       # @return [Array<Symbol>] active introspector keys
-      attr_accessor :introspectors
+      attr_reader :introspectors
+
+      # Resets the tracked preset name to +nil+ when introspectors are assigned directly.
+      # This ensures {#preset} returns +nil+ after +config.introspectors = [...]+ or
+      # +config.introspectors += %i[...]+, since the list no longer matches a named preset.
+      #
+      # @param value [Array<Symbol>]
+      # @return [Array<Symbol>] the assigned introspector list
+      def introspectors=(value)
+        @preset = nil
+        @introspectors = value
+      end
 
       # @return [Array<String>] directory names excluded from code search
       attr_accessor :excluded_paths
@@ -41,23 +52,10 @@ module RailsAiBridge
       attr_accessor :search_code_timeout_seconds
 
       ##
-      # Set default configuration values for introspection.
-      # Initializes:
-      # - `@introspectors` to a duplicated copy of `Configuration::PRESETS[:standard]`
-      # - `@excluded_paths` to `["node_modules", "tmp", "log", "vendor", ".git"]`
-      # - `@excluded_models` to common Rails framework and ActiveStorage/Action* classes
-      # - `@core_models` to an empty array (model class names treated as core entities)
-      # - `@excluded_tables` to an empty array
-      # - `@disabled_introspection_categories` to an empty array
-      # - `@cache_ttl` to `30`
-      # - `@expose_credentials_key_names` to `false`
-      # - `@additional_introspectors` to an empty hash
-      # - `@search_code_allowed_file_types` to an empty array
-      # - `@search_code_pattern_max_bytes` to `2048`
-      ##
       # Initializes Introspection configuration with sensible defaults.
       # Sets:
       # - @introspectors to a duplicate of Configuration::PRESETS[:standard]
+      # - @preset to :standard, matching the default introspector list
       # - @excluded_paths to ["node_modules", "tmp", "log", "vendor", ".git"]
       # - @excluded_models to common Rails/ActiveStorage/Action* classes
       # - @core_models, @excluded_tables, and @disabled_introspection_categories to empty arrays
@@ -67,8 +65,10 @@ module RailsAiBridge
       # - @search_code_allowed_file_types to an empty array
       # - @search_code_pattern_max_bytes to 2048
       # - @search_code_timeout_seconds to 5.0
+      #
       def initialize
         @introspectors      = Configuration::PRESETS[:standard].dup
+        @preset             = :standard
         @excluded_paths     = %w[node_modules tmp log vendor .git]
         @excluded_models    = %w[
           ApplicationRecord
@@ -95,8 +95,14 @@ module RailsAiBridge
         name = name.to_sym
         raise ArgumentError, "Unknown preset: #{name}. Valid presets: #{Configuration::PRESETS.keys.join(', ')}" unless Configuration::PRESETS.key?(name)
 
-        @introspectors = Configuration::PRESETS[name].dup
+        self.introspectors = Configuration::PRESETS[name].dup
+        @preset = name
       end
+
+      # Returns the active preset name, or +nil+ if introspectors were modified directly.
+      #
+      # @return [Symbol, nil] The preset name, or nil for modified configurations
+      attr_reader :preset
 
       # Introspectors after removing those disabled by {#disabled_introspection_categories}.
       #

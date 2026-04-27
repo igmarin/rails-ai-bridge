@@ -9,18 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`non_ar_models` introspector** — Lists Ruby classes under `app/models` that are not ActiveRecord models, tagged **`[POJO/Service]`** in MCP listings and `.claude/rules/rails-models.md`. Context key: `:non_ar_models` with `{ non_ar_models: [{ name, relative_path, tag }] }`. **Not** in `:standard` or `:full` presets (opt in via `config.introspectors << :non_ar_models`). Included in the `domain_metadata` disable category when enabled.
-- **Model semantic classification** — Each ActiveRecord model in introspection output now includes `semantic_tier` (`core_entity`, `pure_join`, `rich_join`, `supporting`) and `semantic_tier_reason` for MCP transparency. Join tables used in `has_many :through` are detected; payload columns beyond FKs and metadata yield `rich_join`.
-- **`config.core_models`** — List model class names to tag as `core_entity` for AI-focused context (initializer comment + `Config::Introspection`).
-- **`RailsAiBridge::ModelSemanticClassifier`** — PORO that computes tiers from columns, `belongs_to` foreign keys, and through-association membership.
-- **`.claude/rules/rails-context.md`** — Semantic layer summary (app metadata + models grouped by tier) for Claude Code, alongside existing split rules.
+- **`non_ar_models` introspector** — Lists Ruby classes under `app/models` that are not
+  ActiveRecord models, tagged **`[POJO/Service]`** in MCP listings and
+  `.claude/rules/rails-models.md`. Context key: `:non_ar_models` with
+  `{ non_ar_models: [{ name, relative_path, tag }] }`. **Not** in `:standard` or
+  `:full` presets (opt in via `config.introspectors << :non_ar_models`).
+  Included in the `domain_metadata` disable category when enabled.
+- **Model semantic classification** — Each ActiveRecord model in introspection
+  output now includes `semantic_tier` (`core_entity`, `pure_join`, `rich_join`,
+  `supporting`) and `semantic_tier_reason` for MCP transparency. Join tables
+  used in `has_many :through` are detected; payload columns beyond FKs and
+  metadata yield `rich_join`.
+- **`config.core_models`** — List model class names to tag as `core_entity` for
+  AI-focused context (initializer comment + `Config::Introspection`).
+- **`RailsAiBridge::ModelSemanticClassifier`** — PORO that computes tiers from
+  columns, `belongs_to` foreign keys, and through-association membership.
+- **`.claude/rules/rails-context.md`** — Semantic layer summary (app metadata +
+  models grouped by tier) for Claude Code, alongside existing split rules.
 
 ### Changed
 
-- **`rails-context.md` tier lists** — In compact `context_mode`, at most 20 model names per `semantic_tier` with an overflow line referencing `rails_get_model_details(detail:"summary")`; full mode lists all names per tier.
+- **`rails-context.md` tier lists** — In compact `context_mode`, at most 20 model names
+  per `semantic_tier` with an overflow line referencing
+  `rails_get_model_details(detail:"summary")`; full mode lists all names per tier.
 - **Claude rules `rails-models.md`** — Each model line includes `tier: …` when present.
-- **`rails_get_model_details` formatters** — Summary, standard, full, and single-model views include semantic tier where applicable.
-- **Combustion test setup** — `Combustion.path` is set to `spec/internal`, `Combustion::Database.setup` runs after boot so `:memory:` SQLite has schema before examples, and the internal `ExampleJob` no longer subclasses `ActiveJob::Base` (Active Job is not loaded in the minimal stack).
+- **`rails_get_model_details` formatters** — Summary, standard, full, and
+  single-model views include semantic tier where applicable.
+- **Combustion test setup** — `Combustion.path` is set to `spec/internal`,
+  `Combustion::Database.setup` runs after boot so `:memory:` SQLite has schema
+  before examples, and the internal `ExampleJob` no longer subclasses
+  `ActiveJob::Base` (Active Job is not loaded in the minimal stack).
 
 ## [Unreleased]
 
@@ -32,54 +50,95 @@ _Targeting **v2.3.0** when Phase 2–3 and final review are done; gem version re
 
 - **Gemini Support:** Added support for Google's Gemini AI assistant via `GEMINI.md`.
 - **New Rake Task:** Added `rails ai:bridge:gemini` to generate Gemini-specific context.
-- **Context Harmonization:** Refactored all provider serializers (Claude, Gemini, Codex, Copilot, Cursor, Windsurf) to use a shared `BaseProviderSerializer`.
-- **Enhanced AI Guidance:** All context files now feature directive headers, complexity-sorted model lists, and explicit behavioral rules to improve AI code generation.
-- **Improved Metadata:** Context files now include descriptions for key config files and standard maintenance commands (e.g., `rubocop`).
+- **Context Harmonization:** Refactored all provider serializers (Claude, Gemini, Codex,
+  Copilot, Cursor, Windsurf) to use a shared `BaseProviderSerializer`.
+- **Enhanced AI Guidance:** All context files now feature directive headers,
+  complexity-sorted model lists, and explicit behavioral rules to improve AI
+  code generation.
+- **Improved Metadata:** Context files now include descriptions for key config
+  files and standard maintenance commands (e.g., `rubocop`).
 
 ### Changed
 
-- **Internal Refactor:** Extracted common rendering logic into `RailsAiBridge::Serializers::Providers::BaseProviderSerializer` to ensure consistency and maintainability across all AI assistants.
+- **Internal Refactor:** Extracted common rendering logic into
+  `RailsAiBridge::Serializers::Providers::BaseProviderSerializer` to ensure
+  consistency and maintainability across all AI assistants.
 
 ## [2.0.0] - 2026-03-31
 
 ### Added
 
-- **Shared runtime context provider** — MCP tools and `rails://...` resources now read through `RailsAiBridge::ContextProvider`, keeping cache invalidation and snapshot semantics aligned across both entry points.
-- **Explicit extension registries** — `config.additional_introspectors`, `config.additional_tools`, and `config.additional_resources` allow host apps or companion gems to extend the built-ins without patching core constants.
-- **HTTP transport Rack builder** — `RailsAiBridge::HttpTransportApp` centralizes HTTP MCP request handling for both standalone server mode and middleware auto-mount.
-- **Section-level context reads** — `ContextProvider.fetch_section` and `BaseTool.cached_section` let single-section tools avoid rebuilding or materializing the full snapshot path when unnecessary.
-- **Folder-level contributor docs** — key runtime folders now include local `README.md` guides for structure, boundaries, and extension points.
-- **Extensibility integration coverage** — specs now prove that a custom introspector, tool, and resource can be registered and used together from the host app configuration surface.
-- **Serializer formatter objects** — `MarkdownSerializer` is now a thin orchestrator delegating to 37 single-responsibility `Formatters::*` classes; each formatter is independently testable and injectable.
-- **Tool response formatters** — `GetSchema` and `GetModelDetails` delegate all rendering to `Tools::Schema::*` and `Tools::ModelDetails::*` formatter classes; tool `call` methods are ≤20 lines each.
-- **`Config::Auth`, `Config::Server`, `Config::Introspection`, `Config::Output`** — `Configuration` is now a `Forwardable` facade over four focused sub-objects; each is independently readable and injectable.
-- **`Mcp::Authenticator`** — consolidates strategy resolution, static-token lookup, and configuration predicates into a single entry point, replacing the previous split between `McpHttpAuth` and `Mcp::HttpAuth`.
-- **`Mcp::HttpRateLimiter`** — optional in-process sliding-window rate limiter per client IP; configured via `config.mcp.rate_limit_max_requests` and `config.mcp.rate_limit_window_seconds`. Returns 429 with `Retry-After` header when exceeded.
-- **`Mcp::HttpStructuredLog`** — optional one-JSON-line-per-request logger for the MCP HTTP path; enabled via `config.mcp.http_log_json = true`. Logs `event`, `http_status`, `path`, `client_ip`, and `request_id`; never logs tokens or full Rack env.
-- **`Config::Mcp`** — new `config.mcp` sub-object (5th façade sub-config) for MCP HTTP operational settings: `mode`, `security_profile`, `rate_limit_max_requests`, `rate_limit_window_seconds`, `http_log_json`, `authorize`, `require_auth_in_production`.
+- **Shared runtime context provider** — MCP tools and `rails://...` resources now read through
+  `RailsAiBridge::ContextProvider`, keeping cache invalidation and snapshot semantics
+  aligned across both entry points.
+- **Explicit extension registries** — `config.additional_introspectors`, `config.additional_tools`,
+  and `config.additional_resources` allow host apps or companion gems to extend the built-ins
+  without patching core constants.
+- **HTTP transport Rack builder** — `RailsAiBridge::HttpTransportApp` centralizes HTTP MCP request
+  handling for both standalone server mode and middleware auto-mount.
+- **Section-level context reads** — `ContextProvider.fetch_section` and `BaseTool.cached_section`
+  let single-section tools avoid rebuilding or materializing the full snapshot path
+  when unnecessary.
+- **Folder-level contributor docs** — key runtime folders now include local `README.md` guides
+  for structure, boundaries, and extension points.
+- **Extensibility integration coverage** — specs now prove that a custom introspector, tool,
+  and resource can be registered and used together from the host app configuration surface.
+- **Serializer formatter objects** — `MarkdownSerializer` is now a thin orchestrator delegating to
+  37 single-responsibility `Formatters::*` classes; each formatter is independently testable
+  and injectable.
+- **Tool response formatters** — `GetSchema` and `GetModelDetails` delegate all rendering to
+  `Tools::Schema::*` and `Tools::ModelDetails::*` formatter classes; tool `call` methods
+  are ≤20 lines each.
+- **`Config::Auth`, `Config::Server`, `Config::Introspection`, `Config::Output`** — `Configuration`
+  is now a `Forwardable` facade over four focused sub-objects; each is independently readable
+  and injectable.
+- **`Mcp::Authenticator`** — consolidates strategy resolution, static-token lookup, and
+  configuration predicates into a single entry point, replacing the previous split between
+  `McpHttpAuth` and `Mcp::HttpAuth`.
+- **`Mcp::HttpRateLimiter`** — optional in-process sliding-window rate limiter per client IP;
+  configured via `config.mcp.rate_limit_max_requests` and `config.mcp.rate_limit_window_seconds`.
+  Returns 429 with `Retry-After` header when exceeded.
+- **`Mcp::HttpStructuredLog`** — optional one-JSON-line-per-request logger for the MCP HTTP path;
+  enabled via `config.mcp.http_log_json = true`. Logs `event`, `http_status`, `path`,
+  `client_ip`, and `request_id`; never logs tokens or full Rack env.
+- **`Config::Mcp`** — new `config.mcp` sub-object (5th façade sub-config) for MCP HTTP operational
+  settings: `mode`, `security_profile`, `rate_limit_max_requests`, `rate_limit_window_seconds`,
+  `http_log_json`, `authorize`, `require_auth_in_production`.
 - **`config.mcp.authorize`** — optional post-auth lambda `(context, request) { truthy }`; returning falsey yields HTTP 403 on the MCP path.
 - **`config.mcp.require_auth_in_production`** — when `true`, boot fails in production unless an auth mechanism is configured.
 - **`HttpTransportApp`** updated — request pipeline is now: path check → auth → authorize → rate limit → structured log → transport.
-- **`SectionFormatter` template method base** — 22 of 37 formatters now inherit from `SectionFormatter`, which handles the nil/error guard in one place; each formatter only implements `render(data)`.
-- **`Serializers::Providers` namespace** — 10 LLM provider serializers extracted into `lib/rails_ai_bridge/serializers/providers/`, separating provider concerns from domain infrastructure (`MarkdownSerializer`, `JsonSerializer`, formatters).
+- **`SectionFormatter` template method base** — 22 of 37 formatters now inherit from `SectionFormatter`,
+  which handles the nil/error guard in one place; each formatter only implements `render(data)`.
+- **`Serializers::Providers` namespace** — 10 LLM provider serializers extracted into
+  `lib/rails_ai_bridge/serializers/providers/`, separating provider concerns from domain
+  infrastructure (`MarkdownSerializer`, `JsonSerializer`, formatters).
 - **`UPGRADING.md`** — new upgrade guide documenting `config.mcp` settings, rate limit semantics, structured logging, `authorize` behaviour, and the `require_auth_in_production` flag.
 - **Contributor roadmaps** — `docs/roadmaps.md`, `docs/roadmap-mcp-v2.md`, `docs/roadmap-context-assistants.md` added.
 
 ### Changed
 
-- **Install generator messages** — the install flow now reports created vs unchanged files correctly and the generated initializer comments reflect the current preset sizes.
-- **Fingerprint reuse on invalidation** — context refresh reuses a single fingerprint snapshot per fetch cycle instead of scanning twice when cached context becomes stale.
-- **`FullClaudeSerializer`, `FullRulesSerializer`, `FullCopilotSerializer`, `FullCodexSerializer` removed** — full-mode rendering is now handled by injecting header/footer formatter classes into `MarkdownSerializer` via constructor arguments; no subclassing needed.
+- **Install generator messages** — the install flow now reports created vs unchanged files correctly
+  and the generated initializer comments reflect the current preset sizes.
+- **Fingerprint reuse on invalidation** — context refresh reuses a single fingerprint snapshot per
+  fetch cycle instead of scanning twice when cached context becomes stale.
+- **`FullClaudeSerializer`, `FullRulesSerializer`, `FullCopilotSerializer`, `FullCodexSerializer`
+  removed** — full-mode rendering is now handled by injecting header/footer formatter classes into
+  `MarkdownSerializer` via constructor arguments; no subclassing needed.
 - **Test suite expanded to 841 examples at ≥87% line coverage.**
 
 ### Fixed
 
-- **Install generator output bug** — `generate_context` results are no longer iterated as raw hash pairs during install-time file generation.
-- **`StandardFormatter` pagination hint** — navigation hint now correctly uses `offset + limit < total` (consistent with `SummaryFormatter` and `FullFormatter`), preventing a spurious hint on the last page.
+- **Install generator output bug** — `generate_context` results are no longer iterated as raw hash pairs
+  during install-time file generation.
+- **`StandardFormatter` pagination hint** — navigation hint now correctly uses `offset + limit < total`
+  (consistent with `SummaryFormatter` and `FullFormatter`), preventing a spurious hint
+  on the last page.
 
 ### Upgrading from 1.x
 
-**No configuration changes required.** Every `config.*` attribute from 1.x is still available unchanged — `Configuration` now delegates to focused sub-objects (`Config::Auth`, `Config::Server`, `Config::Introspection`, `Config::Output`, `Config::Mcp`) but exposes the same flat DSL.
+**No configuration changes required.** Every `config.*` attribute from 1.x is still available unchanged —
+  `Configuration` now delegates to focused sub-objects (`Config::Auth`, `Config::Server`,
+  `Config::Introspection`, `Config::Output`, `Config::Mcp`) but exposes the same flat DSL.
 
 The following internal classes were removed; they were never part of the documented public API:
 

@@ -28,9 +28,9 @@ module RailsAiBridge
       selected_introspectors(only).each do |name|
         introspector = resolve_introspector(name)
         context[name] = introspector.call
-      rescue StandardError => e
-        context[name] = { error: e.message }
-        Rails.logger.warn "[rails-ai-bridge] #{name} introspection failed: #{e.message}"
+      rescue StandardError => error
+        context[name] = { error: error.message }
+        Rails.logger.warn "[rails-ai-bridge] #{name} introspection failed: #{error.message}"
       end
 
       context

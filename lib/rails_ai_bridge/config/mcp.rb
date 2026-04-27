@@ -22,7 +22,29 @@ module RailsAiBridge
       # +nil+ uses {#security_profile} defaults unless {#http_rate_limit_implicitly_suppressed?}.
       # +0+ or negative disables rate limiting entirely.
       # @return [Integer, String, nil]
-      attr_accessor :rate_limit_max_requests
+      attr_reader :rate_limit_max_requests
+
+      # Sets the rate limit max requests. Only Integer, numeric String (for ENV vars),
+      # or nil are accepted. Non-numeric strings and other types raise ArgumentError.
+      #
+      # @param value [Integer, String, nil]
+      # @raise [ArgumentError] when value is not Integer, numeric String, or nil
+      # :reek:DuplicateMethodCall { allow_calls: ['raise_invalid_rate_limit'] }
+      # :reek:NilCheck
+      def rate_limit_max_requests=(value)
+        case value
+        when Integer
+          @rate_limit_max_requests = value
+        when nil
+          @rate_limit_max_requests = nil
+        when String
+          raise_invalid_rate_limit(value) unless value.match?(/\A-?\d+\z/)
+
+          @rate_limit_max_requests = value
+        else
+          raise_invalid_rate_limit(value)
+        end
+      end
 
       # Sliding window length for the rate limiter (seconds).
       # @return [Integer]
@@ -105,6 +127,11 @@ module RailsAiBridge
 
       def security_profile_rate_limit_max
         { strict: 60, balanced: 300, relaxed: 1_200 }.fetch((@security_profile || :balanced).to_sym, 300)
+      end
+
+      def raise_invalid_rate_limit(value)
+        raise ArgumentError,
+              "rate_limit_max_requests must be Integer, numeric String, or nil, got: #{value.inspect}"
       end
     end
   end

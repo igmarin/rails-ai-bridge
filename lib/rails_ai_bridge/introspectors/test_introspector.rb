@@ -22,8 +22,8 @@ module RailsAiBridge
           ci_config: detect_ci,
           coverage: detect_coverage
         }
-      rescue StandardError => e
-        { error: e.message }
+      rescue StandardError => error
+        { error: error.message }
       end
 
       private

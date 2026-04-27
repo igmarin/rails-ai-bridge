@@ -17,8 +17,8 @@ module RailsAiBridge
           authorization: detect_authorization,
           security: detect_security
         }
-      rescue StandardError => e
-        { error: e.message }
+      rescue StandardError => error
+        { error: error.message }
       end
 
       private

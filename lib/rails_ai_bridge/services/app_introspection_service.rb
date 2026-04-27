@@ -64,8 +64,8 @@ module RailsAiBridge
         return Service::Result.new(false, errors: nested_errors) if nested_errors.any?
 
         Service::Result.new(true, data: introspection_result)
-      rescue StandardError => e
-        Service::Result.new(false, errors: [e.message])
+      rescue StandardError => error
+        Service::Result.new(false, errors: [error.message])
       end
     end
   end

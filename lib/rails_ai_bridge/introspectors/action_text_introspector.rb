@@ -15,8 +15,8 @@ module RailsAiBridge
           installed: defined?(ActionText) ? true : false,
           rich_text_fields: extract_rich_text_fields
         }
-      rescue StandardError => e
-        { error: e.message }
+      rescue StandardError => error
+        { error: error.message }
       end
 
       private

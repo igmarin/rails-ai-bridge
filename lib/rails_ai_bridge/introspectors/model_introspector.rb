@@ -40,8 +40,8 @@ module RailsAiBridge
 
         models.each_with_object({}) do |model, hash|
           hash[model.name] = extract_model_details(model, classifier)
-        rescue StandardError => e
-          hash[model.name] = { error: e.message }
+        rescue StandardError => error
+          hash[model.name] = { error: error.message }
         end
       end
 

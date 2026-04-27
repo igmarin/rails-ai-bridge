@@ -19,8 +19,8 @@ module RailsAiBridge
           middleware_stack: extract_middleware_stack,
           middleware_count: middleware_count(custom)
         }
-      rescue StandardError => e
-        { error: e.message }
+      rescue StandardError => error
+        { error: error.message }
       end
 
       private
@@ -55,8 +55,8 @@ module RailsAiBridge
           info[:detected_patterns] = patterns if patterns.any?
 
           info
-        rescue StandardError => e
-          { file: path.sub("#{root}/", ''), error: e.message }
+        rescue StandardError => error
+          { file: path.sub("#{root}/", ''), error: error.message }
         end
       end
 

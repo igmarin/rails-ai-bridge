@@ -96,14 +96,15 @@ module RailsAiBridge
         columns = Array(table_data[:columns])
 
         columns
-          .reject { |c| HOUSEKEEPING_COLUMNS.include?(c[:name]) || c[:name].to_s.end_with?('_id') }
+          .select { |column| displayable_column?(column) }
           .first(3)
-          .map { |c| { name: c[:name], type: c[:type] } }
+          .map { |column| { name: column[:name], type: column[:type] } }
       end
 
       # Returns true when any migration within the last 30 days references +table_name+.
       # Migration recency is derived from the YYYYMMDDHHMMSS timestamp prefix in
-      # +:version+. The table match is a substring search on +:filename+.
+      # +:version+. The table match is based on common Rails migration filename
+      # forms such as +create_users+ and +add_email_to_users+.
       #
       # @param table_name [String, nil] snake_case table name (e.g. +"users"+)
       # @param migrations [Hash, nil] +context[:migrations]+ hash; must have a +:recent+ key
@@ -117,7 +118,7 @@ module RailsAiBridge
           next false unless version.length >= 8
 
           migration_date = Date.strptime(version[0..7], '%Y%m%d')
-          migration_date >= cutoff && m[:filename].to_s.include?(table_name)
+          migration_date >= cutoff && migration_filename_matches_table?(m[:filename], table_name)
         rescue ArgumentError
           false
         end
@@ -135,6 +136,35 @@ module RailsAiBridge
           '- MCP is read-only but exposes app structure; avoid exposing the HTTP transport on untrusted networks.'
         ]
       end
+
+      private
+
+      def displayable_column?(column)
+        return false unless column.is_a?(Hash)
+
+        column_name = column[:name]
+        return false unless column_name.present? && column[:type].present?
+
+        HOUSEKEEPING_COLUMNS.exclude?(column_name) && !column_name.to_s.end_with?('_id')
+      end
+      module_function :displayable_column?
+      private_class_method :displayable_column?
+
+      def migration_filename_matches_table?(filename, table_name)
+        stem = File.basename(filename.to_s, '.rb').sub(/\A\d+_/, '')
+        escaped_table_name = Regexp.escape(table_name.to_s)
+
+        [
+          /\Acreate_#{escaped_table_name}\z/,
+          /\Achange_#{escaped_table_name}\z/,
+          /\Aupdate_#{escaped_table_name}\z/,
+          /\Aadd_.+_to_#{escaped_table_name}\z/,
+          /\Aremove_.+_from_#{escaped_table_name}\z/,
+          /\Arename_.+_(?:to|from)_#{escaped_table_name}\z/
+        ].any? { |pattern| stem.match?(pattern) }
+      end
+      module_function :migration_filename_matches_table?
+      private_class_method :migration_filename_matches_table?
     end
   end
 end

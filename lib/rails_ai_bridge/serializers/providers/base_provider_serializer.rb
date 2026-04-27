@@ -6,6 +6,18 @@ module RailsAiBridge
       # Base class for AI assistant provider serializers (Claude, Copilot, Gemini, Codex, Cursor, Windsurf).
       # Shared compact-mode sections: header, stack, models, gems, architecture, MCP guide, commands, footer.
       class BaseProviderSerializer
+        # Maximum number of key models to display in compact mode
+        # Models beyond this count are truncated with an overflow hint
+        MAX_KEY_MODELS = 15
+
+        # Maximum number of architectural patterns to display
+        # Limits the patterns section to prevent excessive output
+        MAX_PATTERNS = 8
+
+        # Maximum number of configuration files to list
+        # Shows only the most important config files
+        MAX_CONFIG_FILES = 5
+
         attr_reader :context, :config
 
         # @param context [Hash] Introspection hash from {Introspector#call}.
@@ -33,15 +45,7 @@ module RailsAiBridge
           lines.concat(render_commands)
           lines.concat(render_footer)
 
-          # Enforce max lines (config.claude_max_lines is a generic max line setting)
-          max = @config.claude_max_lines
-          if lines.size > max
-            lines = lines.first(max - 2)
-            lines << ''
-            lines << '_Context trimmed. Use MCP tools for full details._'
-          end
-
-          lines.join("\n")
+          line_enforcer.enforce(lines).join("\n")
         end
 
         # Renders the header section of the context file.
@@ -63,95 +67,44 @@ module RailsAiBridge
         end
 
         # Renders the stack overview section.
-        # @return [Array<String>] Lines for the stack overview.
+        # Includes database adapter/table count, model count, routes, auth gems,
+        # async jobs/mailers/channels, and pending migrations when available.
+        # Silently skips any sub-section whose context key is missing or has an +:error+ key.
+        #
+        # @return [Array<String>] Lines for the stack overview section, always non-empty.
         def render_stack_overview
-          lines = ['## Stack']
-
-          schema = context[:schema]
-          lines << "- Database: #{schema[:adapter]} — #{schema[:total_tables]} tables" if schema && !schema[:error]
-
-          models = context[:models]
-          lines << "- Models: #{models.size}" if models.is_a?(Hash) && !models[:error]
-
-          line = ContextSummary.routes_stack_line(context)
-          lines << line if line
-
-          auth = context[:auth]
-          if auth.is_a?(Hash) && !auth[:error]
-            parts = []
-            parts << 'Devise' if auth.dig(:authentication, :devise)&.any?
-            parts << 'Rails 8 auth' if auth.dig(:authentication, :rails_auth)
-            parts << 'Pundit' if auth.dig(:authorization, :pundit)&.any?
-            parts << 'CanCanCan' if auth.dig(:authorization, :cancancan)
-            lines << "- Auth: #{parts.join(' + ')}" if parts.any?
-          end
-
-          jobs = context[:jobs]
-          if jobs.is_a?(Hash) && !jobs[:error]
-            job_count = jobs[:jobs]&.size || 0
-            mailer_count = jobs[:mailers]&.size || 0
-            channel_count = jobs[:channels]&.size || 0
-            parts = []
-            parts << "#{job_count} jobs" if job_count.positive?
-            parts << "#{mailer_count} mailers" if mailer_count.positive?
-            parts << "#{channel_count} channels" if channel_count.positive?
-            lines << "- Async: #{parts.join(', ')}" if parts.any?
-          end
-
-          migrations = context[:migrations]
-          if migrations.is_a?(Hash) && !migrations[:error]
-            pending = migrations[:pending]
-            lines << "- Migrations: #{migrations[:total]} total, #{pending&.size || 0} pending"
-          end
-
-          lines << ''
-          lines
+          stack_overview_builder.build
         end
 
-        # Renders the key models section.
-        # @return [Array<String>] Lines for the key models.
+        # Renders the key models section, sorted by complexity score (associations, validations, callbacks, scopes).
+        # Caps display at {MAX_KEY_MODELS} models and appends an overflow hint when more exist.
+        # Returns +[]+ when +context[:models]+ is nil, non-Hash, or has an +:error+ key.
+        #
+        # @return [Array<String>] Lines for the key models section, or +[]+ if unavailable.
         def render_key_models
           models = context[:models]
           return [] unless models.is_a?(Hash) && !models[:error] && models.any?
 
-          schema_tables = context.dig(:schema, :tables) || {}
-          migrations    = context[:migrations]
-          max_show = 15
+          max_show = MAX_KEY_MODELS
 
           lines = ['## Key Models',
                    'The following are the most architecturally significant models, ordered by complexity:']
-          sorted_names = models.sort_by { |_name, data| -ContextSummary.model_complexity_score(data) }.map(&:first)
-          sorted_names.first(max_show).each do |name|
-            data = models[name]
-            assoc_count = (data[:associations] || []).size
-            val_count   = (data[:validations] || []).size
-            enum_names  = (data[:enums] || {}).keys
-            top_assocs  = (data[:associations] || []).first(3).map { |a| "#{a[:type]} :#{a[:name]}" }.join(', ')
-            table_name  = data[:table_name]
-
-            line = "- **#{name}**"
-            line += " (#{assoc_count}a, #{val_count}v)" if assoc_count.positive? || val_count.positive?
-            line += " [enums: #{enum_names.join(', ')}]" if enum_names.any?
-
-            cols = ContextSummary.top_columns(schema_tables[table_name])
-            line += " [cols: #{cols.map { |c| "#{c[:name]}:#{c[:type]}" }.join(', ')}]" if cols.any?
-
-            line += ' [recently migrated]' if table_name && ContextSummary.recently_migrated?(table_name, migrations)
-            line += " — #{top_assocs}" if top_assocs.present?
-            lines << line
+          model_entries = ModelEntries.new(models).sorted_by_complexity
+          model_entries.first(max_show).each do |name, data|
+            lines << model_line_formatter.format_line(name, data)
           end
-          lines << "- _...#{models.size - max_show} more (use `rails_get_model_details` tool)_" if models.size > max_show
+          lines << "- _...#{model_entries.size - max_show} more (use `rails_get_model_details` tool)_" if model_entries.size > max_show
           lines << ''
           lines
         end
 
-        # Renders the notable gems section.
-        # @return [Array<String>] Lines for the notable gems.
+        # Renders the notable gems section grouped by category.
+        # Looks for notable gems under +:notable_gems+, +:notable+, or +:detected+ keys.
+        # Returns +[]+ when gems are absent, have an +:error+ key, or the list is empty.
+        #
+        # @return [Array<String>] Lines for the notable gems section, or +[]+ if unavailable.
         def render_notable_gems
-          gems = context[:gems]
-          return [] unless gems.is_a?(Hash) && !gems[:error]
-
-          notable = gems[:notable_gems] || gems[:notable] || gems[:detected] || []
+          notable = extract_notable_gems(context[:gems])
           return [] if notable.empty?
 
           lines = ['## Gems', 'Key gems, categorized by their primary function:']
@@ -164,8 +117,11 @@ module RailsAiBridge
           lines
         end
 
-        # Renders the architecture section.
-        # @return [Array<String>] Lines for the architecture.
+        # Renders the architecture section with detected styles and common patterns.
+        # Caps patterns at {MAX_PATTERNS} entries. Returns +[]+ when conventions are absent,
+        # have an +:error+ key, or both +:architecture+ and +:patterns+ are empty.
+        #
+        # @return [Array<String>] Lines for the architecture section, or +[]+ if unavailable.
         def render_architecture
           conv = context[:conventions]
           return [] unless conv.is_a?(Hash) && !conv[:error]
@@ -176,13 +132,15 @@ module RailsAiBridge
 
           lines = ['## Architecture', 'Detected architectural styles and common patterns:']
           arch.each { |p| lines << "- #{p}" }
-          patterns.first(8).each { |p| lines << "- #{p}" }
+          patterns.first(MAX_PATTERNS).each { |p| lines << "- #{p}" }
           lines << ''
           lines
         end
 
-        # Renders the key considerations for performance and security.
-        # @return [Array<String>] Lines for performance and security considerations.
+        # Renders the static key considerations section covering performance, security,
+        # data drift, and MCP exposure. Content is fixed and does not depend on context.
+        #
+        # @return [Array<String>] Lines for the key considerations section.
         def render_key_considerations
           [
             '## Key Considerations',
@@ -197,7 +155,10 @@ module RailsAiBridge
         end
 
         # Renders the key configuration files section.
-        # @return [Array<String>] Lines for the key config files.
+        # Caps display at {MAX_CONFIG_FILES} files. Returns +[]+ when conventions are absent,
+        # have an +:error+ key, or +:config_files+ is empty.
+        #
+        # @return [Array<String>] Lines for the key config files section, or +[]+ if unavailable.
         def render_key_config_files
           conv = context[:conventions]
           return [] unless conv.is_a?(Hash) && !conv[:error]
@@ -206,13 +167,15 @@ module RailsAiBridge
           return [] if config_files.empty?
 
           lines = ['## Key Config Files', 'Core configuration files for this application:']
-          config_files.first(5).each { |f| lines << "- `#{f}`" }
+          config_files.first(MAX_CONFIG_FILES).each { |f| lines << "- `#{f}`" }
           lines << ''
           lines
         end
 
-        # Renders the command reference section.
-        # @return [Array<String>] Lines for the commands.
+        # Renders the command reference section with common dev, test, lint and migration commands.
+        # The test command is resolved via {ContextSummary.test_command}.
+        #
+        # @return [Array<String>] Lines for the commands section.
         def render_commands
           [
             '## Commands',
@@ -224,10 +187,74 @@ module RailsAiBridge
           ]
         end
 
-        # Renders the closing rules and regeneration footer.
-        # @return [Array<String>] Lines for the rules section and trailing attribution.
+        # Renders the closing engineering rules and regeneration attribution footer.
+        # Delegates to {SharedAssistantGuidance.compact_engineering_rules_footer_lines}.
+        #
+        # @return [Array<String>] Lines for the footer section.
         def render_footer
           SharedAssistantGuidance.compact_engineering_rules_footer_lines(context)
+        end
+
+        private
+
+        # Extracts notable gems from various possible keys.
+        # @param gems [Hash, nil] Gems hash from context.
+        # @return [Array<Hash>] List of notable gem hashes.
+        def extract_notable_gems(gems)
+          return [] unless gems.is_a?(Hash) && !gems[:error]
+
+          NotableGemPayload.new(gems).to_a
+        end
+
+        def stack_overview_builder
+          @stack_overview_builder ||= Collaborators::StackOverviewBuilder.new(context)
+        end
+
+        def model_line_formatter
+          @model_line_formatter ||= Collaborators::ModelLineFormatter.new(context)
+        end
+
+        def line_enforcer
+          @line_enforcer ||= Collaborators::LineEnforcer.new(config)
+        end
+
+        # Filters and sorts model entries for compact output.
+        class ModelEntries
+          # @param models [Hash] model payloads keyed by model name
+          def initialize(models)
+            @models = models
+          end
+
+          # @return [Array<Array(String, Hash)>] valid model entries sorted by complexity
+          def sorted_by_complexity
+            @models.select { |_name, data| data.is_a?(Hash) }
+                   .sort_by { |_name, data| -ContextSummary.model_complexity_score(data) }
+          end
+        end
+
+        # Normalizes notable gem payloads from introspector variants.
+        class NotableGemPayload
+          # @param gems [Hash] gem metadata keyed by possible notable gem fields
+          def initialize(gems)
+            @gems = gems
+          end
+
+          # @return [Array<Hash>] notable gem hashes safe for rendering
+          def to_a
+            return [] unless normalized_gems.is_a?(Array)
+
+            normalized_gems.grep(Hash)
+          end
+
+          private
+
+          def normalized_gems
+            @normalized_gems ||= raw_gems.is_a?(Hash) ? [raw_gems] : raw_gems
+          end
+
+          def raw_gems
+            @raw_gems ||= [@gems[:notable_gems], @gems[:notable], @gems[:detected]].find(&:present?)
+          end
         end
       end
     end

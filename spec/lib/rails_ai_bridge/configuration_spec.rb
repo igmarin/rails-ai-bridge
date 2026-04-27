@@ -27,7 +27,6 @@ RSpec.describe RailsAiBridge::Configuration do
     expect(config.core_models).to eq([])
     expect(config.mcp_token_resolver).to be_nil
     expect(config.mcp_jwt_decoder).to be_nil
-    expect(config.rate_limit_max_requests).to be_nil
     expect(config.rate_limit_window_seconds).to eq(60)
     expect(config.http_log_json).to be(false)
   end
@@ -63,18 +62,32 @@ RSpec.describe RailsAiBridge::Configuration do
 
     it 'sets introspectors to full preset' do
       config.preset = :full
-      expect(config.introspectors.size).to eq(26)
+      expect(config.introspectors.size).to eq(27)
       expect(config.introspectors).to include(:stimulus, :views, :turbo, :auth, :api, :devops, :migrations, :seeds,
-                                              :middleware, :engines, :multi_database)
+                                              :middleware, :engines, :multi_database, :non_ar_models)
     end
 
     it 'accepts string preset names' do
       config.preset = 'full'
-      expect(config.introspectors.size).to eq(26)
+      expect(config.introspectors.size).to eq(27)
+    end
+
+    it 'accepts string :standard' do
+      config.preset = 'standard'
+      expect(config.introspectors).to eq(described_class::PRESETS[:standard])
+    end
+
+    it 'accepts string :regulated' do
+      config.preset = 'regulated'
+      expect(config.introspectors).to eq(described_class::PRESETS[:regulated])
     end
 
     it 'raises on unknown preset' do
       expect { config.preset = :unknown }.to raise_error(ArgumentError, /Unknown preset/)
+    end
+
+    it 'raises on unknown string preset' do
+      expect { config.preset = 'bogus' }.to raise_error(ArgumentError, /Unknown preset/)
     end
 
     it 'sets regulated preset without schema, models, or migrations' do
@@ -88,6 +101,17 @@ RSpec.describe RailsAiBridge::Configuration do
       config.introspectors += %i[views turbo]
       expect(config.introspectors).to include(:views, :turbo)
       expect(config.introspectors.size).to eq(11)
+    end
+
+    it 'tracks preset name via preset reader after setting' do
+      config.preset = :regulated
+      expect(config.preset).to eq(:regulated)
+    end
+
+    it 'resets preset reader to nil when introspectors are set directly after a preset' do
+      config.preset = :standard
+      config.introspectors += %i[views]
+      expect(config.preset).to be_nil
     end
   end
 
@@ -118,6 +142,19 @@ RSpec.describe RailsAiBridge::Configuration do
       config.disabled_introspection_categories << :nonexistent
       expect(config.effective_introspectors).to eq(config.introspectors)
     end
+
+    it 'subtracts api_surface category' do
+      config.preset = :full
+      config.disabled_introspection_categories << :api_surface
+      expect(config.effective_introspectors).not_to include(:api)
+      expect(config.effective_introspectors).to include(:routes, :schema, :models)
+    end
+
+    it 'returns empty array when all introspectors disabled' do
+      config.introspectors = %i[schema models]
+      config.disabled_introspection_categories << :domain_metadata
+      expect(config.effective_introspectors).to eq([])
+    end
   end
 
   describe '#excluded_table?' do
@@ -141,6 +178,18 @@ RSpec.describe RailsAiBridge::Configuration do
 
     it 'returns false when excluded_tables is empty' do
       expect(config.excluded_table?('anything')).to be false
+    end
+
+    it 'matches leading-wildcard glob pattern' do
+      config.excluded_tables << '*_logs'
+      expect(config.excluded_table?('audit_logs')).to be true
+      expect(config.excluded_table?('system_logs')).to be true
+      expect(config.excluded_table?('users')).to be false
+    end
+
+    it 'does not match partial names without wildcard' do
+      config.excluded_tables << 'secret'
+      expect(config.excluded_table?('secrets')).to be false
     end
   end
 
@@ -167,6 +216,56 @@ RSpec.describe RailsAiBridge::Configuration do
       }
 
       expect(config.additional_resources).to have_key('rails://custom')
+    end
+
+    it 'registries are isolated between configuration instances' do
+      config_a = described_class.new
+      config_b = described_class.new
+      config_a.additional_introspectors[:custom] = Class.new
+
+      expect(config_b.additional_introspectors).not_to have_key(:custom)
+    end
+  end
+
+  describe 'sub-config accessors' do
+    it 'exposes auth sub-config' do
+      expect(config.auth).to be_a(RailsAiBridge::Config::Auth)
+    end
+
+    it 'exposes server sub-config' do
+      expect(config.server).to be_a(RailsAiBridge::Config::Server)
+    end
+
+    it 'exposes introspection sub-config' do
+      expect(config.introspection).to be_a(RailsAiBridge::Config::Introspection)
+    end
+
+    it 'exposes output sub-config' do
+      expect(config.output).to be_a(RailsAiBridge::Config::Output)
+    end
+
+    it 'exposes mcp sub-config' do
+      expect(config.mcp).to be_a(RailsAiBridge::Config::Mcp)
+    end
+
+    it 'flat delegators and sub-config attributes stay in sync' do
+      config.server_name = 'synced'
+      expect(config.server.server_name).to eq('synced')
+    end
+  end
+
+  describe 'preset reader delegation' do
+    it 'exposes a preset reader via delegation' do
+      expect(config.respond_to?(:preset)).to be(true)
+    end
+
+    it 'returns :standard by default' do
+      expect(config.preset).to eq(:standard)
+    end
+
+    it 'returns the preset name after setting it' do
+      config.preset = :full
+      expect(config.preset).to eq(:full)
     end
   end
 

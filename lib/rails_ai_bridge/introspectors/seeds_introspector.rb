@@ -18,8 +18,8 @@ module RailsAiBridge
           seed_files: discover_seed_files,
           models_seeded: detect_seeded_models
         }
-      rescue StandardError => e
-        { error: e.message }
+      rescue StandardError => error
+        { error: error.message }
       end
 
       private
@@ -45,8 +45,8 @@ module RailsAiBridge
           loads_directory: content.match?(/Dir\[|Dir\.glob|load.*seeds/),
           environment_conditional: content.match?(/Rails\.env/)
         }
-      rescue StandardError => e
-        { exists: false, error: e.message }
+      rescue StandardError => error
+        { exists: false, error: error.message }
       end
 
       def discover_seed_files

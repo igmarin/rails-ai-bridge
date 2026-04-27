@@ -8,9 +8,15 @@ structure to AI assistants via the Model Context Protocol (MCP).
 - `lib/rails_ai_bridge.rb` — Main entry point, public API (Zeitwerk autoloaded)
 - `lib/rails_ai_bridge/configuration.rb` — User-facing config with presets (:standard, :full)
 - `lib/rails_ai_bridge/introspector.rb` — Orchestrates sub-introspectors
-- `lib/rails_ai_bridge/introspectors/` — Built-in introspector classes; `:standard` preset runs **9**, `:full` runs **26** (see `Configuration::PRESETS`). Registry: `Introspector::BUILTIN_INTROSPECTORS` (includes opt-in symbols such as `database_stats`, `non_ar_models` not listed in those presets).
-- `lib/rails_ai_bridge/tools/` — 11 built-in MCP tools using the official mcp SDK (hosts can add more via `additional_tools`)
-- `lib/rails_ai_bridge/serializers/` — Output formatters (claude, claude_rules, cursor_rules, windsurf, windsurf_rules, copilot, copilot_instructions, rules, markdown, JSON)
+- `lib/rails_ai_bridge/introspectors/` — Built-in introspector classes; `:standard` preset
+  runs **9**, `:full` runs **26** (see `Configuration::PRESETS`). Registry:
+  `Introspector::BUILTIN_INTROSPECTORS` (includes opt-in symbols such as
+  `database_stats`, `non_ar_models` not listed in those presets).
+- `lib/rails_ai_bridge/tools/` — 11 built-in MCP tools using the official mcp SDK
+  (hosts can add more via `additional_tools`)
+- `lib/rails_ai_bridge/serializers/` — Output formatters (claude, claude_rules,
+  cursor_rules, windsurf, windsurf_rules, copilot, copilot_instructions, rules,
+  markdown, JSON)
 - `lib/rails_ai_bridge/resources.rb` — MCP resources (static data AI clients read directly)
 - `lib/rails_ai_bridge/server.rb` — MCP server configuration (stdio + HTTP transports)
 - `lib/rails_ai_bridge/middleware.rb` — Rack middleware for auto-mounting MCP HTTP endpoint
