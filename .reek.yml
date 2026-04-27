@@ -473,7 +473,6 @@ detectors:
   TooManyMethods:
     exclude:
     - RailsAiBridge::Introspectors::ModelIntrospector
-    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer
     - RailsAiBridge::Serializers::Providers::RulesOrchestrator
   TooManyConstants:
     exclude:

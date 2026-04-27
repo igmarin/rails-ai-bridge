@@ -55,6 +55,9 @@ module RailsAiBridge
       # Initializes Introspection configuration with sensible defaults.
       # Sets:
       # - @introspectors to a duplicate of Configuration::PRESETS[:standard]
+      # - @preset to nil (IMPORTANT: despite introspectors defaulting to :standard behavior,
+      #   preset remains nil until explicitly set to distinguish between default behavior
+      #   and explicit preset assignment)
       # - @excluded_paths to ["node_modules", "tmp", "log", "vendor", ".git"]
       # - @excluded_models to common Rails/ActiveStorage/Action* classes
       # - @core_models, @excluded_tables, and @disabled_introspection_categories to empty arrays
@@ -64,6 +67,10 @@ module RailsAiBridge
       # - @search_code_allowed_file_types to an empty array
       # - @search_code_pattern_max_bytes to 2048
       # - @search_code_timeout_seconds to 5.0
+      #
+      # @note Downstream consumers: config.preset returns nil even though introspectors
+      #       default to :standard behavior. Use config.preset.nil? to distinguish between
+      #       default configuration and explicit preset assignment.
       def initialize
         @introspectors      = Configuration::PRESETS[:standard].dup
         @preset             = nil
@@ -98,9 +105,14 @@ module RailsAiBridge
       end
 
       # Returns the last preset name set via {#preset=}, or +nil+ if introspectors
-      # were modified directly.
+      # were modified directly or if still using default configuration.
       #
-      # @return [Symbol, nil]
+      # @return [Symbol, nil] The preset name, or nil for default/modified configurations
+      # @note IMPORTANT: Returns nil even for default configuration (which uses :standard
+      #       introspectors). This allows distinguishing between:
+      #       - Default behavior (preset=nil, introspectors=:standard)
+      #       - Explicit preset assignment (preset=:standard, introspectors=:standard)
+      #       - Direct introspector modification (preset=nil, introspectors=custom)
       attr_reader :preset
 
       # Introspectors after removing those disabled by {#disabled_introspection_categories}.

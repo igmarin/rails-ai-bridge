@@ -24,8 +24,17 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
       migrations: { total: 20, pending: [] }
     }
   end
-
   let(:config) { RailsAiBridge::Configuration.new }
+  let(:original_configuration) { RailsAiBridge.configuration }
+
+  # Isolate global configuration to prevent order-dependent test behavior
+  before do
+    RailsAiBridge.instance_variable_set(:@configuration, RailsAiBridge::Configuration.new)
+  end
+
+  after do
+    RailsAiBridge.instance_variable_set(:@configuration, original_configuration)
+  end
 
   describe '#initialize' do
     it 'assigns context' do
@@ -262,8 +271,8 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
       ctx = base_context.merge(conventions: { architecture: [], patterns: patterns, config_files: [] })
       s = described_class.new(ctx, config: config)
       output = s.render_architecture.join("\n")
-      expect(output).to include('Pattern7')
-      expect(output).not_to include('Pattern8')
+      expect(output).to match(/\bPattern7\b/)
+      expect(output).not_to match(/\bPattern8\b/)
     end
   end
 
@@ -341,10 +350,12 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
   # Characterization tests for upcoming refactors
   describe 'private method behaviors (characterization)' do
     describe 'max lines enforcement' do
+      let(:line_enforcer) { serializer.instance_variable_get(:@line_enforcer) }
+
       it 'trims to claude_max_lines - 2 when exceeded' do
         config.claude_max_lines = 5
         lines = %w[a b c d e f]
-        trimmed = serializer.send(:enforce_max_lines, lines)
+        trimmed = line_enforcer.enforce(lines)
         expect(trimmed.size).to eq(5)
         expect(trimmed.last(2)).to eq(['', '_Context trimmed. Use MCP tools for full details._'])
       end
@@ -352,7 +363,8 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
       it 'returns original lines when within limit' do
         config.claude_max_lines = 10
         lines = %w[a b c]
-        expect(serializer.send(:enforce_max_lines, lines)).to eq(lines)
+        trimmed = line_enforcer.enforce(lines)
+        expect(trimmed).to eq(lines)
       end
     end
 
@@ -388,52 +400,54 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
     end
 
     describe 'stack line builders' do
+      let(:stack_builder) { serializer.instance_variable_get(:@stack_overview_builder) }
+
       it 'database_stack_line with valid schema' do
         schema = { adapter: 'postgresql', total_tables: 10 }
-        expect(serializer.send(:database_stack_line, schema)).to eq('- Database: postgresql — 10 tables')
+        expect(stack_builder.send(:database_stack_line, schema)).to eq('- Database: postgresql — 10 tables')
       end
 
       it 'database_stack_line with nil schema' do
-        expect(serializer.send(:database_stack_line, nil)).to be_nil
+        expect(stack_builder.send(:database_stack_line, nil)).to be_nil
       end
 
       it 'database_stack_line with error schema' do
         schema = { error: 'failed' }
-        expect(serializer.send(:database_stack_line, schema)).to be_nil
+        expect(stack_builder.send(:database_stack_line, schema)).to be_nil
       end
 
       it 'database_stack_line with missing adapter' do
         schema = { total_tables: 10 }
-        expect(serializer.send(:database_stack_line, schema)).to eq('- Database:  — 10 tables')
+        expect(stack_builder.send(:database_stack_line, schema)).to eq('- Database:  — 10 tables')
       end
 
       it 'models_stack_line with valid models' do
         models = { User: {}, Post: {} }
-        expect(serializer.send(:models_stack_line, models)).to eq('- Models: 2')
+        expect(stack_builder.send(:models_stack_line, models)).to eq('- Models: 2')
       end
 
       it 'models_stack_line with empty models' do
-        expect(serializer.send(:models_stack_line, {})).to eq('- Models: 0')
+        models = {}
+        expect(stack_builder.send(:models_stack_line, models)).to eq('- Models: 0')
       end
 
       it 'models_stack_line with nil models' do
-        expect(serializer.send(:models_stack_line, nil)).to be_nil
+        expect(stack_builder.send(:models_stack_line, nil)).to be_nil
       end
 
       it 'models_stack_line with more than 5 models' do
         models = { User: {}, Post: {}, Comment: {}, Tag: {}, Category: {}, Author: {} }
-        line = serializer.send(:models_stack_line, models)
-        expect(line).to eq('- Models: 6')
+        expect(stack_builder.send(:models_stack_line, models)).to eq('- Models: 6')
       end
 
       it 'auth_stack_line with devise' do
         auth = { authentication: { devise: ['User'] }, authorization: {} }
-        expect(serializer.send(:auth_stack_line, auth)).to eq('- Auth: Devise')
+        expect(stack_builder.send(:auth_stack_line, auth)).to eq('- Auth: Devise')
       end
 
       it 'auth_stack_line with multiple auth providers' do
         auth = { authentication: { devise: ['User'], rails_auth: true }, authorization: { pundit: ['Post'] } }
-        line = serializer.send(:auth_stack_line, auth)
+        line = stack_builder.send(:auth_stack_line, auth)
         expect(line).to include('Devise')
         expect(line).to include('Rails 8 auth')
         expect(line).to include('Pundit')
@@ -441,21 +455,21 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
 
       it 'auth_stack_line with no auth' do
         auth = { authentication: {}, authorization: {} }
-        expect(serializer.send(:auth_stack_line, auth)).to be_nil
+        expect(stack_builder.send(:auth_stack_line, auth)).to be_nil
       end
 
       it 'auth_stack_line with nil auth' do
-        expect(serializer.send(:auth_stack_line, nil)).to be_nil
+        expect(stack_builder.send(:auth_stack_line, nil)).to be_nil
       end
 
       it 'async_stack_line with jobs only' do
-        jobs = { jobs: [{ name: 'Job1' }], mailers: [], channels: [] }
-        expect(serializer.send(:async_stack_line, jobs)).to eq('- Async: 1 jobs')
+        jobs = { jobs: [{ name: 'ProcessData' }], mailers: [], channels: [] }
+        expect(stack_builder.send(:async_stack_line, jobs)).to eq('- Async: 1 jobs')
       end
 
       it 'async_stack_line with mixed' do
-        jobs = { jobs: [{ name: 'Job1' }], mailers: [{ name: 'Mailer1' }], channels: [{ name: 'Channel1' }] }
-        line = serializer.send(:async_stack_line, jobs)
+        jobs = { jobs: [{ name: 'ProcessData' }], mailers: [{ name: 'WelcomeMailer' }], channels: [{ name: 'ChatChannel' }] }
+        line = stack_builder.send(:async_stack_line, jobs)
         expect(line).to include('1 jobs')
         expect(line).to include('1 mailers')
         expect(line).to include('1 channels')
@@ -463,64 +477,69 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
 
       it 'async_stack_line with empty async' do
         jobs = { jobs: [], mailers: [], channels: [] }
-        expect(serializer.send(:async_stack_line, jobs)).to be_nil
+        expect(stack_builder.send(:async_stack_line, jobs)).to be_nil
       end
 
       it 'async_stack_line with nil async' do
-        expect(serializer.send(:async_stack_line, nil)).to be_nil
+        expect(stack_builder.send(:async_stack_line, nil)).to be_nil
       end
 
       it 'migrations_stack_line with pending' do
-        migrations = { total: 20, pending: %w[m1 m2] }
-        expect(serializer.send(:migrations_stack_line, migrations)).to eq('- Migrations: 20 total, 2 pending')
+        migrations = { total: 20, pending: [{ filename: 'add_users.rb' }, { filename: 'create_posts.rb' }] }
+        expect(stack_builder.send(:migrations_stack_line, migrations)).to eq('- Migrations: 20 total, 2 pending')
       end
 
       it 'migrations_stack_line with no pending' do
         migrations = { total: 20, pending: [] }
-        expect(serializer.send(:migrations_stack_line, migrations)).to eq('- Migrations: 20 total, 0 pending')
+        expect(stack_builder.send(:migrations_stack_line, migrations)).to eq('- Migrations: 20 total, 0 pending')
       end
 
       it 'migrations_stack_line with nil pending' do
-        migrations = { total: 20 }
-        expect(serializer.send(:migrations_stack_line, migrations)).to eq('- Migrations: 20 total, 0 pending')
+        migrations = { total: 20, pending: nil }
+        expect(stack_builder.send(:migrations_stack_line, migrations)).to eq('- Migrations: 20 total, 0 pending')
       end
 
       it 'migrations_stack_line with error' do
         migrations = { error: 'failed' }
-        expect(serializer.send(:migrations_stack_line, migrations)).to be_nil
+        expect(stack_builder.send(:migrations_stack_line, migrations)).to be_nil
       end
     end
 
     describe 'model line formatting' do
       it 'formats basic model line' do
         data = { associations: [], validations: [], enums: {}, table_name: 'users' }
-        line = serializer.send(:format_model_line, 'User', data, {}, nil)
+        line = serializer.instance_variable_get(:@model_line_formatter).format_line('User', data)
         expect(line).to eq('- **User**')
       end
 
       it 'includes associations and validations count' do
-        data = { associations: [{ type: 'has_many', name: 'posts' }], validations: [{ kind: 'presence' }], enums: {}, table_name: 'users' }
-        line = serializer.send(:format_model_line, 'User', data, {}, nil)
-        expect(line).to include('(1a, 1v)')
+        data = { associations: [{ type: 'has_many', name: 'posts' }, { type: 'belongs_to', name: 'user' }], validations: [{ name: 'presence' }, { name: 'uniqueness' }], enums: {},
+                 table_name: 'users' }
+        line = serializer.instance_variable_get(:@model_line_formatter).format_line('User', data)
+        expect(line).to include('(2a, 2v)')
       end
 
       it 'includes enums' do
-        data = { associations: [], validations: [], enums: { 'status' => %w[active inactive] }, table_name: 'users' }
-        line = serializer.send(:format_model_line, 'User', data, {}, nil)
+        data = { associations: [], validations: [], enums: { status: %w[active inactive] }, table_name: 'users' }
+        line = serializer.instance_variable_get(:@model_line_formatter).format_line('User', data)
         expect(line).to include('[enums: status]')
       end
 
       it 'includes top associations' do
         data = { associations: [{ type: 'has_many', name: 'posts' }, { type: 'belongs_to', name: 'user' }], validations: [], enums: {}, table_name: 'users' }
-        line = serializer.send(:format_model_line, 'User', data, {}, nil)
+        line = serializer.instance_variable_get(:@model_line_formatter).format_line('User', data)
         expect(line).to include('— has_many :posts, belongs_to :user')
       end
 
       it 'includes recently migrated flag' do
-        data = { associations: [], validations: [], enums: {}, table_name: 'users' }
-        migrations = { pending: [], recent_tables: %w[users] }
-        line = serializer.send(:format_model_line, 'User', data, {}, migrations)
-        expect(line).to include('[recently migrated]')
+        data = { associations: [], validations: [], enums: {}, table_name: 'recently_migrated_table' }
+        # Mock the ContextSummary.recently_migrated? method to return true
+        allow(RailsAiBridge::Serializers::ContextSummary)
+          .to receive(:recently_migrated?)
+          .with('recently_migrated_table', anything)
+          .and_return(true)
+        line = serializer.instance_variable_get(:@model_line_formatter).format_line('User', data)
+        expect(line).to eq('- **User** [recently migrated]')
       end
     end
   end

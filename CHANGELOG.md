@@ -9,18 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`non_ar_models` introspector** — Lists Ruby classes under `app/models` that are not ActiveRecord models, tagged **`[POJO/Service]`** in MCP listings and `.claude/rules/rails-models.md`. Context key: `:non_ar_models` with `{ non_ar_models: [{ name, relative_path, tag }] }`. **Not** in `:standard` or `:full` presets (opt in via `config.introspectors << :non_ar_models`). Included in the `domain_metadata` disable category when enabled.
-- **Model semantic classification** — Each ActiveRecord model in introspection output now includes `semantic_tier` (`core_entity`, `pure_join`, `rich_join`, `supporting`) and `semantic_tier_reason` for MCP transparency. Join tables used in `has_many :through` are detected; payload columns beyond FKs and metadata yield `rich_join`.
-- **`config.core_models`** — List model class names to tag as `core_entity` for AI-focused context (initializer comment + `Config::Introspection`).
-- **`RailsAiBridge::ModelSemanticClassifier`** — PORO that computes tiers from columns, `belongs_to` foreign keys, and through-association membership.
-- **`.claude/rules/rails-context.md`** — Semantic layer summary (app metadata + models grouped by tier) for Claude Code, alongside existing split rules.
+- **`non_ar_models` introspector** — Lists Ruby classes under `app/models` that are not
+  ActiveRecord models, tagged **`[POJO/Service]`** in MCP listings and
+  `.claude/rules/rails-models.md`. Context key: `:non_ar_models` with
+  `{ non_ar_models: [{ name, relative_path, tag }] }`. **Not** in `:standard` or
+  `:full` presets (opt in via `config.introspectors << :non_ar_models`).
+  Included in the `domain_metadata` disable category when enabled.
+- **Model semantic classification** — Each ActiveRecord model in introspection
+  output now includes `semantic_tier` (`core_entity`, `pure_join`, `rich_join`,
+  `supporting`) and `semantic_tier_reason` for MCP transparency. Join tables
+  used in `has_many :through` are detected; payload columns beyond FKs and
+  metadata yield `rich_join`.
+- **`config.core_models`** — List model class names to tag as `core_entity` for
+  AI-focused context (initializer comment + `Config::Introspection`).
+- **`RailsAiBridge::ModelSemanticClassifier`** — PORO that computes tiers from
+  columns, `belongs_to` foreign keys, and through-association membership.
+- **`.claude/rules/rails-context.md`** — Semantic layer summary (app metadata +
+  models grouped by tier) for Claude Code, alongside existing split rules.
 
 ### Changed
 
-- **`rails-context.md` tier lists** — In compact `context_mode`, at most 20 model names per `semantic_tier` with an overflow line referencing `rails_get_model_details(detail:"summary")`; full mode lists all names per tier.
+- **`rails-context.md` tier lists** — In compact `context_mode`, at most 20 model names
+  per `semantic_tier` with an overflow line referencing
+  `rails_get_model_details(detail:"summary")`; full mode lists all names per tier.
 - **Claude rules `rails-models.md`** — Each model line includes `tier: …` when present.
-- **`rails_get_model_details` formatters** — Summary, standard, full, and single-model views include semantic tier where applicable.
-- **Combustion test setup** — `Combustion.path` is set to `spec/internal`, `Combustion::Database.setup` runs after boot so `:memory:` SQLite has schema before examples, and the internal `ExampleJob` no longer subclasses `ActiveJob::Base` (Active Job is not loaded in the minimal stack).
+- **`rails_get_model_details` formatters** — Summary, standard, full, and
+  single-model views include semantic tier where applicable.
+- **Combustion test setup** — `Combustion.path` is set to `spec/internal`,
+  `Combustion::Database.setup` runs after boot so `:memory:` SQLite has schema
+  before examples, and the internal `ExampleJob` no longer subclasses
+  `ActiveJob::Base` (Active Job is not loaded in the minimal stack).
 
 ## [Unreleased]
 
@@ -32,13 +50,19 @@ _Targeting **v2.3.0** when Phase 2–3 and final review are done; gem version re
 
 - **Gemini Support:** Added support for Google's Gemini AI assistant via `GEMINI.md`.
 - **New Rake Task:** Added `rails ai:bridge:gemini` to generate Gemini-specific context.
-- **Context Harmonization:** Refactored all provider serializers (Claude, Gemini, Codex, Copilot, Cursor, Windsurf) to use a shared `BaseProviderSerializer`.
-- **Enhanced AI Guidance:** All context files now feature directive headers, complexity-sorted model lists, and explicit behavioral rules to improve AI code generation.
-- **Improved Metadata:** Context files now include descriptions for key config files and standard maintenance commands (e.g., `rubocop`).
+- **Context Harmonization:** Refactored all provider serializers (Claude, Gemini, Codex,
+  Copilot, Cursor, Windsurf) to use a shared `BaseProviderSerializer`.
+- **Enhanced AI Guidance:** All context files now feature directive headers,
+  complexity-sorted model lists, and explicit behavioral rules to improve AI
+  code generation.
+- **Improved Metadata:** Context files now include descriptions for key config
+  files and standard maintenance commands (e.g., `rubocop`).
 
 ### Changed
 
-- **Internal Refactor:** Extracted common rendering logic into `RailsAiBridge::Serializers::Providers::BaseProviderSerializer` to ensure consistency and maintainability across all AI assistants.
+- **Internal Refactor:** Extracted common rendering logic into
+  `RailsAiBridge::Serializers::Providers::BaseProviderSerializer` to ensure
+  consistency and maintainability across all AI assistants.
 
 ## [2.0.0] - 2026-03-31
 
