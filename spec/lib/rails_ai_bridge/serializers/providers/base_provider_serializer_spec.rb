@@ -147,6 +147,12 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
       expect(s.render_stack_overview.join).not_to include('Auth:')
     end
 
+    it 'skips auth line when nested auth sections are malformed' do
+      ctx = base_context.merge(auth: { authentication: 'oops', authorization: [:also_bad] })
+      s = described_class.new(ctx, config: config)
+      expect(s.render_stack_overview.join).not_to include('Auth:')
+    end
+
     it 'includes pending migrations count' do
       ctx = base_context.merge(migrations: { total: 20, pending: %w[m1 m2] })
       s = described_class.new(ctx, config: config)
@@ -419,6 +425,26 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
         gems = { notable_gems: [], notable: [], detected: [] }
         expect(serializer.send(:extract_notable_gems, gems)).to eq([])
       end
+
+      it 'wraps a single hash payload' do
+        gems = { notable_gems: { name: 'devise' } }
+        expect(serializer.send(:extract_notable_gems, gems)).to eq([{ name: 'devise' }])
+      end
+
+      it 'filters malformed gem entries' do
+        gems = { notable_gems: [{ name: 'devise' }, 'bad', nil] }
+        expect(serializer.send(:extract_notable_gems, gems)).to eq([{ name: 'devise' }])
+      end
+
+      it 'falls back when earlier gem keys are empty' do
+        gems = { notable_gems: [], notable: [{ name: 'pundit' }] }
+        expect(serializer.send(:extract_notable_gems, gems)).to eq([{ name: 'pundit' }])
+      end
+
+      it 'returns empty array for malformed gem payloads' do
+        gems = { notable_gems: 'devise' }
+        expect(serializer.send(:extract_notable_gems, gems)).to eq([])
+      end
     end
 
     describe 'stack line builders' do
@@ -477,6 +503,11 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
 
       it 'auth_stack_line with no auth' do
         auth = { authentication: {}, authorization: {} }
+        expect(RailsAiBridge::Serializers::Providers::Collaborators::StackOverviewBuilder::AuthStackBuilder.build(auth)).to be_nil
+      end
+
+      it 'auth_stack_line with malformed nested auth sections' do
+        auth = { authentication: 'placeholder', authorization: ['placeholder'] }
         expect(RailsAiBridge::Serializers::Providers::Collaborators::StackOverviewBuilder::AuthStackBuilder.build(auth)).to be_nil
       end
 

@@ -236,7 +236,7 @@ RSpec.describe RailsAiBridge::Serializers::Providers::Collaborators::ModelLineFo
         formatter_malformed = described_class.new(malformed_context)
         data = { table_name: 'users' }
         result = formatter_malformed.format_line('User', data)
-        expect(result).to eq('- **User** [cols: :string, :datetime, email:]')
+        expect(result).to eq('- **User**')
       end
     end
 
@@ -347,6 +347,17 @@ RSpec.describe RailsAiBridge::Serializers::Providers::Collaborators::ModelLineFo
         expect(result).to eq('- **User** (3a, 2v)')
       end
 
+      it 'treats malformed association and validation payloads as empty' do
+        data = {
+          associations: 'oops',
+          validations: { presence: true },
+          enums: {},
+          table_name: 'users'
+        }
+        result = formatter.format_line('User', data)
+        expect(result).to eq('- **User**')
+      end
+
       it 'handles symbol keys and values' do
         data = {
           associations: [{ type: :has_many, name: :posts }],
@@ -357,16 +368,6 @@ RSpec.describe RailsAiBridge::Serializers::Providers::Collaborators::ModelLineFo
         result = formatter.format_line(:User, data)
         expect(result).to eq('- **User** (1a, 1v) [enums: status] — has_many :posts')
       end
-    end
-  end
-
-  describe 'ContextSummary.recently_migrated?' do
-    it 'works correctly' do
-      migrations = { recent: [], recent_tables: [] }
-      expect(RailsAiBridge::Serializers::ContextSummary).to receive(:recently_migrated?).with('users', migrations).and_return(true)
-
-      result = RailsAiBridge::Serializers::ContextSummary.recently_migrated?('users', migrations)
-      expect(result).to be true
     end
   end
 end

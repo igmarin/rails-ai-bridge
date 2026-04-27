@@ -78,17 +78,42 @@ module RailsAiBridge
           class AuthPartsExtractor
             # Authentication providers configuration
             AUTH_PROVIDERS = [
-              { name: 'Devise', check: ->(auth) { auth.dig(:authentication, :devise)&.any? } },
-              { name: 'Rails 8 auth', check: ->(auth) { auth.dig(:authentication, :rails_auth) } },
-              { name: 'Pundit', check: ->(auth) { auth.dig(:authorization, :pundit)&.any? } },
-              { name: 'CanCanCan', check: ->(auth) { auth.dig(:authorization, :cancancan).present? } }
+              { name: 'Devise', section: :authentication, key: :devise },
+              { name: 'Rails 8 auth', section: :authentication, key: :rails_auth },
+              { name: 'Pundit', section: :authorization, key: :pundit },
+              { name: 'CanCanCan', section: :authorization, key: :cancancan }
             ].freeze
 
             # Extracts available authentication providers
             # @param auth [Hash] Auth configuration hash
             # @return [Array<String>] List of provider names
             def self.extract(auth)
-              AUTH_PROVIDERS.filter_map { |provider| provider[:name] if provider[:check].call(auth) }
+              payload = AuthPayload.new(auth)
+              AUTH_PROVIDERS.filter_map do |provider|
+                provider[:name] if payload.provider_present?(provider[:section], provider[:key])
+              end
+            end
+
+            # Normalizes nested auth provider payloads before probing them.
+            class AuthPayload
+              # @param auth [Hash] Auth configuration hash
+              def initialize(auth)
+                @auth = auth
+              end
+
+              # @param section_name [Symbol] auth payload section name
+              # @param provider_key [Symbol] provider key inside the section
+              # @return [Boolean] true when the provider payload is populated
+              def provider_present?(section_name, provider_key)
+                section(section_name)[provider_key].present?
+              end
+
+              private
+
+              def section(name)
+                payload = @auth[name]
+                payload.is_a?(Hash) ? payload : {}
+              end
             end
           end
 

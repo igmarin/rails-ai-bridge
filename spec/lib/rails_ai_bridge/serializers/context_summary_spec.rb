@@ -107,6 +107,20 @@ RSpec.describe RailsAiBridge::Serializers::ContextSummary do
     it 'returns empty array when columns key is missing' do
       expect(described_class.top_columns({})).to eq([])
     end
+
+    it 'ignores malformed columns' do
+      cols = described_class.top_columns(
+        columns: [
+          { name: nil, type: 'string' },
+          { type: 'datetime' },
+          { name: 'email', type: nil },
+          'oops',
+          { name: 'name', type: 'string' }
+        ]
+      )
+
+      expect(cols).to eq([{ name: 'name', type: 'string' }])
+    end
   end
 
   describe '.recently_migrated?' do
@@ -135,6 +149,24 @@ RSpec.describe RailsAiBridge::Serializers::ContextSummary do
       migrations = {
         recent: [
           { version: recent_version, filename: "#{recent_version}_create_posts.rb" }
+        ]
+      }
+      expect(described_class.recently_migrated?('users', migrations)).to be false
+    end
+
+    it 'returns true when a recent migration adds columns to the table' do
+      migrations = {
+        recent: [
+          { version: recent_version, filename: "#{recent_version}_add_name_to_users.rb" }
+        ]
+      }
+      expect(described_class.recently_migrated?('users', migrations)).to be true
+    end
+
+    it 'does not match table name substrings in other table names' do
+      migrations = {
+        recent: [
+          { version: recent_version, filename: "#{recent_version}_create_admin_users.rb" }
         ]
       }
       expect(described_class.recently_migrated?('users', migrations)).to be false

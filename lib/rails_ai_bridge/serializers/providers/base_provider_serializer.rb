@@ -203,7 +203,7 @@ module RailsAiBridge
         def extract_notable_gems(gems)
           return [] unless gems.is_a?(Hash) && !gems[:error]
 
-          gems[:notable_gems] || gems[:notable] || gems[:detected] || []
+          NotableGemPayload.new(gems).to_a
         end
 
         def stack_overview_builder
@@ -229,6 +229,31 @@ module RailsAiBridge
           def sorted_by_complexity
             @models.select { |_name, data| data.is_a?(Hash) }
                    .sort_by { |_name, data| -ContextSummary.model_complexity_score(data) }
+          end
+        end
+
+        # Normalizes notable gem payloads from introspector variants.
+        class NotableGemPayload
+          # @param gems [Hash] gem metadata keyed by possible notable gem fields
+          def initialize(gems)
+            @gems = gems
+          end
+
+          # @return [Array<Hash>] notable gem hashes safe for rendering
+          def to_a
+            return [] unless normalized_gems.is_a?(Array)
+
+            normalized_gems.grep(Hash)
+          end
+
+          private
+
+          def normalized_gems
+            @normalized_gems ||= raw_gems.is_a?(Hash) ? [raw_gems] : raw_gems
+          end
+
+          def raw_gems
+            @raw_gems ||= [@gems[:notable_gems], @gems[:notable], @gems[:detected]].find(&:present?)
           end
         end
       end

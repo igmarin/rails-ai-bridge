@@ -137,8 +137,7 @@ module RailsAiBridge
           # @param context [FormattingContext] Context object with data
           # @return [String] Associations section or empty string
           def associations_section(context)
-            associations = context.data[:associations] || []
-            top_assocs = extract_associations(associations)
+            top_assocs = extract_associations(context.data[:associations])
             return '' if top_assocs.blank?
 
             " — #{top_assocs}"
@@ -176,9 +175,12 @@ module RailsAiBridge
           # @param associations [Array<Hash>] Association definitions
           # @return [String] Formatted associations string
           def extract_associations(associations)
-            associations.first(3).map { |assoc| self.class.format_association(assoc) }
-                                 .reject(&:empty?)
-                        .join(', ')
+            association_list = associations.is_a?(Array) ? associations : []
+            association_list
+              .first(3)
+              .map { |assoc| self.class.format_association(assoc) }
+              .reject(&:empty?)
+              .join(', ')
           end
 
           class << self
@@ -266,12 +268,14 @@ module RailsAiBridge
 
             # @return [#size] Raw associations collection or an empty array
             def associations
-              @data[:associations] || []
+              associations_payload = @data[:associations]
+              associations_payload.is_a?(Array) ? associations_payload : []
             end
 
             # @return [#size] Raw validations collection or an empty array
             def validations
-              @data[:validations] || []
+              validations_payload = @data[:validations]
+              validations_payload.is_a?(Array) ? validations_payload : []
             end
           end
 
