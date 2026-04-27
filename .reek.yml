@@ -146,6 +146,13 @@ detectors:
     - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#render_architecture
     - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#render_key_models
     - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#render_stack_overview
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#database_stack_line
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#models_stack_line
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#auth_stack_line
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#async_stack_line
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#migrations_stack_line
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#enforce_max_lines
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#format_model_line
     - RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer#append_tier_model_bullets
     - RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer#group_models_by_semantic_tier
     - RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer#render_context_reference
@@ -258,6 +265,13 @@ detectors:
     - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#render_key_models
     - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#render_notable_gems
     - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#render_stack_overview
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#database_stack_line
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#models_stack_line
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#auth_stack_line
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#async_stack_line
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#migrations_stack_line
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#enforce_max_lines
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#format_model_line
     - RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer#render_context_reference
     - RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer#render_models_reference
     - RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer#render_schema_reference
@@ -320,6 +334,7 @@ detectors:
     exclude:
     - RailsAiBridge::Doctor::Checkers::BaseChecker#check
     - RailsAiBridge::Doctor::Checkers::BaseChecker#new_check
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#format_model_line
     - RailsAiBridge::Mcp::HttpStructuredLog#emit
     - RailsAiBridge::Serializers::ContextFileSerializer#generate_split_rules
     - RailsAiBridge::Serializers::ProviderDocumentHeader#call
@@ -448,10 +463,15 @@ detectors:
   TooManyMethods:
     exclude:
     - RailsAiBridge::Introspectors::ModelIntrospector
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer
   TooManyStatements:
     exclude:
     - initialize
     - RailsAiBridge::Generators::InstallGenerator#add_to_gitignore
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#format_model_line
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#async_stack_line
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#auth_stack_line
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#enforce_max_lines
     - RailsAiBridge::Generators::InstallGenerator#create_assistant_overrides_template
     - RailsAiBridge::Generators::InstallGenerator#generate_context_files
     - RailsAiBridge::Generators::InstallGenerator#show_instructions
@@ -846,6 +866,8 @@ detectors:
     exclude:
     - RailsAiBridge::Doctor::Checkers::BaseChecker#new_check
     - RailsAiBridge::Doctor::Checkers::StimulusMcpToolChecker#tool_registered?
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#extract_notable_gems
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#recently_migrated?
     - RailsAiBridge::Doctor::Checkers::ViewMcpToolChecker#tool_registered?
     - RailsAiBridge::Doctor#compute_score
     - RailsAiBridge::Introspectors::ControllerIntrospector#api_controller?
