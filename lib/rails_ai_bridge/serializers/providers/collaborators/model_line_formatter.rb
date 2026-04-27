@@ -74,32 +74,24 @@ module RailsAiBridge
             raise ArgumentError, 'Model name cannot be nil' unless name
             raise ArgumentError, "Model data must be a Hash, got #{data.class}" unless data.is_a?(Hash)
 
-            schema_tables = @context.dig(:schema, :tables) || {}
-            migrations = @context[:migrations]
-
-            format_model_line(name, data, schema_tables, migrations)
+            format_model_line(name, FormattingContext.from(data, @context))
           end
 
           private
 
           # Core formatting implementation that builds the complete model line
           # @param name [String] Model name
-          # @param data [Hash] Model data
-          # @param schema_tables [Hash] Schema tables data
-          # @param migrations [Hash] Migrations data
+          # @param context [FormattingContext] Grouped model, schema, and migration data
           # @return [String] Complete formatted model line
-          def format_model_line(name, data, schema_tables, migrations)
-            context = FormattingContext.new(data, schema_tables, migrations)
-
-            sections = [
+          def format_model_line(name, context)
+            [
               base_line(name),
               association_count_section(context),
               enums_section(context),
               columns_section(context),
               migration_section(context),
               associations_section(context)
-            ]
-            sections.join
+            ].join
           end
 
           # Builds the base model line with bold name
@@ -153,9 +145,26 @@ module RailsAiBridge
           end
 
           # Simple context object to group related parameters and reduce DataClump
+          #
+          # @!attribute [r] data
+          #   @return [Hash] Single model introspection data
+          # @!attribute [r] schema_tables
+          #   @return [Hash] Schema tables keyed by table name
+          # @!attribute [r] migrations
+          #   @return [Hash, nil] Migration summary data
           class FormattingContext
             attr_reader :data, :schema_tables, :migrations
 
+            # @param data [Hash] Single model introspection data
+            # @param context [Hash] Full introspection context
+            # @return [FormattingContext] Context object for model-line formatting
+            def self.from(data, context)
+              new(data, context.dig(:schema, :tables) || {}, context[:migrations])
+            end
+
+            # @param data [Hash] Single model introspection data
+            # @param schema_tables [Hash] Schema tables keyed by table name
+            # @param migrations [Hash, nil] Migration summary data
             def initialize(data, schema_tables, migrations)
               @data = data
               @schema_tables = schema_tables
@@ -177,13 +186,7 @@ module RailsAiBridge
             # @param data [Hash] Model data
             # @return [String] Count section or empty string
             def association_count_section(data)
-              associations = data[:associations] || []
-              validations = data[:validations] || []
-              assoc_count = associations.size
-              val_count = validations.size
-              return '' unless assoc_count.positive? || val_count.positive?
-
-              " (#{assoc_count}a, #{val_count}v)"
+              AssociationValidationCounts.new(data).to_section
             end
 
             # Extracts enum names from enum data (class method)
@@ -204,13 +207,7 @@ module RailsAiBridge
             # @param schema_tables [Hash] Schema tables data
             # @return [String] Columns section or empty string
             def columns_section(data, schema_tables)
-              table_name = data[:table_name]
-              return '' unless table_name
-
-              cols = ContextSummary.top_columns(schema_tables[table_name])
-              return '' unless cols.any?
-
-              " [cols: #{cols.map { |column| "#{column[:name]}:#{column[:type]}" }.join(', ')}]"
+              ModelColumns.new(data, schema_tables).to_section
             end
 
             # Builds migration section with recently migrated flag (class method)
@@ -243,6 +240,98 @@ module RailsAiBridge
               in { type:, name: }
                 "#{type} :#{name}"
               end
+            end
+          end
+
+          # Formats the compact association and validation count suffix.
+          class AssociationValidationCounts
+            # @param data [Hash] Single model introspection data
+            def initialize(data)
+              @data = data
+            end
+
+            # @return [String] Count suffix or an empty string when both counts are zero
+            def to_section
+              return '' unless counts?
+
+              " (#{association_count}a, #{validation_count}v)"
+            end
+
+            private
+
+            # @return [Boolean] true when any count should be rendered
+            def counts?
+              association_count.positive? || validation_count.positive?
+            end
+
+            # @return [Integer] Number of associations reported by the model introspector
+            def association_count
+              associations.size
+            end
+
+            # @return [Integer] Number of validations reported by the model introspector
+            def validation_count
+              validations.size
+            end
+
+            # @return [#size] Raw associations collection or an empty array
+            def associations
+              @data[:associations] || []
+            end
+
+            # @return [#size] Raw validations collection or an empty array
+            def validations
+              @data[:validations] || []
+            end
+          end
+
+          # Formats the compact schema column suffix for a model line.
+          class ModelColumns
+            # @param data [Hash] Single model introspection data
+            # @param schema_tables [Hash] Schema tables keyed by table name
+            def initialize(data, schema_tables)
+              @data = data
+              @schema_tables = schema_tables
+            end
+
+            # @return [String] Column suffix or an empty string when no columns qualify
+            def to_section
+              return '' unless columns.any?
+
+              " [cols: #{FormattedColumns.new(columns)}]"
+            end
+
+            private
+
+            # @return [Array<Hash>] Top non-housekeeping columns for the table
+            def columns
+              @columns ||= ContextSummary.top_columns(@schema_tables[@data[:table_name]])
+            end
+          end
+
+          # Joins compact column name/type pairs.
+          class FormattedColumns
+            # @param columns [Array<Hash>] Column hashes with +:name+ and +:type+ keys
+            def initialize(columns)
+              @columns = columns
+            end
+
+            # @return [String] Comma-separated +name:type+ column pairs
+            def to_s
+              @columns.map { |column| FormattedColumn.new(column) }.join(', ')
+            end
+          end
+
+          # Formats one compact column name/type pair.
+          class FormattedColumn
+            # @param column [Hash] Column hash with +:name+ and +:type+ keys
+            def initialize(column)
+              @column = column
+            end
+
+            # @return [String] +name:type+ column pair
+            def to_s
+              "#{@column[:name]}:#{@column[:type]}"
             end
           end
         end
