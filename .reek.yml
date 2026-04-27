@@ -62,6 +62,7 @@ detectors:
     - RailsAiBridge::Watcher#initialize
   DataClump:
     exclude:
+    - RailsAiBridge::Serializers::Providers::RulesOrchestrator
     - RailsAiBridge::Serializers::RegenerationFooter
   DuplicateMethodCall:
     exclude:
@@ -74,6 +75,11 @@ detectors:
     - RailsAiBridge::ExclusionHelper#table_pattern_match?
     - RailsAiBridge::Fingerprinter#snapshot
     - RailsAiBridge::HttpTransportApp#build
+    - RailsAiBridge::Server#run_rack_server
+    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#add_model_entries
+    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#add_overflow_message
+    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#calculate_association_count
+    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#sorted_gems
     - RailsAiBridge::Introspector#app_name
     - RailsAiBridge::Introspector#call
     - RailsAiBridge::Introspectors::ActiveStorageIntrospector#extract_attachments
@@ -234,6 +240,8 @@ detectors:
     - RailsAiBridge::Introspectors::ConventionDetector#scan_directory_structure
     - RailsAiBridge::Introspectors::DevOpsIntrospector#extract_docker_info
     - RailsAiBridge::Introspectors::DevOpsIntrospector#extract_procfile
+    - RailsAiBridge::Server#create_mcp_server
+    - RailsAiBridge::Server#run_rack_server
     - RailsAiBridge::Introspectors::DevOpsIntrospector#extract_puma_config
     - RailsAiBridge::Introspectors::EngineIntrospector#discover_mounted_engines
     - RailsAiBridge::Introspectors::GemIntrospector#categorize_gems
@@ -352,6 +360,7 @@ detectors:
     - RailsAiBridge::Tools::SearchCode#self.search_with_ruby
   ManualDispatch:
     exclude:
+    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#valid_considerations_data?
     - RailsAiBridge::Introspector#app_name
     - RailsAiBridge::Introspectors::ConfigIntrospector#extract_credentials_keys
     - RailsAiBridge::Introspectors::ControllerIntrospector#extract_action_condition
@@ -443,6 +452,7 @@ detectors:
     - RailsAiBridge::Tools::SearchCode#self.normalize_and_validate_file_type
   RepeatedConditional:
     exclude:
+    - RailsAiBridge::Serializers::Providers::RulesOrchestrator
     - RailsAiBridge::Introspectors::AssetPipelineIntrospector
     - RailsAiBridge::Introspectors::Schema::StaticSchemaParser
     - RailsAiBridge::Introspectors::StimulusIntrospector
@@ -464,9 +474,12 @@ detectors:
     exclude:
     - RailsAiBridge::Introspectors::ModelIntrospector
     - RailsAiBridge::Serializers::Providers::BaseProviderSerializer
+    - RailsAiBridge::Serializers::Providers::RulesOrchestrator
   TooManyConstants:
     exclude:
     - RailsAiBridge::Resources
+    - RailsAiBridge::Server
+    - RailsAiBridge::Serializers::Providers::RulesOrchestrator
   TooManyStatements:
     exclude:
     - initialize
@@ -477,6 +490,9 @@ detectors:
     - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#enforce_max_lines
     - RailsAiBridge::Generators::InstallGenerator#create_assistant_overrides_template
     - RailsAiBridge::Generators::InstallGenerator#generate_context_files
+    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#sorted_gems
+    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#build_document
+    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#add_model_entries
     - RailsAiBridge::Generators::InstallGenerator#show_instructions
     - RailsAiBridge::AssistantFormatsPreference#formats_for_default_bridge_task
     - RailsAiBridge::AssistantFormatsPreference#write!
@@ -876,6 +892,14 @@ detectors:
     - RailsAiBridge::Introspectors::ControllerIntrospector#api_controller?
     - RailsAiBridge::Introspectors::ControllerIntrospector#discover_controllers
     - RailsAiBridge::Introspectors::ControllerIntrospector#eager_load_controllers!
+    - RailsAiBridge::Server#create_stdio_transport
+    - RailsAiBridge::Server#create_http_transport
+    - RailsAiBridge::Server#register_resources
+    - RailsAiBridge::Server#validate_http_server_in_production
+    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#add_repo_guidance
+    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#add_shared_engineering_rules
+    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#calculate_association_count
+    - RailsAiBridge::Serializers::Providers::RulesOrchestrator#valid_models?
     - RailsAiBridge::Introspectors::ControllerIntrospector#extract_action_condition
     - RailsAiBridge::Introspectors::ControllerIntrospector#extract_actions
     - RailsAiBridge::Introspectors::ControllerIntrospector#extract_concerns

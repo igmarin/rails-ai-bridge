@@ -1,8 +1,11 @@
 # Roadmaps — progress index
 
-Entry point to see **which tracks exist** and **what is left**. Details live in each linked file; update the tables here when you close slices (or track work in GitHub Issues / Projects instead).
+Entry point to see **which tracks exist** and **what is left**. Details live in each linked file;
+update the tables here when you close slices (or track work in GitHub Issues / Projects instead).
 
-**Audience:** These documents are mainly for **maintainers and contributors**. Gem users usually rely on [GUIDE.md](GUIDE.md), [CHANGELOG.md](../CHANGELOG.md), and the README. Keeping roadmaps **in git** is normal for open-source gems (transparency, onboarding); they are not required to *use* the gem.
+**Audience:** These documents are mainly for **maintainers and contributors**. Gem users usually rely
+on [GUIDE.md](GUIDE.md), [CHANGELOG.md](../CHANGELOG.md), and the README. Keeping roadmaps **in git**
+is normal for open-source gems (transparency, onboarding); they are not required to *use* the gem.
 
 ## MCP HTTP track (`RailsAiBridge::Mcp`)
 
