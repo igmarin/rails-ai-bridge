@@ -151,7 +151,7 @@ RSpec.describe RailsAiBridge::Config::Mcp do
   # Characterization tests for Fix #4: rate_limit_max_requests validation
   # --------------------------------------------------------------------------
 
-  describe 'Fix #4: rate_limit_max_requests setter validation' do
+  describe 'rate_limit_max_requests setter validation' do
     it 'accepts a positive integer' do
       config.rate_limit_max_requests = 100
       expect(config.rate_limit_max_requests).to eq(100)
@@ -190,6 +190,33 @@ RSpec.describe RailsAiBridge::Config::Mcp do
     it 'accepts a negative integer (disables rate limiting)' do
       config.rate_limit_max_requests = -1
       expect(config.rate_limit_max_requests).to eq(-1)
+    end
+
+    it 'accepts a negative numeric string (e.g. from ENV) and effective value is 0' do
+      config.rate_limit_max_requests = '-5'
+      expect(config.rate_limit_max_requests).to eq('-5')
+      expect(config.effective_http_rate_limit_max_requests).to eq(0)
+    end
+
+    it 'rejects a whitespace-padded numeric string with ArgumentError' do
+      expect { config.rate_limit_max_requests = ' 200 ' }
+        .to raise_error(ArgumentError, /must be Integer, numeric String, or nil/)
+    end
+
+    it 'rejects a trailing-space numeric string with ArgumentError' do
+      expect { config.rate_limit_max_requests = '200 ' }
+        .to raise_error(ArgumentError, /must be Integer, numeric String, or nil/)
+    end
+
+    it 'rejects a float string with ArgumentError' do
+      expect { config.rate_limit_max_requests = '3.14' }
+        .to raise_error(ArgumentError, /must be Integer, numeric String, or nil/)
+    end
+
+    it 'coerces a positive numeric string to integer via effective_http_rate_limit_max_requests' do
+      config.mode = :production
+      config.rate_limit_max_requests = '150'
+      expect(config.effective_http_rate_limit_max_requests).to eq(150)
     end
   end
 end

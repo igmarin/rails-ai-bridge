@@ -157,7 +157,7 @@ module RailsAiBridge
 
         return unless append.any?
 
-        append_to_file gitignore_path, "\n# rails-ai-bridge (JSON cache — markdown files should be committed)\n#{append.join("\n")}"
+        append_to_file gitignore_path, "\n# rails-ai-bridge (JSON cache — markdown files should be committed)\n#{append.join("\n")}\n"
         say 'Updated .gitignore', :green
       end
 
@@ -171,8 +171,8 @@ module RailsAiBridge
             result[:written].each { |file| say "  Created #{file}", :green }
             result[:skipped].each { |file| say "  Unchanged #{file}", :blue }
           rescue StandardError => error
-            say "  Error generating context: #{error.message}", :red
-            say '  Run `rails ai:bridge` after install to retry.', :yellow
+            say "  Context generation failed (#{error.class}). Run `rails ai:bridge` after install to retry.", :red
+            Rails.logger.debug { "[rails-ai-bridge] generate_context error: #{error.message}" }
           end
         else
           say '  Skipped (Rails app not fully loaded). Run `rails ai:bridge` after install.', :yellow

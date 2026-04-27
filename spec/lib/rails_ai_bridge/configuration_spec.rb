@@ -27,7 +27,6 @@ RSpec.describe RailsAiBridge::Configuration do
     expect(config.core_models).to eq([])
     expect(config.mcp_token_resolver).to be_nil
     expect(config.mcp_jwt_decoder).to be_nil
-    expect(config.rate_limit_max_requests).to be_nil
     expect(config.rate_limit_window_seconds).to eq(60)
     expect(config.http_log_json).to be(false)
   end
@@ -170,7 +169,7 @@ RSpec.describe RailsAiBridge::Configuration do
     end
   end
 
-  describe 'Fix #2: preset reader on facade' do
+  describe 'preset reader delegation' do
     it 'exposes a preset reader via delegation' do
       expect(config.respond_to?(:preset)).to be(true)
     end

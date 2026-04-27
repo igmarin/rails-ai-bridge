@@ -97,7 +97,7 @@ RSpec.describe RailsAiBridge::Config::Introspection do
 
   describe 'Fix #1: duplicate ## comment block' do
     it 'has only one YARD doc block above initialize (not two)' do
-      source = File.read(File.join(Dir.pwd, 'lib', 'rails_ai_bridge', 'config', 'introspection.rb'))
+      source = File.read(File.expand_path('../../../../lib/rails_ai_bridge/config/introspection.rb', __dir__))
       # Count ## lines (YARD doc block delimiters) — may be indented
       yard_blocks = source.scan(/^\s*##(?:\s|$)/).length
       expect(yard_blocks).to eq(1),
@@ -131,6 +131,8 @@ RSpec.describe RailsAiBridge::Config::Introspection do
     end
 
     it 'returns nil when introspectors are modified directly (not via preset=)' do
+      introspection.preset = :standard
+      expect(introspection.preset).to eq(:standard)
       introspection.introspectors += %i[views]
       expect(introspection.preset).to be_nil
     end

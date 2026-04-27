@@ -6,7 +6,16 @@ require 'generators/rails_ai_bridge/install/install_generator'
 
 RSpec.describe RailsAiBridge::Generators::InstallGenerator do
   let(:destination_root) { Dir.mktmpdir }
-  let(:generator) { described_class.new([], {}, destination_root: destination_root) }
+  let(:generator) { build_generator }
+
+  def build_generator(args = [], **config)
+    options = {}
+    if args.include?('--pretend')
+      options[:pretend] = true
+      args -= ['--pretend']
+    end
+    described_class.new(args, options, { destination_root: destination_root, **config })
+  end
 
   after do
     FileUtils.remove_entry(destination_root)
@@ -91,7 +100,7 @@ RSpec.describe RailsAiBridge::Generators::InstallGenerator do
     end
 
     it 'respects --pretend (dry-run) and does not write .mcp.json' do
-      pretend_generator = described_class.new(['--pretend'], destination_root: destination_root)
+      pretend_generator = build_generator(['--pretend'])
 
       pretend_generator.create_mcp_config
 
@@ -121,7 +130,7 @@ RSpec.describe RailsAiBridge::Generators::InstallGenerator do
     end
 
     it 'respects --pretend (dry-run) and does not create directory or files' do
-      pretend_generator = described_class.new(['--pretend'], destination_root: destination_root)
+      pretend_generator = build_generator(['--pretend'])
 
       pretend_generator.create_assistant_overrides_template
 
@@ -155,13 +164,14 @@ RSpec.describe RailsAiBridge::Generators::InstallGenerator do
 
     it 'skips silently when .gitignore does not exist' do
       expect { generator.add_to_gitignore }.not_to raise_error
+      expect(File).not_to exist(File.join(destination_root, '.gitignore'))
     end
 
     it 'respects --pretend (dry-run) and does not modify .gitignore' do
       gitignore_path = File.join(destination_root, '.gitignore')
       File.write(gitignore_path, "node_modules/\n")
 
-      pretend_generator = described_class.new(['--pretend'], destination_root: destination_root)
+      pretend_generator = build_generator(['--pretend'])
       pretend_generator.add_to_gitignore
 
       content = File.read(gitignore_path)
@@ -195,8 +205,7 @@ RSpec.describe RailsAiBridge::Generators::InstallGenerator do
 
       generator.generate_context_files
 
-      expect(generator).to have_received(:say).with('  Error generating context: introspection failed', :red)
-      expect(generator).to have_received(:say).with('  Run `rails ai:bridge` after install to retry.', :yellow)
+      expect(generator).to have_received(:say).with('  Context generation failed (StandardError). Run `rails ai:bridge` after install to retry.', :red)
     end
 
     it 'skips when Rails.application is nil' do
