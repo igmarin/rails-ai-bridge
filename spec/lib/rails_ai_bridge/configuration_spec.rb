@@ -63,14 +63,14 @@ RSpec.describe RailsAiBridge::Configuration do
 
     it 'sets introspectors to full preset' do
       config.preset = :full
-      expect(config.introspectors.size).to eq(26)
+      expect(config.introspectors.size).to eq(27)
       expect(config.introspectors).to include(:stimulus, :views, :turbo, :auth, :api, :devops, :migrations, :seeds,
-                                              :middleware, :engines, :multi_database)
+                                              :middleware, :engines, :multi_database, :non_ar_models)
     end
 
     it 'accepts string preset names' do
       config.preset = 'full'
-      expect(config.introspectors.size).to eq(26)
+      expect(config.introspectors.size).to eq(27)
     end
 
     it 'raises on unknown preset' do
@@ -167,6 +167,21 @@ RSpec.describe RailsAiBridge::Configuration do
       }
 
       expect(config.additional_resources).to have_key('rails://custom')
+    end
+  end
+
+  describe 'Fix #2: preset reader on facade' do
+    it 'exposes a preset reader via delegation' do
+      expect(config.respond_to?(:preset)).to be(true)
+    end
+
+    it 'returns nil before any preset is explicitly set' do
+      expect(config.preset).to be_nil
+    end
+
+    it 'returns the preset name after setting it' do
+      config.preset = :full
+      expect(config.preset).to eq(:full)
     end
   end
 

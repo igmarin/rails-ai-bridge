@@ -146,4 +146,50 @@ RSpec.describe RailsAiBridge::Config::Mcp do
       expect(config.http_rate_limit_implicitly_suppressed?).to be true
     end
   end
+
+  # --------------------------------------------------------------------------
+  # Characterization tests for Fix #4: rate_limit_max_requests validation
+  # --------------------------------------------------------------------------
+
+  describe 'Fix #4: rate_limit_max_requests setter validation' do
+    it 'accepts a positive integer' do
+      config.rate_limit_max_requests = 100
+      expect(config.rate_limit_max_requests).to eq(100)
+    end
+
+    it 'accepts nil' do
+      config.rate_limit_max_requests = nil
+      expect(config.rate_limit_max_requests).to be_nil
+    end
+
+    it 'accepts a numeric string (for ENV var usage)' do
+      config.rate_limit_max_requests = '200'
+      expect(config.rate_limit_max_requests).to eq('200')
+    end
+
+    it 'rejects non-numeric strings with ArgumentError' do
+      expect { config.rate_limit_max_requests = 'not-a-number' }
+        .to raise_error(ArgumentError, /must be Integer, numeric String, or nil/)
+    end
+
+    it 'rejects arbitrary objects with ArgumentError' do
+      expect { config.rate_limit_max_requests = [1, 2, 3] }
+        .to raise_error(ArgumentError, /must be Integer, numeric String, or nil/)
+    end
+
+    it 'rejects a float with ArgumentError' do
+      expect { config.rate_limit_max_requests = 3.14 }
+        .to raise_error(ArgumentError, /must be Integer, numeric String, or nil/)
+    end
+
+    it 'accepts zero (disables rate limiting)' do
+      config.rate_limit_max_requests = 0
+      expect(config.rate_limit_max_requests).to eq(0)
+    end
+
+    it 'accepts a negative integer (disables rate limiting)' do
+      config.rate_limit_max_requests = -1
+      expect(config.rate_limit_max_requests).to eq(-1)
+    end
+  end
 end
