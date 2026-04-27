@@ -25,15 +25,14 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
     }
   end
   let(:config) { RailsAiBridge::Configuration.new }
-  let(:original_configuration) { RailsAiBridge.configuration }
 
   # Isolate global configuration to prevent order-dependent test behavior
-  before do
+  around do |example|
+    original = RailsAiBridge.instance_variable_get(:@configuration)
     RailsAiBridge.instance_variable_set(:@configuration, RailsAiBridge::Configuration.new)
-  end
-
-  after do
-    RailsAiBridge.instance_variable_set(:@configuration, original_configuration)
+    example.run
+  ensure
+    RailsAiBridge.instance_variable_set(:@configuration, original)
   end
 
   describe '#initialize' do

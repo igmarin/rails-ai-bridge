@@ -1,9 +1,5 @@
 # frozen_string_literal: true
 
-require_relative 'collaborators/stack_overview_builder'
-require_relative 'collaborators/model_line_formatter'
-require_relative 'collaborators/line_enforcer'
-
 module RailsAiBridge
   module Serializers
     module Providers

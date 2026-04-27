@@ -100,8 +100,8 @@ module RailsAiBridge
         name = name.to_sym
         raise ArgumentError, "Unknown preset: #{name}. Valid presets: #{Configuration::PRESETS.keys.join(', ')}" unless Configuration::PRESETS.key?(name)
 
+        self.introspectors = Configuration::PRESETS[name].dup
         @preset = name
-        @introspectors = Configuration::PRESETS[name].dup
       end
 
       # Returns the last preset name set via {#preset=}, or +nil+ if introspectors

@@ -299,23 +299,16 @@ module RailsAiBridge
 
         # Checks if notable gems are available in the context.
         #
-        # Uses safe navigation and error handling to prevent crashes
-        # when the context structure is unexpected.
-        #
         # @return [Boolean] true if notable gems exist and contain data
         def notable_gems?
-          @context[:gems]&.[](:notable_gems)&.any?
-        rescue StandardError
-          false
+          @context.dig(:gems, :notable_gems)&.any? || false
         end
 
         # Checks if architecture information is available in the context.
         #
         # @return [Boolean] true if architecture exists and contains data
         def architecture?
-          @context[:conventions]&.[](:architecture)&.any?
-        rescue StandardError
-          false
+          @context.dig(:conventions, :architecture)&.any? || false
         end
 
         # Checks if key considerations are available.
@@ -325,26 +318,20 @@ module RailsAiBridge
         # @return [Boolean] true if considerations exist
         def considerations?
           (@context[:tests] || @context[:config]) && valid_considerations_data?
-        rescue StandardError
-          false
         end
 
         # Checks if test framework information is present and valid.
         #
         # @return [Boolean] true if test framework exists
         def test_framework_present?
-          @context[:tests]&.[](:framework)&.present?
-        rescue StandardError
-          false
+          @context.dig(:tests, :framework).present? || false
         end
 
         # Checks if cache store information is present and valid.
         #
         # @return [Boolean] true if cache store exists
         def cache_store_present?
-          @context[:config]&.[](:cache_store)&.present?
-        rescue StandardError
-          false
+          @context.dig(:config, :cache_store).present? || false
         end
 
         # Returns sorted notable gems by category and name.
@@ -356,8 +343,8 @@ module RailsAiBridge
         def sorted_gems
           return [] unless notable_gems?
 
-          @context[:gems][:notable_gems].sort_by { |gem| [gem[:category] || '', gem[:name] || ''] }
-        rescue StandardError => error
+          @context.dig(:gems, :notable_gems).sort_by { |gem| [gem[:category] || '', gem[:name] || ''] }
+        rescue TypeError, ArgumentError => error
           Rails.logger.warn "Failed to sort notable gems: #{error.message}" if defined?(Rails.logger)
           []
         end
@@ -374,8 +361,6 @@ module RailsAiBridge
           return false unless models.any?
 
           true
-        rescue StandardError
-          false
         end
 
         # Returns the model list limit from configuration.
@@ -385,7 +370,7 @@ module RailsAiBridge
         # @return [Integer] model list limit (defaults to 5 on error)
         def model_list_limit
           @config.copilot_compact_model_list_limit.to_i
-        rescue StandardError
+        rescue TypeError, NoMethodError
           5 # Safe default
         end
 
@@ -402,7 +387,7 @@ module RailsAiBridge
             assoc_count = calculate_association_count(model_data)
             lines << format(MODEL_ENTRY_FORMAT, model_name, assoc_count)
           end
-        rescue StandardError => error
+        rescue TypeError, ArgumentError => error
           Rails.logger.warn "Failed to add model entries: #{error.message}" if defined?(Rails.logger)
         end
 
@@ -412,7 +397,7 @@ module RailsAiBridge
         # @return [Boolean] true if overflow exists
         def overflow?(models)
           models.size > model_list_limit
-        rescue StandardError
+        rescue TypeError, NoMethodError
           false
         end
 
@@ -424,7 +409,7 @@ module RailsAiBridge
         def add_overflow_message(lines, models)
           remainder = models.size - model_list_limit
           lines << format(MODELS_OVERFLOW_FORMAT, remainder) if remainder.positive?
-        rescue StandardError => error
+        rescue TypeError, ArgumentError => error
           Rails.logger.warn "Failed to add overflow message: #{error.message}" if defined?(Rails.logger)
         end
 
@@ -451,8 +436,6 @@ module RailsAiBridge
           return 0 unless model_data[:associations].is_a?(Array)
 
           model_data[:associations].size
-        rescue StandardError
-          0
         end
       end
     end

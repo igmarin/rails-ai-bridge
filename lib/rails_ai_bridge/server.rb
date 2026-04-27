@@ -20,7 +20,7 @@ module RailsAiBridge
     TOOLS_LIST_MESSAGE = '[rails-ai-bridge] Tools: %s'
 
     # Error message template for unknown transport types
-    UNKNOWN_TRANSPORT_ERROR = 'Unknown transport: %s. Use :stdio or :http'
+    UNKNOWN_TRANSPORT_ERROR = 'Unknown transport: %s. Use :stdio, :http, or :streamable_http'
 
     # Built-in MCP tools that are always available
     # These tools provide Rails application introspection capabilities

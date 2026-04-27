@@ -77,31 +77,119 @@ module RailsAiBridge
             schema_tables = @context.dig(:schema, :tables) || {}
             migrations = @context[:migrations]
 
-            ModelLineRenderer.format(ModelConfiguration.new(name, data, schema_tables, migrations))
+            format_model_line(name, data, schema_tables, migrations)
           end
 
-          # Configuration object for model line formatting
-          class ModelConfiguration
-            attr_reader :name, :data, :schema_tables, :migrations
+          private
 
-            def initialize(name, data, schema_tables, migrations)
-              @name = name
+          # Core formatting implementation that builds the complete model line
+          # @param name [String] Model name
+          # @param data [Hash] Model data
+          # @param schema_tables [Hash] Schema tables data
+          # @param migrations [Hash] Migrations data
+          # @return [String] Complete formatted model line
+          def format_model_line(name, data, schema_tables, migrations)
+            context = FormattingContext.new(data, schema_tables, migrations)
+
+            sections = [
+              base_line(name),
+              association_count_section(context),
+              enums_section(context),
+              columns_section(context),
+              migration_section(context),
+              associations_section(context)
+            ]
+            sections.join
+          end
+
+          # Builds the base model line with bold name
+          # @param name [String] Model name
+          # @return [String] Base line with model name
+          def base_line(name)
+            "- **#{name}**"
+          end
+
+          # Builds association and validation count section
+          # @param context [FormattingContext] Context object with data
+          # @return [String] Count section or empty string
+          def association_count_section(context)
+            self.class.association_count_section(context.data)
+          end
+
+          # Builds enum names section
+          # @param context [FormattingContext] Context object with data
+          # @return [String] Enum section or empty string
+          def enums_section(context)
+            enum_data = context.data[:enums] || {}
+            enum_names = self.class.extract_enum_names(enum_data)
+            return '' unless enum_names.any?
+
+            " [enums: #{enum_names.join(', ')}]"
+          end
+
+          # Builds columns section with top columns and types
+          # @param context [FormattingContext] Context object with data
+          # @return [String] Columns section or empty string
+          def columns_section(context)
+            self.class.columns_section(context.data, context.schema_tables)
+          end
+
+          # Builds migration section with recently migrated flag
+          # @param context [FormattingContext] Context object with data
+          # @return [String] Migration section or empty string
+          def migration_section(context)
+            self.class.migration_section(context.data, context.migrations)
+          end
+
+          # Builds associations section with top 3 associations
+          # @param context [FormattingContext] Context object with data
+          # @return [String] Associations section or empty string
+          def associations_section(context)
+            associations = context.data[:associations] || []
+            top_assocs = extract_associations(associations)
+            return '' if top_assocs.blank?
+
+            " — #{top_assocs}"
+          end
+
+          # Simple context object to group related parameters and reduce DataClump
+          class FormattingContext
+            attr_reader :data, :schema_tables, :migrations
+
+            def initialize(data, schema_tables, migrations)
               @data = data
               @schema_tables = schema_tables
               @migrations = migrations
             end
           end
 
-          # Utility class for model line formatting
-          class ModelLineRenderer
-            def self.format(configuration)
-              LineBuilder.new(configuration).build
-            end
+          # Extracts and formats top 3 associations
+          # @param associations [Array<Hash>] Association definitions
+          # @return [String] Formatted associations string
+          def extract_associations(associations)
+            associations.first(3).map { |assoc| self.class.format_association(assoc) }
+                                 .reject(&:empty?)
+                        .join(', ')
           end
 
-          # Utility class for extracting enum names
-          class EnumExtractor
-            def self.extract(enum_data)
+          class << self
+            # Builds association and validation count section (class method)
+            # @param data [Hash] Model data
+            # @return [String] Count section or empty string
+            def association_count_section(data)
+              associations = data[:associations] || []
+              validations = data[:validations] || []
+              assoc_count = associations.size
+              val_count = validations.size
+              return '' unless assoc_count.positive? || val_count.positive?
+
+              " (#{assoc_count}a, #{val_count}v)"
+            end
+
+            # Extracts enum names from enum data (class method)
+            # @param enum_data [Hash] Enum definitions
+            # @return [Array<String>] List of enum names
+            def extract_enum_names(enum_data)
               return [] unless enum_data.is_a?(Hash)
               return [] if enum_data.empty?
 
@@ -110,119 +198,13 @@ module RailsAiBridge
 
               enum_data.keys.compact
             end
-          end
 
-          # Utility class for extracting associations
-          class AssociationExtractor
-            def self.extract(associations)
-              associations.first(3).map(&method(:format_association))
-                          .reject(&:empty?)
-                          .join(', ')
-            end
-
-            def self.format_association(association)
-              return '' unless association.is_a?(Hash)
-
-              type = association[:type]
-              name = association[:name]
-
-              AssociationFormatter.call(type, name)
-            end
-          end
-
-          # Builds formatted model line components
-          class LineBuilder
-            def initialize(configuration)
-              @configuration = configuration
-            end
-
-            def build
-              sections = [
-                base_line,
-                association_count_section,
-                enums_section,
-                columns_section,
-                migration_section,
-                associations_section
-              ]
-              sections.join
-            end
-
-            private
-
-            attr_reader :configuration
-
-            def name
-              configuration.name
-            end
-
-            def data
-              configuration.data
-            end
-
-            def schema_tables
-              configuration.schema_tables
-            end
-
-            def migrations
-              configuration.migrations
-            end
-
-            def base_line
-              "- **#{name}**"
-            end
-
-            def association_count_section
-              associations = data[:associations] || []
-              validations = data[:validations] || []
-              AssociationCountBuilder.build(associations, validations)
-            end
-
-            def enums_section
-              enum_data = data[:enums] || {}
-              EnumSectionBuilder.build(enum_data)
-            end
-
-            def columns_section
+            # Builds columns section with top columns and types (class method)
+            # @param data [Hash] Model data
+            # @param schema_tables [Hash] Schema tables data
+            # @return [String] Columns section or empty string
+            def columns_section(data, schema_tables)
               table_name = data[:table_name]
-              ColumnsSectionBuilder.build(table_name, schema_tables)
-            end
-
-            def migration_section
-              table_name = data[:table_name]
-              return '' unless table_name && MigrationChecker.recently_migrated?(table_name, migrations)
-
-              ' [recently migrated]'
-            end
-
-            def associations_section
-              associations = data[:associations] || []
-              top_assocs = AssociationExtractor.extract(associations)
-              return '' if top_assocs.blank?
-
-              " — #{top_assocs}"
-            end
-          end
-
-          # Helper class for association formatting following SRP
-          class AssociationFormatter
-            # Data-driven formatting rules for different type/name combinations
-            FORMATTERS = [
-              { condition: ->(type, name) { type.nil? && name.nil? }, formatter: ->(*) { '' } },
-              { condition: ->(type, _name) { type.nil? }, formatter: ->(_, name) { " :#{name}" } },
-              { condition: ->(_type, name) { name.nil? }, formatter: ->(type, _) { "#{type} :" } },
-              { condition: ->(type, name) { !type.nil? && !name.nil? }, formatter: ->(type, name) { "#{type} :#{name}" } }
-            ].freeze
-
-            def self.call(type, name)
-              formatter = FORMATTERS.find { |rule| rule[:condition].call(type, name) }
-              formatter[:formatter].call(type, name)
-            end
-          end
-
-          # Utility class for building columns sections
-          class ColumnsSectionBuilder
-            def self.build(table_name, schema_tables)
               return '' unless table_name
 
               cols = ContextSummary.top_columns(schema_tables[table_name])
@@ -230,33 +212,37 @@ module RailsAiBridge
 
               " [cols: #{cols.map { |column| "#{column[:name]}:#{column[:type]}" }.join(', ')}]"
             end
-          end
 
-          # Utility class for building association count sections
-          class AssociationCountBuilder
-            def self.build(associations, validations)
-              assoc_count = associations.size
-              val_count = validations.size
-              return '' unless assoc_count.positive? || val_count.positive?
+            # Builds migration section with recently migrated flag (class method)
+            # @param data [Hash] Model data
+            # @param migrations [Hash] Migrations data
+            # @return [String] Migration section or empty string
+            def migration_section(data, migrations)
+              table_name = data[:table_name]
+              return '' unless table_name && ContextSummary.recently_migrated?(table_name, migrations)
 
-              " (#{assoc_count}a, #{val_count}v)"
+              ' [recently migrated]'
             end
-          end
 
-          # Utility class for building enum sections
-          class EnumSectionBuilder
-            def self.build(enum_data)
-              enum_names = EnumExtractor.extract(enum_data)
-              return '' unless enum_names.any?
+            # Formats a single association using Ruby 3.2 pattern matching (class method)
+            # @param association [Hash] Association definition
+            # @return [String] Formatted association string
+            def format_association(association)
+              return '' unless association.is_a?(Hash)
 
-              " [enums: #{enum_names.join(', ')}]"
-            end
-          end
+              type = association[:type]
+              name = association[:name]
 
-          # Utility class for migration checking
-          class MigrationChecker
-            def self.recently_migrated?(table_name, migrations)
-              ContextSummary.recently_migrated?(table_name, migrations)
+              case { type: type, name: name }
+              in { type: nil, name: nil }
+                ''
+              in { type: nil, name: }
+                " :#{name}"
+              in { type:, name: nil }
+                "#{type} :"
+              in { type:, name: }
+                "#{type} :#{name}"
+              end
             end
           end
         end

@@ -250,7 +250,7 @@ RSpec.describe RailsAiBridge::Serializers::Providers::Collaborators::ModelLineFo
 
       let(:formatter_with_migrations) { described_class.new(context_with_migrations) }
 
-      it 'includes recently migrated flag for recent_tables' do
+      it 'does not include recently migrated flag for non-recent migrations' do
         data = { table_name: 'users' }
         result = formatter_with_migrations.format_line('User', data)
         expect(result).to eq('- **User**')
@@ -354,12 +354,12 @@ RSpec.describe RailsAiBridge::Serializers::Providers::Collaborators::ModelLineFo
     end
   end
 
-  describe '#recently_migrated?' do
-    it 'delegates to ContextSummary' do
+  describe 'ContextSummary.recently_migrated?' do
+    it 'works correctly' do
       migrations = { recent: [], recent_tables: [] }
       expect(RailsAiBridge::Serializers::ContextSummary).to receive(:recently_migrated?).with('users', migrations).and_return(true)
 
-      result = RailsAiBridge::Serializers::Providers::Collaborators::ModelLineFormatter::MigrationChecker.recently_migrated?('users', migrations)
+      result = RailsAiBridge::Serializers::ContextSummary.recently_migrated?('users', migrations)
       expect(result).to be true
     end
   end

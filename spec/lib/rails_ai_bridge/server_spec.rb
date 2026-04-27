@@ -134,7 +134,7 @@ RSpec.describe RailsAiBridge::Server do
       it 'raises ConfigurationError' do
         expect do
           invalid_server.start
-        end.to raise_error(RailsAiBridge::ConfigurationError, 'Unknown transport: invalid. Use :stdio or :http')
+        end.to raise_error(RailsAiBridge::ConfigurationError, 'Unknown transport: invalid. Use :stdio, :http, or :streamable_http')
       end
     end
   end

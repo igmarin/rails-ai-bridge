@@ -23,7 +23,7 @@ RSpec.describe RailsAiBridge::Resources do
         { test: 'data' }
       end
     end
-    stub_const('ViewFileAnalyzer', view_analyzer)
+    stub_const('RailsAiBridge::ViewFileAnalyzer', view_analyzer)
   end
 
   describe '.resource_definitions' do

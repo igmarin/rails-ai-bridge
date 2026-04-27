@@ -187,17 +187,6 @@ module RailsAiBridge
         json_resource(uri, payload)
       end
 
-      # Validates that a resource payload exists and raises error if not.
-      # @param uri [String] resource URI to validate
-      # @param payload [Object, nil] resolved payload
-      # @return [Object] the payload if present
-      # @raise [RuntimeError] when payload is nil
-      def validate_resource_payload!(uri, payload)
-        raise UNKNOWN_RESOURCE_ERROR % uri unless payload
-
-        payload
-      end
-
       # Resolves the payload for a concrete MCP resource URI.
       # Attempts static resources first, then templated resources.
       # @param uri [String] resource URI requested by the client

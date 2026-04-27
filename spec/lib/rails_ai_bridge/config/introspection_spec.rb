@@ -92,10 +92,10 @@ RSpec.describe RailsAiBridge::Config::Introspection do
   end
 
   # --------------------------------------------------------------------------
-  # Characterization tests for 4 refactoring targets
+  # Characterization tests for refactoring targets
   # --------------------------------------------------------------------------
 
-  describe 'Fix #1: duplicate ## comment block' do
+  describe 'initialization behavior' do
     it 'defines initialize method on the class (not inherited)' do
       # Behavioral assertion: initialize should be defined directly on this class
       expect(described_class.instance_method(:initialize).owner)
@@ -103,7 +103,7 @@ RSpec.describe RailsAiBridge::Config::Introspection do
     end
   end
 
-  describe 'Fix #2: preset reader' do
+  describe 'preset reader behavior' do
     it 'exposes a preset reader on Introspection' do
       expect(introspection.respond_to?(:preset)).to be(true)
     end

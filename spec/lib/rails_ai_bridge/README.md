@@ -34,6 +34,6 @@ If you change one of those boundaries, update the corresponding spec first.
 
 ## Coverage threshold and gaps
 
-The suite enforces **code quality standards** via Reek, Rubocop, and security tooling.
+The suite uses **code quality standards** via Reek, Rubocop, and security tooling.
 For how to list files under quality thresholds and a living action backlog, see
 [`docs/COVERAGE.md`](../../../docs/COVERAGE.md).
