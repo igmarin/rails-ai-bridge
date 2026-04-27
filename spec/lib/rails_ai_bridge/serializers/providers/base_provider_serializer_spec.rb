@@ -251,7 +251,7 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
       expect(s.render_architecture).to eq([])
     end
 
-    it 'returns empty array when arch and patterns are both empty' do
+    it 'returns empty array when architecture, patterns, and config_files are all empty' do
       ctx = base_context.merge(conventions: { architecture: [], patterns: [], config_files: [] })
       s = described_class.new(ctx, config: config)
       expect(s.render_architecture).to eq([])
@@ -380,6 +380,11 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
       it 'returns empty array for nil gems' do
         expect(serializer.send(:extract_notable_gems, nil)).to eq([])
       end
+
+      it 'handles empty arrays in keys' do
+        gems = { notable_gems: [], notable: [], detected: [] }
+        expect(serializer.send(:extract_notable_gems, gems)).to eq([])
+      end
     end
 
     describe 'stack line builders' do
@@ -395,6 +400,30 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
       it 'database_stack_line with error schema' do
         schema = { error: 'failed' }
         expect(serializer.send(:database_stack_line, schema)).to be_nil
+      end
+
+      it 'database_stack_line with missing adapter' do
+        schema = { total_tables: 10 }
+        expect(serializer.send(:database_stack_line, schema)).to eq('- Database:  — 10 tables')
+      end
+
+      it 'models_stack_line with valid models' do
+        models = { User: {}, Post: {} }
+        expect(serializer.send(:models_stack_line, models)).to eq('- Models: 2')
+      end
+
+      it 'models_stack_line with empty models' do
+        expect(serializer.send(:models_stack_line, {})).to eq('- Models: 0')
+      end
+
+      it 'models_stack_line with nil models' do
+        expect(serializer.send(:models_stack_line, nil)).to be_nil
+      end
+
+      it 'models_stack_line with more than 5 models' do
+        models = { User: {}, Post: {}, Comment: {}, Tag: {}, Category: {}, Author: {} }
+        line = serializer.send(:models_stack_line, models)
+        expect(line).to eq('- Models: 6')
       end
 
       it 'auth_stack_line with devise' do
@@ -415,6 +444,10 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
         expect(serializer.send(:auth_stack_line, auth)).to be_nil
       end
 
+      it 'auth_stack_line with nil auth' do
+        expect(serializer.send(:auth_stack_line, nil)).to be_nil
+      end
+
       it 'async_stack_line with jobs only' do
         jobs = { jobs: [{ name: 'Job1' }], mailers: [], channels: [] }
         expect(serializer.send(:async_stack_line, jobs)).to eq('- Async: 1 jobs')
@@ -428,6 +461,15 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
         expect(line).to include('1 channels')
       end
 
+      it 'async_stack_line with empty async' do
+        jobs = { jobs: [], mailers: [], channels: [] }
+        expect(serializer.send(:async_stack_line, jobs)).to be_nil
+      end
+
+      it 'async_stack_line with nil async' do
+        expect(serializer.send(:async_stack_line, nil)).to be_nil
+      end
+
       it 'migrations_stack_line with pending' do
         migrations = { total: 20, pending: %w[m1 m2] }
         expect(serializer.send(:migrations_stack_line, migrations)).to eq('- Migrations: 20 total, 2 pending')
@@ -436,6 +478,16 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
       it 'migrations_stack_line with no pending' do
         migrations = { total: 20, pending: [] }
         expect(serializer.send(:migrations_stack_line, migrations)).to eq('- Migrations: 20 total, 0 pending')
+      end
+
+      it 'migrations_stack_line with nil pending' do
+        migrations = { total: 20 }
+        expect(serializer.send(:migrations_stack_line, migrations)).to eq('- Migrations: 20 total, 0 pending')
+      end
+
+      it 'migrations_stack_line with error' do
+        migrations = { error: 'failed' }
+        expect(serializer.send(:migrations_stack_line, migrations)).to be_nil
       end
     end
 

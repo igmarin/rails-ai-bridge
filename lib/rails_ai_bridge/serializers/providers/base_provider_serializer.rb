@@ -6,8 +6,16 @@ module RailsAiBridge
       # Base class for AI assistant provider serializers (Claude, Copilot, Gemini, Codex, Cursor, Windsurf).
       # Shared compact-mode sections: header, stack, models, gems, architecture, MCP guide, commands, footer.
       class BaseProviderSerializer
-        MAX_KEY_MODELS   = 15
-        MAX_PATTERNS     = 8
+        # Maximum number of key models to display in compact mode
+        # Models beyond this count are truncated with an overflow hint
+        MAX_KEY_MODELS = 15
+
+        # Maximum number of architectural patterns to display
+        # Limits the patterns section to prevent excessive output
+        MAX_PATTERNS = 8
+
+        # Maximum number of configuration files to list
+        # Shows only the most important config files
         MAX_CONFIG_FILES = 5
 
         attr_reader :context, :config

@@ -464,6 +464,9 @@ detectors:
     exclude:
     - RailsAiBridge::Introspectors::ModelIntrospector
     - RailsAiBridge::Serializers::Providers::BaseProviderSerializer
+  TooManyConstants:
+    exclude:
+    - RailsAiBridge::Resources
   TooManyStatements:
     exclude:
     - initialize

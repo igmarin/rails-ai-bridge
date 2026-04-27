@@ -153,7 +153,7 @@ RSpec.describe RailsAiBridge::Configuration do
     it 'returns empty array when all introspectors disabled' do
       config.introspectors = %i[schema models]
       config.disabled_introspection_categories << :domain_metadata
-      expect(config.effective_introspectors).not_to include(:schema, :models)
+      expect(config.effective_introspectors).to eq([])
     end
   end
 
