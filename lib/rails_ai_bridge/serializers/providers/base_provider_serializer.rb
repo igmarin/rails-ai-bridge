@@ -29,9 +29,6 @@ module RailsAiBridge
         def initialize(context, config: RailsAiBridge.configuration)
           @context = context
           @config = config
-          @stack_overview_builder = Collaborators::StackOverviewBuilder.new(context)
-          @model_line_formatter = Collaborators::ModelLineFormatter.new(context)
-          @line_enforcer = Collaborators::LineEnforcer.new(config)
         end
 
         # Renders the default compact AI context document (newline-joined sections).
@@ -52,7 +49,7 @@ module RailsAiBridge
           lines.concat(render_commands)
           lines.concat(render_footer)
 
-          @line_enforcer.enforce(lines).join("\n")
+          line_enforcer.enforce(lines).join("\n")
         end
 
         # Renders the header section of the context file.
@@ -80,7 +77,7 @@ module RailsAiBridge
         #
         # @return [Array<String>] Lines for the stack overview section, always non-empty.
         def render_stack_overview
-          @stack_overview_builder.build
+          stack_overview_builder.build
         end
 
         # Renders the key models section, sorted by complexity score (associations, validations, callbacks, scopes).
@@ -99,7 +96,7 @@ module RailsAiBridge
           sorted_names = models.sort_by { |_name, data| -ContextSummary.model_complexity_score(data) }.map(&:first)
           sorted_names.first(max_show).each do |name|
             data = models[name]
-            lines << @model_line_formatter.format_line(name, data)
+            lines << model_line_formatter.format_line(name, data)
           end
           lines << "- _...#{models.size - max_show} more (use `rails_get_model_details` tool)_" if models.size > max_show
           lines << ''
@@ -212,6 +209,18 @@ module RailsAiBridge
           return [] unless gems.is_a?(Hash) && !gems[:error]
 
           gems[:notable_gems] || gems[:notable] || gems[:detected] || []
+        end
+
+        def stack_overview_builder
+          @stack_overview_builder ||= Collaborators::StackOverviewBuilder.new(context)
+        end
+
+        def model_line_formatter
+          @model_line_formatter ||= Collaborators::ModelLineFormatter.new(context)
+        end
+
+        def line_enforcer
+          @line_enforcer ||= Collaborators::LineEnforcer.new(config)
         end
       end
     end
