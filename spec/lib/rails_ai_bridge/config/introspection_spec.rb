@@ -108,8 +108,8 @@ RSpec.describe RailsAiBridge::Config::Introspection do
       expect(introspection.respond_to?(:preset)).to be(true)
     end
 
-    it 'returns nil before any preset is explicitly set' do
-      expect(introspection.preset).to be_nil
+    it 'returns :standard by default' do
+      expect(introspection.preset).to eq(:standard)
     end
 
     it 'returns the preset name after setting it' do
@@ -136,7 +136,7 @@ RSpec.describe RailsAiBridge::Config::Introspection do
     end
   end
 
-  describe 'Fix #3: non_ar_models in category but not in any preset' do
+  describe 'domain metadata introspector category' do
     it 'non_ar_models is in domain_metadata category' do
       categories = RailsAiBridge::Configuration::INTROSPECTION_CATEGORY_INTROSPECTORS
       expect(categories[:domain_metadata]).to include(:non_ar_models)

@@ -184,7 +184,8 @@ RSpec.describe RailsAiBridge::Serializers::Providers::RulesOrchestrator do
         expect(result).to include('Footer')
         expect(result).not_to include('## Notable Gems')
         expect(result).not_to include('## Architecture & Conventions')
-        expect(result).not_to include('## Application Stack & Overview')
+        expect(result).to include('## Application Stack & Overview')
+        expect(result).to include('- **Name:** `MinimalApp`')
       end
     end
   end
@@ -202,11 +203,21 @@ RSpec.describe RailsAiBridge::Serializers::Providers::RulesOrchestrator do
         expect(result).to include('- **Database:** `postgresql`')
       end
 
-      it 'returns empty array when app_overview is missing' do
+      it 'renders stack metadata when app_overview is missing' do
         context_without_overview = context.except(:app_overview)
         orchestrator_without_overview = described_class.new(context: context_without_overview, config: config)
 
         result = orchestrator_without_overview.send(:render_stack_overview)
+
+        expect(result).to include('## Application Stack & Overview')
+        expect(result).to include('- **Name:** `MyApp`')
+      end
+
+      it 'returns empty array when stack metadata is missing' do
+        context_without_stack = context.slice(:gems, :conventions, :tests, :config, :models)
+        orchestrator_without_stack = described_class.new(context: context_without_stack, config: config)
+
+        result = orchestrator_without_stack.send(:render_stack_overview)
 
         expect(result).to eq([])
       end
@@ -259,6 +270,24 @@ RSpec.describe RailsAiBridge::Serializers::Providers::RulesOrchestrator do
         result = orchestrator_with_nil_gems.send(:render_notable_gems)
 
         expect(result).to eq([])
+      end
+
+      it 'falls back to notable gems under :notable' do
+        fallback_context = context.merge(gems: { notable: [{ name: 'sidekiq', version: '7.0', category: 'jobs', note: 'Background jobs' }] })
+        fallback_orchestrator = described_class.new(context: fallback_context, config: config)
+
+        result = fallback_orchestrator.send(:render_notable_gems)
+
+        expect(result).to include('- `sidekiq` (`7.0`): Background jobs')
+      end
+
+      it 'falls back to notable gems under :detected' do
+        fallback_context = context.merge(gems: { detected: [{ name: 'pg', version: '1.5', category: 'database', note: 'PostgreSQL adapter' }] })
+        fallback_orchestrator = described_class.new(context: fallback_context, config: config)
+
+        result = fallback_orchestrator.send(:render_notable_gems)
+
+        expect(result).to include('- `pg` (`1.5`): PostgreSQL adapter')
       end
     end
 

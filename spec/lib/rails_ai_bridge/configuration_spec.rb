@@ -259,8 +259,8 @@ RSpec.describe RailsAiBridge::Configuration do
       expect(config.respond_to?(:preset)).to be(true)
     end
 
-    it 'returns nil before any preset is explicitly set' do
-      expect(config.preset).to be_nil
+    it 'returns :standard by default' do
+      expect(config.preset).to eq(:standard)
     end
 
     it 'returns the preset name after setting it' do

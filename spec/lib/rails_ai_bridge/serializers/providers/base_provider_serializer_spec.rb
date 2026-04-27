@@ -193,6 +193,19 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
       lines = s.render_key_models.join("\n")
       expect(lines.index('Complex')).to be < lines.index('Simple')
     end
+
+    it 'skips malformed model payloads' do
+      models = {
+        'Valid' => { associations: [], validations: [], table_name: 'valids', enums: {} },
+        'Broken' => 'not a model payload'
+      }
+      ctx = base_context.merge(models: models)
+      s = described_class.new(ctx, config: config)
+      output = s.render_key_models.join("\n")
+
+      expect(output).to include('Valid')
+      expect(output).not_to include('Broken')
+    end
   end
 
   describe '#render_notable_gems' do
@@ -271,7 +284,7 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
       s = described_class.new(ctx, config: config)
       output = s.render_architecture.join("\n")
       expect(output).to match(/\bPattern7\b/)
-      expect(output).not_to match(/\bPattern8\b/)
+      expect(output).not_to match(/^-\s+Pattern8$/)
     end
   end
 
@@ -318,7 +331,7 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
       s = described_class.new(ctx, config: config)
       output = s.render_key_config_files.join("\n")
       expect(output).to include('config/file4.yml')
-      expect(output).not_to include('config/file5.yml')
+      expect(output).not_to match(%r{^-\s+`config/file5\.yml`$})
     end
   end
 
@@ -364,6 +377,16 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
         lines = %w[a b c]
         trimmed = line_enforcer.enforce(lines)
         expect(trimmed).to eq(lines)
+      end
+
+      it 'honors a zero line limit' do
+        config.claude_max_lines = 0
+        expect(line_enforcer.enforce(%w[a b c])).to eq([])
+      end
+
+      it 'honors a one line limit' do
+        config.claude_max_lines = 1
+        expect(line_enforcer.enforce(%w[a b c])).to eq(['_Context trimmed. Use MCP tools for full details._'])
       end
     end
 
@@ -455,6 +478,16 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
       it 'auth_stack_line with no auth' do
         auth = { authentication: {}, authorization: {} }
         expect(RailsAiBridge::Serializers::Providers::Collaborators::StackOverviewBuilder::AuthStackBuilder.build(auth)).to be_nil
+      end
+
+      it 'auth_stack_line ignores empty CanCanCan payloads' do
+        auth = { authentication: {}, authorization: { cancancan: [] } }
+        expect(RailsAiBridge::Serializers::Providers::Collaborators::StackOverviewBuilder::AuthStackBuilder.build(auth)).to be_nil
+      end
+
+      it 'auth_stack_line includes populated CanCanCan payloads' do
+        auth = { authentication: {}, authorization: { cancancan: ['Ability'] } }
+        expect(RailsAiBridge::Serializers::Providers::Collaborators::StackOverviewBuilder::AuthStackBuilder.build(auth)).to eq('- Auth: CanCanCan')
       end
 
       it 'auth_stack_line with nil auth' do

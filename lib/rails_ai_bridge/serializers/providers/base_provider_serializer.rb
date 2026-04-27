@@ -89,12 +89,11 @@ module RailsAiBridge
 
           lines = ['## Key Models',
                    'The following are the most architecturally significant models, ordered by complexity:']
-          sorted_names = models.sort_by { |_name, data| -ContextSummary.model_complexity_score(data) }.map(&:first)
-          sorted_names.first(max_show).each do |name|
-            data = models[name]
+          model_entries = ModelEntries.new(models).sorted_by_complexity
+          model_entries.first(max_show).each do |name, data|
             lines << model_line_formatter.format_line(name, data)
           end
-          lines << "- _...#{models.size - max_show} more (use `rails_get_model_details` tool)_" if models.size > max_show
+          lines << "- _...#{model_entries.size - max_show} more (use `rails_get_model_details` tool)_" if model_entries.size > max_show
           lines << ''
           lines
         end
@@ -217,6 +216,20 @@ module RailsAiBridge
 
         def line_enforcer
           @line_enforcer ||= Collaborators::LineEnforcer.new(config)
+        end
+
+        # Filters and sorts model entries for compact output.
+        class ModelEntries
+          # @param models [Hash] model payloads keyed by model name
+          def initialize(models)
+            @models = models
+          end
+
+          # @return [Array<Array(String, Hash)>] valid model entries sorted by complexity
+          def sorted_by_complexity
+            @models.select { |_name, data| data.is_a?(Hash) }
+                   .sort_by { |_name, data| -ContextSummary.model_complexity_score(data) }
+          end
         end
       end
     end

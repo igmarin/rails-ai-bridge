@@ -33,7 +33,9 @@ module RailsAiBridge
 
             # @return [Array<String>] Original lines, or trimmed lines with the MCP pointer
             def to_a
-              return @lines if within_limit?
+              return @lines.first(line_budget) if within_limit?
+              return [] if line_budget.zero?
+              return [LineEnforcer::TRIMMER_NOTICE] if line_budget == 1
 
               @lines.first(safe_count) + ['', LineEnforcer::TRIMMER_NOTICE]
             end
@@ -42,12 +44,17 @@ module RailsAiBridge
 
             # @return [Boolean] true when no trimming is required
             def within_limit?
-              @lines.size <= @max_lines
+              @lines.size <= line_budget
             end
 
             # @return [Integer] Number of source lines to keep before the notice
             def safe_count
-              [@max_lines - 2, 0].max
+              line_budget - 2
+            end
+
+            # @return [Integer] Non-negative maximum line budget
+            def line_budget
+              [@max_lines.to_i, 0].max
             end
           end
         end

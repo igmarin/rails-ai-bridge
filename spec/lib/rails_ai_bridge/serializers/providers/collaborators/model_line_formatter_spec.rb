@@ -100,7 +100,7 @@ RSpec.describe RailsAiBridge::Serializers::Providers::Collaborators::ModelLineFo
         expect(result).to eq('- **User**')
       end
 
-      it 'handles malformed association entries' do
+      it 'skips malformed association entries' do
         data = {
           associations: [
             { type: 'has_many', name: 'posts' },
@@ -110,7 +110,7 @@ RSpec.describe RailsAiBridge::Serializers::Providers::Collaborators::ModelLineFo
           ]
         }
         result = formatter.format_line('User', data)
-        expect(result).to eq('- **User** (4a, 0v) — has_many :posts,  :invalid,  :missing_type')
+        expect(result).to eq('- **User** (4a, 0v) — has_many :posts')
       end
 
       it 'limits associations to top 3' do
@@ -159,10 +159,16 @@ RSpec.describe RailsAiBridge::Serializers::Providers::Collaborators::ModelLineFo
         expect(result).to eq('- **User**')
       end
 
-      it 'handles enums with nil values' do
+      it 'skips enums with nil values' do
         data = { enums: { status: nil, role: ['admin'] } }
         result = formatter.format_line('User', data)
-        expect(result).to eq('- **User** [enums: status, role]')
+        expect(result).to eq('- **User** [enums: role]')
+      end
+
+      it 'skips enums with empty values' do
+        data = { enums: { status: [], role: ['admin'] } }
+        result = formatter.format_line('User', data)
+        expect(result).to eq('- **User** [enums: role]')
       end
     end
 
@@ -338,7 +344,7 @@ RSpec.describe RailsAiBridge::Serializers::Providers::Collaborators::ModelLineFo
           table_name: 'users'
         }
         result = formatter.format_line('User', data)
-        expect(result).to eq('- **User** (3a, 2v) — has_many :')
+        expect(result).to eq('- **User** (3a, 2v)')
       end
 
       it 'handles symbol keys and values' do

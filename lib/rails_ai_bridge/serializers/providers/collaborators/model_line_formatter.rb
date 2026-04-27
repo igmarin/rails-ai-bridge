@@ -194,12 +194,10 @@ module RailsAiBridge
             # @return [Array<String>] List of enum names
             def extract_enum_names(enum_data)
               return [] unless enum_data.is_a?(Hash)
-              return [] if enum_data.empty?
 
-              enum_values = enum_data.values.compact
-              return [] if enum_values.empty?
-
-              enum_data.keys.compact
+              enum_data.filter_map do |name, values|
+                name if name && values.present?
+              end
             end
 
             # Builds columns section with top columns and types (class method)
@@ -229,17 +227,9 @@ module RailsAiBridge
 
               type = association[:type]
               name = association[:name]
+              return '' if type.to_s.empty? || name.to_s.empty?
 
-              case { type: type, name: name }
-              in { type: nil, name: nil }
-                ''
-              in { type: nil, name: }
-                " :#{name}"
-              in { type:, name: nil }
-                "#{type} :"
-              in { type:, name: }
-                "#{type} :#{name}"
-              end
+              "#{type} :#{name}"
             end
           end
 

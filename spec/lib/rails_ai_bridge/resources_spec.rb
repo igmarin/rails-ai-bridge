@@ -41,6 +41,8 @@ RSpec.describe RailsAiBridge::Resources do
 
   describe '.build_resources' do
     it 'creates MCP::Resource objects for all definitions' do
+      allow(RailsAiBridge.configuration).to receive(:additional_resources).and_return({})
+
       resources = described_class.build_resources
 
       expect(resources).to be_an(Array)

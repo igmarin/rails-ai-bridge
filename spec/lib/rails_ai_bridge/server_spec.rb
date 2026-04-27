@@ -162,7 +162,6 @@ RSpec.describe RailsAiBridge::Server do
 
     describe '#start_http' do
       before do
-        # Mock the entire start_http method to avoid Rack dependencies
         allow(http_server).to receive(:validate_http_server_in_production)
         allow(http_server).to receive_messages(create_http_transport: double, build_rack_app: double)
         allow(http_server).to receive(:log_http_startup)
@@ -207,6 +206,30 @@ RSpec.describe RailsAiBridge::Server do
         http_server.send(:start_http, mcp_server)
 
         expect(http_server).to have_received(:run_rack_server).with(rack_app, RailsAiBridge.configuration)
+      end
+    end
+
+    describe '#run_rack_server' do
+      let(:rack_app) { double('rack app') }
+      let(:handler) { double('handler', run: true) }
+
+      it 'runs the Rackup handler when rackup is available' do
+        allow(http_server).to receive(:require).with('rackup').and_return(true)
+        stub_const('Rackup::Handler', double(default: handler))
+
+        http_server.send(:run_rack_server, rack_app, RailsAiBridge.configuration)
+
+        expect(handler).to have_received(:run).with(rack_app, Host: 'localhost', Port: 3000)
+      end
+
+      it 'falls back to Rack::Handler when rackup is unavailable' do
+        allow(http_server).to receive(:require).with('rackup').and_raise(LoadError)
+        allow(http_server).to receive(:require).with('rack/handler').and_return(true)
+        stub_const('Rack::Handler', double(default: handler))
+
+        http_server.send(:run_rack_server, rack_app, RailsAiBridge.configuration)
+
+        expect(handler).to have_received(:run).with(rack_app, Host: 'localhost', Port: 3000)
       end
     end
 

@@ -224,9 +224,9 @@ RSpec.describe RailsAiBridge::Generators::InstallGenerator do
 
       content = File.read(File.join(destination_root, 'config/initializers/rails_ai_bridge.rb'))
 
-      # Fix #3: initializer comment should rescue JWT::DecodeError,
-      # JWT::ExpiredSignature, and JWT::ImmatureSignature (not just DecodeError).
-      expect(content).to include('JWT::DecodeError, JWT::ExpiredSignature, JWT::ImmatureSignature')
+      expect(content).to include('JWT::DecodeError')
+      expect(content).to include('JWT::ExpiredSignature')
+      expect(content).to include('JWT::ImmatureSignature')
     end
   end
 end

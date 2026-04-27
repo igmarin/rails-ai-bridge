@@ -81,7 +81,7 @@ module RailsAiBridge
               { name: 'Devise', check: ->(auth) { auth.dig(:authentication, :devise)&.any? } },
               { name: 'Rails 8 auth', check: ->(auth) { auth.dig(:authentication, :rails_auth) } },
               { name: 'Pundit', check: ->(auth) { auth.dig(:authorization, :pundit)&.any? } },
-              { name: 'CanCanCan', check: ->(auth) { auth.dig(:authorization, :cancancan) } }
+              { name: 'CanCanCan', check: ->(auth) { auth.dig(:authorization, :cancancan).present? } }
             ].freeze
 
             # Extracts available authentication providers

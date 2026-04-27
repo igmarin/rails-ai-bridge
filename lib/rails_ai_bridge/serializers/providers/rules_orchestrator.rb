@@ -3,8 +3,6 @@
 module RailsAiBridge
   module Serializers
     module Providers
-      require_relative '../shared_assistant_guidance'
-
       # Orchestrates the assembly of the compact project rules document.
       # This class takes over the responsibility of gathering and arranging
       # various sections, including shared guidance, notable gems, architecture,
@@ -207,7 +205,7 @@ module RailsAiBridge
         #
         # @return [Array<String>] Markdown lines for the stack overview.
         def render_stack_overview
-          return [] unless @context[:app_overview]
+          return [] unless stack_metadata?
 
           lines = [SECTION_HEADERS[:stack_overview]]
           lines << format(STACK_INFO_TEMPLATES[:name], @context[:app_name]) if @context[:app_name]
@@ -301,7 +299,7 @@ module RailsAiBridge
         #
         # @return [Boolean] true if notable gems exist and contain data
         def notable_gems?
-          @context.dig(:gems, :notable_gems)&.any? || false
+          notable_gems.any?
         end
 
         # Checks if architecture information is available in the context.
@@ -341,12 +339,15 @@ module RailsAiBridge
         #
         # @return [Array<Hash>] sorted gems array, empty if no gems available
         def sorted_gems
-          return [] unless notable_gems?
-
-          @context.dig(:gems, :notable_gems).sort_by { |gem| [gem[:category] || '', gem[:name] || ''] }
+          notable_gems.sorted
         rescue TypeError, ArgumentError => error
           Rails.logger.warn "Failed to sort notable gems: #{error.message}" if defined?(Rails.logger)
           []
+        end
+
+        # @return [NotableGemCollection] notable gems from supported context keys
+        def notable_gems
+          NotableGemCollection.new(@context[:gems])
         end
 
         # Validates models hash structure and content.
@@ -361,6 +362,11 @@ module RailsAiBridge
           return false unless models.any?
 
           true
+        end
+
+        # @return [Boolean] true when at least one stack metadata field is present
+        def stack_metadata?
+          %i[app_name rails_version ruby_version environment database_adapter].any? { |key| @context[key].present? }
         end
 
         # Returns the model list limit from configuration.
@@ -436,6 +442,46 @@ module RailsAiBridge
           return 0 unless model_data[:associations].is_a?(Array)
 
           model_data[:associations].size
+        end
+
+        # Extracts notable gems from the supported context keys.
+        class NotableGemCollection
+          # @param gems [Hash, nil] Gems context payload
+          def initialize(gems)
+            @gems = gems
+          end
+
+          # @return [Boolean] true when at least one notable gem exists
+          def any?
+            !entries.empty?
+          end
+
+          # @return [Array<Hash>] entries sorted by category and name
+          def sorted
+            entries.sort_by { |gem| NotableGemSortKey.new(gem).to_a }
+          end
+
+          private
+
+          # @return [Array<Hash>] notable gem payloads
+          def entries
+            return [] unless @gems.is_a?(Hash) && !@gems[:error]
+
+            @gems[:notable_gems] || @gems[:notable] || @gems[:detected] || []
+          end
+        end
+
+        # Builds a stable sort key for notable gem entries.
+        class NotableGemSortKey
+          # @param gem [Hash] Notable gem payload
+          def initialize(gem)
+            @gem = gem
+          end
+
+          # @return [Array<String>] Sort key of category then name
+          def to_a
+            [@gem[:category] || '', @gem[:name] || '']
+          end
         end
       end
     end
