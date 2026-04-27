@@ -56,7 +56,7 @@ RSpec.describe RailsAiBridge::Config::Introspection do
   describe '#preset=' do
     it 'sets introspectors from a named preset' do
       introspection.preset = :full
-      expect(introspection.introspectors.size).to eq(26)
+      expect(introspection.introspectors.size).to eq(27)
     end
 
     it 'raises on unknown preset' do
@@ -88,6 +88,74 @@ RSpec.describe RailsAiBridge::Config::Introspection do
     it 'matches glob pattern' do
       introspection.excluded_tables << 'audit_*'
       expect(introspection.excluded_table?('audit_logs')).to be true
+    end
+  end
+
+  # --------------------------------------------------------------------------
+  # Characterization tests for refactoring targets
+  # --------------------------------------------------------------------------
+
+  describe 'initialization behavior' do
+    it 'defines initialize method on the class (not inherited)' do
+      # Behavioral assertion: initialize should be defined directly on this class
+      expect(described_class.instance_method(:initialize).owner)
+        .to eq(described_class)
+    end
+  end
+
+  describe 'preset reader behavior' do
+    it 'exposes a preset reader on Introspection' do
+      expect(introspection.respond_to?(:preset)).to be(true)
+    end
+
+    it 'returns nil before any preset is explicitly set' do
+      expect(introspection.preset).to be_nil
+    end
+
+    it 'returns the preset name after setting it' do
+      introspection.preset = :full
+      expect(introspection.preset).to eq(:full)
+    end
+
+    it 'returns :standard after setting standard preset' do
+      introspection.preset = :standard
+      expect(introspection.preset).to eq(:standard)
+    end
+
+    it 'returns the last preset set when changed' do
+      introspection.preset = :standard
+      introspection.preset = :full
+      expect(introspection.preset).to eq(:full)
+    end
+
+    it 'returns nil when introspectors are modified directly (not via preset=)' do
+      introspection.preset = :standard
+      expect(introspection.preset).to eq(:standard)
+      introspection.introspectors += %i[views]
+      expect(introspection.preset).to be_nil
+    end
+  end
+
+  describe 'Fix #3: non_ar_models in category but not in any preset' do
+    it 'non_ar_models is in domain_metadata category' do
+      categories = RailsAiBridge::Configuration::INTROSPECTION_CATEGORY_INTROSPECTORS
+      expect(categories[:domain_metadata]).to include(:non_ar_models)
+    end
+
+    it 'non_ar_models is NOT in :standard preset (by design)' do
+      preset = RailsAiBridge::Configuration::PRESETS[:standard]
+      expect(preset).not_to include(:non_ar_models)
+    end
+
+    it 'non_ar_models IS in :full preset' do
+      preset = RailsAiBridge::Configuration::PRESETS[:full]
+      expect(preset).to include(:non_ar_models)
+    end
+
+    it 'disabling domain_metadata removes non_ar_models from :full effective list' do
+      introspection.preset = :full
+      introspection.disabled_introspection_categories << :domain_metadata
+      expect(introspection.effective_introspectors).not_to include(:non_ar_models)
     end
   end
 end

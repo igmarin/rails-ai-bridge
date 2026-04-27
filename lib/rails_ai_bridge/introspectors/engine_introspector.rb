@@ -44,8 +44,8 @@ module RailsAiBridge
           mounted_engines: discover_mounted_engines,
           rails_engines: discover_rails_engines
         }
-      rescue StandardError => e
-        { error: e.message }
+      rescue StandardError => error
+        { error: error.message }
       end
 
       private

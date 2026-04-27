@@ -24,7 +24,7 @@ module RailsAiBridge
 
     PRESETS = {
       standard: %i[schema models routes jobs gems conventions controllers tests migrations],
-      full: %i[schema models routes jobs gems conventions stimulus controllers views turbo
+      full: %i[schema models non_ar_models routes jobs gems conventions stimulus controllers views turbo
                i18n config active_storage action_text auth api tests rake_tasks assets
                devops action_mailbox migrations seeds middleware engines multi_database],
       regulated: %i[routes jobs gems conventions controllers tests]
@@ -91,7 +91,7 @@ module RailsAiBridge
                    :search_code_allowed_file_types, :search_code_allowed_file_types=,
                    :search_code_pattern_max_bytes, :search_code_pattern_max_bytes=,
                    :search_code_timeout_seconds, :search_code_timeout_seconds=,
-                   :preset=,
+                   :preset=, :preset,
                    :effective_introspectors,
                    :excluded_table?
 

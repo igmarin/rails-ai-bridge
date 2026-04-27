@@ -19,8 +19,8 @@ module RailsAiBridge
           docker: extract_docker_info,
           deployment: detect_deployment_tool
         }
-      rescue StandardError => e
-        { error: e.message }
+      rescue StandardError => error
+        { error: error.message }
       end
 
       private

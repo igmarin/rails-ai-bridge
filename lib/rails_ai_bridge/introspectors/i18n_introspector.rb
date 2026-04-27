@@ -20,8 +20,8 @@ module RailsAiBridge
           locale_files: extract_locale_files,
           total_locale_files: count_locale_files
         }
-      rescue StandardError => e
-        { error: e.message }
+      rescue StandardError => error
+        { error: error.message }
       end
 
       private

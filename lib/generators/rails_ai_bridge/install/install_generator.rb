@@ -13,6 +13,8 @@ module RailsAiBridge
       # Creates a `.mcp.json` MCP server definition named "rails-ai-bridge".
       # The created file configures an MCP server that runs `bundle exec rails ai:serve` and is intended
       # for auto-discovery by tools such as Claude Code and Cursor.
+      #
+      # @return [void]
       def create_mcp_config
         mcp_config = {
           mcpServers: {
@@ -28,18 +30,13 @@ module RailsAiBridge
       end
 
       ##
-      # Create the Rails AI Bridge initializer at config/initializers/rails_ai_bridge.rb.
-      #
-      # The generated file is a commented configuration template that documents available
-      # introspector presets (with counts interpolated from Configuration::PRESETS),
-      # security exclusions, context/output controls, assistant override guidance, and
-      # HTTP MCP auto-mount settings. Writes the initializer to disk and prints a
-      ##
       # Creates config/initializers/rails_ai_bridge.rb containing a commented configuration guide
       # for rails-ai-bridge. The generated initializer documents introspector presets (with interpolated
       # counts), options for enabling/disabling introspectors, security exclusions (tables, models,
       # paths), primary domain model hints, context/output controls, assistant override guidance, and
       # a SECURITY CRITICAL HTTP MCP / auto_mount section with recommended authentication approaches.
+      #
+      # @return [void]
       def create_initializer
         standard_count = RailsAiBridge::Configuration::PRESETS[:standard].size
         full_count     = RailsAiBridge::Configuration::PRESETS[:full].size
@@ -101,7 +98,7 @@ module RailsAiBridge
             #   1. JWT decoder (no JWT gem required — supply your own lambda):
             #      config.mcp_jwt_decoder = ->(token) {
             #        JWT.decode(token, credentials.jwt_secret, true, algorithm: "HS256").first
-            #      rescue JWT::DecodeError
+            #      rescue JWT::DecodeError, JWT::ExpiredSignature, JWT::ImmatureSignature
             #        nil
             #      }
             #
@@ -126,9 +123,15 @@ module RailsAiBridge
         say 'Created config/initializers/rails_ai_bridge.rb', :green
       end
 
+      ##
+      # Creates the config/rails_ai_bridge/ directory with an overrides.md stub and an
+      # overrides.md.example reference file. Skips each file if it already exists so the
+      # method is safe to re-run (idempotent).
+      #
+      # @return [void]
       def create_assistant_overrides_template
         dir = 'config/rails_ai_bridge'
-        FileUtils.mkdir_p(File.join(destination_root, dir))
+        empty_directory dir
 
         stub = File.join(destination_root, dir, 'overrides.md')
         unless File.exist?(stub)
@@ -146,38 +149,58 @@ module RailsAiBridge
         say "Created #{dir}/overrides.md.example (reference outline, not merged)", :green
       end
 
+      ##
+      # Appends rails-ai-bridge-specific entries to .gitignore when the file exists and
+      # the entries are not already present. Does nothing if .gitignore is absent.
+      # Uses Thor's {#append_to_file} so the operation respects +--pretend+ (dry-run).
+      #
+      # @return [void]
       def add_to_gitignore
-        gitignore = Rails.root.join('.gitignore')
-        return unless File.exist?(gitignore)
+        gitignore_path = '.gitignore'
+        gitignore_full = File.join(destination_root, gitignore_path)
+        return unless File.exist?(gitignore_full)
 
-        content = File.read(gitignore)
+        content = File.read(gitignore_full)
         append = []
         append << '.ai-context.json' unless content.include?('.ai-context.json')
 
         return unless append.any?
 
-        File.open(gitignore, 'a') do |f|
-          f.puts ''
-          f.puts '# rails-ai-bridge (JSON cache — markdown files should be committed)'
-          append.each { |line| f.puts line }
-        end
+        append_to_file gitignore_path, "\n# rails-ai-bridge (JSON cache — markdown files should be committed)\n#{append.join("\n")}\n"
         say 'Updated .gitignore', :green
       end
 
+      ##
+      # Calls {RailsAiBridge.generate_context} to write initial bridge files (CLAUDE.md,
+      # .cursorrules, etc.). Skipped when +Rails.application+ is not available. Any
+      # {StandardError} is rescued and reported with the error class only (no raw message
+      # is printed to avoid leaking sensitive path or credential details); the full message
+      # is logged via +Rails.logger.debug+.
+      #
+      # @return [void]
       def generate_context_files
         say ''
         say 'Generating AI bridge files...', :yellow
 
         if Rails.application
-          require 'rails_ai_bridge'
-          result = RailsAiBridge.generate_context(format: :all)
-          result[:written].each { |file| say "  Created #{file}", :green }
-          result[:skipped].each { |file| say "  Unchanged #{file}", :blue }
+          begin
+            result = RailsAiBridge.generate_context(format: :all)
+            result[:written].each { |file| say "  Created #{file}", :green }
+            result[:skipped].each { |file| say "  Unchanged #{file}", :blue }
+          rescue StandardError => error
+            say "  Context generation failed (#{error.class}). Run `rails ai:bridge` after install to retry.", :red
+            Rails.logger.debug { "[rails-ai-bridge] generate_context error: #{error.message}" }
+          end
         else
           say '  Skipped (Rails app not fully loaded). Run `rails ai:bridge` after install.', :yellow
         end
       end
 
+      ##
+      # Prints post-install usage instructions to stdout: available rake tasks, generated
+      # file locations per AI assistant, MCP auto-discovery notes, and bridge mode options.
+      #
+      # @return [void]
       def show_instructions
         say ''
         say '=' * 50, :cyan

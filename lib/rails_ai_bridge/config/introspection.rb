@@ -5,7 +5,18 @@ module RailsAiBridge
     # Holds introspector selection, exclusion rules, and caching settings.
     class Introspection
       # @return [Array<Symbol>] active introspector keys
-      attr_accessor :introspectors
+      attr_reader :introspectors
+
+      # Resets the tracked preset name to +nil+ when introspectors are assigned directly.
+      # This ensures {#preset} returns +nil+ after +config.introspectors = [...]+ or
+      # +config.introspectors += %i[...]+, since the list no longer matches a named preset.
+      #
+      # @param value [Array<Symbol>]
+      # @return [Array<Symbol>] the assigned introspector list
+      def introspectors=(value)
+        @preset = nil
+        @introspectors = value
+      end
 
       # @return [Array<String>] directory names excluded from code search
       attr_accessor :excluded_paths
@@ -41,23 +52,12 @@ module RailsAiBridge
       attr_accessor :search_code_timeout_seconds
 
       ##
-      # Set default configuration values for introspection.
-      # Initializes:
-      # - `@introspectors` to a duplicated copy of `Configuration::PRESETS[:standard]`
-      # - `@excluded_paths` to `["node_modules", "tmp", "log", "vendor", ".git"]`
-      # - `@excluded_models` to common Rails framework and ActiveStorage/Action* classes
-      # - `@core_models` to an empty array (model class names treated as core entities)
-      # - `@excluded_tables` to an empty array
-      # - `@disabled_introspection_categories` to an empty array
-      # - `@cache_ttl` to `30`
-      # - `@expose_credentials_key_names` to `false`
-      # - `@additional_introspectors` to an empty hash
-      # - `@search_code_allowed_file_types` to an empty array
-      # - `@search_code_pattern_max_bytes` to `2048`
-      ##
       # Initializes Introspection configuration with sensible defaults.
       # Sets:
       # - @introspectors to a duplicate of Configuration::PRESETS[:standard]
+      # - @preset to nil (IMPORTANT: despite introspectors defaulting to :standard behavior,
+      #   preset remains nil until explicitly set to distinguish between default behavior
+      #   and explicit preset assignment)
       # - @excluded_paths to ["node_modules", "tmp", "log", "vendor", ".git"]
       # - @excluded_models to common Rails/ActiveStorage/Action* classes
       # - @core_models, @excluded_tables, and @disabled_introspection_categories to empty arrays
@@ -67,8 +67,13 @@ module RailsAiBridge
       # - @search_code_allowed_file_types to an empty array
       # - @search_code_pattern_max_bytes to 2048
       # - @search_code_timeout_seconds to 5.0
+      #
+      # @note Downstream consumers: config.preset returns nil even though introspectors
+      #       default to :standard behavior. Use config.preset.nil? to distinguish between
+      #       default configuration and explicit preset assignment.
       def initialize
         @introspectors      = Configuration::PRESETS[:standard].dup
+        @preset             = nil
         @excluded_paths     = %w[node_modules tmp log vendor .git]
         @excluded_models    = %w[
           ApplicationRecord
@@ -95,8 +100,20 @@ module RailsAiBridge
         name = name.to_sym
         raise ArgumentError, "Unknown preset: #{name}. Valid presets: #{Configuration::PRESETS.keys.join(', ')}" unless Configuration::PRESETS.key?(name)
 
-        @introspectors = Configuration::PRESETS[name].dup
+        self.introspectors = Configuration::PRESETS[name].dup
+        @preset = name
       end
+
+      # Returns the last preset name set via {#preset=}, or +nil+ if introspectors
+      # were modified directly or if still using default configuration.
+      #
+      # @return [Symbol, nil] The preset name, or nil for default/modified configurations
+      # @note IMPORTANT: Returns nil even for default configuration (which uses :standard
+      #       introspectors). This allows distinguishing between:
+      #       - Default behavior (preset=nil, introspectors=:standard)
+      #       - Explicit preset assignment (preset=:standard, introspectors=:standard)
+      #       - Direct introspector modification (preset=nil, introspectors=custom)
+      attr_reader :preset
 
       # Introspectors after removing those disabled by {#disabled_introspection_categories}.
       #

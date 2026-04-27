@@ -23,3 +23,7 @@ mfa_audit.rb
 # Snyk local configuration
 .snyk
 .claude/
+gems-report.csv
+
+# rails-ai-bridge (JSON cache — markdown files should be committed)
+.ai-context.json

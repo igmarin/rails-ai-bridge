@@ -202,8 +202,8 @@ module RailsAiBridge
 
         output, _status = Open3.capture2(*cmd, err: File::NULL)
         parse_rg_output(output, root)
-      rescue StandardError => e
-        [{ file: 'error', line_number: 0, content: e.message }]
+      rescue StandardError => error
+        [{ file: 'error', line_number: 0, content: error.message }]
       end
 
       private_class_method def self.build_ripgrep_command(pattern, search_path, file_type, max_results)
@@ -260,13 +260,13 @@ module RailsAiBridge
         Dir.glob(glob).each do |file|
           results = process_file_for_search(file, root, regex, excluded, max_results, results)
           return results if results.size >= max_results
-        rescue StandardError => _e
+        rescue StandardError => _error
           next # Skip binary/unreadable files
         end
 
         results
-      rescue RegexpError => e
-        [{ file: 'error', line_number: 0, content: "Invalid pattern: #{e.message}" }]
+      rescue RegexpError => error
+        [{ file: 'error', line_number: 0, content: "Invalid pattern: #{error.message}" }]
       end
 
       private_class_method def self.process_file_for_search(file, root, regex, excluded, max_results, results)

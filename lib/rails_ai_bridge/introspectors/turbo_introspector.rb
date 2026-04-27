@@ -16,8 +16,8 @@ module RailsAiBridge
           turbo_streams: extract_turbo_stream_templates,
           model_broadcasts: extract_model_broadcasts
         }
-      rescue StandardError => e
-        { error: e.message }
+      rescue StandardError => error
+        { error: error.message }
       end
 
       private

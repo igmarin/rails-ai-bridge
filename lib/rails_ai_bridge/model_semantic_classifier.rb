@@ -83,8 +83,8 @@ module RailsAiBridge
       else
         classify_with_payload(is_through, belongs_count)
       end
-    rescue StandardError => e
-      tier(:supporting, "classification_error: #{e.message}")
+    rescue StandardError => error
+      tier(:supporting, "classification_error: #{error.message}")
     end
 
     private

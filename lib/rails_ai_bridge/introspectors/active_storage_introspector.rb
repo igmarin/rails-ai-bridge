@@ -18,8 +18,8 @@ module RailsAiBridge
           storage_services: extract_storage_services,
           direct_upload: detect_direct_upload
         }
-      rescue StandardError => e
-        { error: e.message }
+      rescue StandardError => error
+        { error: error.message }
       end
 
       private

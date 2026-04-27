@@ -9,8 +9,8 @@ module RailsAiBridge
         def call
           Server.new(app).build
           new_check(name: 'MCP server', status: :pass, message: 'MCP server builds successfully', fix: nil)
-        rescue StandardError => e
-          new_check(name: 'MCP server', status: :fail, message: "MCP server failed to build: #{e.message}",
+        rescue StandardError => error
+          new_check(name: 'MCP server', status: :fail, message: "MCP server failed to build: #{error.message}",
                     fix: 'Check mcp gem installation: `bundle info mcp`')
         end
       end

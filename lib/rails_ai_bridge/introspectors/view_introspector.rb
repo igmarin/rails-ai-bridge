@@ -20,8 +20,8 @@ module RailsAiBridge
           view_components: extract_view_components,
           template_engines: detect_template_engines
         }
-      rescue StandardError => e
-        { error: e.message }
+      rescue StandardError => error
+        { error: error.message }
       end
 
       private
