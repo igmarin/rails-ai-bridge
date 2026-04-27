@@ -225,8 +225,8 @@ module RailsAiBridge
 
       def read_view_resource(path)
         ViewFileAnalyzer.call(root: Rails.root, relative_path: path)
-      rescue SecurityError => e
-        { error: e.message }
+      rescue SecurityError => error
+        { error: error.message }
       rescue Errno::ENOENT
         { error: "View '#{path}' not found" }
       end

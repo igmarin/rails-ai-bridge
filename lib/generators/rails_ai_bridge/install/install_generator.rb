@@ -101,7 +101,7 @@ module RailsAiBridge
             #   1. JWT decoder (no JWT gem required — supply your own lambda):
             #      config.mcp_jwt_decoder = ->(token) {
             #        JWT.decode(token, credentials.jwt_secret, true, algorithm: "HS256").first
-            #      rescue JWT::DecodeError
+            #      rescue JWT::DecodeError, JWT::ExpiredSignature, JWT::ImmatureSignature
             #        nil
             #      }
             #
@@ -128,7 +128,7 @@ module RailsAiBridge
 
       def create_assistant_overrides_template
         dir = 'config/rails_ai_bridge'
-        FileUtils.mkdir_p(File.join(destination_root, dir))
+        empty_directory dir
 
         stub = File.join(destination_root, dir, 'overrides.md')
         unless File.exist?(stub)
@@ -147,20 +147,17 @@ module RailsAiBridge
       end
 
       def add_to_gitignore
-        gitignore = Rails.root.join('.gitignore')
-        return unless File.exist?(gitignore)
+        gitignore_path = '.gitignore'
+        gitignore_full = File.join(destination_root, gitignore_path)
+        return unless File.exist?(gitignore_full)
 
-        content = File.read(gitignore)
+        content = File.read(gitignore_full)
         append = []
         append << '.ai-context.json' unless content.include?('.ai-context.json')
 
         return unless append.any?
 
-        File.open(gitignore, 'a') do |f|
-          f.puts ''
-          f.puts '# rails-ai-bridge (JSON cache — markdown files should be committed)'
-          append.each { |line| f.puts line }
-        end
+        append_to_file gitignore_path, "\n# rails-ai-bridge (JSON cache — markdown files should be committed)\n#{append.join("\n")}"
         say 'Updated .gitignore', :green
       end
 
@@ -169,10 +166,14 @@ module RailsAiBridge
         say 'Generating AI bridge files...', :yellow
 
         if Rails.application
-          require 'rails_ai_bridge'
-          result = RailsAiBridge.generate_context(format: :all)
-          result[:written].each { |file| say "  Created #{file}", :green }
-          result[:skipped].each { |file| say "  Unchanged #{file}", :blue }
+          begin
+            result = RailsAiBridge.generate_context(format: :all)
+            result[:written].each { |file| say "  Created #{file}", :green }
+            result[:skipped].each { |file| say "  Unchanged #{file}", :blue }
+          rescue StandardError => error
+            say "  Error generating context: #{error.message}", :red
+            say '  Run `rails ai:bridge` after install to retry.', :yellow
+          end
         else
           say '  Skipped (Rails app not fully loaded). Run `rails ai:bridge` after install.', :yellow
         end

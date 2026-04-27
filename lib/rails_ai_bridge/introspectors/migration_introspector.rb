@@ -20,8 +20,8 @@ module RailsAiBridge
           schema_version: current_schema_version,
           migration_stats: migration_stats
         }
-      rescue StandardError => e
-        { error: e.message }
+      rescue StandardError => error
+        { error: error.message }
       end
 
       private
@@ -51,8 +51,8 @@ module RailsAiBridge
                                   filename: File.basename(path),
                                   actions: actions
                                 }
-                              rescue StandardError => e
-                                { version: 'unknown', name: File.basename(path), error: e.message }
+                              rescue StandardError => error
+                                { version: 'unknown', name: File.basename(path), error: error.message }
                               end
                             else
                               []
@@ -73,7 +73,7 @@ module RailsAiBridge
                 { version: m.version.to_s, name: m.name }
               end
             end
-          rescue StandardError => _e
+          rescue StandardError => _error
             # Fall through to file-based detection
           end
         end

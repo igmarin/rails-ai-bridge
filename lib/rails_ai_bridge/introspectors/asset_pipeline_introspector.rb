@@ -19,8 +19,8 @@ module RailsAiBridge
           js_bundler: detect_js_bundler,
           manifest_files: detect_manifests
         }
-      rescue StandardError => e
-        { error: e.message }
+      rescue StandardError => error
+        { error: error.message }
       end
 
       private

@@ -56,8 +56,8 @@ module RailsAiBridge
         entries = collect_entries(models_root)
 
         { non_ar_models: entries.values.sort_by { |h| h[:name] } }
-      rescue StandardError => e
-        { error: sanitize_error_message(e.message) }
+      rescue StandardError => error
+        { error: sanitize_error_message(error.message) }
       end
 
       # Sanitizes error messages to prevent potential path disclosure
@@ -118,9 +118,9 @@ module RailsAiBridge
           next unless safe_to_process?(klass)
 
           record_if_non_ar_model(klass, models_root, entries)
-        rescue StandardError => e
+        rescue StandardError => error
           # Log security-relevant errors without exposing details
-          Rails.logger.warn "NonArModelsIntrospector: Error processing class: #{e.class.name}" if defined?(Rails.logger)
+          Rails.logger.warn "NonArModelsIntrospector: Error processing class: #{error.class.name}" if defined?(Rails.logger)
         end
         entries
       end
@@ -143,8 +143,8 @@ module RailsAiBridge
         return false if klass < ActiveRecord::Base
 
         true
-      rescue StandardError => e
-        Rails.logger.warn "NonArModelsIntrospector: Error validating class: #{e.class.name}" if defined?(Rails.logger)
+      rescue StandardError => error
+        Rails.logger.warn "NonArModelsIntrospector: Error validating class: #{error.class.name}" if defined?(Rails.logger)
         false
       end
 

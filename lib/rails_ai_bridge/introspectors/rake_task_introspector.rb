@@ -19,8 +19,8 @@ module RailsAiBridge
         end
 
         { tasks: tasks }
-      rescue StandardError => e
-        { error: e.message }
+      rescue StandardError => error
+        { error: error.message }
       end
 
       private
@@ -60,8 +60,8 @@ module RailsAiBridge
         end
 
         tasks
-      rescue StandardError => e
-        [{ file: path.sub("#{base_dir}/", ''), error: e.message }]
+      rescue StandardError => error
+        [{ file: path.sub("#{base_dir}/", ''), error: error.message }]
       end
     end
   end

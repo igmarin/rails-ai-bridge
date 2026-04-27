@@ -103,8 +103,8 @@ module RailsAiBridge
         FileUtils.mkdir_p(File.dirname(safe_path))
         File.write(safe_path, content)
         Service::Result.new(true, data: { path: safe_path, bytes_written: content.bytesize })
-      rescue SecurityError, StandardError => e
-        Service::Result.new(false, errors: [e.message])
+      rescue SecurityError, StandardError => error
+        Service::Result.new(false, errors: [error.message])
       end
 
       # @param path [String] file path (validated)
@@ -113,8 +113,8 @@ module RailsAiBridge
         safe_path = validate_path!(path)
         content = File.read(safe_path)
         Service::Result.new(true, data: content)
-      rescue SecurityError, StandardError => e
-        Service::Result.new(false, errors: [e.message])
+      rescue SecurityError, StandardError => error
+        Service::Result.new(false, errors: [error.message])
       end
 
       # @param path [String] file path (validated)
@@ -123,8 +123,8 @@ module RailsAiBridge
         safe_path = validate_path!(path)
         File.delete(safe_path)
         Service::Result.new(true, data: { path: safe_path, deleted: true })
-      rescue SecurityError, StandardError => e
-        Service::Result.new(false, errors: [e.message])
+      rescue SecurityError, StandardError => error
+        Service::Result.new(false, errors: [error.message])
       end
 
       # @param path [String] file path (validated)
@@ -133,8 +133,8 @@ module RailsAiBridge
         safe_path = validate_path!(path)
         exists = File.exist?(safe_path)
         Service::Result.new(true, data: exists)
-      rescue SecurityError, StandardError => e
-        Service::Result.new(false, errors: [e.message])
+      rescue SecurityError, StandardError => error
+        Service::Result.new(false, errors: [error.message])
       end
     end
   end

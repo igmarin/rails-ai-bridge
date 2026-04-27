@@ -21,8 +21,8 @@ module RailsAiBridge
           model_connections: detect_model_connections,
           multi_db: dbs.size > 1
         }
-      rescue StandardError => e
-        { error: e.message }
+      rescue StandardError => error
+        { error: error.message }
       end
 
       private

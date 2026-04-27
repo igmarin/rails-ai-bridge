@@ -19,8 +19,8 @@ module RailsAiBridge
           api_versioning: detect_versioning,
           rate_limiting: detect_rate_limiting
         }
-      rescue StandardError => e
-        { error: e.message }
+      rescue StandardError => error
+        { error: error.message }
       end
 
       private

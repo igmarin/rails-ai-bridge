@@ -53,8 +53,8 @@ module RailsAiBridge
 
         formatter = build_formatter(detail, data, controller, partial)
         text_response(formatter.call)
-      rescue SecurityError => e
-        text_response(e.message)
+      rescue SecurityError => error
+        text_response(error.message)
       rescue Errno::ENOENT
         text_response("Path not found: #{path}")
       end

@@ -56,8 +56,8 @@ module RailsAiBridge
         }
 
         Service::Result.new(true, data: normalized)
-      rescue StandardError => e
-        Service::Result.new(false, errors: [e.message])
+      rescue StandardError => error
+        Service::Result.new(false, errors: [error.message])
       end
     end
   end

@@ -15,8 +15,8 @@ module RailsAiBridge
           installed: defined?(ActionMailbox) ? true : false,
           mailboxes: extract_mailboxes
         }
-      rescue StandardError => e
-        { error: e.message }
+      rescue StandardError => error
+        { error: error.message }
       end
 
       private
