@@ -87,10 +87,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   before examples, and the internal `ExampleJob` no longer subclasses
   `ActiveJob::Base` (Active Job is not loaded in the minimal stack).
 
-## [Unreleased]
-
-_Targeting **v2.3.0** when Phase 2–3 and final review are done; gem version remains **2.2.0** until that release tag._
-
 ## [2.1.0] - 2026-04-02
 
 ### Added

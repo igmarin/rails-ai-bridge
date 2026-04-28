@@ -145,6 +145,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
         result = described_class.new(context, format: :claude, split_rules: false).call
         expect(result[:written].any? { |f| f.end_with?('CLAUDE.md') }).to be true
         expect(result[:skipped]).to be_empty
+        expect(File.read(File.join(dir, 'CLAUDE.md'))).not_to eq(existing_content)
       end
     end
 
@@ -168,6 +169,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
         allow($stdout).to receive(:flush)
         result = described_class.new(context, format: :claude, split_rules: false, on_conflict: :prompt).call
         expect(result[:written].any? { |f| f.end_with?('CLAUDE.md') }).to be true
+        expect(File.read(File.join(dir, 'CLAUDE.md'))).not_to eq(existing_content)
       end
     end
 
@@ -191,7 +193,14 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
         resolver = ->(filepath) { filepath.end_with?('CLAUDE.md') }
         result = described_class.new(context, format: :claude, split_rules: false, on_conflict: resolver).call
         expect(result[:written].any? { |f| f.end_with?('CLAUDE.md') }).to be true
+        expect(File.read(File.join(dir, 'CLAUDE.md'))).not_to eq(existing_content)
       end
+    end
+
+    it 'raises ArgumentError for an invalid on_conflict value' do
+      expect do
+        described_class.new(context, on_conflict: :invalid_value)
+      end.to raise_error(ArgumentError, /on_conflict must be/)
     end
   end
 end

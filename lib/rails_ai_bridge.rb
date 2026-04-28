@@ -53,7 +53,12 @@ module RailsAiBridge
     #   different content. +:overwrite+ (default) silently replaces; +:skip+ keeps the existing file;
     #   +:prompt+ asks via stdin; a +Proc+ receives the filepath and returns +true+ to overwrite.
     # @return [Hash{Symbol => Array<String>}] files grouped under +:written+ and +:skipped+
+    # @raise [ArgumentError] when an unknown option key is passed
     def generate_context(app = nil, **options)
+      allowed = %i[format split_rules on_conflict].to_set
+      unknown = options.keys.to_set - allowed
+      raise ArgumentError, "Unknown option(s): #{unknown.to_a.join(', ')}" if unknown.any?
+
       app ||= Rails.application
       context = introspect(app)
       Serializers::ContextFileSerializer.new(context,

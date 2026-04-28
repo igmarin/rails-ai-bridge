@@ -18,15 +18,29 @@ module RailsAiBridge
         gemini: 'GEMINI.md'
       }.freeze
 
+      VALID_ON_CONFLICT_SYMBOLS = %i[overwrite skip prompt].freeze
+
+      # @param context [Hash] introspection context from {RailsAiBridge.introspect}
+      # @param format [Symbol, Array<Symbol>] format(s) to generate
+      # @param split_rules [Boolean] whether to generate per-assistant rule directories
+      # @param on_conflict [:overwrite, :skip, :prompt, Proc] conflict resolution strategy
+      # @raise [ArgumentError] when +on_conflict+ is not a recognised symbol or callable
       def initialize(context, format: :all, split_rules: true, on_conflict: :overwrite)
+        unless VALID_ON_CONFLICT_SYMBOLS.include?(on_conflict) || on_conflict.respond_to?(:call)
+          raise ArgumentError,
+                "on_conflict must be :overwrite, :skip, :prompt, or a callable; got #{on_conflict.inspect}"
+        end
+
         @context     = context
         @format      = format
         @split_rules = split_rules
         @on_conflict = on_conflict
       end
 
-      # Write context files, skipping unchanged ones.
-      # @return [Hash] { written: [paths], skipped: [paths] }
+      # Write context files to the configured output directory, skipping unchanged ones.
+      #
+      # @return [Hash{Symbol => Array<String>}] +:written+ paths and +:skipped+ paths
+      # @raise [ArgumentError] when an unrecognised format symbol is encountered
       def call
         formats = format == :all ? FORMAT_MAP.keys : Array(format)
         output_dir = RailsAiBridge.configuration.output_dir_for(Rails.application)
@@ -63,6 +77,8 @@ module RailsAiBridge
 
       private
 
+      # @param filepath [String] candidate output path
+      # @return [Boolean] +true+ when the file should be overwritten
       def overwrite?(filepath)
         case @on_conflict
         when :overwrite then true
@@ -75,10 +91,17 @@ module RailsAiBridge
         end
       end
 
+      # @param fmt [Symbol] format key
+      # @return [String] rendered file content
       def serialize(fmt)
         Providers::Factory.for(fmt, context).call
       end
 
+      # @param formats [Array<Symbol>] format keys being written
+      # @param output_dir [String] root output directory
+      # @param written [Array<String>] accumulator for written paths
+      # @param skipped [Array<String>] accumulator for skipped paths
+      # @return [void]
       def generate_split_rules(formats, output_dir, written, skipped)
         formats.each do |fmt|
           result = Providers::Factory.split_rules_for(fmt, context).call(output_dir)

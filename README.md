@@ -567,10 +567,12 @@ Frontend introspectors (views, Turbo, Stimulus, assets) degrade gracefully — t
 > ```
 
 > **Overwrite confirmation:**
+>
 > ```bash
 > CONFIRM=1 rails ai:bridge      # prompt before overwriting any changed file
 > rails ai:bridge                # silent overwrite (default)
 > ```
+>
 > You can also control this programmatically via `RailsAiBridge.generate_context(on_conflict: :skip)` — accepts `:overwrite` (default), `:skip`, `:prompt`, or a `Proc` `(filepath) -> bool`.
 
 ---

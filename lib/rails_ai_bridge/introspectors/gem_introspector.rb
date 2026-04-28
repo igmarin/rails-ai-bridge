@@ -11,7 +11,11 @@ module RailsAiBridge
         @app = app
       end
 
-      # @return [Hash] gem analysis
+      # Parse +Gemfile.lock+ and classify notable gems.
+      #
+      # @return [Hash] gem analysis with +:total_gems+, +:ruby_version+,
+      #   +:notable_gems+, and +:categories+; or +{ error: message }+ when the
+      #   lockfile is absent or unreadable
       def call
         lock_path = File.join(app.root, 'Gemfile.lock')
         return { error: 'No Gemfile.lock found' } unless File.exist?(lock_path)
@@ -25,6 +29,8 @@ module RailsAiBridge
           notable_gems: notable,
           categories: GemRegistry.categorize(notable)
         }
+      rescue StandardError => error
+        { error: "GemIntrospector failed: #{error.class}" }
       end
 
       private

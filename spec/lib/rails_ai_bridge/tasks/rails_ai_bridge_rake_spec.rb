@@ -8,10 +8,14 @@ RSpec.describe 'rails_ai_bridge rake tasks' do
   let(:task_path) { File.expand_path('../../../../lib/rails_ai_bridge/tasks/rails_ai_bridge.rake', __dir__) }
   let(:result) { { written: [], skipped: [] } }
   let(:original_context_mode) { RailsAiBridge.configuration.context_mode }
-
   let(:original_rake_application) { Rake.application }
 
   before do
+    # Ensure ENV keys that affect rake tasks start in a known state
+    ENV.delete('FORMAT')
+    ENV.delete('CONFIRM')
+    ENV.delete('CONTEXT_MODE')
+
     # Setup new Rake application for each test to avoid state leakage
     Rake.application = Rake::Application.new
     Rake::Task.define_task(:environment)
@@ -22,9 +26,12 @@ RSpec.describe 'rails_ai_bridge rake tasks' do
   end
 
   after do
-    # Restore original Rake application
+    # Restore original Rake application and clean up ENV mutations
     Rake.application = original_rake_application
     RailsAiBridge.configuration.context_mode = original_context_mode
+    ENV.delete('FORMAT')
+    ENV.delete('CONFIRM')
+    ENV.delete('CONTEXT_MODE')
   end
 
   describe 'ai:bridge' do
@@ -51,6 +58,8 @@ RSpec.describe 'rails_ai_bridge rake tasks' do
       ENV['FORMAT'] = 'codex'
       rake['ai:bridge_for'].invoke
       expect(RailsAiBridge).to have_received(:generate_context).with(format: :codex, split_rules: true, on_conflict: :overwrite)
+    ensure
+      ENV.delete('FORMAT')
     end
 
     it 'defaults to claude when no format is specified' do

@@ -25,10 +25,10 @@ def apply_context_mode_override
   puts "📐 Context mode: #{mode}"
 end
 
-# Returns :prompt when CONFIRM=1 is set so rails ai:bridge tasks ask before
-# overwriting files that have changed. Defaults to :overwrite (silent).
+# Returns :prompt when CONFIRM is one of "1", "true", "yes", "y" so rake tasks
+# ask before overwriting changed files. CONFIRM=0 or CONFIRM=false stays silent.
 def conflict_strategy
-  ENV['CONFIRM'] ? :prompt : :overwrite
+  %w[1 true yes y].include?(ENV['CONFIRM'].to_s.downcase.strip) ? :prompt : :overwrite
 end
 
 namespace :ai do

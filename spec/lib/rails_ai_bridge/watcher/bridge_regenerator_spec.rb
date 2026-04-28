@@ -32,7 +32,7 @@ RSpec.describe RailsAiBridge::Watcher::BridgeRegenerator do
   describe '#regenerate!' do
     it 'refreshes the fingerprint and returns generate_context output' do
       allow(RailsAiBridge::Fingerprinter).to receive(:compute).with(app).and_return('old', 'new')
-      allow(RailsAiBridge).to receive(:generate_context).with(app, format: :all, split_rules: true).and_return( # watcher_formats defaults to :all
+      allow(RailsAiBridge).to receive(:generate_context).with(app, format: :all, split_rules: true).and_return(
         { written: %w[/tmp/a], skipped: %w[/tmp/b] }
       )
 
@@ -42,6 +42,21 @@ RSpec.describe RailsAiBridge::Watcher::BridgeRegenerator do
       expect(result).to eq({ written: %w[/tmp/a], skipped: %w[/tmp/b] })
       expect(regenerator.last_fingerprint).to eq('new')
       expect(RailsAiBridge).to have_received(:generate_context).once
+    end
+
+    it 'forwards a custom watcher_formats value from configuration' do
+      allow(RailsAiBridge::Fingerprinter).to receive(:compute).with(app).and_return('fp')
+      allow(RailsAiBridge.configuration).to receive(:watcher_formats).and_return(%i[claude cursor])
+      allow(RailsAiBridge).to receive(:generate_context)
+        .with(app, format: %i[claude cursor], split_rules: true)
+        .and_return({ written: %w[/tmp/CLAUDE.md], skipped: [] })
+
+      regenerator = described_class.new(app)
+      result = regenerator.regenerate!
+
+      expect(RailsAiBridge).to have_received(:generate_context)
+        .with(app, format: %i[claude cursor], split_rules: true).once
+      expect(result[:written]).to eq(%w[/tmp/CLAUDE.md])
     end
   end
 end
