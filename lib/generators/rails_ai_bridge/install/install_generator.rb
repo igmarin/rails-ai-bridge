@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'json'
+require_relative 'profile_resolver'
 
 module RailsAiBridge
   module Generators
@@ -11,29 +12,6 @@ module RailsAiBridge
 
       class_option :skip_context, type: :boolean, default: false, desc: 'Skip interactive context file generation (useful for CI/CD)'
       class_option :profile, type: :string, desc: 'minimal|full|mcp|custom'
-
-      PROFILE_OPTIONS = {
-        'custom' => {
-          description: 'Pick formats interactively (per-format prompts).',
-          formats: nil,
-          split_rules: true
-        },
-        'minimal' => {
-          description: 'Thin Cursor/Windsurf/Claude/Copilot/Gemini shims, no split rule directories.',
-          formats: %i[claude cursor windsurf copilot gemini],
-          split_rules: false
-        },
-        'full' => {
-          description: 'All formats plus split rule directories for every assistant.',
-          formats: RailsAiBridge::Serializers::ContextFileSerializer::FORMAT_MAP.keys,
-          split_rules: true
-        },
-        'mcp' => {
-          description: 'Only .mcp.json now — generate assistant files later.',
-          formats: [],
-          split_rules: false
-        }
-      }.freeze
 
       ##
       # Creates a `.mcp.json` MCP server definition named "rails-ai-bridge".
@@ -333,63 +311,19 @@ module RailsAiBridge
       end
 
       def resolve_profile
-        option = options[:profile]&.to_s&.downcase
-        return profile_from_option(option) if option
-
-        prompt_for_profile
-      end
-
-      def prompt_for_profile
-        show_profile_options
-        answer = ask('Choose profile (default: custom):').to_s.strip.downcase
-        answer = 'custom' if answer.empty?
-        profile_from_option(answer)
-      end
-
-      def show_profile_options
-        say ''
-        say 'Install profiles:', :yellow
-        PROFILE_OPTIONS.each do |key, config|
-          say format('  %-7<profile>s %<desc>s', profile: key, desc: config[:description])
-        end
-      end
-
-      def profile_from_option(option)
-        return 'custom' if option.nil?
-
-        unless PROFILE_OPTIONS.key?(option)
-          say "Unknown profile '#{option}'. Falling back to custom.", :yellow
-          return 'custom'
-        end
-
-        option
+        ProfileResolver.new(options[:profile], shell: self).call
       end
 
       def selected_formats_for_profile(profile)
-        self.class.selected_formats_for_profile(profile)
+        ProfileResolver.formats_for(profile)
       end
 
       def split_rules_for_profile(profile)
-        self.class.split_rules_for_profile(profile)
+        ProfileResolver.split_rules_for(profile)
       end
 
       def profile_explainer(profile)
-        self.class.profile_explainer(profile)
-      end
-
-      class << self
-        def selected_formats_for_profile(profile)
-          formats = PROFILE_OPTIONS.fetch(profile)&.dig(:formats)
-          formats&.dup
-        end
-
-        def split_rules_for_profile(profile)
-          PROFILE_OPTIONS.fetch(profile)&.dig(:split_rules)
-        end
-
-        def profile_explainer(profile)
-          PROFILE_OPTIONS.fetch(profile)&.dig(:description)
-        end
+        ProfileResolver.description_for(profile)
       end
     end
   end
