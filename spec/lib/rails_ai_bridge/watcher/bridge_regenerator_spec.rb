@@ -32,7 +32,7 @@ RSpec.describe RailsAiBridge::Watcher::BridgeRegenerator do
   describe '#regenerate!' do
     it 'refreshes the fingerprint and returns generate_context output' do
       allow(RailsAiBridge::Fingerprinter).to receive(:compute).with(app).and_return('old', 'new')
-      allow(RailsAiBridge).to receive(:generate_context).with(format: :all, split_rules: true).and_return(
+      allow(RailsAiBridge).to receive(:generate_context).with(app, format: :all, split_rules: true).and_return(
         { written: %w[/tmp/a], skipped: %w[/tmp/b] }
       )
 

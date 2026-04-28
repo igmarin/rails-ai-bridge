@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+require 'simplecov'
+SimpleCov.start do
+  add_filter '/spec/'
+end
+
 require_relative 'reek_helper'
 require 'bundler/setup'
 require 'combustion'
@@ -8,13 +13,6 @@ Combustion.path = 'spec/internal'
 
 Combustion.initialize! :active_record, :action_controller do
   config.eager_load = false
-end
-
-if ENV['COVERAGE']
-  require 'simplecov'
-  SimpleCov.start do
-    add_filter '/spec/'
-  end
 end
 
 # Combustion schedules DB setup in a +to_prepare+ hook; RSpec examples can run before

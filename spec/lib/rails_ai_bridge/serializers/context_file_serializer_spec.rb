@@ -104,6 +104,8 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
         serializer = described_class.new(context, format: :cursor, split_rules: false)
         result = serializer.call
         expect(result[:written].none? { |f| f.include?('.cursor/rules/') }).to be true
+        expect(result[:written]).not_to be_empty
+        expect(result[:written].any? { |f| f.end_with?('.cursorrules') }).to be true
       end
     end
 

@@ -243,6 +243,8 @@ module RailsAiBridge
         show_full_instructions
       end
 
+      private
+
       def show_skip_context_instructions
         say ''
         say 'rails-ai-bridge installed! Run `rails ai:bridge` to generate context files.', :green
@@ -289,8 +291,6 @@ module RailsAiBridge
         @selected_profile || options[:profile]&.to_s&.downcase
       end
 
-      private
-
       def handle_skip_context
         say '  Skipped (--skip-context flag provided). Run `rails ai:bridge` to generate context files.', :yellow
       end
@@ -328,7 +328,8 @@ module RailsAiBridge
 
       def handle_context_generation_error(error)
         say "  Context generation failed (#{error.class}). Run `rails ai:bridge` after install to retry.", :red
-        Rails.logger.debug { "[rails-ai-bridge] generate_context error: #{error.message}" }
+        error_id = Digest::SHA256.hexdigest(error.class.name)[0, 12]
+        Rails.logger.debug { "[rails-ai-bridge] generate_context error: #{error.class} [#{error_id}]" }
       end
 
       def resolve_profile

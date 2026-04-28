@@ -213,7 +213,6 @@ detectors:
   FeatureEnvy:
     exclude:
     - RailsAiBridge::Generators::InstallGenerator#add_to_gitignore
-    - RailsAiBridge::Generators::InstallGenerator#handle_context_generation_error
     - RailsAiBridge::Config::Introspection#excluded_table?
     - RailsAiBridge::Introspectors::ActionMailboxIntrospector#extract_mailboxes
     - RailsAiBridge::Introspectors::ActionTextIntrospector#extract_rich_text_fields
