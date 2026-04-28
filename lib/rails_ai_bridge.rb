@@ -47,11 +47,12 @@ module RailsAiBridge
     #
     # @param app [Rails::Application, nil] app to introspect, defaults to Rails.application
     # @param format [Symbol] output format (:all, :claude, :cursor, :windsurf, :copilot, :json, :codex)
+    # @param split_rules [Boolean] whether to generate per-assistant split rule directories
     # @return [Hash{Symbol => Array<String>}] files grouped under +:written+ and +:skipped+
-    def generate_context(app = nil, format: :all)
+    def generate_context(app = nil, format: :all, split_rules: true)
       app ||= Rails.application
       context = introspect(app)
-      Serializers::ContextFileSerializer.new(context, format: format).call
+      Serializers::ContextFileSerializer.new(context, format: format, split_rules: split_rules).call
     end
 
     # Start the MCP server programmatically

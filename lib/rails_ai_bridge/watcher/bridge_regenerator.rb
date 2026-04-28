@@ -24,7 +24,7 @@ module RailsAiBridge
       # @return [Hash] +:written+ and +:skipped+ file path lists
       def regenerate!
         @last_fingerprint = Fingerprinter.compute(@app)
-        RailsAiBridge.generate_context(format: :all)
+        RailsAiBridge.generate_context(format: :all, split_rules: true)
       end
     end
   end

@@ -98,6 +98,15 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
       end
     end
 
+    it 'can skip split rule generation when split_rules is false' do
+      Dir.mktmpdir do |dir|
+        allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
+        serializer = described_class.new(context, format: :cursor, split_rules: false)
+        result = serializer.call
+        expect(result[:written].none? { |f| f.include?('.cursor/rules/') }).to be true
+      end
+    end
+
     it 'dispatches cursor format to RulesSerializer' do
       Dir.mktmpdir do |dir|
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)

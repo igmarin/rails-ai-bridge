@@ -6,7 +6,7 @@ module RailsAiBridge
     # Supports: CLAUDE.md, .cursorrules, .windsurfrules, .github/copilot-instructions.md, JSON
     # Also generates split rule files for AI tools that support them.
     class ContextFileSerializer
-      attr_reader :context, :format
+      attr_reader :context, :format, :split_rules
 
       FORMAT_MAP = {
         claude: 'CLAUDE.md',
@@ -18,9 +18,10 @@ module RailsAiBridge
         gemini: 'GEMINI.md'
       }.freeze
 
-      def initialize(context, format: :all)
-        @context = context
-        @format  = format
+      def initialize(context, format: :all, split_rules: true)
+        @context     = context
+        @format      = format
+        @split_rules = split_rules
       end
 
       # Write context files, skipping unchanged ones.
@@ -53,8 +54,7 @@ module RailsAiBridge
           end
         end
 
-        # Generate split rule files for all AI tools that support them
-        generate_split_rules(formats, output_dir, written, skipped)
+        generate_split_rules(formats, output_dir, written, skipped) if split_rules
 
         { written: written, skipped: skipped }
       end

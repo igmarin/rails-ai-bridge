@@ -35,7 +35,7 @@ namespace :ai do
     puts "🔍 Introspecting #{Rails.application.class.module_parent_name}..."
 
     puts '📝 Writing bridge files...'
-    result = RailsAiBridge.generate_context(format: :all)
+    result = RailsAiBridge.generate_context(format: :all, split_rules: true)
 
     print_result(result)
     puts ''
@@ -55,7 +55,7 @@ namespace :ai do
     puts "🔍 Introspecting #{Rails.application.class.module_parent_name}..."
 
     puts "📝 Writing #{format} bridge file..."
-    result = RailsAiBridge.generate_context(format: format)
+    result = RailsAiBridge.generate_context(format: format, split_rules: true)
 
     print_result(result)
   end
@@ -71,7 +71,7 @@ namespace :ai do
 
         puts "🔍 Introspecting #{Rails.application.class.module_parent_name}..."
         puts "📝 Writing #{file}..."
-        result = RailsAiBridge.generate_context(format: fmt)
+        result = RailsAiBridge.generate_context(format: fmt, split_rules: true)
 
         print_result(result)
         puts ''
@@ -86,7 +86,7 @@ namespace :ai do
       RailsAiBridge.configuration.context_mode = :full
       puts "🔍 Introspecting #{Rails.application.class.module_parent_name} (full mode)..."
       puts '📝 Writing bridge files...'
-      result = RailsAiBridge.generate_context(format: :all)
+      result = RailsAiBridge.generate_context(format: :all, split_rules: true)
 
       print_result(result)
       puts ''
