@@ -54,6 +54,4 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'railties', '>= 7.1', '< 9.0'
   spec.add_dependency 'thor', '>= 1.0', '< 3.0'
   spec.add_dependency 'zeitwerk', '~> 2.6' # Autoloading
-
-  # Development dependencies are specified in Gemfile
 end

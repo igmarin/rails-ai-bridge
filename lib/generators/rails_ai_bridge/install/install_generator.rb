@@ -9,6 +9,8 @@ module RailsAiBridge
 
       desc 'Install rails-ai-bridge: creates initializer, MCP config, and generates initial bridge files.'
 
+      class_option :skip_context, type: :boolean, default: false, desc: 'Skip interactive context file generation (useful for CI/CD)'
+
       ##
       # Creates a `.mcp.json` MCP server definition named "rails-ai-bridge".
       # The created file configures an MCP server that runs `bundle exec rails ai:serve` and is intended
@@ -182,18 +184,14 @@ module RailsAiBridge
         say ''
         say 'Generating AI bridge files...', :yellow
 
-        if Rails.application
-          begin
-            result = RailsAiBridge.generate_context(format: :all)
-            result[:written].each { |file| say "  Created #{file}", :green }
-            result[:skipped].each { |file| say "  Unchanged #{file}", :blue }
-          rescue StandardError => error
-            say "  Context generation failed (#{error.class}). Run `rails ai:bridge` after install to retry.", :red
-            Rails.logger.debug { "[rails-ai-bridge] generate_context error: #{error.message}" }
-          end
-        else
-          say '  Skipped (Rails app not fully loaded). Run `rails ai:bridge` after install.', :yellow
-        end
+        return handle_skip_context if options[:skip_context]
+        return handle_no_rails_app unless Rails.application
+        return say('  Skipped. Run `rails ai:bridge` to generate context files later.', :yellow) unless yes?('Generate AI assistant context files? (y/n)')
+
+        formats = collect_selected_formats
+        return say('  No formats selected. Run `rails ai:bridge` to generate context files later.', :yellow) if formats.empty?
+
+        generate_context_for_formats(formats)
       end
 
       ##
@@ -216,6 +214,9 @@ module RailsAiBridge
         say '  rails ai:serve           # Start MCP server (stdio)'
         say '  rails ai:inspect         # Print introspection summary'
         say ''
+        say 'CI/CD usage:', :yellow
+        say '  rails generate rails_ai_bridge:install --skip-context  # Skip interactive prompts'
+        say ''
         say 'Generated files per AI tool:', :yellow
         say '  Claude Code    → CLAUDE.md + .claude/rules/*.md'
         say '  OpenAI Codex   → AGENTS.md + .codex/README.md'
@@ -237,6 +238,40 @@ module RailsAiBridge
         say '  See overrides.md.example for a suggested outline.'
         say ''
         say 'Commit bridge files and .mcp.json so your team benefits!', :green
+      end
+
+      private
+
+      def handle_skip_context
+        say '  Skipped (--skip-context flag provided). Run `rails ai:bridge` to generate context files.', :yellow
+      end
+
+      def handle_no_rails_app
+        say '  Skipped (Rails app not fully loaded). Run `rails ai:bridge` after install.', :yellow
+      end
+
+      def collect_selected_formats
+        format_prompts = {
+          claude: 'Generate CLAUDE.md?',
+          cursor: 'Generate .cursorrules?',
+          windsurf: 'Generate .windsurfrules?',
+          copilot: 'Generate .github/copilot-instructions.md?',
+          gemini: 'Generate GEMINI.md?',
+          codex: 'Generate AGENTS.md?'
+        }
+
+        format_prompts.each_with_object([]) do |(format, prompt), formats|
+          formats << format if yes?("#{prompt} (y/n)")
+        end
+      end
+
+      def generate_context_for_formats(formats)
+        result = RailsAiBridge.generate_context(format: formats)
+        result[:written].each { |file| say "  Created #{file}", :green }
+        result[:skipped].each { |file| say "  Unchanged #{file}", :blue }
+      rescue StandardError => error
+        say "  Context generation failed (#{error.class}). Run `rails ai:bridge` after install to retry.", :red
+        Rails.logger.debug { "[rails-ai-bridge] generate_context error: #{error.message}" }
       end
     end
   end

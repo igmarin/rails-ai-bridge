@@ -14,6 +14,7 @@ RSpec.describe RailsAiBridge::Generators::InstallGenerator do
       options[:pretend] = true
       args -= ['--pretend']
     end
+    options[:skip_context] = true if config.delete(:skip_context)
     described_class.new(args, options, { destination_root: destination_root, **config })
   end
 
@@ -76,11 +77,26 @@ RSpec.describe RailsAiBridge::Generators::InstallGenerator do
                                                                       skipped: ['.cursorrules']
                                                                     })
       allow(generator).to receive(:say)
+      allow(generator).to receive(:yes?).and_return(true)
 
       generator.generate_context_files
 
       expect(generator).to have_received(:say).with('  Created CLAUDE.md', :green)
       expect(generator).to have_received(:say).with('  Unchanged .cursorrules', :blue)
+    end
+
+    it 'calls generate_context with format: :all when Rails.application is available (characterization test)' do
+      allow(Rails).to receive(:application).and_return(double('App'))
+      allow(generator).to receive(:yes?).and_return(true)
+      allow(RailsAiBridge).to receive(:generate_context).with(format: %i[claude cursor windsurf copilot gemini codex]).and_return({
+                                                                                                                                    written: [],
+                                                                                                                                    skipped: []
+                                                                                                                                  })
+      allow(generator).to receive(:say)
+
+      generator.generate_context_files
+
+      expect(RailsAiBridge).to have_received(:generate_context).with(format: %i[claude cursor windsurf copilot gemini codex])
     end
   end
 
@@ -192,6 +208,7 @@ RSpec.describe RailsAiBridge::Generators::InstallGenerator do
   describe '#generate_context_files error handling' do
     it 'gracefully handles generate_context raising an error' do
       allow(Rails).to receive(:application).and_return(double('App'))
+      allow(generator).to receive(:yes?).and_return(true)
       allow(RailsAiBridge).to receive(:generate_context).and_raise(StandardError, 'introspection failed')
       allow(generator).to receive(:say)
 
@@ -200,6 +217,7 @@ RSpec.describe RailsAiBridge::Generators::InstallGenerator do
 
     it 'reports error message when generate_context fails' do
       allow(Rails).to receive(:application).and_return(double('App'))
+      allow(generator).to receive(:yes?).and_return(true)
       allow(RailsAiBridge).to receive(:generate_context).and_raise(StandardError, 'introspection failed')
       allow(generator).to receive(:say)
 
@@ -215,6 +233,102 @@ RSpec.describe RailsAiBridge::Generators::InstallGenerator do
       generator.generate_context_files
 
       expect(generator).to have_received(:say).with('  Skipped (Rails app not fully loaded). Run `rails ai:bridge` after install.', :yellow)
+    end
+  end
+
+  # --------------------------------------------------------------------------
+  # Interactive prompt behavior (TDD - these should fail initially)
+  # --------------------------------------------------------------------------
+  describe '#generate_context_files interactive mode' do
+    let(:generator_with_options) { build_generator([], skip_context: false) }
+
+    it 'skips context generation when --skip-context flag is provided' do
+      skip_generator = build_generator([], skip_context: true)
+      allow(Rails).to receive(:application).and_return(double('App'))
+      allow(RailsAiBridge).to receive(:generate_context)
+      allow(skip_generator).to receive(:say)
+
+      skip_generator.generate_context_files
+
+      expect(RailsAiBridge).not_to have_received(:generate_context)
+    end
+
+    it 'prompts user when no --skip-context flag and Rails.application is available' do
+      allow(Rails).to receive(:application).and_return(double('App'))
+      allow(generator).to receive(:yes?).with('Generate AI assistant context files? (y/n)').and_return(false)
+      allow(generator).to receive(:say)
+
+      generator.generate_context_files
+
+      expect(generator).to have_received(:yes?).with('Generate AI assistant context files? (y/n)')
+    end
+
+    it 'does not call generate_context when user declines initial prompt' do
+      allow(Rails).to receive(:application).and_return(double('App'))
+      allow(generator).to receive(:yes?).with('Generate AI assistant context files? (y/n)').and_return(false)
+      allow(RailsAiBridge).to receive(:generate_context)
+      allow(generator).to receive(:say)
+
+      generator.generate_context_files
+
+      expect(RailsAiBridge).not_to have_received(:generate_context)
+    end
+
+    it 'prompts for each format when user accepts initial prompt' do
+      allow(Rails).to receive(:application).and_return(double('App'))
+      allow(generator).to receive(:yes?).with('Generate AI assistant context files? (y/n)').and_return(true)
+      allow(generator).to receive(:yes?).with('Generate CLAUDE.md? (y/n)').and_return(false)
+      allow(generator).to receive(:yes?).with('Generate .cursorrules? (y/n)').and_return(false)
+      allow(generator).to receive(:yes?).with('Generate .windsurfrules? (y/n)').and_return(false)
+      allow(generator).to receive(:yes?).with('Generate .github/copilot-instructions.md? (y/n)').and_return(false)
+      allow(generator).to receive(:yes?).with('Generate GEMINI.md? (y/n)').and_return(false)
+      allow(generator).to receive(:yes?).with('Generate AGENTS.md? (y/n)').and_return(false)
+      allow(RailsAiBridge).to receive(:generate_context)
+      allow(generator).to receive(:say)
+
+      generator.generate_context_files
+
+      expect(generator).to have_received(:yes?).with('Generate AI assistant context files? (y/n)')
+      expect(generator).to have_received(:yes?).with('Generate CLAUDE.md? (y/n)')
+      expect(generator).to have_received(:yes?).with('Generate .cursorrules? (y/n)')
+      expect(generator).to have_received(:yes?).with('Generate .windsurfrules? (y/n)')
+      expect(generator).to have_received(:yes?).with('Generate .github/copilot-instructions.md? (y/n)')
+      expect(generator).to have_received(:yes?).with('Generate GEMINI.md? (y/n)')
+      expect(generator).to have_received(:yes?).with('Generate AGENTS.md? (y/n)')
+    end
+
+    it 'passes selected formats to generate_context when user accepts specific formats' do
+      allow(Rails).to receive(:application).and_return(double('App'))
+      allow(generator).to receive(:yes?).with('Generate AI assistant context files? (y/n)').and_return(true)
+      allow(generator).to receive(:yes?).with('Generate CLAUDE.md? (y/n)').and_return(true)
+      allow(generator).to receive(:yes?).with('Generate .cursorrules? (y/n)').and_return(true)
+      allow(generator).to receive(:yes?).with('Generate .windsurfrules? (y/n)').and_return(false)
+      allow(generator).to receive(:yes?).with('Generate .github/copilot-instructions.md? (y/n)').and_return(false)
+      allow(generator).to receive(:yes?).with('Generate GEMINI.md? (y/n)').and_return(false)
+      allow(generator).to receive(:yes?).with('Generate AGENTS.md? (y/n)').and_return(false)
+      allow(RailsAiBridge).to receive(:generate_context).with(format: %i[claude cursor]).and_return({ written: [], skipped: [] })
+      allow(generator).to receive(:say)
+
+      generator.generate_context_files
+
+      expect(RailsAiBridge).to have_received(:generate_context).with(format: %i[claude cursor])
+    end
+
+    it 'skips generate_context when user accepts initial prompt but selects no formats' do
+      allow(Rails).to receive(:application).and_return(double('App'))
+      allow(generator).to receive(:yes?).with('Generate AI assistant context files? (y/n)').and_return(true)
+      allow(generator).to receive(:yes?).with('Generate CLAUDE.md? (y/n)').and_return(false)
+      allow(generator).to receive(:yes?).with('Generate .cursorrules? (y/n)').and_return(false)
+      allow(generator).to receive(:yes?).with('Generate .windsurfrules? (y/n)').and_return(false)
+      allow(generator).to receive(:yes?).with('Generate .github/copilot-instructions.md? (y/n)').and_return(false)
+      allow(generator).to receive(:yes?).with('Generate GEMINI.md? (y/n)').and_return(false)
+      allow(generator).to receive(:yes?).with('Generate AGENTS.md? (y/n)').and_return(false)
+      allow(RailsAiBridge).to receive(:generate_context)
+      allow(generator).to receive(:say)
+
+      generator.generate_context_files
+
+      expect(RailsAiBridge).not_to have_received(:generate_context)
     end
   end
 
