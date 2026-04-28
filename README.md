@@ -46,7 +46,7 @@ flowchart LR
   app --> intro --> mcp --> clients
 ```
 
-1. **Up to 26 introspectors** in the `:full` preset scan schema, models, routes, controllers, jobs, gems, conventions, and more (`:standard` runs 9 core ones by default). Opt-in extras (e.g. `non_ar_models`, `database_stats`) are not in those presets.
+1. **Up to 27 introspectors** in the `:full` preset scan schema, models, routes, controllers, jobs, gems, conventions, and more (`:standard` runs 9 core ones by default). Opt-in extras (e.g. `non_ar_models`, `database_stats`) are not in those presets.
 2. **`rails ai:bridge`** writes bounded bridge files for Claude, Cursor, Copilot, Codex, Windsurf, Gemini, and JSON.
 3. **`rails ai:serve`** exposes **11 built-in MCP tools** (plus any `additional_tools`) so assistants pull detail on demand (`detail: "summary"` first, then drill down).
 
@@ -70,7 +70,6 @@ For contributors, key folders now include local `README.md` guides:
 ```bash
 bundle add rails-ai-bridge
 rails generate rails_ai_bridge:install
-rails ai:bridge
 ```
 
 **From GitHub** (before or alongside RubyGems):
@@ -78,7 +77,6 @@ rails ai:bridge
 ```bash
 bundle add rails-ai-bridge --github=igmarin/rails-ai-bridge
 rails generate rails_ai_bridge:install
-rails ai:bridge
 ```
 
 Or add to your `Gemfile`:
@@ -87,11 +85,31 @@ Or add to your `Gemfile`:
 gem "rails-ai-bridge", github: "igmarin/rails-ai-bridge"
 ```
 
-Then `bundle install`, run the generator, and `rails ai:bridge` as above.
+Then `bundle install` and run the generator as above.
+
+The install generator creates **`.mcp.json`** (MCP auto-discovery), sets up `config/initializers/rails_ai_bridge.rb`, and **interactively guides you through generating your first bridge files**.
+
+### Install profiles
+
+The generator prompts you to pick a profile (or pass `--profile` to skip the prompt):
+
+| Profile | What it generates | Split rule dirs |
+|---------|-------------------|-----------------|
+| `custom` *(default)* | Per-format prompts — pick exactly what you need | Yes |
+| `minimal` | Claude, Cursor, Windsurf, Copilot, Gemini shims | No |
+| `full` | Every format | Yes |
+| `mcp` | Only `.mcp.json` — generate files later with `rails ai:bridge` | — |
+
+```bash
+# Non-interactive — select profile upfront
+rails generate rails_ai_bridge:install --profile=minimal
+
+# CI/CD — skip file generation entirely
+rails generate rails_ai_bridge:install --skip-context
+rails ai:bridge   # generate later
+```
 
 Optional: `gem install rails-ai-bridge` installs the gem into your Ruby environment; you still add it to the app’s `Gemfile` for a Rails project.
-
-The install generator creates **`.mcp.json`** (MCP auto-discovery) and generates **`AGENTS.md`** (and other assistant files) when you run `rails ai:bridge`.
 
 ### Verify the integration in *your* Rails app
 
@@ -99,6 +117,7 @@ The install generator creates **`.mcp.json`** (MCP auto-discovery) and generates
 2. **Regenerate in one shot** — run `rails ai:bridge` (not only a single format) so route/controller summaries stay consistent across `CLAUDE.md`, `.cursor/rules/`, and `.github/instructions/`.
 3. **Keep team-specific rules** — generated files are snapshots. Use **`config/rails_ai_bridge/overrides.md`** for org-specific constraints (merged only after you **delete the first-line** `<!-- rails-ai-bridge:omit-merge -->` stub). Until then, the gem does not inject placeholder text into Copilot/Codex. See **`overrides.md.example`** for an outline. Alternatively re-merge into generated files after each `rails ai:bridge` (see `.codex/README.md`).
 4. **Tune list sizes** — `RailsAiBridge.configure { |c| c.copilot_compact_model_list_limit = 5 }` (and `codex_compact_model_list_limit`); set `0` to list no model names and point only to MCP.
+5. **Check your readiness** — `rails ai:doctor` prints a 0–100 score and flags anything missing after first install.
 
 ---
 
@@ -191,7 +210,7 @@ Each file respects the AI tool's format and size limits. **Commit these files** 
 | **DevOps** | Puma, Procfile, Docker, deployment tools, asset pipeline |
 | **Architecture** | Service objects, STI, polymorphism, state machines, multi-tenancy, engines |
 
-The `:full` preset runs 26 introspectors. The `:standard` preset runs 9 core ones by default.
+The `:full` preset runs 27 introspectors. The `:standard` preset runs 9 core ones by default.
 
 Start with `:standard` for most apps, then selectively enable additional introspectors (like `:non_ar_models` or `:database_stats`) as your use case requires.
 
@@ -390,7 +409,7 @@ This keeps token usage low and answer quality high. Requesting full detail on ev
 | Preset | Introspectors | Best for |
 |--------|--------------|---------|
 | `:standard` (default) | 9 core | Most apps — schema, models, routes, jobs, gems, conventions |
-| `:full` | 26 | Full-stack apps where frontend, auth, API, and DevOps context matter |
+| `:full` | 27 | Full-stack apps where frontend, auth, API, and DevOps context matter |
 
 Add individual introspectors on top of a preset for targeted additions:
 
@@ -414,7 +433,7 @@ Prints a 0–100 AI readiness score and flags anything missing: `.mcp.json`, gen
 ```ruby
 # config/initializers/rails_ai_bridge.rb
 RailsAiBridge.configure do |config|
-  # Presets: :standard (9 introspectors, default) or :full (26). Add :non_ar_models etc. as needed.
+  # Presets: :standard (9 introspectors, default) or :full (27). Add :non_ar_models etc. as needed.
   config.preset = :standard
 
   # Cherry-pick on top of a preset

@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Interactive install generator** — `rails generate rails_ai_bridge:install` now prompts for an
+  install profile: `custom` (per-format prompts), `minimal` (thin shims, no split-rule dirs),
+  `full` (all formats + split-rule dirs), or `mcp` (only `.mcp.json`, generate files later).
+  Pass `--profile=<name>` to skip the prompt, or `--skip-context` to defer all file generation
+  (useful in CI/CD pipelines).
+- **`split_rules:` parameter on `generate_context`** — `RailsAiBridge.generate_context` and
+  `ContextFileSerializer` now accept `split_rules: false` to skip generating per-assistant
+  rule directories (`.claude/rules/`, `.cursor/rules/`, etc.). Used by the `minimal` profile
+  to avoid creating directories that aren't needed for simple shim installs.
+
+### Removed
+
+- **`exe/rails-ai-bridge` standalone CLI** — the `rails-ai-bridge serve / bridge / inspect`
+  binary has been removed. All commands are available as rake tasks (`rails ai:serve`,
+  `rails ai:bridge`, `rails ai:inspect`, etc.) which are the recommended interface.
+
+---
+
 ## [2.2.0] - 2026-04-04
 
 ### Added
