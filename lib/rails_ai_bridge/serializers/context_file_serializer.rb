@@ -62,48 +62,15 @@ module RailsAiBridge
       private
 
       def serialize(fmt)
-        case fmt
-        when :json     then JsonSerializer.new(context).call
-        when :claude   then Providers::ClaudeSerializer.new(context).call
-        when :codex    then Providers::CodexSerializer.new(context).call
-        when :cursor   then Providers::RulesSerializer.new(context).call
-        when :windsurf then Providers::WindsurfSerializer.new(context).call
-        when :gemini   then Providers::GeminiSerializer.new(context).call
-        when :copilot  then Providers::CopilotSerializer.new(context).call
-        else MarkdownSerializer.new(context).call
-        end
+        Providers::Factory.for(fmt, context).call
       end
 
       def generate_split_rules(formats, output_dir, written, skipped)
-        if formats.include?(:claude)
-          result = Providers::ClaudeRulesSerializer.new(context).call(output_dir)
+        formats.each do |fmt|
+          result = Providers::Factory.split_rules_for(fmt, context).call(output_dir)
           written.concat(result[:written])
           skipped.concat(result[:skipped])
         end
-
-        if formats.include?(:codex)
-          result = Providers::CodexSupportSerializer.new(context).call(output_dir)
-          written.concat(result[:written])
-          skipped.concat(result[:skipped])
-        end
-
-        if formats.include?(:cursor)
-          result = Providers::CursorRulesSerializer.new(context).call(output_dir)
-          written.concat(result[:written])
-          skipped.concat(result[:skipped])
-        end
-
-        if formats.include?(:windsurf)
-          result = Providers::WindsurfRulesSerializer.new(context).call(output_dir)
-          written.concat(result[:written])
-          skipped.concat(result[:skipped])
-        end
-
-        return unless formats.include?(:copilot)
-
-        result = Providers::CopilotInstructionsSerializer.new(context).call(output_dir)
-        written.concat(result[:written])
-        skipped.concat(result[:skipped])
       end
     end
   end
