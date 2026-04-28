@@ -111,6 +111,7 @@ module RailsAiBridge
                    :assistant_overrides_path, :assistant_overrides_path=,
                    :copilot_compact_model_list_limit, :copilot_compact_model_list_limit=,
                    :codex_compact_model_list_limit, :codex_compact_model_list_limit=,
+                   :watcher_formats, :watcher_formats=,
                    :output_dir_for
   end
 end

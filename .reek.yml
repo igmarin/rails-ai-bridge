@@ -34,6 +34,7 @@ detectors:
     - RailsAiBridge::Config::Output#copilot_compact_model_list_limit
     - RailsAiBridge::Config::Output#max_tool_response_chars
     - RailsAiBridge::Config::Output#output_dir
+    - RailsAiBridge::Config::Output#watcher_formats
     - RailsAiBridge::Config::Server#additional_resources
     - RailsAiBridge::Config::Server#additional_tools
     - RailsAiBridge::Config::Server#auto_mount

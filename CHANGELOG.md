@@ -18,6 +18,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ContextFileSerializer` now accept `split_rules: false` to skip generating per-assistant
   rule directories (`.claude/rules/`, `.cursor/rules/`, etc.). Used by the `minimal` profile
   to avoid creating directories that aren't needed for simple shim installs.
+- **`on_conflict:` option on `generate_context` and `ContextFileSerializer`** — controls what
+  happens when a generated file already exists with different content.
+  - `:overwrite` (default) — silently replaces the file (no behaviour change for existing users)
+  - `:skip` — keeps the existing file unchanged
+  - `:prompt` — asks interactively via stdin before overwriting
+  - `Proc` — caller supplies `(filepath) -> bool`; return `true` to overwrite
+  Rake tasks expose this via `CONFIRM=1 rails ai:bridge` (enables `:prompt` for all bridge tasks).
+- **`config.watcher_formats`** — limits which formats `rails ai:watch` regenerates on file change.
+  Defaults to `:all`. Set to e.g. `%i[claude cursor]` to avoid regenerating formats you don't use
+  during active development.
+
+### Changed
+
+- **`RailsAiBridge.generate_context` signature** — keyword parameters (`format:`, `split_rules:`,
+  `on_conflict:`) are now forwarded via `**options` (two formal parameters instead of four).
+  All existing call sites using keyword arguments are unaffected.
+- **`Providers::Factory` strategy pattern** — `ContextFileSerializer` now dispatches serializers
+  and split-rule generators through a registry factory (`REGISTRY` + `SPLIT_REGISTRY`) instead
+  of hardcoded `case`/`if` chains, making it trivial to add new output formats.
+- **`ProfileResolver` extraction** — install profile resolution logic extracted from
+  `InstallGenerator` into a dedicated `Generators::InstallGenerator::ProfileResolver` class,
+  with Thor shell injected via `shell:` so existing tests remain intact.
+- **`GemRegistry` extraction** — `NOTABLE_GEMS` constant and categorization logic extracted from
+  `GemIntrospector` into `Introspectors::GemRegistry`, eliminating a duplicate `detect_notable_gems`
+  call in the introspection pipeline.
 
 ### Removed
 

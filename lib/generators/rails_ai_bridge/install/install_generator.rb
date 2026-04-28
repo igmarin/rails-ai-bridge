@@ -197,8 +197,8 @@ module RailsAiBridge
           say '  Skipped (MCP-only profile). Run `rails ai:bridge` to generate context files later.', :yellow
           return
         when 'minimal', 'full'
-          formats = selected_formats_for_profile(profile)
-          split_rules = split_rules_for_profile(profile)
+          formats = ProfileResolver.formats_for(profile)
+          split_rules = ProfileResolver.split_rules_for(profile)
           return generate_context_for_formats(formats, split_rules: split_rules)
         end
 
@@ -238,6 +238,7 @@ module RailsAiBridge
         say '  rails ai:bridge          # Generate all bridge files (compact mode)'
         say '  rails ai:bridge:full     # Full dump (good for small apps)'
         say '  rails ai:bridge:FORMAT   # Generate one format (claude, cursor, codex, gemini, copilot, windsurf)'
+        say '  rails ai:watch           # Watch for changes and auto-regenerate'
         say '  rails ai:serve           # Start MCP server (stdio)'
         say '  rails ai:inspect         # Print introspection summary'
         say ''
@@ -261,7 +262,7 @@ module RailsAiBridge
         profile = selected_profile
         return unless profile && profile != 'custom'
 
-        say "Profile: #{profile} — #{profile_explainer(profile)}"
+        say "Profile: #{profile} — #{ProfileResolver.description_for(profile)}"
         say ''
       end
 
@@ -305,25 +306,14 @@ module RailsAiBridge
       end
 
       def handle_context_generation_error(error)
-        say "  Context generation failed (#{error.class}). Run `rails ai:bridge` after install to retry.", :red
-        error_id = Digest::SHA256.hexdigest(error.class.name)[0, 12]
-        Rails.logger.debug { "[rails-ai-bridge] generate_context error: #{error.class} [#{error_id}]" }
+        klass = error.class
+        say "  Context generation failed (#{klass}). Run `rails ai:bridge` after install to retry.", :red
+        error_id = Digest::SHA256.hexdigest(klass.name)[0, 12]
+        Rails.logger.debug { "[rails-ai-bridge] generate_context error: #{klass} [#{error_id}]" }
       end
 
       def resolve_profile
         ProfileResolver.new(options[:profile], shell: self).call
-      end
-
-      def selected_formats_for_profile(profile)
-        ProfileResolver.formats_for(profile)
-      end
-
-      def split_rules_for_profile(profile)
-        ProfileResolver.split_rules_for(profile)
-      end
-
-      def profile_explainer(profile)
-        ProfileResolver.description_for(profile)
       end
     end
   end

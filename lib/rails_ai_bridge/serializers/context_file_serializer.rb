@@ -18,10 +18,11 @@ module RailsAiBridge
         gemini: 'GEMINI.md'
       }.freeze
 
-      def initialize(context, format: :all, split_rules: true)
+      def initialize(context, format: :all, split_rules: true, on_conflict: :overwrite)
         @context     = context
         @format      = format
         @split_rules = split_rules
+        @on_conflict = on_conflict
       end
 
       # Write context files, skipping unchanged ones.
@@ -46,11 +47,12 @@ module RailsAiBridge
 
           content = serialize(fmt)
 
-          if File.exist?(filepath) && File.read(filepath) == content
-            skipped << filepath
-          else
+          unchanged = File.exist?(filepath) && File.read(filepath) == content
+          if !unchanged && (!File.exist?(filepath) || overwrite?(filepath))
             File.write(filepath, content)
             written << filepath
+          else
+            skipped << filepath
           end
         end
 
@@ -60,6 +62,18 @@ module RailsAiBridge
       end
 
       private
+
+      def overwrite?(filepath)
+        case @on_conflict
+        when :overwrite then true
+        when :skip      then false
+        when :prompt
+          $stdout.print "  Overwrite #{filepath}? [y/N] "
+          $stdout.flush
+          $stdin.gets.to_s.strip.downcase == 'y'
+        when Proc then @on_conflict.call(filepath)
+        end
+      end
 
       def serialize(fmt)
         Providers::Factory.for(fmt, context).call

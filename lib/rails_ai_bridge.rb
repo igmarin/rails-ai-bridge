@@ -46,13 +46,20 @@ module RailsAiBridge
     # Generate context files (CLAUDE.md, .cursorrules, etc.)
     #
     # @param app [Rails::Application, nil] app to introspect, defaults to Rails.application
-    # @param format [Symbol] output format (:all, :claude, :cursor, :windsurf, :copilot, :json, :codex)
-    # @param split_rules [Boolean] whether to generate per-assistant split rule directories
+    # @param options [Hash] keyword options
+    # @option options [Symbol, Array<Symbol>] :format output format(s); defaults to +:all+
+    # @option options [Boolean] :split_rules whether to generate per-assistant rule directories; defaults to +true+
+    # @option options [:overwrite, :skip, :prompt, Proc] :on_conflict behaviour when a file exists with
+    #   different content. +:overwrite+ (default) silently replaces; +:skip+ keeps the existing file;
+    #   +:prompt+ asks via stdin; a +Proc+ receives the filepath and returns +true+ to overwrite.
     # @return [Hash{Symbol => Array<String>}] files grouped under +:written+ and +:skipped+
-    def generate_context(app = nil, format: :all, split_rules: true)
+    def generate_context(app = nil, **options)
       app ||= Rails.application
       context = introspect(app)
-      Serializers::ContextFileSerializer.new(context, format: format, split_rules: split_rules).call
+      Serializers::ContextFileSerializer.new(context,
+                                             format: options.fetch(:format, :all),
+                                             split_rules: options.fetch(:split_rules, true),
+                                             on_conflict: options.fetch(:on_conflict, :overwrite)).call
     end
 
     # Start the MCP server programmatically

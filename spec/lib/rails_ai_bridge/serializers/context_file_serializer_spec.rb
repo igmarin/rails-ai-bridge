@@ -127,4 +127,71 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
       end
     end
   end
+
+  describe 'on_conflict option' do
+    let(:existing_content) { 'old content' }
+
+    def seed_file(dir, filename, content = existing_content)
+      path = File.join(dir, filename)
+      FileUtils.mkdir_p(File.dirname(path))
+      File.write(path, content)
+      path
+    end
+
+    it ':overwrite (default) silently overwrites a file whose content changed' do
+      Dir.mktmpdir do |dir|
+        allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
+        seed_file(dir, 'CLAUDE.md')
+        result = described_class.new(context, format: :claude, split_rules: false).call
+        expect(result[:written].any? { |f| f.end_with?('CLAUDE.md') }).to be true
+        expect(result[:skipped]).to be_empty
+      end
+    end
+
+    it ':skip leaves an existing file unchanged even when content differs' do
+      Dir.mktmpdir do |dir|
+        allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
+        seed_file(dir, 'CLAUDE.md')
+        result = described_class.new(context, format: :claude, split_rules: false, on_conflict: :skip).call
+        expect(result[:written]).to be_empty
+        expect(result[:skipped].any? { |f| f.end_with?('CLAUDE.md') }).to be true
+        expect(File.read(File.join(dir, 'CLAUDE.md'))).to eq(existing_content)
+      end
+    end
+
+    it ':prompt writes when the user answers y' do
+      Dir.mktmpdir do |dir|
+        allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
+        seed_file(dir, 'CLAUDE.md')
+        allow($stdin).to receive(:gets).and_return("y\n")
+        allow($stdout).to receive(:print)
+        allow($stdout).to receive(:flush)
+        result = described_class.new(context, format: :claude, split_rules: false, on_conflict: :prompt).call
+        expect(result[:written].any? { |f| f.end_with?('CLAUDE.md') }).to be true
+      end
+    end
+
+    it ':prompt skips when the user answers n' do
+      Dir.mktmpdir do |dir|
+        allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
+        seed_file(dir, 'CLAUDE.md')
+        allow($stdin).to receive(:gets).and_return("n\n")
+        allow($stdout).to receive(:print)
+        allow($stdout).to receive(:flush)
+        result = described_class.new(context, format: :claude, split_rules: false, on_conflict: :prompt).call
+        expect(result[:written]).to be_empty
+        expect(result[:skipped].any? { |f| f.end_with?('CLAUDE.md') }).to be true
+      end
+    end
+
+    it 'accepts a proc as a conflict resolver' do
+      Dir.mktmpdir do |dir|
+        allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
+        seed_file(dir, 'CLAUDE.md')
+        resolver = ->(filepath) { filepath.end_with?('CLAUDE.md') }
+        result = described_class.new(context, format: :claude, split_rules: false, on_conflict: resolver).call
+        expect(result[:written].any? { |f| f.end_with?('CLAUDE.md') }).to be true
+      end
+    end
+  end
 end

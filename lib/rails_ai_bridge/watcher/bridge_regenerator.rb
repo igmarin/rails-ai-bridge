@@ -20,11 +20,13 @@ module RailsAiBridge
       end
 
       # Updates the stored fingerprint and runs {RailsAiBridge.generate_context}.
+      # Regenerates only the formats configured via +config.watcher_formats+ (default +:all+).
       #
       # @return [Hash] +:written+ and +:skipped+ file path lists
       def regenerate!
         @last_fingerprint = Fingerprinter.compute(@app)
-        RailsAiBridge.generate_context(@app, format: :all, split_rules: true)
+        formats = RailsAiBridge.configuration.watcher_formats
+        RailsAiBridge.generate_context(@app, format: formats, split_rules: true)
       end
     end
   end

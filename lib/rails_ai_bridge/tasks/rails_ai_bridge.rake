@@ -25,6 +25,12 @@ def apply_context_mode_override
   puts "📐 Context mode: #{mode}"
 end
 
+# Returns :prompt when CONFIRM=1 is set so rails ai:bridge tasks ask before
+# overwriting files that have changed. Defaults to :overwrite (silent).
+def conflict_strategy
+  ENV['CONFIRM'] ? :prompt : :overwrite
+end
+
 namespace :ai do
   desc 'Generate AI bridge files (CLAUDE.md, .cursorrules, .windsurfrules, .github/copilot-instructions.md)'
   task bridge: :environment do
@@ -35,7 +41,7 @@ namespace :ai do
     puts "🔍 Introspecting #{Rails.application.class.module_parent_name}..."
 
     puts '📝 Writing bridge files...'
-    result = RailsAiBridge.generate_context(format: :all, split_rules: true)
+    result = RailsAiBridge.generate_context(format: :all, split_rules: true, on_conflict: conflict_strategy)
 
     print_result(result)
     puts ''
@@ -55,7 +61,7 @@ namespace :ai do
     puts "🔍 Introspecting #{Rails.application.class.module_parent_name}..."
 
     puts "📝 Writing #{format} bridge file..."
-    result = RailsAiBridge.generate_context(format: format, split_rules: true)
+    result = RailsAiBridge.generate_context(format: format, split_rules: true, on_conflict: conflict_strategy)
 
     print_result(result)
   end
@@ -71,7 +77,7 @@ namespace :ai do
 
         puts "🔍 Introspecting #{Rails.application.class.module_parent_name}..."
         puts "📝 Writing #{file}..."
-        result = RailsAiBridge.generate_context(format: fmt, split_rules: true)
+        result = RailsAiBridge.generate_context(format: fmt, split_rules: true, on_conflict: conflict_strategy)
 
         print_result(result)
         puts ''
@@ -86,7 +92,7 @@ namespace :ai do
       RailsAiBridge.configuration.context_mode = :full
       puts "🔍 Introspecting #{Rails.application.class.module_parent_name} (full mode)..."
       puts '📝 Writing bridge files...'
-      result = RailsAiBridge.generate_context(format: :all, split_rules: true)
+      result = RailsAiBridge.generate_context(format: :all, split_rules: true, on_conflict: conflict_strategy)
 
       print_result(result)
       puts ''
