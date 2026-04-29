@@ -269,7 +269,9 @@ RailsAiBridge.generate_context(
 ```ruby
 # config/initializers/rails_ai_bridge.rb
 RailsAiBridge.configure do |config|
-  config.watcher_formats = %i[claude cursor]   # only CLAUDE.md + .cursorrules
+  # Regenerates CLAUDE.md + .claude/rules/* and .cursorrules + .cursor/rules/*
+  # (split-rule directories are also churned when split_rules: true, the default)
+  config.watcher_formats = %i[claude cursor]
 end
 ```
 

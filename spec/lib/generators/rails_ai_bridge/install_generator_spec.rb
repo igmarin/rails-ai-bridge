@@ -129,15 +129,15 @@ RSpec.describe RailsAiBridge::Generators::InstallGenerator do
       generator.generate_context_files
     end
 
-    it 'falls back to custom prompts when profile is invalid' do
+    it 'shows a red error and returns early when --profile is invalid' do
       generator = build_generator([], profile: 'bogus')
       allow(Rails).to receive(:application).and_return(double('App'))
       allow(generator).to receive(:say)
-      allow(generator).to receive(:yes?).with('Generate AI assistant context files? (y/n)').and_return(false)
 
       generator.generate_context_files
 
-      expect(generator).to have_received(:say).with("Unknown profile 'bogus'. Falling back to custom.", :yellow)
+      expect(generator).to have_received(:say).with(a_string_including("Unknown --profile 'bogus'"), :red)
+      expect(generator).not_to have_received(:say).with(a_string_including('Falling back to custom'), anything)
     end
 
     it 'prefers --skip-context over profile' do

@@ -15,12 +15,11 @@ RSpec.describe RailsAiBridge::Generators::ProfileResolver do
       expect(described_class.new('FULL', shell: shell).call).to eq('full')
     end
 
-    it 'returns custom and warns for an unknown option' do
+    it 'raises ArgumentError and prints a red error for an unknown --profile value' do
       resolver = described_class.new('bogus', shell: shell)
       allow(shell).to receive(:say)
-      result = resolver.call
-      expect(result).to eq('custom')
-      expect(shell).to have_received(:say).with("Unknown profile 'bogus'. Falling back to custom.", :yellow)
+      expect { resolver.call }.to raise_error(ArgumentError, /Unknown --profile 'bogus'/)
+      expect(shell).to have_received(:say).with(a_string_including("Unknown --profile 'bogus'"), :red)
     end
   end
 

@@ -198,6 +198,21 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
       end
     end
 
+    it 'accepts any callable (not just Proc) as a conflict resolver' do
+      callable_class = Class.new do
+        def call(filepath) = filepath.end_with?('CLAUDE.md')
+      end
+
+      Dir.mktmpdir do |dir|
+        allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
+        seed_file(dir, 'CLAUDE.md')
+        result = described_class.new(context, format: :claude, split_rules: false,
+                                              on_conflict: callable_class.new).call
+        expect(result[:written].any? { |f| f.end_with?('CLAUDE.md') }).to be true
+        expect(File.read(File.join(dir, 'CLAUDE.md'))).not_to eq(existing_content)
+      end
+    end
+
     it 'raises ArgumentError for an invalid on_conflict value' do
       expect do
         described_class.new(context, on_conflict: :invalid_value)

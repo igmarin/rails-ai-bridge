@@ -34,7 +34,12 @@ module RailsAiBridge
         @shell  = shell
       end
 
-      # @return [String] Resolved profile name (one of the {PROFILE_OPTIONS} keys).
+      # Resolves the profile, raising +ArgumentError+ when a CLI option names an
+      # unrecognised profile (fail-fast) or falling back to +"custom"+ with a
+      # yellow warning when an unrecognised answer is typed interactively.
+      #
+      # @return [String] resolved profile name (one of the {PROFILE_OPTIONS} keys)
+      # @raise [ArgumentError] when a CLI +--profile+ value is not in {PROFILE_OPTIONS}
       def call
         return resolve_from_option if @option
 
@@ -61,8 +66,16 @@ module RailsAiBridge
 
       private
 
+      # Validates the CLI-supplied option and raises immediately on unknown values
+      # so callers receive a clear error rather than a silent fallback.
+      #
+      # @raise [ArgumentError] when +@option+ is not a key of {PROFILE_OPTIONS}
       def resolve_from_option
-        normalize(@option)
+        return @option if PROFILE_OPTIONS.key?(@option)
+
+        valid = PROFILE_OPTIONS.keys.join(', ')
+        @shell.say "Unknown --profile '#{@option}'. Valid profiles: #{valid}.", :red
+        raise ArgumentError, "Unknown --profile '#{@option}'. Valid profiles: #{valid}."
       end
 
       def resolve_interactively

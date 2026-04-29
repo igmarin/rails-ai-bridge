@@ -191,7 +191,12 @@ module RailsAiBridge
         return handle_skip_context if options[:skip_context]
         return handle_no_rails_app unless Rails.application
 
-        profile = resolve_profile
+        begin
+          profile = resolve_profile
+        rescue ArgumentError
+          say '  Run `rails generate rails_ai_bridge:install --profile=minimal` (or full/custom/mcp).', :yellow
+          return
+        end
         @selected_profile = profile
 
         case profile
