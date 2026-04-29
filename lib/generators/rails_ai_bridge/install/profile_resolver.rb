@@ -41,19 +41,22 @@ module RailsAiBridge
         resolve_interactively
       end
 
-      # @return [Array<Symbol>, nil] Format symbols for the given profile.
+      # @param profile [String] profile name
+      # @return [Array<Symbol>, nil] format symbols for the profile, or +nil+ for unknown profiles
       def self.formats_for(profile)
-        PROFILE_OPTIONS.fetch(profile)&.dig(:formats)&.dup
+        PROFILE_OPTIONS.fetch(profile, nil)&.dig(:formats)&.dup
       end
 
-      # @return [Boolean] Whether to generate split-rules directories for the profile.
+      # @param profile [String] profile name
+      # @return [Boolean, nil] whether to generate split-rules directories, or +nil+ for unknown profiles
       def self.split_rules_for(profile)
-        PROFILE_OPTIONS.fetch(profile)&.dig(:split_rules)
+        PROFILE_OPTIONS.fetch(profile, nil)&.dig(:split_rules)
       end
 
-      # @return [String] Human-readable description of the profile.
+      # @param profile [String] profile name
+      # @return [String, nil] human-readable description, or +nil+ for unknown profiles
       def self.description_for(profile)
-        PROFILE_OPTIONS.fetch(profile)&.dig(:description)
+        PROFILE_OPTIONS.fetch(profile, nil)&.dig(:description)
       end
 
       private

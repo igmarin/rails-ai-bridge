@@ -23,7 +23,9 @@ module RailsAiBridge
           copilot: ->(ctx) { Providers::CopilotInstructionsSerializer.new(ctx) }
         }.freeze
 
-        # Returns MarkdownSerializer output for unrecognised formats.
+        # Defence-in-depth fallback for unrecognised format keys.
+        # Not reachable through ContextFileSerializer (which validates formats first);
+        # only triggered when Factory.for is called directly with an unknown symbol.
         class NullStrategy
           def initialize(context) = (@context = context)
           def call = MarkdownSerializer.new(@context).call

@@ -179,8 +179,9 @@ module RailsAiBridge
       # Calls {RailsAiBridge.generate_context} to write initial bridge files (CLAUDE.md,
       # .cursorrules, etc.) according to the selected install profile. Skipped when
       # +Rails.application+ is not available. Any {StandardError} is rescued and reported
-      # with the error class only (no raw message is printed to avoid leaking sensitive path
-      # or credential details); the full message is logged via +Rails.logger.debug+.
+      # with the error class only — no raw message or sensitive path/credential details are
+      # printed or logged. +Rails.logger.debug+ receives only the exception class name and a
+      # short 12-character fingerprint derived from it, never the raw exception message.
       #
       # @return [void]
       def generate_context_files
@@ -261,7 +262,7 @@ module RailsAiBridge
 
       def show_profile_summary
         profile = selected_profile
-        return unless profile && profile != 'custom'
+        return unless profile && profile != 'custom' && ProfileResolver::PROFILE_OPTIONS.key?(profile)
 
         say "Profile: #{profile} — #{ProfileResolver.description_for(profile)}"
         say ''

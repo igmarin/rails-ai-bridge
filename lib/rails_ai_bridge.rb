@@ -49,9 +49,9 @@ module RailsAiBridge
     # @param options [Hash] keyword options
     # @option options [Symbol, Array<Symbol>] :format output format(s); defaults to +:all+
     # @option options [Boolean] :split_rules whether to generate per-assistant rule directories; defaults to +true+
-    # @option options [:overwrite, :skip, :prompt, Proc] :on_conflict behaviour when a file exists with
+    # @option options [:overwrite, :skip, :prompt, #call] :on_conflict behaviour when a file exists with
     #   different content. +:overwrite+ (default) silently replaces; +:skip+ keeps the existing file;
-    #   +:prompt+ asks via stdin; a +Proc+ receives the filepath and returns +true+ to overwrite.
+    #   +:prompt+ asks via stdin; any callable receives the filepath and returns truthy to overwrite.
     # @return [Hash{Symbol => Array<String>}] files grouped under +:written+ and +:skipped+
     # @raise [ArgumentError] when an unknown option key is passed
     def generate_context(app = nil, **options)

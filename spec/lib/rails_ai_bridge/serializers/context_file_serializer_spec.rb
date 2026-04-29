@@ -164,6 +164,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
       Dir.mktmpdir do |dir|
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
         seed_file(dir, 'CLAUDE.md')
+        # Stubs are example-scoped via RSpec's allow; restored automatically after each example.
         allow($stdin).to receive(:gets).and_return("y\n")
         allow($stdout).to receive(:print)
         allow($stdout).to receive(:flush)

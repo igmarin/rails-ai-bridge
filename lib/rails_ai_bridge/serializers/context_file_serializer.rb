@@ -23,7 +23,9 @@ module RailsAiBridge
       # @param context [Hash] introspection context from {RailsAiBridge.introspect}
       # @param format [Symbol, Array<Symbol>] format(s) to generate
       # @param split_rules [Boolean] whether to generate per-assistant rule directories
-      # @param on_conflict [:overwrite, :skip, :prompt, Proc] conflict resolution strategy
+      # @param on_conflict [:overwrite, :skip, :prompt, #call] conflict resolution strategy;
+      #   any object responding to +:call+ is invoked with the filepath and must return a
+      #   truthy value to allow overwriting
       # @raise [ArgumentError] when +on_conflict+ is not a recognised symbol or callable
       def initialize(context, format: :all, split_rules: true, on_conflict: :overwrite)
         unless VALID_ON_CONFLICT_SYMBOLS.include?(on_conflict) || on_conflict.respond_to?(:call)
@@ -61,8 +63,9 @@ module RailsAiBridge
 
           content = serialize(fmt)
 
-          unchanged = File.exist?(filepath) && File.read(filepath) == content
-          if !unchanged && (!File.exist?(filepath) || overwrite?(filepath))
+          file_exists = File.exist?(filepath)
+          unchanged   = file_exists && File.read(filepath) == content
+          if !unchanged && (!file_exists || overwrite?(filepath))
             File.write(filepath, content)
             written << filepath
           else
@@ -87,7 +90,8 @@ module RailsAiBridge
           $stdout.print "  Overwrite #{filepath}? [y/N] "
           $stdout.flush
           $stdin.gets.to_s.strip.downcase == 'y'
-        when Proc then @on_conflict.call(filepath)
+        else
+          @on_conflict.call(filepath)
         end
       end
 

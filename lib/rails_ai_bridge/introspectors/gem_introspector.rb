@@ -13,9 +13,14 @@ module RailsAiBridge
 
       # Parse +Gemfile.lock+ and classify notable gems.
       #
+      # Returns +{ error: message }+ for any rescued +StandardError+ — including a
+      # missing or unreadable lockfile, malformed content, or any other runtime
+      # exception — so callers always receive a controlled hash rather than an
+      # unhandled exception.
+      #
       # @return [Hash] gem analysis with +:total_gems+, +:ruby_version+,
-      #   +:notable_gems+, and +:categories+; or +{ error: message }+ when the
-      #   lockfile is absent or unreadable
+      #   +:notable_gems+, and +:categories+ on success; or +{ error: String }+ on
+      #   any rescued +StandardError+
       def call
         lock_path = File.join(app.root, 'Gemfile.lock')
         return { error: 'No Gemfile.lock found' } unless File.exist?(lock_path)
@@ -62,7 +67,7 @@ module RailsAiBridge
           {
             name: gem_name,
             version: specs[gem_name],
-            category: info[:category].to_s,
+            category: info[:category].to_s, # NOTABLE_GEMS uses Symbol categories; callers expect String keys
             note: info[:note]
           }
         end
