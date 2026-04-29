@@ -6,7 +6,7 @@ module RailsAiBridge
     # Supports: CLAUDE.md, .cursorrules, .windsurfrules, .github/copilot-instructions.md, JSON
     # Also generates split rule files for AI tools that support them.
     class ContextFileSerializer
-      attr_reader :context, :format
+      attr_reader :context, :format, :split_rules
 
       FORMAT_MAP = {
         claude: 'CLAUDE.md',
@@ -18,13 +18,31 @@ module RailsAiBridge
         gemini: 'GEMINI.md'
       }.freeze
 
-      def initialize(context, format: :all)
-        @context = context
-        @format  = format
+      VALID_ON_CONFLICT_SYMBOLS = %i[overwrite skip prompt].freeze
+
+      # @param context [Hash] introspection context from {RailsAiBridge.introspect}
+      # @param format [Symbol, Array<Symbol>] format(s) to generate
+      # @param split_rules [Boolean] whether to generate per-assistant rule directories
+      # @param on_conflict [:overwrite, :skip, :prompt, #call] conflict resolution strategy;
+      #   any object responding to +:call+ is invoked with the filepath and must return a
+      #   truthy value to allow overwriting
+      # @raise [ArgumentError] when +on_conflict+ is not a recognised symbol or callable
+      def initialize(context, format: :all, split_rules: true, on_conflict: :overwrite)
+        unless VALID_ON_CONFLICT_SYMBOLS.include?(on_conflict) || on_conflict.respond_to?(:call)
+          raise ArgumentError,
+                "on_conflict must be :overwrite, :skip, :prompt, or a callable; got #{on_conflict.inspect}"
+        end
+
+        @context     = context
+        @format      = format
+        @split_rules = split_rules
+        @on_conflict = on_conflict
       end
 
-      # Write context files, skipping unchanged ones.
-      # @return [Hash] { written: [paths], skipped: [paths] }
+      # Write context files to the configured output directory, skipping unchanged ones.
+      #
+      # @return [Hash{Symbol => Array<String>}] +:written+ paths and +:skipped+ paths
+      # @raise [ArgumentError] when an unrecognised format symbol is encountered
       def call
         formats = format == :all ? FORMAT_MAP.keys : Array(format)
         output_dir = RailsAiBridge.configuration.output_dir_for(Rails.application)
@@ -45,65 +63,55 @@ module RailsAiBridge
 
           content = serialize(fmt)
 
-          if File.exist?(filepath) && File.read(filepath) == content
-            skipped << filepath
-          else
+          file_exists = File.exist?(filepath)
+          unchanged   = file_exists && File.read(filepath) == content
+          if !unchanged && (!file_exists || overwrite?(filepath))
             File.write(filepath, content)
             written << filepath
+          else
+            skipped << filepath
           end
         end
 
-        # Generate split rule files for all AI tools that support them
-        generate_split_rules(formats, output_dir, written, skipped)
+        generate_split_rules(formats, output_dir, written, skipped) if split_rules
 
         { written: written, skipped: skipped }
       end
 
       private
 
-      def serialize(fmt)
-        case fmt
-        when :json     then JsonSerializer.new(context).call
-        when :claude   then Providers::ClaudeSerializer.new(context).call
-        when :codex    then Providers::CodexSerializer.new(context).call
-        when :cursor   then Providers::RulesSerializer.new(context).call
-        when :windsurf then Providers::WindsurfSerializer.new(context).call
-        when :gemini   then Providers::GeminiSerializer.new(context).call
-        when :copilot  then Providers::CopilotSerializer.new(context).call
-        else MarkdownSerializer.new(context).call
+      # @param filepath [String] candidate output path
+      # @return [Boolean] +true+ when the file should be overwritten
+      def overwrite?(filepath)
+        case @on_conflict
+        when :overwrite then true
+        when :skip      then false
+        when :prompt
+          $stdout.print "  Overwrite #{filepath}? [y/N] "
+          $stdout.flush
+          $stdin.gets.to_s.strip.downcase == 'y'
+        else
+          @on_conflict.call(filepath)
         end
       end
 
+      # @param fmt [Symbol] format key
+      # @return [String] rendered file content
+      def serialize(fmt)
+        Providers::Factory.for(fmt, context).call
+      end
+
+      # @param formats [Array<Symbol>] format keys being written
+      # @param output_dir [String] root output directory
+      # @param written [Array<String>] accumulator for written paths
+      # @param skipped [Array<String>] accumulator for skipped paths
+      # @return [void]
       def generate_split_rules(formats, output_dir, written, skipped)
-        if formats.include?(:claude)
-          result = Providers::ClaudeRulesSerializer.new(context).call(output_dir)
+        formats.each do |fmt|
+          result = Providers::Factory.split_rules_for(fmt, context).call(output_dir)
           written.concat(result[:written])
           skipped.concat(result[:skipped])
         end
-
-        if formats.include?(:codex)
-          result = Providers::CodexSupportSerializer.new(context).call(output_dir)
-          written.concat(result[:written])
-          skipped.concat(result[:skipped])
-        end
-
-        if formats.include?(:cursor)
-          result = Providers::CursorRulesSerializer.new(context).call(output_dir)
-          written.concat(result[:written])
-          skipped.concat(result[:skipped])
-        end
-
-        if formats.include?(:windsurf)
-          result = Providers::WindsurfRulesSerializer.new(context).call(output_dir)
-          written.concat(result[:written])
-          skipped.concat(result[:skipped])
-        end
-
-        return unless formats.include?(:copilot)
-
-        result = Providers::CopilotInstructionsSerializer.new(context).call(output_dir)
-        written.concat(result[:written])
-        skipped.concat(result[:skipped])
       end
     end
   end

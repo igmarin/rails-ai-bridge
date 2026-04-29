@@ -1,9 +1,13 @@
 # frozen_string_literal: true
 
+require 'simplecov'
+SimpleCov.start do
+  add_filter '/spec/'
+end
+
 require_relative 'reek_helper'
 require 'bundler/setup'
 require 'combustion'
-
 # Resolve the dummy app under project ./spec/internal (gem default "/spec/internal" is an absolute path).
 Combustion.path = 'spec/internal'
 

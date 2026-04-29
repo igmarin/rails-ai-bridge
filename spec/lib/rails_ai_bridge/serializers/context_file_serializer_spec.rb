@@ -98,6 +98,17 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
       end
     end
 
+    it 'can skip split rule generation when split_rules is false' do
+      Dir.mktmpdir do |dir|
+        allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
+        serializer = described_class.new(context, format: :cursor, split_rules: false)
+        result = serializer.call
+        expect(result[:written].none? { |f| f.include?('.cursor/rules/') }).to be true
+        expect(result[:written]).not_to be_empty
+        expect(result[:written].any? { |f| f.end_with?('.cursorrules') }).to be true
+      end
+    end
+
     it 'dispatches cursor format to RulesSerializer' do
       Dir.mktmpdir do |dir|
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
@@ -114,6 +125,99 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
         serializer = described_class.new(context, format: :bogus)
         expect { serializer.call }.to raise_error(ArgumentError, /Unknown format/)
       end
+    end
+  end
+
+  describe 'on_conflict option' do
+    let(:existing_content) { 'old content' }
+
+    def seed_file(dir, filename, content = existing_content)
+      path = File.join(dir, filename)
+      FileUtils.mkdir_p(File.dirname(path))
+      File.write(path, content)
+      path
+    end
+
+    it ':overwrite (default) silently overwrites a file whose content changed' do
+      Dir.mktmpdir do |dir|
+        allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
+        seed_file(dir, 'CLAUDE.md')
+        result = described_class.new(context, format: :claude, split_rules: false).call
+        expect(result[:written].any? { |f| f.end_with?('CLAUDE.md') }).to be true
+        expect(result[:skipped]).to be_empty
+        expect(File.read(File.join(dir, 'CLAUDE.md'))).not_to eq(existing_content)
+      end
+    end
+
+    it ':skip leaves an existing file unchanged even when content differs' do
+      Dir.mktmpdir do |dir|
+        allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
+        seed_file(dir, 'CLAUDE.md')
+        result = described_class.new(context, format: :claude, split_rules: false, on_conflict: :skip).call
+        expect(result[:written]).to be_empty
+        expect(result[:skipped].any? { |f| f.end_with?('CLAUDE.md') }).to be true
+        expect(File.read(File.join(dir, 'CLAUDE.md'))).to eq(existing_content)
+      end
+    end
+
+    it ':prompt writes when the user answers y' do
+      Dir.mktmpdir do |dir|
+        allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
+        seed_file(dir, 'CLAUDE.md')
+        # Stubs are example-scoped via RSpec's allow; restored automatically after each example.
+        allow($stdin).to receive(:gets).and_return("y\n")
+        allow($stdout).to receive(:print)
+        allow($stdout).to receive(:flush)
+        result = described_class.new(context, format: :claude, split_rules: false, on_conflict: :prompt).call
+        expect(result[:written].any? { |f| f.end_with?('CLAUDE.md') }).to be true
+        expect(File.read(File.join(dir, 'CLAUDE.md'))).not_to eq(existing_content)
+      end
+    end
+
+    it ':prompt skips when the user answers n' do
+      Dir.mktmpdir do |dir|
+        allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
+        seed_file(dir, 'CLAUDE.md')
+        allow($stdin).to receive(:gets).and_return("n\n")
+        allow($stdout).to receive(:print)
+        allow($stdout).to receive(:flush)
+        result = described_class.new(context, format: :claude, split_rules: false, on_conflict: :prompt).call
+        expect(result[:written]).to be_empty
+        expect(result[:skipped].any? { |f| f.end_with?('CLAUDE.md') }).to be true
+        expect(File.read(File.join(dir, 'CLAUDE.md'))).to eq(existing_content)
+      end
+    end
+
+    it 'accepts a proc as a conflict resolver' do
+      Dir.mktmpdir do |dir|
+        allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
+        seed_file(dir, 'CLAUDE.md')
+        resolver = ->(filepath) { filepath.end_with?('CLAUDE.md') }
+        result = described_class.new(context, format: :claude, split_rules: false, on_conflict: resolver).call
+        expect(result[:written].any? { |f| f.end_with?('CLAUDE.md') }).to be true
+        expect(File.read(File.join(dir, 'CLAUDE.md'))).not_to eq(existing_content)
+      end
+    end
+
+    it 'accepts any callable (not just Proc) as a conflict resolver' do
+      callable_class = Class.new do
+        def call(filepath) = filepath.end_with?('CLAUDE.md')
+      end
+
+      Dir.mktmpdir do |dir|
+        allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
+        seed_file(dir, 'CLAUDE.md')
+        result = described_class.new(context, format: :claude, split_rules: false,
+                                              on_conflict: callable_class.new).call
+        expect(result[:written].any? { |f| f.end_with?('CLAUDE.md') }).to be true
+        expect(File.read(File.join(dir, 'CLAUDE.md'))).not_to eq(existing_content)
+      end
+    end
+
+    it 'raises ArgumentError for an invalid on_conflict value' do
+      expect do
+        described_class.new(context, on_conflict: :invalid_value)
+      end.to raise_error(ArgumentError, /on_conflict must be/)
     end
   end
 end

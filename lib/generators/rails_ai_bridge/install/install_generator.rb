@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
+require 'digest'
 require 'json'
+require_relative 'profile_resolver'
 
 module RailsAiBridge
   module Generators
@@ -8,6 +10,9 @@ module RailsAiBridge
       source_root File.expand_path('templates', __dir__)
 
       desc 'Install rails-ai-bridge: creates initializer, MCP config, and generates initial bridge files.'
+
+      class_option :skip_context, type: :boolean, default: false, desc: 'Skip interactive context file generation (useful for CI/CD)'
+      class_option :profile, type: :string, desc: 'minimal|full|mcp|custom'
 
       ##
       # Creates a `.mcp.json` MCP server definition named "rails-ai-bridge".
@@ -172,28 +177,44 @@ module RailsAiBridge
 
       ##
       # Calls {RailsAiBridge.generate_context} to write initial bridge files (CLAUDE.md,
-      # .cursorrules, etc.). Skipped when +Rails.application+ is not available. Any
-      # {StandardError} is rescued and reported with the error class only (no raw message
-      # is printed to avoid leaking sensitive path or credential details); the full message
-      # is logged via +Rails.logger.debug+.
+      # .cursorrules, etc.) according to the selected install profile. Skipped when
+      # +Rails.application+ is not available. Any {StandardError} is rescued and reported
+      # with the error class only — no raw message or sensitive path/credential details are
+      # printed or logged. +Rails.logger.debug+ receives only the exception class name and a
+      # short 12-character fingerprint derived from it, never the raw exception message.
       #
       # @return [void]
       def generate_context_files
         say ''
         say 'Generating AI bridge files...', :yellow
 
-        if Rails.application
-          begin
-            result = RailsAiBridge.generate_context(format: :all)
-            result[:written].each { |file| say "  Created #{file}", :green }
-            result[:skipped].each { |file| say "  Unchanged #{file}", :blue }
-          rescue StandardError => error
-            say "  Context generation failed (#{error.class}). Run `rails ai:bridge` after install to retry.", :red
-            Rails.logger.debug { "[rails-ai-bridge] generate_context error: #{error.message}" }
-          end
-        else
-          say '  Skipped (Rails app not fully loaded). Run `rails ai:bridge` after install.', :yellow
+        return handle_skip_context if options[:skip_context]
+        return handle_no_rails_app unless Rails.application
+
+        begin
+          profile = resolve_profile
+        rescue ArgumentError
+          say '  Run `rails generate rails_ai_bridge:install --profile=minimal` (or full/custom/mcp).', :yellow
+          return
         end
+        @selected_profile = profile
+
+        case profile
+        when 'mcp'
+          say '  Skipped (MCP-only profile). Run `rails ai:bridge` to generate context files later.', :yellow
+          return
+        when 'minimal', 'full'
+          formats = ProfileResolver.formats_for(profile)
+          split_rules = ProfileResolver.split_rules_for(profile)
+          return generate_context_for_formats(formats, split_rules: split_rules)
+        end
+
+        return say('  Skipped. Run `rails ai:bridge` to generate context files later.', :yellow) unless yes?('Generate AI assistant context files? (y/n)')
+
+        formats = collect_selected_formats
+        return say('  No formats selected. Run `rails ai:bridge` to generate context files later.', :yellow) if formats.empty?
+
+        generate_context_for_formats(formats, split_rules: true)
       end
 
       ##
@@ -202,41 +223,104 @@ module RailsAiBridge
       #
       # @return [void]
       def show_instructions
+        return show_skip_context_instructions if options[:skip_context]
+
+        show_full_instructions
+      end
+
+      private
+
+      def show_skip_context_instructions
+        say ''
+        say 'rails-ai-bridge installed! Run `rails ai:bridge` to generate context files.', :green
+      end
+
+      def show_full_instructions
         say ''
         say '=' * 50, :cyan
         say ' rails-ai-bridge installed!', :cyan
         say '=' * 50, :cyan
         say ''
-        say 'Quick start:', :yellow
-        say '  rails ai:bridge         # Generate all bridge files'
-        say '  rails ai:bridge:claude   # Generate CLAUDE.md only'
-        say '  rails ai:bridge:codex    # Generate AGENTS.md only'
-        say '  rails ai:bridge:cursor   # Generate .cursorrules only'
-        say '  rails ai:bridge:gemini   # Generate GEMINI.md only'
+        say 'Commands:', :yellow
+        say '  rails ai:bridge          # Generate all bridge files (compact mode)'
+        say '  rails ai:bridge:full     # Full dump (good for small apps)'
+        say '  rails ai:bridge:FORMAT   # Generate one format (claude, cursor, codex, gemini, copilot, windsurf)'
+        say '  rails ai:watch           # Watch for changes and auto-regenerate'
         say '  rails ai:serve           # Start MCP server (stdio)'
         say '  rails ai:inspect         # Print introspection summary'
         say ''
-        say 'Generated files per AI tool:', :yellow
+        say 'Bridge files per tool:', :yellow
         say '  Claude Code    → CLAUDE.md + .claude/rules/*.md'
         say '  OpenAI Codex   → AGENTS.md + .codex/README.md'
-        say '  Cursor         → .cursorrules + .cursor/rules/*.mdc (incl. rails-engineering.mdc)'
+        say '  Cursor         → .cursorrules + .cursor/rules/*.mdc'
         say '  Windsurf       → .windsurfrules + .windsurf/rules/*.md'
-        say '  GitHub Copilot → .github/copilot-instructions.md + .github/instructions/*.instructions.md'
+        say '  GitHub Copilot → .github/copilot-instructions.md + .github/instructions/*.md'
         say '  Gemini         → GEMINI.md'
         say ''
-        say 'MCP auto-discovery:', :yellow
-        say '  .mcp.json is auto-detected by Claude Code and Cursor.'
-        say '  No manual MCP config needed — just open your project.'
+        say 'MCP: .mcp.json auto-detected by Claude Code and Cursor — no manual config needed.', :yellow
         say ''
-        say 'Bridge modes:', :yellow
-        say '  rails ai:bridge         # compact mode (default, smart for any app size)'
-        say '  rails ai:bridge:full    # full dump (good for small apps)'
-        say ''
-        say 'Repo-specific Copilot/Codex rules:', :yellow
-        say '  Edit config/rails_ai_bridge/overrides.md — remove the first-line omit-merge comment to enable merge.'
-        say '  See overrides.md.example for a suggested outline.'
+        show_profile_summary
+        say 'Custom rules: edit config/rails_ai_bridge/overrides.md (remove omit-merge line to enable)', :yellow
         say ''
         say 'Commit bridge files and .mcp.json so your team benefits!', :green
+      end
+
+      def show_profile_summary
+        profile = selected_profile
+        return unless profile && profile != 'custom' && ProfileResolver::PROFILE_OPTIONS.key?(profile)
+
+        say "Profile: #{profile} — #{ProfileResolver.description_for(profile)}"
+        say ''
+      end
+
+      def selected_profile
+        @selected_profile || options[:profile]&.to_s&.downcase
+      end
+
+      def handle_skip_context
+        say '  Skipped (--skip-context flag provided). Run `rails ai:bridge` to generate context files.', :yellow
+      end
+
+      def handle_no_rails_app
+        say '  Skipped (Rails app not fully loaded). Run `rails ai:bridge` after install.', :yellow
+      end
+
+      def collect_selected_formats
+        format_prompts = {
+          claude: 'Generate CLAUDE.md?',
+          cursor: 'Generate .cursorrules?',
+          windsurf: 'Generate .windsurfrules?',
+          copilot: 'Generate .github/copilot-instructions.md?',
+          gemini: 'Generate GEMINI.md?',
+          codex: 'Generate AGENTS.md?'
+        }
+
+        format_prompts.each_with_object([]) do |(format, prompt), formats|
+          formats << format if yes?("#{prompt} (y/n)")
+        end
+      end
+
+      def generate_context_for_formats(formats, split_rules: true)
+        result = RailsAiBridge.generate_context(format: formats, split_rules: split_rules)
+        report_context_generation_results(result)
+      rescue StandardError => error
+        handle_context_generation_error(error)
+      end
+
+      def report_context_generation_results(result)
+        result[:written].each { |file| say "  Created #{file}", :green }
+        result[:skipped].each { |file| say "  Unchanged #{file}", :blue }
+      end
+
+      def handle_context_generation_error(error)
+        klass = error.class
+        say "  Context generation failed (#{klass}). Run `rails ai:bridge` after install to retry.", :red
+        error_id = Digest::SHA256.hexdigest(klass.name)[0, 12]
+        Rails.logger.debug { "[rails-ai-bridge] generate_context error: #{klass} [#{error_id}]" }
+      end
+
+      def resolve_profile
+        ProfileResolver.new(options[:profile], shell: self).call
       end
     end
   end

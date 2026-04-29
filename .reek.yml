@@ -34,6 +34,7 @@ detectors:
     - RailsAiBridge::Config::Output#copilot_compact_model_list_limit
     - RailsAiBridge::Config::Output#max_tool_response_chars
     - RailsAiBridge::Config::Output#output_dir
+    - RailsAiBridge::Config::Output#watcher_formats
     - RailsAiBridge::Config::Server#additional_resources
     - RailsAiBridge::Config::Server#additional_tools
     - RailsAiBridge::Config::Server#auto_mount
@@ -46,6 +47,9 @@ detectors:
   BooleanParameter:
     exclude:
     - RailsAiBridge::Serializers::SharedAssistantGuidance#cursor_engineering_mdc_body_lines
+    - RailsAiBridge::Generators::InstallGenerator#generate_context_for_formats
+    - RailsAiBridge::Serializers::ContextFileSerializer#initialize
+    - RailsAiBridge#generate_context
   ControlParameter:
     exclude:
     - RailsAiBridge::ContextProvider#rebuild
@@ -66,6 +70,7 @@ detectors:
   DuplicateMethodCall:
     exclude:
     - RailsAiBridge::Generators::InstallGenerator#show_instructions
+    - RailsAiBridge::Generators::InstallGenerator#show_full_instructions
     - RailsAiBridge::Config::Introspection#excluded_table?
     - RailsAiBridge::ContextProvider#fetch
     - RailsAiBridge::ContextProvider#rebuild
@@ -299,6 +304,7 @@ detectors:
     - RailsAiBridge::Tools::GetView::FullFormatter
     - RailsAiBridge::Tools::GetView::StandardFormatter
     - RailsAiBridge::Tools::GetView::SummaryFormatter
+    - RailsAiBridge::Generators::InstallGenerator
   IrresponsibleModule:
     exclude:
     - RailsAiBridge::Generators::InstallGenerator
@@ -419,6 +425,7 @@ detectors:
     - RailsAiBridge::Serializers::SharedAssistantGuidance#resolved_assistant_overrides_path
     - RailsAiBridge::Services::FileManagementService#call
     - RailsAiBridge::Tools::SearchCode#self.normalize_and_validate_file_type
+    - RailsAiBridge::Generators::InstallGenerator#profile_from_option
   RepeatedConditional:
     exclude:
     - RailsAiBridge::Introspectors::AssetPipelineIntrospector
@@ -441,6 +448,7 @@ detectors:
   TooManyMethods:
     exclude:
     - RailsAiBridge::Introspectors::ModelIntrospector
+    - RailsAiBridge::Generators::InstallGenerator
   TooManyConstants:
     exclude:
     - RailsAiBridge::Resources
@@ -451,6 +459,7 @@ detectors:
     - RailsAiBridge::Generators::InstallGenerator#add_to_gitignore
     - RailsAiBridge::Generators::InstallGenerator#create_assistant_overrides_template
     - RailsAiBridge::Generators::InstallGenerator#generate_context_files
+    - RailsAiBridge::Generators::InstallGenerator#show_full_instructions
     - RailsAiBridge::Generators::InstallGenerator#show_instructions
     - RailsAiBridge::AssistantFormatsPreference#formats_for_default_bridge_task
     - RailsAiBridge::AssistantFormatsPreference#write!

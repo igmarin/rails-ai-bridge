@@ -16,9 +16,8 @@ sqlite_version =
   end
 
 group :development, :test do
-  gem 'railties', "~> #{rails_version}.0"
-  # gem "skunk" # TODO: No MFA alternative available - temporarily removed
   gem 'activerecord', "~> #{rails_version}.0"
+  gem 'railties', "~> #{rails_version}.0"
   gem 'sqlite3', sqlite_version
 
   # Development dependencies
@@ -29,5 +28,7 @@ group :development, :test do
   gem 'rubocop-rails', '~> 2.0' # MFA enabled - Rails-specific cops
   gem 'rubocop-rspec', '~> 3.0' # MFA enabled - RSpec-specific cops
   gem 'rubycritic', '~> 4.0' # MFA enabled - additional code metrics
+  gem 'simplecov', '~> 0.22'
+  gem 'skunk', '~> 0.5.4'
   gem 'yard', '~> 0.9' # MFA enabled - documentation generation
 end
