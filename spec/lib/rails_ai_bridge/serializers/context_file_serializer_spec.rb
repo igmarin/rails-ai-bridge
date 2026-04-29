@@ -184,6 +184,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
         result = described_class.new(context, format: :claude, split_rules: false, on_conflict: :prompt).call
         expect(result[:written]).to be_empty
         expect(result[:skipped].any? { |f| f.end_with?('CLAUDE.md') }).to be true
+        expect(File.read(File.join(dir, 'CLAUDE.md'))).to eq(existing_content)
       end
     end
 
