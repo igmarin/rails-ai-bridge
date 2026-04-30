@@ -87,6 +87,11 @@ module RailsAiBridge
 
           rline = ContextSummary.routes_stack_line(context)
           lines << rline if rline
+          focus_lines = ContextSummary.route_focus_lines(context, limit: 3)
+          if focus_lines.any?
+            lines << '- Endpoint focus:'
+            focus_lines.each { |line| lines << "  #{line.delete_prefix('- ')}" }
+          end
 
           gems = context[:gems]
           if gems.is_a?(Hash) && !gems[:error]
@@ -127,7 +132,7 @@ module RailsAiBridge
           schema_tables = context.dig(:schema, :tables) || {}
           migrations    = context[:migrations]
 
-          sorted = models.sort_by { |_name, data| -ContextSummary.model_complexity_score(data) }
+          sorted = ContextSummary.models_by_relevance(models, context: context)
           sorted.first(30).each do |name, data|
             assocs     = (data[:associations] || []).size
             table_name = data[:table_name]
@@ -173,7 +178,7 @@ module RailsAiBridge
             ''
           ]
 
-          controllers.keys.sort.first(25).each do |name|
+          controllers.keys.sort_by { |name| [-Array(routes_by_ctrl[name.gsub(/Controller\z/, '').underscore]).size, name] }.first(25).each do |name|
             info = controllers[name]
             # Derive route key: "UsersController" → "users", "Admin::UsersController" → "admin/users"
             route_key = name.gsub(/Controller\z/, '').underscore

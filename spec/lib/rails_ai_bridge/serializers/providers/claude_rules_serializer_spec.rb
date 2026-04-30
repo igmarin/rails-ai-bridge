@@ -41,6 +41,8 @@ RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer do
       expect(ctx).to include('Rails semantic context')
       expect(ctx).to include('core entity')
       expect(ctx).to include('User')
+      expect(ctx).to include('Endpoint focus')
+      expect(ctx).to include('rails_get_routes(detail:"summary")')
 
       schema_file = File.join(dir, '.claude', 'rules', 'rails-schema.md')
       expect(File.exist?(schema_file)).to be true
@@ -203,6 +205,65 @@ RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer do
           expect(listed).to eq(21)
           expect(body).not_to include('+1 more')
         end
+      end
+    end
+  end
+
+  describe 'relevance ordering and database size hints' do
+    let(:context_with_signals) do
+      context.merge(
+        routes: {
+          total_routes: 18,
+          by_controller: {
+            'profiles' => 9.times.map { { verb: 'GET', action: 'show' } },
+            'users' => 2.times.map { { verb: 'GET', action: 'index' } }
+          }
+        },
+        database_stats: {
+          adapter: 'postgresql',
+          tables: [
+            { table: 'users', approximate_rows: 25_000_000 },
+            { table: 'posts', approximate_rows: 12 }
+          ]
+        },
+        models: {
+          'Aardvark' => { table_name: 'aardvarks', semantic_tier: 'supporting', associations: [], validations: [] },
+          'Profile' => {
+            table_name: 'profiles',
+            semantic_tier: 'core_entity',
+            associations: [{ type: 'belongs_to', name: 'user' }],
+            validations: []
+          },
+          'User' => { table_name: 'users', semantic_tier: 'supporting', associations: [], validations: [] }
+        },
+        schema: {
+          adapter: 'postgresql',
+          tables: {
+            'users' => { columns: [{ name: 'id' }], primary_key: 'id' },
+            'profiles' => { columns: [{ name: 'id' }], primary_key: 'id' },
+            'aardvarks' => { columns: [{ name: 'id' }], primary_key: 'id' }
+          }
+        }
+      )
+    end
+
+    it 'orders semantic context by task relevance within tiers' do
+      Dir.mktmpdir do |dir|
+        described_class.new(context_with_signals).call(dir)
+        body = File.read(File.join(dir, '.claude', 'rules', 'rails-context.md'))
+        expect(body.index('- Profile')).to be < body.index('- Aardvark')
+      end
+    end
+
+    it 'adds bounded route focus and database size hints' do
+      Dir.mktmpdir do |dir|
+        described_class.new(context_with_signals).call(dir)
+        context_body = File.read(File.join(dir, '.claude', 'rules', 'rails-context.md'))
+        schema_body = File.read(File.join(dir, '.claude', 'rules', 'rails-schema.md'))
+
+        expect(context_body).to include('profiles: 9 routes')
+        expect(context_body).to include('rails_get_routes(controller:"profiles"')
+        expect(schema_body).to include('users (1 cols, pk: id) [hot]')
       end
     end
   end

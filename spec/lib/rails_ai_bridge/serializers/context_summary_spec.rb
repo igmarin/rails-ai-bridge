@@ -69,6 +69,58 @@ RSpec.describe RailsAiBridge::Serializers::ContextSummary do
     end
   end
 
+  describe '.model_relevance_score' do
+    let(:recent_version) { "#{(Time.zone.today - 5).strftime('%Y%m%d')}120000" }
+
+    it 'prioritizes configured core models over alphabetically earlier supporting models' do
+      core = {
+        table_name: 'accounts',
+        semantic_tier: 'core_entity',
+        associations: [],
+        validations: []
+      }
+      supporting = {
+        table_name: 'aardvarks',
+        semantic_tier: 'supporting',
+        associations: 6.times.map { {} },
+        validations: []
+      }
+
+      expect(described_class.model_relevance_score(core, context: {}))
+        .to be > described_class.model_relevance_score(supporting, context: {})
+    end
+
+    it 'includes route density and recent migration signals' do
+      data = {
+        table_name: 'orders',
+        associations: [],
+        validations: [],
+        callbacks: [],
+        scopes: []
+      }
+      context = {
+        routes: { by_controller: { 'orders' => 5.times.map { {} } } },
+        migrations: {
+          recent: [{ version: recent_version, filename: "#{recent_version}_add_status_to_orders.rb" }]
+        }
+      }
+
+      expect(described_class.model_relevance_score(data, name: 'Order', context: context)).to be >= 9
+    end
+  end
+
+  describe '.models_by_relevance' do
+    it 'returns valid model entries sorted by relevance with stable name tie-breaks' do
+      models = {
+        'Zebra' => { semantic_tier: 'supporting', associations: [] },
+        'Account' => { semantic_tier: 'core_entity', associations: [] },
+        'Bee' => { semantic_tier: 'supporting', associations: [] }
+      }
+
+      expect(described_class.models_by_relevance(models).map(&:first)).to eq(%w[Account Bee Zebra])
+    end
+  end
+
   describe '.top_columns' do
     let(:table_data) do
       {
@@ -203,6 +255,34 @@ RSpec.describe RailsAiBridge::Serializers::ContextSummary do
 
       line = described_class.routes_stack_line(context)
       expect(line).to eq('- Routes: 12 total — 2 route targets (controller inventory unavailable)')
+    end
+  end
+
+  describe '.route_focus_lines' do
+    it 'surfaces busiest route targets with MCP drill-down guidance' do
+      context = {
+        routes: {
+          by_controller: {
+            'profiles' => 7.times.map { |i| { verb: 'GET', action: "show#{i}" } },
+            'users' => 3.times.map { |i| { verb: 'POST', action: "create#{i}" } }
+          }
+        }
+      }
+
+      lines = described_class.route_focus_lines(context, limit: 1)
+      expect(lines.join("\n")).to include('profiles: 7 routes')
+      expect(lines.join("\n")).to include('rails_get_routes(controller:"profiles"')
+      expect(lines.join("\n")).not_to include('users: 3 routes')
+    end
+  end
+
+  describe '.database_size_bucket' do
+    it 'buckets approximate row counts into actionable labels' do
+      expect(described_class.database_size_bucket(nil)).to be_nil
+      expect(described_class.database_size_bucket(0)).to eq('small')
+      expect(described_class.database_size_bucket(75_000)).to eq('medium')
+      expect(described_class.database_size_bucket(2_000_000)).to eq('large')
+      expect(described_class.database_size_bucket(25_000_000)).to eq('hot')
     end
   end
 end

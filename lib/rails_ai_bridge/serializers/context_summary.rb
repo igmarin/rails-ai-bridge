@@ -58,6 +58,29 @@ module RailsAiBridge
         end
       end
 
+      # Bounded route focus lines for passive context. Shows busiest endpoint
+      # areas without dumping the full route table.
+      #
+      # @param context [Hash] full introspection hash
+      # @param limit [Integer] max controllers to render
+      # @return [Array<String>] markdown lines without heading
+      def route_focus_lines(context, limit: 5)
+        routes = context[:routes]
+        return [] unless routes.is_a?(Hash) && !routes[:error]
+
+        by_controller = routes[:by_controller]
+        return [] unless by_controller.is_a?(Hash) && by_controller.any?
+
+        bounded_limit = limit.to_i.clamp(1, 20)
+        by_controller
+          .sort_by { |controller, controller_routes| [-Array(controller_routes).size, controller.to_s] }
+          .first(bounded_limit)
+          .map do |controller, controller_routes|
+            count = Array(controller_routes).size
+            "- #{controller}: #{count} routes — `rails_get_routes(controller:\"#{controller}\", detail:\"summary\")`"
+          end
+      end
+
       # Complexity score for a single model's introspection data.
       # Used by compact serializers to surface the most architecturally significant
       # models (high association/validation/callback/scope counts) first.
@@ -69,6 +92,35 @@ module RailsAiBridge
           Array(data[:validations]).size +
           Array(data[:callbacks]).size +
           Array(data[:scopes]).size
+      end
+
+      # Task-relevance score for passive context ordering.
+      #
+      # @param data [Hash] single-model entry from +context[:models]+
+      # @param name [String, nil] model class name
+      # @param context [Hash] full introspection hash
+      # @return [Integer] non-negative score; higher = more relevant
+      def model_relevance_score(data, name: nil, context: {})
+        return 0 unless data.is_a?(Hash)
+
+        tier_score(data[:semantic_tier]) +
+          model_complexity_score(data) +
+          route_density_for_model(name, data, context) +
+          recent_migration_score(data, context) +
+          database_size_score(data, context)
+      end
+
+      # Valid model entries sorted by task relevance, then model name for stable
+      # deterministic output when scores tie.
+      #
+      # @param models [Hash] model payloads keyed by model name
+      # @param context [Hash] full introspection hash
+      # @return [Array<Array(String, Hash)>]
+      def models_by_relevance(models, context: {})
+        return [] unless models.is_a?(Hash)
+
+        models.select { |_name, data| data.is_a?(Hash) && !data[:error] }
+              .sort_by { |name, data| [-model_relevance_score(data, name: name, context: context), name.to_s] }
       end
 
       # Returns the appropriate test command string for this app's test framework.
@@ -124,6 +176,41 @@ module RailsAiBridge
         end
       end
 
+      # Human-oriented approximate table size bucket for optional database stats.
+      #
+      # @param row_count [Integer, nil] approximate rows
+      # @return [String, nil] +small+, +medium+, +large+, +hot+, or nil
+      def database_size_bucket(row_count)
+        return nil if row_count.nil?
+
+        rows = row_count.to_i
+        case rows
+        when 0...50_000 then 'small'
+        when 50_000...1_000_000 then 'medium'
+        when 1_000_000...10_000_000 then 'large'
+        else 'hot'
+        end
+      end
+
+      # Optional size bucket for a table from +context[:database_stats]+.
+      #
+      # @param context [Hash] full introspection hash
+      # @param table_name [String, nil]
+      # @return [String, nil]
+      def database_size_bucket_for_table(context, table_name)
+        return nil if table_name.to_s.empty?
+
+        stats = context[:database_stats]
+        return nil unless stats.is_a?(Hash) && !stats[:error] && !stats[:skipped]
+
+        row = Array(stats[:tables]).find do |table_stats|
+          table_stats[:table].to_s == table_name.to_s || table_stats['table'].to_s == table_name.to_s
+        end
+        return nil unless row
+
+        database_size_bucket(row[:approximate_rows] || row['approximate_rows'])
+      end
+
       # Short, copy-pastable baseline for compact serializers (performance, drift, MCP exposure).
       #
       # @return [Array<String>] markdown lines (including heading)
@@ -149,6 +236,56 @@ module RailsAiBridge
       end
       module_function :displayable_column?
       private_class_method :displayable_column?
+
+      TIER_SCORES = {
+        'core_entity' => 100,
+        'rich_join' => 35,
+        'supporting' => 20,
+        'pure_join' => 5
+      }.freeze
+      private_constant :TIER_SCORES
+
+      def tier_score(tier)
+        TIER_SCORES.fetch(tier.to_s, 20)
+      end
+      module_function :tier_score
+      private_class_method :tier_score
+
+      def route_density_for_model(name, data, context)
+        by_controller = context.dig(:routes, :by_controller)
+        return 0 unless by_controller.is_a?(Hash)
+
+        route_keys_for_model(name, data).sum { |key| Array(by_controller[key]).size }
+      end
+      module_function :route_density_for_model
+      private_class_method :route_density_for_model
+
+      def route_keys_for_model(name, data)
+        keys = []
+        keys << name.to_s.delete_suffix('Controller').underscore.pluralize if name
+        table_name = data[:table_name].to_s
+        keys << table_name if table_name.present?
+        keys.uniq
+      end
+      module_function :route_keys_for_model
+      private_class_method :route_keys_for_model
+
+      def recent_migration_score(data, context)
+        recently_migrated?(data[:table_name], context[:migrations]) ? 5 : 0
+      end
+      module_function :recent_migration_score
+      private_class_method :recent_migration_score
+
+      def database_size_score(data, context)
+        case database_size_bucket_for_table(context, data[:table_name])
+        when 'hot' then 12
+        when 'large' then 8
+        when 'medium' then 3
+        else 0
+        end
+      end
+      module_function :database_size_score
+      private_class_method :database_size_score
 
       def migration_filename_matches_table?(filename, table_name)
         stem = File.basename(filename.to_s, '.rb').sub(/\A\d+_/, '')

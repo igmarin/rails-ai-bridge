@@ -122,7 +122,7 @@ module RailsAiBridge
           if limit <= 0
             lines << '- _No model names listed here — use `rails_get_model_details(detail:"summary")` for the full list._'
           else
-            models.sort_by { |_n, d| -ContextSummary.model_complexity_score(d) }.first(limit).each do |name, data|
+            ContextSummary.models_by_relevance(models, context: context).first(limit).each do |name, data|
               assocs     = (data[:associations] || []).first(3).map { |a| "#{a[:type]} :#{a[:name]}" }.join(', ')
               table_name = data[:table_name]
               line = "- **#{name}**"
