@@ -77,14 +77,15 @@ module RealFixtureAppContext
   # @param root [Pathname] fixture app root
   # @return [Hash] route payload grouped by controller
   def routes_for(root)
-    route_rows = RouteFile.new(root.join('config/routes.rb')).routes
+    route_file = RouteFile.new(root.join('config/routes.rb'))
+    route_rows = route_file.routes
 
     {
       total_routes: route_rows.size,
       by_controller: route_rows.group_by { |route| route[:controller] }
                                .transform_values { |routes| routes.map { |route| route.except(:controller) } },
       api_namespaces: route_rows.filter_map { |route| route[:path][%r{\A/api/v?\d*}] }.uniq,
-      mounted_engines: []
+      mounted_engines: route_file.mounted_engines
     }
   end
 
@@ -157,27 +158,33 @@ module RealFixtureAppContext
       destroy: 'DELETE'
     }.freeze
 
+    # @return [Array<Hash>] parsed route rows
+    attr_reader :routes
+
+    # @return [Array<Hash>] mounted engine descriptors
+    attr_reader :mounted_engines
+
     def initialize(path)
       @path = path
       @namespaces = []
       @routes = []
-    end
-
-    # @return [Array<Hash>] parsed route rows
-    def routes
-      return [] unless @path.file?
-
-      @path.each_line { |line| parse_line(line.strip) }
-      @routes
+      @mounted_engines = []
+      parse_file if @path.file?
     end
 
     private
+
+    def parse_file
+      @path.each_line { |line| parse_line(line.strip) }
+    end
 
     def parse_line(line)
       return if line.empty? || line.start_with?('#')
 
       if (namespace = line[/\Anamespace\s+:([a-z0-9_]+)/, 1])
         @namespaces << namespace
+      elsif (engine = line.match(/\Amount\s+([A-Z][\w:]+)\s+=>\s+["']([^"']+)["']/))
+        add_mounted_engine(engine[1], engine[2])
       elsif line == 'end'
         @namespaces.pop
       elsif (resource = line[/\Aresources\s+:([a-z_]+)/, 1])
@@ -205,6 +212,10 @@ module RealFixtureAppContext
       path = line[/\A\w+\s+["']([^"']+)["']/, 1]
       target = line[/to:\s+["']([^"']+)["']/, 1]
       add_route(verb, "/#{path}", target) if path && target
+    end
+
+    def add_mounted_engine(engine, path)
+      @mounted_engines << { engine: engine, path: path }
     end
 
     def add_route(verb, path, target)

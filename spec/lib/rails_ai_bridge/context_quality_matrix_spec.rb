@@ -101,7 +101,8 @@ RSpec.describe 'rails-ai-bridge context quality matrix' do
     {
       api_only_blog: RealFixtureAppContext.build(:api_only_blog),
       hotwire_crud: RealFixtureAppContext.build(:hotwire_crud),
-      large_schema_crm: RealFixtureAppContext.build(:large_schema_crm)
+      large_schema_crm: RealFixtureAppContext.build(:large_schema_crm),
+      engine_style: RealFixtureAppContext.build(:engine_style)
     }
   end
 
@@ -145,10 +146,11 @@ RSpec.describe 'rails-ai-bridge context quality matrix' do
     expect(elapsed).to be < 0.5
   end
 
-  it 'builds context from real API-only, Hotwire, and large-schema fixture app trees' do
+  it 'builds context from real API-only, Hotwire, large-schema, and engine-style fixture app trees' do
     api_context = real_fixture_contexts.fetch(:api_only_blog)
     hotwire_context = real_fixture_contexts.fetch(:hotwire_crud)
     large_context = real_fixture_contexts.fetch(:large_schema_crm)
+    engine_context = real_fixture_contexts.fetch(:engine_style)
 
     expect(api_context.dig(:schema, :total_tables)).to eq(3)
     expect(api_context[:models]).to include('Article', 'ApiToken', 'User')
@@ -165,6 +167,12 @@ RSpec.describe 'rails-ai-bridge context quality matrix' do
     expect(large_context[:models].keys).to include('Account', 'Customer', 'Invoice', 'Subscription')
     expect(large_context[:models].size).to eq(16)
     expect(large_context.dig(:routes, :by_controller)).to include('accounts', 'customers', 'opportunities')
+
+    expect(engine_context.dig(:schema, :total_tables)).to eq(3)
+    expect(engine_context[:models].keys).to include('Billing::Customer', 'Billing::Subscription')
+    expect(engine_context.dig(:routes, :by_controller)).to include('billing/subscriptions')
+    expect(engine_context.dig(:routes, :mounted_engines)).to include({ engine: 'Billing::Engine', path: '/billing' })
+    expect(engine_context.dig(:controllers, :controllers)).to include('Billing::SubscriptionsController')
   end
 
   it 'keeps generated output useful for real fixture app profiles' do
@@ -191,6 +199,9 @@ RSpec.describe 'rails-ai-bridge context quality matrix' do
         expect(cursor).to include('accounts')
         expect(codex).to include('Account')
         expect(codex).to include('rails_get_model_details')
+      when :engine_style
+        expect(cursor).to include('billing/subscriptions')
+        expect(codex).to include('Billing::Subscription')
       end
     end
   ensure
@@ -207,6 +218,22 @@ RSpec.describe 'rails-ai-bridge context quality matrix' do
     expect(codex.lines.size).to be <= 180
     expect(codex).to include('...13 more')
     expect(codex.index('Account')).to be < codex.index('Customer')
+  ensure
+    RailsAiBridge.configuration.context_mode = previous_mode
+  end
+
+  it 'keeps engine-style fixture output namespaced and drill-down friendly' do
+    previous_mode = RailsAiBridge.configuration.context_mode
+    RailsAiBridge.configuration.context_mode = :compact
+
+    context = real_fixture_contexts.fetch(:engine_style)
+    codex = RailsAiBridge::Serializers::Providers::CodexSerializer.new(context).call
+    cursor = RailsAiBridge::Serializers::Providers::CursorRulesSerializer.new(context).send(:render_project_rule)
+
+    expect(codex).to include('Billing::Subscription')
+    expect(codex).to include('rails_get_routes(controller:"billing/subscriptions", detail:"summary")')
+    expect(cursor).to include('billing/subscriptions')
+    expect(context.dig(:routes, :mounted_engines)).to include({ engine: 'Billing::Engine', path: '/billing' })
   ensure
     RailsAiBridge.configuration.context_mode = previous_mode
   end
