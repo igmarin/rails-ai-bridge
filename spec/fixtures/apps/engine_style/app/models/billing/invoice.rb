@@ -1,5 +1,6 @@
 class Billing::Invoice < ApplicationRecord
   belongs_to :subscription
 
-  validates :number, :total, :status, presence: true
+  validates :number, :status, presence: true
+  validates :total, numericality: true
 end

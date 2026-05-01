@@ -43,7 +43,8 @@ module RailsAiBridge
           '',
           '### Repo-specific constraints',
           '- Hot tables, tenant/auth scoping, mandatory spec types, and internal policies belong in `config/rails_ai_bridge/overrides.md`.',
-          '- Remove the first-line stub guard before that file is merged into Copilot/Codex; use `overrides.md.example` as a starting outline.',
+          '- Remove or replace the first-line `<!-- rails-ai-bridge:omit-merge -->` marker before that file is merged into Copilot/Codex; ' \
+          'use `overrides.md.example` as a starting outline.',
           '',
           '_Regenerated files are snapshots. Re-merge team-specific performance, security, or compliance rules at the top after `rails ai:bridge`, ' \
           'or keep them in separate committed instruction files._',

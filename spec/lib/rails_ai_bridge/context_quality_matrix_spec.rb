@@ -118,7 +118,8 @@ RSpec.describe 'rails-ai-bridge context quality matrix' do
       expect(copilot.lines.size).to be <= 220
       expect(codex).to include('detail:"summary"')
       expect(copilot).to include('rails_get_routes(detail:"summary")')
-      expect(codex).not_to include('rails-ai-bridge:omit-merge')
+      expect(codex).to include('rails-ai-bridge:omit-merge')
+      expect(codex).not_to include('# Add your project-specific AI guidance here')
       expect(copilot).not_to match(/RAILS_AI_BRIDGE_MCP_TOKEN=\w+/)
     end
   ensure
@@ -138,7 +139,7 @@ RSpec.describe 'rails-ai-bridge context quality matrix' do
     RailsAiBridge.configuration.context_mode = previous_mode
   end
 
-  it 'serializes large fixture output within a small benchmark budget' do
+  it 'serializes large fixture output within a small benchmark budget', :perf do
     elapsed = Benchmark.realtime do
       10.times { RailsAiBridge::Serializers::Providers::CodexSerializer.new(fixtures.fetch(:large_schema)).call }
     end
@@ -170,6 +171,12 @@ RSpec.describe 'rails-ai-bridge context quality matrix' do
 
     expect(engine_context.dig(:schema, :total_tables)).to eq(3)
     expect(engine_context[:models].keys).to include('Billing::Customer', 'Billing::Subscription')
+    expect(engine_context.dig(:models, 'Billing::Customer', :validations)).to include(
+      { kind: 'uniqueness', attributes: ['email'] }
+    )
+    expect(engine_context.dig(:models, 'Billing::Invoice', :validations)).to include(
+      { kind: 'numericality', attributes: ['total'] }
+    )
     expect(engine_context.dig(:routes, :by_controller)).to include('billing/subscriptions')
     expect(engine_context.dig(:routes, :mounted_engines)).to include({ engine: 'Billing::Engine', path: '/billing' })
     expect(engine_context.dig(:controllers, :controllers)).to include('Billing::SubscriptionsController')

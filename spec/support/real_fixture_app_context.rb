@@ -136,10 +136,34 @@ module RealFixtureAppContext
   # @param content [String] model source
   # @return [Array<Hash>] validation descriptors
   def validations_for(content)
-    content.scan(/^\s*validates\s+(.+?),\s+/).flatten.flat_map do |attribute_list|
-      attribute_list.scan(/:(\w+)/).flatten.map { |attribute| { kind: 'presence', attributes: [attribute] } }
+    content.scan(/^\s*validates\s+(.+)$/).flatten.flat_map do |validation|
+      validation_attributes(validation).product(validation_kinds(validation)).map do |attribute, kind|
+        { kind: kind, attributes: [attribute] }
+      end
     end
   end
+
+  # Extracts leading attribute symbols from a Rails +validates+ call.
+  #
+  # @param validation [String] source line content after the +validates+ keyword
+  # @return [Array<String>] validated attribute names
+  def validation_attributes(validation)
+    validation.split(/\s*,\s*(?=\w+:\s*)/, 2).first.scan(/:(\w+)/).flatten
+  end
+
+  # Extracts known validator names from a Rails +validates+ call.
+  #
+  # @param validation [String] source line content after the +validates+ keyword
+  # @return [Array<String>] validator names, defaulting to +presence+ when omitted
+  def validation_kinds(validation)
+    known_kinds = %w[
+      acceptance absence comparison confirmation exclusion format inclusion length
+      numericality presence uniqueness
+    ]
+    kinds = validation.scan(/(?:\A|[,{]\s*)([a-z_]+):/).flatten & known_kinds
+    kinds.presence || ['presence']
+  end
+  private_class_method :validation_attributes, :validation_kinds
 
   # Minimal parser for the small subset of Rails routing DSL used by fixture apps.
   #
@@ -183,7 +207,7 @@ module RealFixtureAppContext
 
       if (namespace = line[/\Anamespace\s+:([a-z0-9_]+)/, 1])
         @namespaces << namespace
-      elsif (engine = line.match(/\Amount\s+([A-Z][\w:]+)\s+=>\s+["']([^"']+)["']/))
+      elsif (engine = mounted_engine_match(line))
         add_mounted_engine(engine[1], engine[2])
       elsif line == 'end'
         @namespaces.pop
@@ -216,6 +240,11 @@ module RealFixtureAppContext
 
     def add_mounted_engine(engine, path)
       @mounted_engines << { engine: engine, path: path }
+    end
+
+    def mounted_engine_match(line)
+      line.match(/\Amount\s+([A-Z][\w:]+)\s+=>\s+["']([^"']+)["']/) ||
+        line.match(/\Amount\s+([A-Z][\w:]+)\s*,\s*at:\s*["']([^"']+)["']/)
     end
 
     def add_route(verb, path, target)

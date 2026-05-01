@@ -169,6 +169,10 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
       expect(serializer.render_key_models.join).to include('User')
     end
 
+    it 'describes key models as relevance ordered' do
+      expect(serializer.render_key_models.join("\n")).to include('ordered by relevance')
+    end
+
     it 'returns empty array when models is missing' do
       ctx = base_context.merge(models: nil)
       s = described_class.new(ctx, config: config)
@@ -189,7 +193,7 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
       expect(output).to include('5 more')
     end
 
-    it 'sorts models by complexity (most associations first)' do
+    it 'sorts models by relevance' do
       models = {
         'Simple' => { associations: [], validations: [], table_name: 'simples', enums: {} },
         'Complex' => { associations: 10.times.map { |j| { type: 'has_many', name: "r#{j}" } }, validations: [], table_name: 'complexes', enums: {} }

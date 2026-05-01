@@ -1,2 +1,5 @@
 <%= turbo_stream_from @conversation %>
-<%= render @conversation.messages %>
+
+<div id="<%= dom_id(@conversation, :messages) %>">
+  <%= render @conversation.messages %>
+</div>

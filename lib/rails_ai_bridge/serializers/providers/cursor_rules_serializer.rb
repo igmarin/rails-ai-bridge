@@ -107,7 +107,8 @@ module RailsAiBridge
           def database_line
             return unless schema && !schema[:error]
 
-            "- Database: #{schema[:adapter]} — #{schema[:total_tables]} tables"
+            table_count = schema[:total_tables] || schema[:tables]&.size
+            "- Database: #{schema[:adapter]} — #{table_count} tables"
           end
 
           def models_line

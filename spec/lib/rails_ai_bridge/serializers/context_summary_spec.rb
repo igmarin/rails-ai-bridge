@@ -284,5 +284,19 @@ RSpec.describe RailsAiBridge::Serializers::ContextSummary do
       expect(described_class.database_size_bucket(2_000_000)).to eq('large')
       expect(described_class.database_size_bucket(25_000_000)).to eq('hot')
     end
+
+    it 'preserves precomputed database size buckets for table lookups' do
+      context = {
+        database_stats: {
+          tables: [
+            { table: 'users', approximate_rows: 12, size_bucket: 'hot' },
+            { 'table' => 'posts', 'approximate_rows' => 25_000_000, 'size_bucket' => 'small' }
+          ]
+        }
+      }
+
+      expect(described_class.database_size_bucket_for_table(context, 'users')).to eq('hot')
+      expect(described_class.database_size_bucket_for_table(context, 'posts')).to eq('small')
+    end
   end
 end

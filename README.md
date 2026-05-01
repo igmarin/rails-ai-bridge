@@ -29,8 +29,8 @@ The result:
 |---|---|
 | Install quickly | [Quick start](#quick-start) |
 | Understand the value | [What Your AI Learns](#what-your-ai-learns) |
-| Pick a setup | [Choosing the right preset](#choosing-the-right-preset) |
-| Wire MCP safely | [MCP Server](#mcp-server) and [mcp-security.md](docs/mcp-security.md) |
+| Pick a setup | [Pick the right preset for your app](#pick-the-right-preset-for-your-app) |
+| Wire MCP safely | [MCP Server Setup](#mcp-server-setup) and [mcp-security.md](docs/mcp-security.md) |
 | Tune generated context | [Best Practices](docs/BEST_PRACTICES.md) |
 
 This shifts AI from “helpful autocomplete” → **reliable engineering assistant**

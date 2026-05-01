@@ -63,3 +63,22 @@ jobs:
 
       - name: RuboCop
         run: bundle exec rubocop --parallel
+
+  perf:
+    runs-on: ubuntu-latest
+    env:
+      RAILS_VERSION: "8.0"
+      PERF: "true"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Run perf specs
+        run: bundle exec rspec --tag perf

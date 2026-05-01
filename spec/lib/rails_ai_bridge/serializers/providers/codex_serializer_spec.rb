@@ -91,6 +91,26 @@ RSpec.describe RailsAiBridge::Serializers::Providers::CodexSerializer do
       expect(output.index('ZebraModel')).to be < output.index('AardvarkModel'),
                                             'expected ZebraModel (high complexity) before AardvarkModel (zero complexity)'
     end
+
+    it 'counts only relevance-filtered models in the overflow hint' do
+      saved_limit = RailsAiBridge.configuration.codex_compact_model_list_limit
+      RailsAiBridge.configuration.codex_compact_model_list_limit = 1
+      models = {
+        'Visible' => { associations: [], validations: [] },
+        'AnotherVisible' => { associations: [], validations: [] },
+        'Broken' => 'ignored'
+      }
+
+      context = {
+        app_name: 'App', rails_version: '8.0', ruby_version: '3.3.10',
+        schema: {}, models: models, routes: {}, conventions: {}
+      }
+
+      output = described_class.new(context).call
+      expect(output).to include('...1 more')
+    ensure
+      RailsAiBridge.configuration.codex_compact_model_list_limit = saved_limit
+    end
   end
 
   describe 'full mode' do

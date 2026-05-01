@@ -17,6 +17,7 @@ This document consolidates the patterns that consistently produce the best resul
 - [Per-Assistant Workflow Tips](#per-assistant-workflow-tips)
 - [MCP Drill-Down Workflow](#mcp-drill-down-workflow)
 - [Choosing the Right Preset](#choosing-the-right-preset)
+- [Reading the Generated Context](#reading-the-generated-context)
 - [What to Commit and What to Ignore](#what-to-commit-and-what-to-ignore)
 
 ---

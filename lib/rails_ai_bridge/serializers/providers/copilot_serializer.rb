@@ -122,7 +122,8 @@ module RailsAiBridge
           if limit <= 0
             lines << '- _No model names listed here — use `rails_get_model_details(detail:"summary")` for the full list._'
           else
-            ContextSummary.models_by_relevance(models, context: context).first(limit).each do |name, data|
+            filtered_models = ContextSummary.models_by_relevance(models, context: context).to_a
+            filtered_models.first(limit).each do |name, data|
               assocs     = (data[:associations] || []).first(3).map { |a| "#{a[:type]} :#{a[:name]}" }.join(', ')
               table_name = data[:table_name]
               line = "- **#{name}**"
@@ -134,7 +135,7 @@ module RailsAiBridge
               line += ' [recently migrated]' if table_name && ContextSummary.recently_migrated?(table_name, migrations)
               lines << line
             end
-            remainder = models.size - limit
+            remainder = [filtered_models.size - limit, 0].max
             lines << "- _...#{remainder} more — use `rails_get_model_details(detail:\"summary\")`._" if remainder.positive?
           end
           lines << ''

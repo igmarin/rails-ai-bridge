@@ -1,5 +1,5 @@
 Rails.application.routes.draw do
-  mount Billing::Engine => "/billing"
+  mount Billing::Engine, at: "/billing"
 
   namespace :billing do
     resources :customers, only: %i[index show]

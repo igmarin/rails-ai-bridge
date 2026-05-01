@@ -91,6 +91,22 @@ RSpec.describe RailsAiBridge::Serializers::Providers::CursorRulesSerializer do
     end
   end
 
+  it 'falls back to schema table count when total_tables is unavailable' do
+    context[:schema] = {
+      adapter: 'postgresql',
+      tables: {
+        'users' => { columns: [] },
+        'posts' => { columns: [] }
+      }
+    }
+
+    Dir.mktmpdir do |dir|
+      described_class.new(context).call(dir)
+      project_rule = File.read(File.join(dir, '.cursor', 'rules', 'rails-project.mdc'))
+      expect(project_rule).to include('- Database: postgresql — 2 tables')
+    end
+  end
+
   # A1 — complexity sort
   it 'sorts models by complexity score, not alphabetically' do
     context[:models] = {

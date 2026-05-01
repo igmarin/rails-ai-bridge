@@ -89,7 +89,7 @@ module RailsAiBridge
           max_show = MAX_KEY_MODELS
 
           lines = ['## Key Models',
-                   'The following are the most architecturally significant models, ordered by complexity:']
+                   'The following are the most architecturally significant models, ordered by relevance:']
           model_entries = ModelEntries.new(models, context: context).sorted_by_relevance
           model_entries.first(max_show).each do |name, data|
             lines << model_line_formatter.format_line(name, data)

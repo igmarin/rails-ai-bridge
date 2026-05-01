@@ -339,7 +339,10 @@ module RailsAiBridge
         # @return [String, nil] safe size bucket label for the table
         def bucket_for_table(table_name)
           table_stats = row_for(table_name.to_s)
-          bucket(table_stats[:approximate_rows] || table_stats['approximate_rows']) if table_stats
+          return unless table_stats
+
+          stats = table_stats.with_indifferent_access
+          bucket(stats[:size_bucket] || stats[:approximate_rows])
         end
 
         private
@@ -369,15 +372,25 @@ module RailsAiBridge
 
         # Value object for mapping an approximate row count to a safe label.
         class BucketLabel
+          SAFE_LABELS = %w[small medium large hot].freeze
+          private_constant :SAFE_LABELS
+
           def initialize(row_count)
-            @rows = row_count&.to_i
+            @value = row_count
           end
 
           # @return [String, nil] safe size bucket label
           def label
-            return nil unless @rows
+            return @value if SAFE_LABELS.include?(@value)
+            return nil unless rows
 
-            BUCKETS.find { |range, _bucket| range.cover?(@rows) }&.last || 'hot'
+            BUCKETS.find { |range, _bucket| range.cover?(rows) }&.last || 'hot'
+          end
+
+          private
+
+          def rows
+            @rows ||= @value&.to_i
           end
         end
       end

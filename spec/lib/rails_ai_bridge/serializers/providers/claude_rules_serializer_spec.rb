@@ -232,9 +232,9 @@ RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer do
         },
         models: {
           'Aardvark' => { table_name: 'aardvarks', semantic_tier: 'supporting', associations: [], validations: [] },
-          'Profile' => {
+          'ProfileSupport' => {
             table_name: 'profiles',
-            semantic_tier: 'core_entity',
+            semantic_tier: 'supporting',
             associations: [{ type: 'belongs_to', name: 'user' }],
             validations: []
           },
@@ -255,7 +255,7 @@ RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer do
       Dir.mktmpdir do |dir|
         described_class.new(context_with_signals).call(dir)
         body = File.read(File.join(dir, '.claude', 'rules', 'rails-context.md'))
-        expect(body.index('- Profile')).to be < body.index('- Aardvark')
+        expect(body.index('- ProfileSupport')).to be < body.index('- Aardvark')
       end
     end
 
