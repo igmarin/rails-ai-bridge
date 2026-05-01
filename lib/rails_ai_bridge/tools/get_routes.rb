@@ -87,7 +87,7 @@ module RailsAiBridge
         end
 
         def format_summary
-          lines = ["# Routes Summary (#{@routes[:total_routes]} total)", '']
+          lines = ["# Routes Summary (#{route_count} total)", '']
           @by_controller.keys.sort.each do |ctrl|
             actions = @by_controller[ctrl]
             verbs = actions.map { |r| r[:verb] }.tally.map { |v, c| "#{c} #{v}" }.join(', ')

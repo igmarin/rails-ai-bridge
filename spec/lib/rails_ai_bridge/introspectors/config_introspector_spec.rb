@@ -101,8 +101,6 @@ RSpec.describe RailsAiBridge::Introspectors::ConfigIntrospector do
         )
       end
 
-      after { FileUtils.rm_rf(app_root) }
-
       before do
         FileUtils.mkdir_p(models_dir)
         File.write(models_dir.join('current.rb'), <<~RUBY)
@@ -111,6 +109,8 @@ RSpec.describe RailsAiBridge::Introspectors::ConfigIntrospector do
           end
         RUBY
       end
+
+      after { FileUtils.rm_rf(app_root) }
 
       it 'detects CurrentAttributes outside conventional app/models' do
         expect(described_class.new(custom_app).call[:current_attributes]).to include('Current')

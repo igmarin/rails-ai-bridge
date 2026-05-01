@@ -12,7 +12,7 @@ RSpec.describe 'MCP large payload stability' do
       }]
     end
 
-    { adapter: 'postgresql', total_tables: tables.size, tables: tables }
+    { adapter: 'postgresql', total_tables: tables.size, tables: tables, schema_version: '20240101000000' }
   end
 
   let(:large_routes) do
