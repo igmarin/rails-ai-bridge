@@ -102,7 +102,8 @@ RSpec.describe 'rails-ai-bridge context quality matrix' do
       api_only_blog: RealFixtureAppContext.build(:api_only_blog),
       hotwire_crud: RealFixtureAppContext.build(:hotwire_crud),
       large_schema_crm: RealFixtureAppContext.build(:large_schema_crm),
-      engine_style: RealFixtureAppContext.build(:engine_style)
+      engine_style: RealFixtureAppContext.build(:engine_style),
+      regulated_no_domain: RealFixtureAppContext.build_without_domain_metadata(:regulated_no_domain)
     }
   end
 
@@ -147,11 +148,12 @@ RSpec.describe 'rails-ai-bridge context quality matrix' do
     expect(elapsed).to be < 0.5
   end
 
-  it 'builds context from real API-only, Hotwire, large-schema, and engine-style fixture app trees' do
+  it 'builds context from real API-only, Hotwire, large-schema, engine-style, and regulated fixture app trees' do
     api_context = real_fixture_contexts.fetch(:api_only_blog)
     hotwire_context = real_fixture_contexts.fetch(:hotwire_crud)
     large_context = real_fixture_contexts.fetch(:large_schema_crm)
     engine_context = real_fixture_contexts.fetch(:engine_style)
+    regulated_context = real_fixture_contexts.fetch(:regulated_no_domain)
 
     expect(api_context.dig(:schema, :total_tables)).to eq(3)
     expect(api_context[:models]).to include('Article', 'ApiToken', 'User')
@@ -180,6 +182,11 @@ RSpec.describe 'rails-ai-bridge context quality matrix' do
     expect(engine_context.dig(:routes, :by_controller)).to include('billing/subscriptions')
     expect(engine_context.dig(:routes, :mounted_engines)).to include({ engine: 'Billing::Engine', path: '/billing' })
     expect(engine_context.dig(:controllers, :controllers)).to include('Billing::SubscriptionsController')
+
+    expect(regulated_context[:schema]).to include(skipped: true, reason: 'domain metadata disabled')
+    expect(regulated_context[:models]).to eq({})
+    expect(regulated_context.dig(:routes, :by_controller)).to include('health_checks')
+    expect(regulated_context.dig(:controllers, :controllers)).to include('HealthChecksController')
   end
 
   it 'keeps generated output useful for real fixture app profiles' do
@@ -209,6 +216,10 @@ RSpec.describe 'rails-ai-bridge context quality matrix' do
       when :engine_style
         expect(cursor).to include('billing/subscriptions')
         expect(codex).to include('Billing::Subscription')
+      when :regulated_no_domain
+        expect(cursor).to include('health_checks')
+        expect(codex).not_to include('PatientRecord')
+        expect(codex).not_to include('ssn_digest')
       end
     end
   ensure
@@ -241,6 +252,25 @@ RSpec.describe 'rails-ai-bridge context quality matrix' do
     expect(codex).to include('rails_get_routes(controller:"billing/subscriptions", detail:"summary")')
     expect(cursor).to include('billing/subscriptions')
     expect(context.dig(:routes, :mounted_engines)).to include({ engine: 'Billing::Engine', path: '/billing' })
+  ensure
+    RailsAiBridge.configuration.context_mode = previous_mode
+  end
+
+  it 'keeps real regulated fixture output free of domain metadata and sensitive-adjacent names' do
+    previous_mode = RailsAiBridge.configuration.context_mode
+    RailsAiBridge.configuration.context_mode = :compact
+
+    context = real_fixture_contexts.fetch(:regulated_no_domain)
+    codex = RailsAiBridge::Serializers::Providers::CodexSerializer.new(context).call
+    cursor = RailsAiBridge::Serializers::Providers::CursorRulesSerializer.new(context).send(:render_project_rule)
+
+    expect(codex).to include('rails_get_routes(detail:"summary")')
+    expect(cursor).to include('health_checks')
+    expect(codex).not_to include('PatientRecord')
+    expect(codex).not_to include('patient_records')
+    expect(codex).not_to include('ssn_digest')
+    expect(codex).not_to include('encrypted_notes')
+    expect(cursor).not_to include('patient_records')
   ensure
     RailsAiBridge.configuration.context_mode = previous_mode
   end

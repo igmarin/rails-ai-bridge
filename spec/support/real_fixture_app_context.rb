@@ -35,6 +35,32 @@ module RealFixtureAppContext
     }
   end
 
+  # Builds a fixture context with schema and model metadata intentionally disabled.
+  #
+  # @param profile [Symbol, String] fixture directory name under +spec/fixtures/apps+
+  # @return [Hash] context hash shaped like a regulated/no-domain-metadata introspection result
+  def build_without_domain_metadata(profile)
+    root = Pathname.new(File.expand_path("../fixtures/apps/#{profile}", __dir__))
+    app = Struct.new(:root).new(root)
+
+    {
+      app_name: profile.to_s.camelize,
+      rails_version: '8.0.0',
+      ruby_version: RUBY_VERSION,
+      generated_at: Time.now.iso8601,
+      environment: 'test',
+      schema: { skipped: true, reason: 'domain metadata disabled' },
+      models: {},
+      routes: routes_for(root),
+      controllers: controllers_for(root),
+      views: RailsAiBridge::Introspectors::ViewIntrospector.new(app).call,
+      stimulus: RailsAiBridge::Introspectors::StimulusIntrospector.new(app).call,
+      gems: { notable_gems: [] },
+      conventions: { architecture: ['mvc'], patterns: ['service_objects'] },
+      tests: { framework: 'rspec' }
+    }
+  end
+
   # Parses the fixture app's static schema file.
   #
   # @param root [Pathname] fixture app root
