@@ -46,18 +46,23 @@ RSpec.describe 'MCP large payload stability' do
     RailsAiBridge::ContextProvider.reset!
   end
 
-  it 'truncates oversized MCP responses while preserving pagination guidance' do
-    original_max = RailsAiBridge.configuration.max_tool_response_chars
-    RailsAiBridge.configuration.max_tool_response_chars = 800
+  context 'with a low MCP response size limit' do
+    around do |example|
+      original_max = RailsAiBridge.configuration.max_tool_response_chars
+      RailsAiBridge.configuration.max_tool_response_chars = 800
+      example.run
+    ensure
+      RailsAiBridge.configuration.max_tool_response_chars = original_max
+    end
 
-    response = RailsAiBridge::Tools::GetSchema.call(detail: 'full', format: 'json')
-    text = response.content.first[:text]
+    it 'truncates oversized MCP responses while preserving pagination guidance' do
+      response = RailsAiBridge::Tools::GetSchema.call(detail: 'full', format: 'json')
+      text = response.content.first[:text]
 
-    expect(text.length).to be <= 800
-    expect(text).to include('Response truncated')
-    expect(text).to include('detail:"summary"')
-  ensure
-    RailsAiBridge.configuration.max_tool_response_chars = original_max
+      expect(text.length).to be <= 800
+      expect(text).to include('Response truncated')
+      expect(text).to include('detail:"summary"')
+    end
   end
 
   it 'paginates large schema payloads with stable next-offset guidance' do

@@ -63,7 +63,12 @@ RSpec.describe RailsAiBridge::Introspectors::NonArModelsIntrospector do
         }
       end
 
-      after { FileUtils.rm_rf(custom_context[:root_path]) }
+      after do
+        # rubocop:disable RSpec/RemoveConst
+        Object.send(:remove_const, custom_context[:constant_name]) if Object.const_defined?(custom_context[:constant_name], false)
+        # rubocop:enable RSpec/RemoveConst
+        FileUtils.rm_rf(custom_context[:root_path])
+      end
 
       before do
         FileUtils.mkdir_p(custom_context[:models_dir])

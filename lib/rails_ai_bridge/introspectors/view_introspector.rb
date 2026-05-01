@@ -41,6 +41,11 @@ module RailsAiBridge
 
       # Accumulates shared and controller-specific partial templates.
       class PartialIndex
+        # Top-level view directories whose nested partials are considered shared.
+        #
+        # @return [Array<String>]
+        SHARED_PARTIAL_DIRECTORIES = %w[shared application].freeze
+
         # Initializes empty shared and per-controller partial collections.
         #
         # @return [void]
@@ -57,7 +62,7 @@ module RailsAiBridge
           dir = File.dirname(relative)
           name = File.basename(relative)
 
-          if %w[shared application].include?(dir)
+          if SHARED_PARTIAL_DIRECTORIES.include?(dir.split('/').first)
             @shared << name
           else
             @per_controller.fetch(dir) { |key| @per_controller[key] = [] } << name
@@ -81,6 +86,11 @@ module RailsAiBridge
         @path_resolver = PathResolver.new(app)
       end
 
+      # Builds a read-only summary of layouts, templates, partials, helpers,
+      # components, and template engines discovered through configured Rails
+      # paths.
+      #
+      # @return [Hash] view-layer metadata, or an +:error+ key when detection fails
       def call
         {
           layouts: extract_layouts,

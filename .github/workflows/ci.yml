@@ -65,7 +65,9 @@ jobs:
         run: bundle exec rubocop --parallel
 
   perf:
+    needs: [test]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       RAILS_VERSION: "8.0"
       PERF: "true"

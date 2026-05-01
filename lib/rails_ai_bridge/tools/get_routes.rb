@@ -100,7 +100,7 @@ module RailsAiBridge
 
         def format_standard
           limit = @limit || 100
-          lines = ["# Routes (#{@routes[:total_routes]} total)", '']
+          lines = ["# Routes (#{route_count} total)", '']
           count = 0
           @by_controller.sort.each do |ctrl, actions|
             next if count >= @offset + limit
@@ -126,7 +126,7 @@ module RailsAiBridge
 
         def format_full
           limit = @limit || 200
-          lines = ["# Routes Full Detail (#{@routes[:total_routes]} total)", '']
+          lines = ["# Routes Full Detail (#{route_count} total)", '']
           lines << '| Verb | Path | Controller#Action | Name |'
           lines << '|------|------|-------------------|------|'
           count = 0

@@ -49,6 +49,18 @@ RSpec.describe RailsAiBridge::Introspectors::ActiveStorageIntrospector do
       expect(result[:direct_upload]).to be false
     end
 
+    it 'treats direct upload scan path errors as no direct uploads' do
+      resolver = instance_double(
+        RailsAiBridge::PathResolver,
+        files_for: [],
+        glob_for: nil
+      )
+      allow(resolver).to receive(:glob_for).and_raise(StandardError, 'path failure')
+      allow(RailsAiBridge::PathResolver).to receive(:new).and_return(resolver)
+
+      expect(described_class.new(Rails.application).call[:direct_upload]).to be false
+    end
+
     it 'returns installed flag as boolean' do
       expect(result[:installed]).to be(true).or be(false)
     end

@@ -11,7 +11,9 @@ module RailsAiBridge
         @app = app
       end
 
-      # @return [Hash] detected conventions and patterns
+      # Builds a read-only summary of high-level Rails conventions.
+      #
+      # @return [Hash] detected conventions and patterns, or an +:error+ key when detection fails
       def call
         {
           architecture: detect_architecture,
@@ -19,6 +21,8 @@ module RailsAiBridge
           directory_structure: scan_directory_structure,
           config_files: detect_config_files
         }
+      rescue StandardError => error
+        { error: error.message }
       end
 
       private

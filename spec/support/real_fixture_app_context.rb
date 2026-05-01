@@ -7,6 +7,11 @@ require 'pathname'
 # :reek:NestedIterators
 # :reek:TooManyStatements
 module RealFixtureAppContext
+  # Minimal Rails configuration surface used by fixture app doubles.
+  FixtureConfig = Struct.new(:api_only, keyword_init: true)
+  # Minimal Rails application surface used by fixture introspectors.
+  FixtureApp = Struct.new(:root, :paths, :config, :routes, keyword_init: true)
+
   module_function
 
   # Builds a serializer-ready context from a Rails-shaped fixture app.
@@ -15,7 +20,7 @@ module RealFixtureAppContext
   # @return [Hash] context hash shaped like {RailsAiBridge::Introspector#call}
   def build(profile)
     root = Pathname.new(File.expand_path("../fixtures/apps/#{profile}", __dir__))
-    app = Struct.new(:root).new(root)
+    app = fixture_app(root)
 
     {
       app_name: profile.to_s.camelize,
@@ -41,7 +46,7 @@ module RealFixtureAppContext
   # @return [Hash] context hash shaped like a regulated/no-domain-metadata introspection result
   def build_without_domain_metadata(profile)
     root = Pathname.new(File.expand_path("../fixtures/apps/#{profile}", __dir__))
-    app = Struct.new(:root).new(root)
+    app = fixture_app(root)
 
     {
       app_name: profile.to_s.camelize,
@@ -72,6 +77,19 @@ module RealFixtureAppContext
     RailsAiBridge::Introspectors::Schema::StaticSchemaParser
       .new(content: path.read, config: RailsAiBridge.configuration)
       .call
+  end
+
+  # Builds the minimal Rails-application surface needed by fixture introspectors.
+  #
+  # @param root [Pathname] fixture app root
+  # @return [FixtureApp] Rails-like app object with root, paths, config, and routes
+  def fixture_app(root)
+    FixtureApp.new(
+      root: root,
+      paths: {},
+      config: FixtureConfig.new(api_only: false),
+      routes: nil
+    )
   end
 
   # Extracts lightweight model metadata from fixture model source files.

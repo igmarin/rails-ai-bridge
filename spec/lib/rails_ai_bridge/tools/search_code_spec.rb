@@ -106,5 +106,16 @@ RSpec.describe RailsAiBridge::Tools::SearchCode do
       text = result.content.first[:text]
       expect(text).to include('Search timed out')
     end
+
+    it 'memoizes a missing ripgrep executable' do
+      described_class.remove_instance_variable(:@ripgrep_available) if described_class.instance_variable_defined?(:@ripgrep_available)
+      allow(described_class).to receive(:system).and_return(false)
+
+      2.times { described_class.send(:ripgrep_available?) }
+
+      expect(described_class).to have_received(:system).once
+    ensure
+      described_class.remove_instance_variable(:@ripgrep_available) if described_class.instance_variable_defined?(:@ripgrep_available)
+    end
   end
 end

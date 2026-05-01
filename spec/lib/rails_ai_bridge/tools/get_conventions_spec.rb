@@ -81,6 +81,15 @@ RSpec.describe RailsAiBridge::Tools::GetConventions do
       end
     end
 
+    context 'when config files are omitted' do
+      let(:conventions_data) { { architecture: ['api_only'] } }
+
+      it 'omits the config files section without raising' do
+        expect(content).to include('## Architecture')
+        expect(content).not_to include('## Config files present')
+      end
+    end
+
     context 'when convention introspection is not available' do
       let(:conventions_data) { nil }
 

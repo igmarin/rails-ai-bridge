@@ -194,7 +194,8 @@ module RailsAiBridge
       end
 
       private_class_method def self.ripgrep_available?
-        @ripgrep_available ||= system('which rg > /dev/null 2>&1')
+        @ripgrep_available = system('which rg > /dev/null 2>&1') unless instance_variable_defined?(:@ripgrep_available)
+        @ripgrep_available
       end
 
       private_class_method def self.search_with_ripgrep(pattern, search_path, file_type, max_results, root)

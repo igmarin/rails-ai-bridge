@@ -258,7 +258,7 @@ module RailsAiBridge
             ''
           ]
 
-          controllers.keys.sort_by { |name| [-Array(routes_by_ctrl[name.gsub(/Controller\z/, '').underscore]).size, name] }.first(25).each do |name|
+          controllers.keys.sort_by { |name| controller_sort_key(name, routes_by_ctrl) }.first(25).each do |name|
             info = controllers[name]
             # Derive route key: "UsersController" → "users", "Admin::UsersController" → "admin/users"
             route_key = name.gsub(/Controller\z/, '').underscore
@@ -278,6 +278,11 @@ module RailsAiBridge
           lines << 'Use `rails_get_controllers` MCP tool with controller:"Name" for full detail.'
 
           lines.join("\n")
+        end
+
+        def controller_sort_key(name, routes_by_ctrl)
+          clean_name = name.gsub(/Controller\z/, '').underscore
+          [-Array(routes_by_ctrl[clean_name]).size, name]
         end
 
         # @return [String] Always-on MCP tool reference MDC.

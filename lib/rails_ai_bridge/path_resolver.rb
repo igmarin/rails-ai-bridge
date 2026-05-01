@@ -4,6 +4,112 @@ module RailsAiBridge
   # Resolves configured Rails logical paths to filesystem paths without leaking
   # machine-specific absolute paths into generated assistant context.
   class PathResolver
+    # Validates user-provided relative paths before filesystem operations.
+    class SafeRelativePath
+      # @param path [String] caller-provided relative path or glob pattern
+      # @param argument_name [String] name used in validation errors
+      def initialize(path, argument_name:)
+        @path = path
+        @argument_name = argument_name
+      end
+
+      # @return [String] normalized safe relative path
+      # @raise [ArgumentError] when the path is absolute or contains traversal
+      def to_s
+        raise ArgumentError, "#{@argument_name} must be a safe relative path" if unsafe?
+
+        normalized
+      end
+
+      private
+
+      def unsafe?
+        normalized.empty? || normalized.start_with?('/') || windows_absolute? || normalized.split('/').include?('..')
+      end
+
+      def windows_absolute?
+        normalized.match?(%r{\A[A-Za-z]:/})
+      end
+
+      def normalized
+        @normalized ||= @path.to_s.tr('\\', '/')
+      end
+    end
+    private_constant :SafeRelativePath
+
+    # Joins a base directory and a safe relative file while keeping the result
+    # inside the base directory.
+    class SafeJoin
+      # @param directory [String] absolute base directory
+      # @param relative_file [String] validated relative file path
+      def initialize(directory, relative_file)
+        @directory = directory
+        @relative_file = relative_file
+      end
+
+      # @return [String] absolute candidate path
+      # @raise [ArgumentError] when the joined path escapes the directory
+      def to_s
+        raise ArgumentError, 'relative_file must stay within the resolved directory' unless candidate.start_with?(directory_prefix)
+
+        candidate
+      end
+
+      private
+
+      def candidate
+        @candidate ||= File.expand_path(File.join(expanded_directory, @relative_file))
+      end
+
+      def directory_prefix
+        "#{expanded_directory}#{File::SEPARATOR}"
+      end
+
+      def expanded_directory
+        @expanded_directory ||= File.expand_path(@directory)
+      end
+    end
+    private_constant :SafeJoin
+
+    # Handles unexpected Rails path registry failures visibly while preserving
+    # the resolver's conventional fallback outside development.
+    class ConfiguredPathsError
+      # @param logical_path [String] Rails path key being resolved
+      # @param error [StandardError] failure raised by the path registry
+      def initialize(logical_path, error)
+        @logical_path = logical_path
+        @error = error
+      end
+
+      # @return [Array] empty fallback path list
+      # @raise [StandardError] re-raises the original error in development
+      def fallback
+        raise @error if development?
+
+        logger&.error("RailsAiBridge::PathResolver failed to read path #{@logical_path.inspect}: #{@error.class}: #{@error.message}")
+        []
+      end
+
+      private
+
+      def development?
+        environment&.development?
+      end
+
+      def environment
+        rails.env if defined?(Rails.env)
+      end
+
+      def logger
+        rails.logger if defined?(Rails.logger)
+      end
+
+      def rails
+        @rails ||= Object.const_get(:Rails)
+      end
+    end
+    private_constant :ConfiguredPathsError
+
     # @param app [Rails::Application] host Rails application
     def initialize(app)
       @app = app
@@ -35,12 +141,18 @@ module RailsAiBridge
 
     # Finds files matching a glob under every directory for a logical Rails path.
     #
+    # The pattern must be a safe relative glob. Absolute paths and traversal
+    # segments are rejected before +Dir.glob+ runs.
+    #
     # @param logical_path [String] Rails path key, such as +"app/views"+
     # @param pattern [String] glob pattern relative to each resolved directory
     # @return [Array<String>] absolute file paths
+    # @raise [ArgumentError] when +pattern+ is absolute or contains traversal segments
     def glob_for(logical_path, pattern)
+      safe_pattern = SafeRelativePath.new(pattern, argument_name: 'pattern').to_s
+
       directories_for(logical_path).flat_map do |path|
-        Dir.exist?(path) ? Dir.glob(File.join(path, pattern)) : []
+        Dir.exist?(path) ? Dir.glob(File.join(path, safe_pattern)) : []
       end
     end
 
@@ -49,9 +161,12 @@ module RailsAiBridge
     # @param logical_path [String] Rails path key, such as +"app/models"+
     # @param relative_file [String] file path relative to the resolved directory
     # @return [String, nil] absolute file path when found
+    # @raise [ArgumentError] when +relative_file+ is absolute or contains traversal segments
     def existing_file_for(logical_path, relative_file)
+      safe_file = SafeRelativePath.new(relative_file, argument_name: 'relative_file').to_s
+
       directories_for(logical_path).find do |path|
-        candidate = File.join(path, relative_file)
+        candidate = SafeJoin.new(path, safe_file).to_s
         return candidate if File.exist?(candidate)
       end
     end
@@ -78,8 +193,8 @@ module RailsAiBridge
       Array(configured_paths.to_a).flatten.compact
     rescue NoMethodError
       Array(configured_paths).flatten.compact
-    rescue StandardError
-      []
+    rescue StandardError => error
+      ConfiguredPathsError.new(logical_path, error).fallback
     end
 
     def matching_root_for(path, logical_path)

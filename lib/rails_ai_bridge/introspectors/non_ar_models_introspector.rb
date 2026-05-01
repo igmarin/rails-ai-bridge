@@ -16,6 +16,15 @@ module RailsAiBridge
 
       CollectionContext = Struct.new(:models_root, :rows, keyword_init: true)
       private_constant :CollectionContext
+      # Logs best-effort class processing failures without interrupting discovery.
+      ErrorLogger = Struct.new(:error, keyword_init: true) do
+        # @return [void]
+        def call
+          logger = Object.const_get(:Rails).logger if defined?(Rails.logger)
+          logger&.warn "NonArModelsIntrospector: Error processing class: #{error.class.name}"
+        end
+      end
+      private_constant :ErrorLogger
 
       # Initializes the introspector for a Rails application.
       #
@@ -98,8 +107,7 @@ module RailsAiBridge
 
         record_if_non_ar_model(klass, context)
       rescue StandardError => error
-        logger = Rails.logger if defined?(Rails)
-        logger&.warn "NonArModelsIntrospector: Error processing class: #{error.class.name}"
+        ErrorLogger.new(error: error).call
       end
 
       # Determines whether a class is a safe candidate for introspection.

@@ -53,6 +53,23 @@ RSpec.describe RailsAiBridge::Introspectors::ViewIntrospector do
       expect(result[:partials][:shared]).to be_an(Array)
     end
 
+    context 'with nested shared partials' do
+      let(:shared_dir) { Rails.root.join('app/views/shared/forms') }
+      let(:partial_path) { shared_dir.join('_field.html.erb') }
+
+      before do
+        FileUtils.mkdir_p(shared_dir)
+        File.write(partial_path, '<div>Field</div>')
+      end
+
+      after { FileUtils.rm_f(partial_path) }
+
+      it 'groups nested shared partials with shared partials' do
+        expect(result[:partials][:shared]).to include('_field.html.erb')
+        expect(result[:partials][:per_controller]).not_to have_key('shared/forms')
+      end
+    end
+
     it 'extracts helpers with methods' do
       helper_files = result[:helpers].pluck(:file)
       expect(helper_files).to include('application_helper.rb', 'posts_helper.rb')

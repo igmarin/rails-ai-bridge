@@ -65,9 +65,18 @@ RSpec.describe RailsAiBridge::Tools::GetRoutes do
       let(:params) { { controller: 'posts' } }
 
       it 'returns only the routes for that controller' do
+        expect(content).to include('# Routes (2 total)')
         expect(content).not_to include('api/v1/users')
         expect(content).to include('## posts')
         expect(content).to include('- `GET` `/posts` → index')
+      end
+
+      context "with detail: 'full'" do
+        let(:params) { { controller: 'posts', detail: 'full' } }
+
+        it 'uses the filtered route count in the heading' do
+          expect(content).to include('# Routes Full Detail (2 total)')
+        end
       end
     end
 

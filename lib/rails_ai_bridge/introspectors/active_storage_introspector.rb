@@ -76,6 +76,8 @@ module RailsAiBridge
 
       def direct_upload_files
         path_resolver.glob_for('app/views', '**/*') + path_resolver.glob_for('app/javascript', '**/*')
+      rescue StandardError
+        []
       end
     end
   end

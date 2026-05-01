@@ -101,24 +101,30 @@ RSpec.describe RailsAiBridge::Serializers::Providers::CopilotSerializer do
                                             'expected ZebraModel (high complexity) before AardvarkModel (zero complexity)'
     end
 
-    it 'counts only relevance-filtered models in the overflow hint' do
-      saved_limit = RailsAiBridge.configuration.copilot_compact_model_list_limit
-      RailsAiBridge.configuration.copilot_compact_model_list_limit = 1
-      models = {
-        'Visible' => { associations: [], validations: [] },
-        'AnotherVisible' => { associations: [], validations: [] },
-        'Broken' => 'ignored'
-      }
+    context 'with a compact model list limit override' do
+      around do |example|
+        saved_limit = RailsAiBridge.configuration.copilot_compact_model_list_limit
+        RailsAiBridge.configuration.copilot_compact_model_list_limit = 1
+        example.run
+      ensure
+        RailsAiBridge.configuration.copilot_compact_model_list_limit = saved_limit
+      end
 
-      context = {
-        app_name: 'App', rails_version: '8.0', ruby_version: '3.4',
-        schema: {}, models: models, routes: {}, gems: {}, conventions: {}
-      }
+      it 'counts only relevance-filtered models in the overflow hint' do
+        models = {
+          'Visible' => { associations: [], validations: [] },
+          'AnotherVisible' => { associations: [], validations: [] },
+          'Broken' => 'ignored'
+        }
 
-      output = described_class.new(context).call
-      expect(output).to include('...1 more')
-    ensure
-      RailsAiBridge.configuration.copilot_compact_model_list_limit = saved_limit
+        context = {
+          app_name: 'App', rails_version: '8.0', ruby_version: '3.4',
+          schema: {}, models: models, routes: {}, gems: {}, conventions: {}
+        }
+
+        output = described_class.new(context).call
+        expect(output).to include('...1 more')
+      end
     end
   end
 

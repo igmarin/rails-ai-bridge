@@ -96,7 +96,7 @@ RSpec.describe RailsAiBridge::Introspectors::ConfigIntrospector do
           root: app_root,
           paths: { 'app/models' => [models_dir.to_s] },
           config: custom_config,
-          middleware: [],
+          middleware: ActionDispatch::MiddlewareStack.new,
           credentials: double('Credentials', config: {})
         )
       end
