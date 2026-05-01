@@ -62,6 +62,8 @@ flowchart LR
 
 Compact files are ordered for usefulness: primary domain models, busy endpoints, recently migrated tables, and optional hot-table signals appear before lower-signal supporting details.
 
+Generated assistant context avoids credential values and suppresses secret-bearing config paths such as `.env*`, Rails credentials, `master.key`, private key material, and custom `config/secrets` or `config/private` files.
+
 ### Folder guides
 
 For contributors, key folders now include local `README.md` guides:
@@ -344,7 +346,7 @@ end
 
 Clients must send `Authorization: Bearer <token>` when a token is configured.
 
-Security note: keep the HTTP transport bound to `127.0.0.1` unless you add your own network and authentication controls. The tools are read-only, but they can still expose sensitive application structure. In **production**, `rails ai:serve_http` and `auto_mount` require a configured MCP token; `auto_mount` also requires `allow_auto_mount_in_production = true`. For operational hardening (tokens, proxies, `require_http_auth`, stdio threat model), see **[docs/mcp-security.md](docs/mcp-security.md)** and **[SECURITY.md](SECURITY.md)**.
+Security note: keep the HTTP transport bound to `127.0.0.1` unless you add your own network and authentication controls. The tools are read-only, but they can still expose sensitive application structure. Generated context and the built-in conventions resource filter secret-bearing config paths, but MCP access should still be treated as internal. In **production**, `rails ai:serve_http` and `auto_mount` require a configured MCP token; `auto_mount` also requires `allow_auto_mount_in_production = true`. For operational hardening (tokens, proxies, `require_http_auth`, stdio threat model), see **[docs/mcp-security.md](docs/mcp-security.md)** and **[SECURITY.md](SECURITY.md)**.
 </details>
 
 ---

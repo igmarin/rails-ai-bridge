@@ -62,6 +62,7 @@ is normal for open-source gems (transparency, onboarding); they are not required
 | Real Rails-shaped fixture trees for API-only, Hotwire, large-schema, engine-style, and regulated/no-domain-metadata app profiles | Done |
 | MCP large-payload checks for truncation, pagination hints, and section-cache reuse | Done |
 | Secret-bearing config path filtering for generated context, conventions output, and MCP resource reads | Done |
+| Convention detector coverage for custom Rails directory paths without absolute path leakage | Done |
 | README/BEST_PRACTICES clarity pass for value and setup paths | Done |
 | Implementation gate for remaining 3.1.0 slices: tests, Reek/RuboCop, `yard-documentation`, and docs updates | Required |
 

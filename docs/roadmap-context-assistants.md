@@ -19,10 +19,12 @@ This track is **separate** from [roadmap-mcp-v2.md](roadmap-mcp-v2.md) (MCP HTTP
 - Back the matrix with real Rails-shaped fixture trees for API-only, Hotwire, large-schema, engine-style, and regulated/no-domain-metadata applications (v3.1.0).
 - Add MCP large-payload stability checks for truncation, pagination hints, and section-cache reuse (v3.1.0).
 - Filter secret-bearing config paths from generated context, `rails_get_conventions`, and `rails://conventions` output (v3.1.0).
+- Honor configured Rails paths in convention detection so custom `app/models` and `app/services`
+  locations still produce useful architecture and directory-structure context without exposing absolute paths (v3.1.0).
 
 ## In progress
 
-- Custom Rails directory introspection coverage gaps
+- Custom Rails directory introspection coverage gaps outside convention detection
 - Remaining v3.1.0 context-quality slices must apply the `yard-documentation` skill:
   every new or changed public Ruby class/method needs an English summary plus `@param`,
   `@return`, and `@raise` tags where applicable before the slice is considered complete.

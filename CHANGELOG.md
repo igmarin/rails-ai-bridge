@@ -36,6 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `rails://conventions` MCP resource now omit dotenv files, Rails credentials files, secret/private
   directories, master keys, and private key material from config-file listings while preserving
   safe operational files such as `config/database.yml`.
+- **Convention detection with custom Rails paths** — architecture and directory-structure signals
+  now honor configured Rails paths for directories such as `app/models` and `app/services` while
+  keeping generated output on logical names instead of absolute local paths.
 - **Copilot, Codex, Cursor, Windsurf, and shared compact serializers** — key model sections now
   use the same relevance score so assistants see core, routed, recently changed, or hot-domain
   models before lower-signal supporting models.

@@ -27,6 +27,9 @@ module RailsAiBridge
         app.root.to_s
       end
 
+      # Detects high-level architecture features from configured Rails paths and known files.
+      #
+      # @return [Array<String>] architecture identifiers such as +service_objects+ and +hotwire+
       def detect_architecture
         arch = []
         arch << 'api_only' if app.config.api_only
@@ -54,15 +57,19 @@ module RailsAiBridge
         arch
       end
 
+      # Detects source-level patterns from model files and path-level conventions.
+      # Model files are resolved through configured Rails paths before falling back
+      # to conventional +app/models+.
+      #
+      # @return [Array<String>] pattern identifiers such as +encrypted_attributes+
       def detect_patterns
         patterns = []
 
         # Check for common Rails patterns in model files
-        model_dir = File.join(root, 'app/models')
-        if Dir.exist?(model_dir)
-          model_files = Dir.glob(File.join(model_dir, '**/*.rb'))
-          content = model_files.first(50).map do |f|
-            File.read(f)
+        model_files = files_for('app/models', extension: 'rb')
+        if model_files.any?
+          content = model_files.first(50).map do |file|
+            File.read(file)
           rescue StandardError
             ''
           end.join("\n")
@@ -88,6 +95,11 @@ module RailsAiBridge
         patterns
       end
 
+      # Counts notable project directories using logical Rails path names.
+      # Custom Rails paths are counted under their logical key (for example
+      # +app/services+) so generated context does not leak absolute local paths.
+      #
+      # @return [Hash{String => Integer}] logical directory names mapped to file counts
       def scan_directory_structure
         important_dirs = %w[
           app/models app/controllers app/views app/jobs
@@ -102,16 +114,15 @@ module RailsAiBridge
         ]
 
         important_dirs.each_with_object({}) do |dir, hash|
-          full_path = File.join(root, dir)
-          next unless Dir.exist?(full_path)
-
-          count = Dir.glob(File.join(full_path, '**/*.rb')).size
-          count += Dir.glob(File.join(full_path, '**/*.js')).size if dir.include?('javascript')
+          count = count_files_for(dir)
 
           hash[dir] = count if count.positive?
         end
       end
 
+      # Detects safe, notable config files present in the app root.
+      #
+      # @return [Array<String>] relative config file paths
       def detect_config_files
         configs = %w[
           config/database.yml
@@ -130,14 +141,77 @@ module RailsAiBridge
         configs.select { |f| file_exists?(f) }
       end
 
+      # Checks whether a logical Rails path exists in either configured paths or
+      # the conventional app-root-relative location.
+      #
+      # @param relative_path [String] logical Rails path, such as +"app/services"+
+      # @return [Boolean] true when at least one matching directory exists
       def dir_exists?(relative_path)
-        Dir.exist?(File.join(root, relative_path))
+        directory_paths(relative_path).any? { |path| Dir.exist?(path) }
       end
 
+      # Checks whether a root-relative file exists.
+      #
+      # @param relative_path [String] file path relative to the Rails root
+      # @return [Boolean] true when the file exists
       def file_exists?(relative_path)
         File.exist?(File.join(root, relative_path))
       end
 
+      # Resolves filesystem directories for a logical Rails path.
+      # Uses configured +app.paths+ entries first and falls back to the conventional
+      # root-relative path when no custom path is configured.
+      #
+      # @param relative_path [String] logical Rails path
+      # @return [Array<String>] absolute directory paths
+      def directory_paths(relative_path)
+        paths = configured_paths_for(relative_path)
+        paths = [relative_path] if paths.empty?
+
+        paths.map { |path| File.expand_path(path.to_s, root) }.uniq
+      end
+
+      # Reads configured Rails paths for a logical key.
+      #
+      # @param relative_path [String] logical Rails path key from +Rails.application.paths+
+      # @return [Array<String>] configured path entries, or an empty array when unavailable
+      def configured_paths_for(relative_path)
+        Array(app.paths[relative_path]).flat_map do |path|
+          Array(path)
+        end.compact
+      rescue StandardError
+        []
+      end
+
+      # Counts Ruby files, and JavaScript files for JavaScript paths, under a logical Rails path.
+      #
+      # @param relative_path [String] logical Rails path
+      # @return [Integer] number of matching files under all resolved directories
+      def count_files_for(relative_path)
+        directory_paths(relative_path).sum do |path|
+          next 0 unless Dir.exist?(path)
+
+          count = Dir.glob(File.join(path, '**/*.rb')).size
+          count += Dir.glob(File.join(path, '**/*.js')).size if relative_path.include?('javascript')
+          count
+        end
+      end
+
+      # Finds files with the requested extension under all directories for a logical Rails path.
+      #
+      # @param relative_path [String] logical Rails path
+      # @param extension [String] file extension without the leading dot
+      # @return [Array<String>] absolute file paths
+      def files_for(relative_path, extension:)
+        directory_paths(relative_path).flat_map do |path|
+          Dir.exist?(path) ? Dir.glob(File.join(path, "**/*.#{extension}")) : []
+        end
+      end
+
+      # Checks whether a gem appears in the lockfile.
+      #
+      # @param name [String] gem name
+      # @return [Boolean] true when the gem appears in +Gemfile.lock+
       def gem_present?(name)
         lock_path = File.join(root, 'Gemfile.lock')
         return false unless File.exist?(lock_path)
