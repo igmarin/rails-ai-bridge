@@ -86,6 +86,33 @@ module RailsAiBridge
             ctx = { conventions: { architecture: ['hotwire'] } }
             expect(render(described_class, ctx)).to include('App Conventions & Architecture')
           end
+
+          it 'omits secret-bearing config file paths' do
+            ctx = {
+              conventions: {
+                config_files: [
+                  'config/database.yml',
+                  '.env',
+                  'config/credentials.yml.enc',
+                  'config/master.key',
+                  'config/private.pem'
+                ]
+              }
+            }
+            output = render(described_class, ctx)
+
+            expect(output).to include('config/database.yml')
+            expect(output).not_to include('.env')
+            expect(output).not_to include('credentials.yml.enc')
+            expect(output).not_to include('master.key')
+            expect(output).not_to include('private.pem')
+          end
+
+          it 'returns nil when only secret-bearing config files are present' do
+            ctx = { conventions: { config_files: ['.env', 'config/master.key'] } }
+
+            expect(render(described_class, ctx)).to be_nil
+          end
         end
 
         # ---------------------------------------------------------------------------

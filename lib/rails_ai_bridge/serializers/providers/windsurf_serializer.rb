@@ -77,10 +77,12 @@ module RailsAiBridge
           lines.concat(render_architecture)
 
           # Key Config Files (compacted version from BaseProviderSerializer)
-          lines << '## Key Config Files'
-          config_files = context.dig(:conventions, :config_files) || []
-          config_files.first(3).each { |f| lines << "- `#{f}`" }
-          lines << ''
+          config_files = ContextSummary.safe_config_files(context.dig(:conventions, :config_files), limit: 3)
+          if config_files.any?
+            lines << '## Key Config Files'
+            config_files.each { |f| lines << "- `#{f}`" }
+            lines << ''
+          end
 
           # Key Considerations (Performance & Security - compacted version)
           lines << '## Key Considerations'

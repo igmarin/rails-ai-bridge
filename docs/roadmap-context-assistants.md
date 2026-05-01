@@ -17,6 +17,8 @@ This track is **separate** from [roadmap-mcp-v2.md](roadmap-mcp-v2.md) (MCP HTTP
 - Rank compact context by task relevance: semantic tier, structural complexity, endpoint density, recent migrations, and optional database-size hints (v3.1.0).
 - Add bounded endpoint-focus summaries and context-quality fixture matrix coverage for common Rails app shapes (v3.1.0).
 - Back the matrix with real Rails-shaped fixture trees for API-only, Hotwire, large-schema, engine-style, and regulated/no-domain-metadata applications (v3.1.0).
+- Add MCP large-payload stability checks for truncation, pagination hints, and section-cache reuse (v3.1.0).
+- Filter secret-bearing config paths from generated context, `rails_get_conventions`, and `rails://conventions` output (v3.1.0).
 
 ## In progress
 

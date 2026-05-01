@@ -114,7 +114,7 @@ module RailsAiBridge
 
       def detect_config_files
         configs = %w[
-          config/database.yml config/credentials.yml.enc
+          config/database.yml
           config/cable.yml config/storage.yml
           config/sidekiq.yml config/deploy.yml
           config/importmap.rb config/tailwind.config.js

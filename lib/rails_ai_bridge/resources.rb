@@ -19,6 +19,11 @@ module RailsAiBridge
     # Standard MIME type for all JSON resources
     JSON_MIME_TYPE = 'application/json'
 
+    # Section-specific sanitizers applied before exposing static MCP resources.
+    RESOURCE_SECTION_SANITIZERS = {
+      conventions: :sanitize_conventions_section
+    }.freeze
+
     # Error message template for unknown resources
     UNKNOWN_RESOURCE_ERROR = 'Unknown resource: %s'
 
@@ -303,7 +308,30 @@ module RailsAiBridge
       # @param key [Symbol] context section key
       # @return [Hash] context data or empty hash
       def fetch_context_section(key)
-        ContextProvider.fetch_section(key) || {}
+        sanitize_context_section(key, ContextProvider.fetch_section(key) || {})
+      end
+
+      # Applies resource-specific sanitizers before returning static MCP resource data.
+      #
+      # @param key [Symbol] context section key being exposed as an MCP resource
+      # @param section [Hash] raw context section
+      # @return [Hash] sanitized context section
+      def sanitize_context_section(key, section)
+        sanitizer = RESOURCE_SECTION_SANITIZERS[key]
+        return section unless sanitizer
+
+        send(sanitizer, section)
+      end
+
+      # Filters secret-bearing config paths from the conventions MCP resource.
+      #
+      # @param section [Hash] raw +:conventions+ context section
+      # @return [Hash] conventions section with safe +:config_files+ entries
+      def sanitize_conventions_section(section)
+        config_files = section[:config_files] if section.is_a?(Hash)
+        return section unless config_files
+
+        section.merge(config_files: Serializers::ContextSummary.safe_config_files(config_files))
       end
 
       # Finds a controller by case-insensitive name match.

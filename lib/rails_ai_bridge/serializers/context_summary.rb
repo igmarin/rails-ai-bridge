@@ -9,6 +9,22 @@ module RailsAiBridge
       # foreign keys (matched via +_id+ suffix separately).
       HOUSEKEEPING_COLUMNS = %w[id created_at updated_at].freeze
 
+      # Config paths that should not be copied into generated context because their
+      # names directly reveal secret-bearing files or credential material.
+      SENSITIVE_CONFIG_BASENAMES = %w[
+        .env .envrc application.yml credentials.yml credentials.yml.enc master.key
+        secrets.yml secrets.yml.enc settings.yml
+      ].freeze
+      private_constant :SENSITIVE_CONFIG_BASENAMES
+
+      # File extensions commonly used for private keys and encrypted key stores.
+      SENSITIVE_CONFIG_EXTENSIONS = %w[.key .pem .p12 .pfx].freeze
+      private_constant :SENSITIVE_CONFIG_EXTENSIONS
+
+      # Path segments that frequently hold secret material in custom app contexts.
+      SENSITIVE_CONFIG_SEGMENTS = %w[credentials private secrets].freeze
+      private_constant :SENSITIVE_CONFIG_SEGMENTS
+
       module_function
 
       # @param context [Hash] full introspection hash
@@ -204,6 +220,32 @@ module RailsAiBridge
         ]
       end
 
+      # Filters config file paths down to entries safe for generated assistant context.
+      #
+      # @param files [Array<String>, nil] config file paths from convention detection
+      # @param limit [Integer, nil] optional maximum safe paths to return
+      # @return [Array<String>] safe config file paths, preserving input order
+      def safe_config_files(files, limit: nil)
+        safe_files = Array(files).reject { |path| sensitive_config_file?(path) }
+        limit ? safe_files.first(limit) : safe_files
+      end
+
+      # Returns true for config paths that are secret-bearing by name, even when
+      # only the path is exposed and file contents are never read.
+      #
+      # @param path [String, nil] relative config path
+      # @return [Boolean] whether the path should be omitted from generated context
+      def sensitive_config_file?(path)
+        normalized = normalized_config_path(path)
+        basename = File.basename(normalized)
+
+        dotenv_file?(basename) ||
+          sensitive_config_basename?(basename) ||
+          SENSITIVE_CONFIG_EXTENSIONS.include?(File.extname(basename)) ||
+          sensitive_config_path_segment?(normalized) ||
+          rails_environment_credentials?(normalized)
+      end
+
       # Renders bounded route focus lines for compact passive context.
       class RouteFocus
         def initialize(context, limit)
@@ -397,6 +439,36 @@ module RailsAiBridge
       private_constant :RouteFocus, :ModelRelevance, :DatabaseSize
 
       private
+
+      def normalized_config_path(path)
+        path.to_s.tr('\\', '/').downcase
+      end
+      module_function :normalized_config_path
+      private_class_method :normalized_config_path
+
+      def dotenv_file?(basename)
+        basename == '.env' || basename.start_with?('.env.')
+      end
+      module_function :dotenv_file?
+      private_class_method :dotenv_file?
+
+      def sensitive_config_basename?(basename)
+        SENSITIVE_CONFIG_BASENAMES.include?(basename)
+      end
+      module_function :sensitive_config_basename?
+      private_class_method :sensitive_config_basename?
+
+      def sensitive_config_path_segment?(path)
+        path.split('/').any? { |segment| SENSITIVE_CONFIG_SEGMENTS.include?(segment) }
+      end
+      module_function :sensitive_config_path_segment?
+      private_class_method :sensitive_config_path_segment?
+
+      def rails_environment_credentials?(path)
+        path.match?(%r{\Aconfig/credentials/.+\.yml\.enc\z})
+      end
+      module_function :rails_environment_credentials?
+      private_class_method :rails_environment_credentials?
 
       def displayable_column?(column)
         return false unless column.is_a?(Hash)

@@ -121,6 +121,61 @@ RSpec.describe RailsAiBridge::Serializers::ContextSummary do
     end
   end
 
+  describe '.safe_config_files' do
+    it 'preserves non-sensitive config file paths in order' do
+      files = ['config/database.yml', 'config/routes.rb', 'Gemfile']
+
+      expect(described_class.safe_config_files(files)).to eq(files)
+    end
+
+    it 'omits dotenv, credential, and private key material paths' do
+      files = [
+        'config/database.yml',
+        '.env.production',
+        'config/credentials.yml.enc',
+        'config/credentials/production.yml.enc',
+        'config/master.key',
+        'config/private.pem',
+        'config/routes.rb'
+      ]
+
+      expect(described_class.safe_config_files(files)).to eq(['config/database.yml', 'config/routes.rb'])
+    end
+
+    it 'omits Windows-style dotenv, credential, and key material paths' do
+      files = [
+        'config\\database.yml',
+        '.env.local',
+        'config\\credentials\\production.yml.enc',
+        'config\\master.key',
+        'config\\certs\\private.pem',
+        'config\\routes.rb'
+      ]
+
+      expect(described_class.safe_config_files(files)).to eq(['config\\database.yml', 'config\\routes.rb'])
+    end
+
+    it 'omits broader custom-context secret path vocabulary' do
+      files = [
+        'config/database.yml',
+        'config/secrets/production.yml',
+        'config/private/service_account.json',
+        'config/credentials/payment_gateway.yml',
+        'config/application.yml',
+        'config/settings.yml',
+        'config/routes.rb'
+      ]
+
+      expect(described_class.safe_config_files(files)).to eq(['config/database.yml', 'config/routes.rb'])
+    end
+
+    it 'applies the limit after omitting sensitive paths' do
+      files = ['.env', 'config/database.yml', 'config/routes.rb']
+
+      expect(described_class.safe_config_files(files, limit: 2)).to eq(['config/database.yml', 'config/routes.rb'])
+    end
+  end
+
   describe '.top_columns' do
     let(:table_data) do
       {

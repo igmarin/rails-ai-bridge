@@ -60,6 +60,8 @@ is normal for open-source gems (transparency, onboarding); they are not required
 | Optional PostgreSQL size buckets for `database_stats` | Done |
 | Fixture matrix for standard CRUD, large schema, API-only, Hotwire, engine-style, and regulated contexts | Done |
 | Real Rails-shaped fixture trees for API-only, Hotwire, large-schema, engine-style, and regulated/no-domain-metadata app profiles | Done |
+| MCP large-payload checks for truncation, pagination hints, and section-cache reuse | Done |
+| Secret-bearing config path filtering for generated context, conventions output, and MCP resource reads | Done |
 | README/BEST_PRACTICES clarity pass for value and setup paths | Done |
 | Implementation gate for remaining 3.1.0 slices: tests, Reek/RuboCop, `yard-documentation`, and docs updates | Required |
 

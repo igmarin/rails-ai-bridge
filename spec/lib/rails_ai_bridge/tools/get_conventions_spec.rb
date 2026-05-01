@@ -38,6 +38,29 @@ RSpec.describe RailsAiBridge::Tools::GetConventions do
         expect(content).to include('- `config/database.yml`')
         expect(content).to include('- `config/routes.rb`')
       end
+
+      context 'with secret-bearing config file paths' do
+        let(:conventions_data) do
+          {
+            architecture: ['api_only'],
+            config_files: [
+              'config/database.yml',
+              '.env.local',
+              'config/credentials.yml.enc',
+              'config/master.key',
+              'config/private.key'
+            ]
+          }
+        end
+
+        it 'omits the secret-bearing paths from MCP output' do
+          expect(content).to include('- `config/database.yml`')
+          expect(content).not_to include('.env')
+          expect(content).not_to include('credentials.yml.enc')
+          expect(content).not_to include('master.key')
+          expect(content).not_to include('private.key')
+        end
+      end
     end
 
     context 'when some convention data is missing' do

@@ -939,6 +939,7 @@ Works in:
 - Code search uses `Open3.capture2` with array arguments — **no shell injection**
 - File paths are validated against **path traversal** attacks
 - Credentials and secret values are **never exposed** — only key names are introspected (unless you opt in with `expose_credentials_key_names`)
+- Generated config-file listings and the `rails://conventions` MCP resource omit secret-bearing paths such as `.env*`, Rails credentials files, secret/private directories, `master.key`, and private key material
 - The gem makes **no outbound network requests**
 - File type validation prevents arbitrary file access in code search
 - `max_results` is capped at 100 to prevent resource exhaustion; `pattern` length is capped (`search_code_pattern_max_bytes`); optional per-invocation timeout (`search_code_timeout_seconds`)

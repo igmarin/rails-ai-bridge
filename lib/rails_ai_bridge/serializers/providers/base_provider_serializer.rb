@@ -164,11 +164,11 @@ module RailsAiBridge
           conv = context[:conventions]
           return [] unless conv.is_a?(Hash) && !conv[:error]
 
-          config_files = conv[:config_files] || []
+          config_files = ContextSummary.safe_config_files(conv[:config_files], limit: MAX_CONFIG_FILES)
           return [] if config_files.empty?
 
           lines = ['## Key Config Files', 'Core configuration files for this application:']
-          config_files.first(MAX_CONFIG_FILES).each { |f| lines << "- `#{f}`" }
+          config_files.each { |f| lines << "- `#{f}`" }
           lines << ''
           lines
         end

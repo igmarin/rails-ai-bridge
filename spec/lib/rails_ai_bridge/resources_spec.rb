@@ -16,6 +16,7 @@ RSpec.describe RailsAiBridge::Resources do
     allow(RailsAiBridge::ContextProvider).to receive(:fetch).and_return(context)
     allow(RailsAiBridge::ContextProvider).to receive(:fetch_section).with(:models).and_return(context[:models])
     allow(RailsAiBridge::ContextProvider).to receive(:fetch_section).with(:stimulus).and_return(context[:stimulus])
+    allow(RailsAiBridge::ContextProvider).to receive(:fetch_section).with(:conventions).and_return(context[:conventions])
 
     # Stub ViewFileAnalyzer as a module with call method
     view_analyzer = Module.new do
@@ -83,6 +84,25 @@ RSpec.describe RailsAiBridge::Resources do
       it 'resolves stimulus template resources' do
         payload = described_class.send(:resolve_resource_payload, 'rails://stimulus/hello')
         expect(payload).to eq({ name: 'hello' })
+      end
+
+      it 'sanitizes secret-bearing config paths from the conventions resource' do
+        conventions = {
+          architecture: ['mvc'],
+          config_files: [
+            'config/database.yml',
+            '.env.production',
+            'config/credentials/production.yml.enc',
+            'config/private/service_account.json',
+            'config/routes.rb'
+          ]
+        }
+        allow(RailsAiBridge::ContextProvider).to receive(:fetch_section).with(:conventions).and_return(conventions)
+
+        payload = described_class.send(:resolve_resource_payload, 'rails://conventions')
+
+        expect(payload[:architecture]).to eq(['mvc'])
+        expect(payload[:config_files]).to eq(['config/database.yml', 'config/routes.rb'])
       end
 
       it 'returns nil for unknown resources' do

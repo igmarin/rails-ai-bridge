@@ -343,6 +343,27 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
       expect(output).to include('config/file4.yml')
       expect(output).not_to match(%r{^-\s+`config/file5\.yml`$})
     end
+
+    it 'omits secret-bearing config file paths from generated provider context' do
+      files = [
+        'config/database.yml',
+        '.env.production',
+        'config/credentials.yml.enc',
+        'config/master.key',
+        'config/certs/private.pem',
+        'config/routes.rb'
+      ]
+      ctx = base_context.merge(conventions: { architecture: [], patterns: [], config_files: files })
+      s = described_class.new(ctx, config: config)
+      output = s.render_key_config_files.join("\n")
+
+      expect(output).to include('config/database.yml')
+      expect(output).to include('config/routes.rb')
+      expect(output).not_to include('.env')
+      expect(output).not_to include('credentials.yml.enc')
+      expect(output).not_to include('master.key')
+      expect(output).not_to include('private.pem')
+    end
   end
 
   describe '#render_commands' do

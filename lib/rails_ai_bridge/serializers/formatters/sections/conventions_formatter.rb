@@ -42,8 +42,9 @@ module RailsAiBridge
         private
 
         def render(data)
+          config_files = ContextSummary.safe_config_files(data[:config_files])
           return unless data[:architecture]&.any? || data[:patterns]&.any? ||
-                        data[:directory_structure]&.any? || data[:config_files]&.any?
+                        data[:directory_structure]&.any? || config_files.any?
 
           lines = ['## App Conventions & Architecture', '']
 
@@ -68,9 +69,9 @@ module RailsAiBridge
           end
 
           # Config files
-          if data[:config_files]&.any?
+          if config_files.any?
             lines << '' << '### Config files present'
-            data[:config_files].each { |f| lines << "- `#{f}`" }
+            config_files.each { |f| lines << "- `#{f}`" }
           end
 
           lines.join("\n")

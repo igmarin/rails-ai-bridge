@@ -23,11 +23,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   regulated/no-domain-metadata apps plus bounded output and secret-adjacent regression checks.
 - **Serialization benchmark guard** — large-fixture compact serialization now has a small
   performance budget to catch accidental context bloat.
+- **MCP large-payload stability checks** — route/schema tool specs now exercise truncation,
+  pagination, next-offset guidance, and section-cache reuse against large payloads.
 
 ### Changed
 
 - **Claude rules** — `.claude/rules/rails-context.md` now includes bounded endpoint focus and
   route drill-down guidance; `.claude/rules/rails-schema.md` adds optional size-bucket hints.
+- **Route MCP pagination** — `rails_get_routes` standard/full output now includes a next
+  `offset` hint when more route rows are available.
+- **Secret-bearing config paths** — generated context, `rails_get_conventions`, and the
+  `rails://conventions` MCP resource now omit dotenv files, Rails credentials files, secret/private
+  directories, master keys, and private key material from config-file listings while preserving
+  safe operational files such as `config/database.yml`.
 - **Copilot, Codex, Cursor, Windsurf, and shared compact serializers** — key model sections now
   use the same relevance score so assistants see core, routed, recently changed, or hot-domain
   models before lower-signal supporting models.

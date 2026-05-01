@@ -119,7 +119,8 @@ module RailsAiBridge
             lines.concat(ctrl_lines)
             lines << ''
           end
-          lines << '_Use `detail:"summary"` for overview, or `detail:"full"` for route names._' if @routes[:total_routes] > limit
+          lines << next_offset_hint(limit) if next_page?(limit)
+          lines << '_Use `detail:"summary"` for overview, or `detail:"full"` for route names._' if route_count > limit
           lines.join("\n")
         end
 
@@ -139,7 +140,31 @@ module RailsAiBridge
             end
           end
           lines << '' << "## API namespaces: #{@routes[:api_namespaces].join(', ')}" if @routes[:api_namespaces]&.any?
+          lines << next_offset_hint(limit) if next_page?(limit)
           lines.join("\n")
+        end
+
+        # @param limit [Integer] maximum route rows requested for the current page
+        # @return [Boolean] true when another page of filtered route rows exists
+        def next_page?(limit)
+          @offset + limit < route_count
+        end
+
+        # @param limit [Integer] maximum route rows requested for the current page
+        # @return [String] markdown hint showing the next +offset+ value to request
+        def next_offset_hint(limit)
+          "_Showing #{displayed_route_count(limit)} of #{route_count}. Use `offset:#{@offset + limit}` for more._"
+        end
+
+        # @param limit [Integer] maximum route rows requested for the current page
+        # @return [Integer] number of route rows displayed on this page
+        def displayed_route_count(limit)
+          [route_count - @offset, limit].min
+        end
+
+        # @return [Integer] number of route rows after any controller filter is applied
+        def route_count
+          @route_count ||= @by_controller.values.sum(&:size)
         end
       end
     end

@@ -27,5 +27,12 @@ RSpec.describe RailsAiBridge::Introspectors::ConventionDetector do
     it 'returns config_files as an array' do
       expect(result[:config_files]).to be_an(Array)
     end
+
+    it 'does not advertise Rails credentials or key files as config files' do
+      allow(introspector).to receive(:file_exists?).and_return(true)
+
+      expect(result[:config_files]).not_to include('config/credentials.yml.enc')
+      expect(result[:config_files]).not_to include('config/master.key')
+    end
   end
 end
