@@ -299,6 +299,25 @@ config.introspectors += %i[views auth api tests]
 
 The `tests` introspector is particularly valuable — it tells the AI your test framework (RSpec vs Minitest), factory setup (FactoryBot vs fixtures), and CI config. Without it, the AI may generate Minitest assertions in an RSpec project.
 
+For large PostgreSQL apps, consider adding `database_stats` when row-volume hints matter:
+
+```ruby
+config.introspectors += %i[database_stats]
+```
+
+It uses PostgreSQL's approximate table statistics and renders only coarse buckets (`small`, `medium`, `large`, `hot`). Keep it opt-in for regulated apps or environments where table-volume metadata is sensitive.
+
+## Reading the Generated Context
+
+Compact generated files are ordered for action, not inventory completeness:
+
+- Core entities from `config.core_models` are intentionally promoted.
+- Models with more associations, validations, callbacks, scopes, routed endpoints, recent migrations, or optional hot-table signals appear earlier.
+- Endpoint focus highlights busy controllers and points the assistant to `rails_get_routes(controller:"...", detail:"summary")`.
+- Full schema, route, and model details stay behind MCP tools to avoid always-on token bloat.
+
+Use this ordering as a starting point, not a replacement for live checks. When a change touches data access, ask the assistant to verify the exact table, route, or model through MCP before editing.
+
 ---
 
 ## What to Commit and What to Ignore

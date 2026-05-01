@@ -65,20 +65,7 @@ module RailsAiBridge
       # @param limit [Integer] max controllers to render
       # @return [Array<String>] markdown lines without heading
       def route_focus_lines(context, limit: 5)
-        routes = context[:routes]
-        return [] unless routes.is_a?(Hash) && !routes[:error]
-
-        by_controller = routes[:by_controller]
-        return [] unless by_controller.is_a?(Hash) && by_controller.any?
-
-        bounded_limit = limit.to_i.clamp(1, 20)
-        by_controller
-          .sort_by { |controller, controller_routes| [-Array(controller_routes).size, controller.to_s] }
-          .first(bounded_limit)
-          .map do |controller, controller_routes|
-            count = Array(controller_routes).size
-            "- #{controller}: #{count} routes — `rails_get_routes(controller:\"#{controller}\", detail:\"summary\")`"
-          end
+        RouteFocus.new(context, limit).lines
       end
 
       # Complexity score for a single model's introspection data.
@@ -101,13 +88,7 @@ module RailsAiBridge
       # @param context [Hash] full introspection hash
       # @return [Integer] non-negative score; higher = more relevant
       def model_relevance_score(data, name: nil, context: {})
-        return 0 unless data.is_a?(Hash)
-
-        tier_score(data[:semantic_tier]) +
-          model_complexity_score(data) +
-          route_density_for_model(name, data, context) +
-          recent_migration_score(data, context) +
-          database_size_score(data, context)
+        ModelRelevance.new(data: data, name: name, context: context).score
       end
 
       # Valid model entries sorted by task relevance, then model name for stable
@@ -121,6 +102,23 @@ module RailsAiBridge
 
         models.select { |_name, data| data.is_a?(Hash) && !data[:error] }
               .sort_by { |name, data| [-model_relevance_score(data, name: name, context: context), name.to_s] }
+      end
+
+      # Valid model names grouped by semantic tier while preserving relevance ordering.
+      #
+      # @param models [Hash] model payloads keyed by model name
+      # @param context [Hash] full introspection hash
+      # @return [Hash{String => Array<String>}]
+      def models_grouped_by_semantic_tier(models, context: {})
+        models_by_relevance(models, context: context).each_with_object(Hash.new { |hash, key| hash[key] = [] }) do |(name, data), groups|
+          groups[semantic_tier_for(data)] << name
+        end
+      end
+
+      # @param data [Hash, Object] single-model entry
+      # @return [String] semantic tier with a stable fallback
+      def semantic_tier_for(data)
+        (data.is_a?(Hash) && data[:semantic_tier].presence) || 'supporting'
       end
 
       # Returns the appropriate test command string for this app's test framework.
@@ -181,15 +179,7 @@ module RailsAiBridge
       # @param row_count [Integer, nil] approximate rows
       # @return [String, nil] +small+, +medium+, +large+, +hot+, or nil
       def database_size_bucket(row_count)
-        return nil if row_count.nil?
-
-        rows = row_count.to_i
-        case rows
-        when 0...50_000 then 'small'
-        when 50_000...1_000_000 then 'medium'
-        when 1_000_000...10_000_000 then 'large'
-        else 'hot'
-        end
+        DatabaseSize.bucket(row_count)
       end
 
       # Optional size bucket for a table from +context[:database_stats]+.
@@ -198,17 +188,7 @@ module RailsAiBridge
       # @param table_name [String, nil]
       # @return [String, nil]
       def database_size_bucket_for_table(context, table_name)
-        return nil if table_name.to_s.empty?
-
-        stats = context[:database_stats]
-        return nil unless stats.is_a?(Hash) && !stats[:error] && !stats[:skipped]
-
-        row = Array(stats[:tables]).find do |table_stats|
-          table_stats[:table].to_s == table_name.to_s || table_stats['table'].to_s == table_name.to_s
-        end
-        return nil unless row
-
-        database_size_bucket(row[:approximate_rows] || row['approximate_rows'])
+        DatabaseSize.bucket_for_table(context, table_name)
       end
 
       # Short, copy-pastable baseline for compact serializers (performance, drift, MCP exposure).
@@ -224,6 +204,185 @@ module RailsAiBridge
         ]
       end
 
+      # Renders bounded route focus lines for compact passive context.
+      class RouteFocus
+        def initialize(context, limit)
+          @routes = context[:routes]
+          @limit = limit
+        end
+
+        # @return [Array<String>] bounded Markdown route-focus lines
+        def lines
+          return [] if controller_routes.empty?
+
+          sorted_routes.first(bounded_limit).map { |controller, routes| route_line(controller, routes) }
+        end
+
+        private
+
+        def controller_routes
+          return {} unless @routes.is_a?(Hash) && !@routes[:error]
+
+          by_controller = @routes[:by_controller]
+          by_controller.is_a?(Hash) ? by_controller : {}
+        end
+
+        def sorted_routes
+          controller_routes.sort_by { |controller, routes| [-route_count(routes), controller.to_s] }
+        end
+
+        def route_count(routes)
+          Array(routes).size
+        end
+
+        def bounded_limit
+          @limit.to_i.clamp(1, 20)
+        end
+
+        def route_line(controller, routes)
+          "- #{controller}: #{route_count(routes)} routes — `rails_get_routes(controller:\"#{controller}\", detail:\"summary\")`"
+        end
+      end
+
+      # Calculates model ordering relevance for compact context summaries.
+      class ModelRelevance
+        # Semantic-tier weights used before structural complexity and activity signals.
+        TIER_SCORES = {
+          'core_entity' => 100,
+          'rich_join' => 35,
+          'supporting' => 20,
+          'pure_join' => 5
+        }.freeze
+
+        def initialize(data:, name:, context:)
+          @data = data
+          @name = name
+          @context = context
+        end
+
+        # @return [Integer] model task-relevance score
+        def score
+          return 0 unless @data.is_a?(Hash)
+
+          tier_score +
+            ContextSummary.model_complexity_score(@data) +
+            route_density +
+            recent_migration_score +
+            database_size_score
+        end
+
+        private
+
+        def tier_score
+          TIER_SCORES.fetch(@data[:semantic_tier].to_s, 20)
+        end
+
+        def route_density
+          by_controller = @context.dig(:routes, :by_controller)
+          return 0 unless by_controller.is_a?(Hash)
+
+          route_keys.sum { |key| Array(by_controller[key]).size }
+        end
+
+        def route_keys
+          [controller_route_key, table_name].compact_blank.uniq
+        end
+
+        def controller_route_key
+          @name.to_s.delete_suffix('Controller').underscore.pluralize if @name
+        end
+
+        def table_name
+          @data[:table_name].to_s
+        end
+
+        def recent_migration_score
+          ContextSummary.recently_migrated?(table_name, @context[:migrations]) ? 5 : 0
+        end
+
+        def database_size_score
+          case DatabaseSize.bucket_for_table(@context, table_name)
+          when 'hot' then 12
+          when 'large' then 8
+          when 'medium' then 3
+          else 0
+          end
+        end
+      end
+
+      # Looks up optional database row-count buckets without exposing raw counts.
+      class DatabaseSize
+        # @param row_count [Integer, nil]
+        # @return [String, nil] safe size bucket label
+        def self.bucket(row_count)
+          BucketLabel.new(row_count).label
+        end
+
+        # @param context [Hash]
+        # @param table_name [String, nil]
+        # @return [String, nil] safe size bucket label for the table
+        def self.bucket_for_table(context, table_name)
+          new(context).bucket_for_table(table_name)
+        end
+
+        def initialize(context)
+          @context = context
+        end
+
+        # @param row_count [Integer, nil]
+        # @return [String, nil] safe size bucket label
+        def bucket(row_count)
+          self.class.bucket(row_count)
+        end
+
+        # @param table_name [String, nil]
+        # @return [String, nil] safe size bucket label for the table
+        def bucket_for_table(table_name)
+          table_stats = row_for(table_name.to_s)
+          bucket(table_stats[:approximate_rows] || table_stats['approximate_rows']) if table_stats
+        end
+
+        private
+
+        def row_for(table_name)
+          return nil if table_name.empty? || invalid_stats?
+
+          Array(stats[:tables]).find do |table_stats|
+            table_stats[:table].to_s == table_name || table_stats['table'].to_s == table_name
+          end
+        end
+
+        def invalid_stats?
+          !stats.is_a?(Hash) || stats[:error] || stats[:skipped]
+        end
+
+        def stats
+          @context&.fetch(:database_stats, nil)
+        end
+
+        BUCKETS = {
+          0...50_000 => 'small',
+          50_000...1_000_000 => 'medium',
+          1_000_000...10_000_000 => 'large'
+        }.freeze
+        private_constant :BUCKETS
+
+        # Value object for mapping an approximate row count to a safe label.
+        class BucketLabel
+          def initialize(row_count)
+            @rows = row_count&.to_i
+          end
+
+          # @return [String, nil] safe size bucket label
+          def label
+            return nil unless @rows
+
+            BUCKETS.find { |range, _bucket| range.cover?(@rows) }&.last || 'hot'
+          end
+        end
+      end
+      private_constant :RouteFocus, :ModelRelevance, :DatabaseSize
+
       private
 
       def displayable_column?(column)
@@ -236,56 +395,6 @@ module RailsAiBridge
       end
       module_function :displayable_column?
       private_class_method :displayable_column?
-
-      TIER_SCORES = {
-        'core_entity' => 100,
-        'rich_join' => 35,
-        'supporting' => 20,
-        'pure_join' => 5
-      }.freeze
-      private_constant :TIER_SCORES
-
-      def tier_score(tier)
-        TIER_SCORES.fetch(tier.to_s, 20)
-      end
-      module_function :tier_score
-      private_class_method :tier_score
-
-      def route_density_for_model(name, data, context)
-        by_controller = context.dig(:routes, :by_controller)
-        return 0 unless by_controller.is_a?(Hash)
-
-        route_keys_for_model(name, data).sum { |key| Array(by_controller[key]).size }
-      end
-      module_function :route_density_for_model
-      private_class_method :route_density_for_model
-
-      def route_keys_for_model(name, data)
-        keys = []
-        keys << name.to_s.delete_suffix('Controller').underscore.pluralize if name
-        table_name = data[:table_name].to_s
-        keys << table_name if table_name.present?
-        keys.uniq
-      end
-      module_function :route_keys_for_model
-      private_class_method :route_keys_for_model
-
-      def recent_migration_score(data, context)
-        recently_migrated?(data[:table_name], context[:migrations]) ? 5 : 0
-      end
-      module_function :recent_migration_score
-      private_class_method :recent_migration_score
-
-      def database_size_score(data, context)
-        case database_size_bucket_for_table(context, data[:table_name])
-        when 'hot' then 12
-        when 'large' then 8
-        when 'medium' then 3
-        else 0
-        end
-      end
-      module_function :database_size_score
-      private_class_method :database_size_score
 
       def migration_filename_matches_table?(filename, table_name)
         stem = File.basename(filename.to_s, '.rb').sub(/\A\d+_/, '')

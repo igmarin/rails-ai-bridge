@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-05-01
+
+### Added
+
+- **Task-relevance ordering for compact context** — model lists now rank by semantic tier,
+  structural complexity, route density, recent migrations, and optional database-size signals
+  instead of relying mostly on alphabetical order.
+- **Endpoint focus summaries** — compact stack/project context now surfaces the busiest route
+  targets with direct `rails_get_routes(controller:"...", detail:"summary")` drill-down hints.
+- **Database size buckets** — the optional `database_stats` introspector now annotates PostgreSQL
+  approximate row counts as `small`, `medium`, `large`, or `hot`; generated context shows these
+  hints only when `database_stats` is explicitly enabled.
+- **Context quality matrix specs** — generated-output acceptance coverage now exercises standard
+  CRUD, large-schema, API-only, Hotwire, engine-style, and regulated/no-domain-metadata fixture
+  profiles, including bounded output and secret-adjacent regression checks.
+- **Serialization benchmark guard** — large-fixture compact serialization now has a small
+  performance budget to catch accidental context bloat.
+
+### Changed
+
+- **Claude rules** — `.claude/rules/rails-context.md` now includes bounded endpoint focus and
+  route drill-down guidance; `.claude/rules/rails-schema.md` adds optional size-bucket hints.
+- **Copilot, Codex, Cursor, Windsurf, and shared compact serializers** — key model sections now
+  use the same relevance score so assistants see core, routed, recently changed, or hot-domain
+  models before lower-signal supporting models.
+- **Generated override guidance** — compact instructions no longer include the literal
+  omit-merge marker string unless reading the actual override stub; user-facing docs still explain
+  how to activate `config/rails_ai_bridge/overrides.md`.
+
 ## [3.0.0] - 2026-04-28
 
 ### Added

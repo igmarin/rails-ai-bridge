@@ -67,50 +67,129 @@ module RailsAiBridge
 
         # @return [String] Always-on project overview MDC (stack, gems, architecture hints).
         def render_project_rule
-          lines = [
-            '---',
-            "description: \"Rails project context for #{context[:app_name]}\"",
-            'alwaysApply: true',
-            '---',
-            '',
-            "# #{context[:app_name]}",
-            '',
-            "Rails #{context[:rails_version]} | Ruby #{context[:ruby_version]}",
-            ''
-          ]
+          ProjectRuleBuilder.new(context).render
+        end
 
-          schema = context[:schema]
-          lines << "- Database: #{schema[:adapter]} — #{schema[:total_tables]} tables" if schema && !schema[:error]
-
-          models = context[:models]
-          lines << "- Models: #{models.size}" if models.is_a?(Hash) && !models[:error]
-
-          rline = ContextSummary.routes_stack_line(context)
-          lines << rline if rline
-          focus_lines = ContextSummary.route_focus_lines(context, limit: 3)
-          if focus_lines.any?
-            lines << '- Endpoint focus:'
-            focus_lines.each { |line| lines << "  #{line.delete_prefix('- ')}" }
+        # Builds Cursor's always-on project overview rule.
+        class ProjectRuleBuilder
+          def initialize(context)
+            @context = context
+            @sections = context.slice(:schema, :models, :gems, :conventions)
           end
 
-          gems = context[:gems]
-          if gems.is_a?(Hash) && !gems[:error]
-            notable = gems[:notable_gems] || gems[:notable] || gems[:detected] || []
-            grouped = notable.group_by { |g| g[:category]&.to_s || 'other' }
-            grouped.first(4).each do |cat, gem_list|
-              lines << "- #{cat}: #{gem_list.map { |g| g[:name] }.first(6).join(', ')}#{', ...' if gem_list.size > 6}"
+          # @return [String] Cursor MDC project overview rule
+          def render
+            (header_lines + stack_lines + footer_lines).join("\n")
+          end
+
+          private
+
+          def header_lines
+            app_name = @context[:app_name]
+            [
+              '---',
+              "description: \"Rails project context for #{app_name}\"",
+              'alwaysApply: true',
+              '---',
+              '',
+              "# #{app_name}",
+              '',
+              "Rails #{@context[:rails_version]} | Ruby #{@context[:ruby_version]}",
+              ''
+            ]
+          end
+
+          def stack_lines
+            [database_line, models_line, ContextSummary.routes_stack_line(@context), endpoint_focus_lines,
+             notable_gem_lines, architecture_lines].flatten.compact
+          end
+
+          def database_line
+            return unless schema && !schema[:error]
+
+            "- Database: #{schema[:adapter]} — #{schema[:total_tables]} tables"
+          end
+
+          def models_line
+            "- Models: #{models.size}" if models.is_a?(Hash) && !models[:error]
+          end
+
+          def endpoint_focus_lines
+            EndpointFocusLines.new(@context).to_a
+          end
+
+          def notable_gem_lines
+            return [] unless gems.is_a?(Hash) && !gems[:error]
+
+            notable_gems.group_by { |gem| gem[:category]&.to_s || 'other' }
+                        .first(4)
+                        .map { |category, gem_list| NotableGemLine.new(category, gem_list).to_s }
+          end
+
+          def notable_gems
+            gems[:notable_gems] || gems[:notable] || gems[:detected] || []
+          end
+
+          def architecture_lines
+            return [] unless conventions.is_a?(Hash) && !conventions[:error]
+
+            (conventions[:architecture] || []).first(5).map { |pattern| "- #{pattern}" }
+          end
+
+          def footer_lines
+            [
+              '',
+              'Engineering rules: rails-engineering.mdc. MCP tools: rails-mcp-tools.mdc.',
+              'Always call with detail:"summary" first, then drill into specifics.'
+            ]
+          end
+
+          def schema = @sections[:schema]
+
+          def models = @sections[:models]
+
+          def gems = @sections[:gems]
+
+          def conventions = @sections[:conventions]
+
+          # Formats route focus lines for the project rule.
+          class EndpointFocusLines
+            def initialize(context)
+              @focus_lines = ContextSummary.route_focus_lines(context, limit: 3)
+            end
+
+            # @return [Array<String>] formatted endpoint-focus lines
+            def to_a
+              return [] if @focus_lines.empty?
+
+              ['- Endpoint focus:'] + @focus_lines.map { |line| "  #{line.delete_prefix('- ')}" }
             end
           end
 
-          conv = context[:conventions]
-          (conv[:architecture] || []).first(5).each { |p| lines << "- #{p}" } if conv.is_a?(Hash) && !conv[:error]
+          # Formats one notable-gem category line for the project rule.
+          class NotableGemLine
+            def initialize(category, gem_list)
+              @category = category
+              @gem_list = gem_list
+            end
 
-          lines << ''
-          lines << 'Engineering rules: rails-engineering.mdc. MCP tools: rails-mcp-tools.mdc.'
-          lines << 'Always call with detail:"summary" first, then drill into specifics.'
+            # @return [String] formatted notable-gem category line
+            def to_s
+              "- #{@category}: #{gem_names.first(6).join(', ')}#{overflow_suffix}"
+            end
 
-          lines.join("\n")
+            private
+
+            def gem_names
+              @gem_list.pluck(:name)
+            end
+
+            def overflow_suffix
+              ', ...' if @gem_list.size > 6
+            end
+          end
         end
+        private_constant :ProjectRuleBuilder
 
         # @return [String, nil] Models MDC for `app/models/**`, or +nil+ if no models.
         def render_models_rule

@@ -136,10 +136,7 @@ module RailsAiBridge
         #   "supporting".
         # @return [Hash{String => Array<String>}] A hash where each key is a semantic tier and each value is an array of model names assigned to that tier.
         def group_models_by_semantic_tier(models)
-          ContextSummary.models_by_relevance(models, context: context).each_with_object(Hash.new { |h, k| h[k] = [] }) do |(name, data), acc|
-            tier = (data.is_a?(Hash) && data[:semantic_tier].presence) || 'supporting'
-            acc[tier] << name
-          end
+          ContextSummary.models_grouped_by_semantic_tier(models, context: context)
         end
 
         # @return [Integer, nil] cap per tier, or +nil+ when all names should be listed (+:full+ context mode).

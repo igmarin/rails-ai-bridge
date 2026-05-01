@@ -22,6 +22,10 @@ RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer do
         'Post' => { table_name: 'posts', semantic_tier: 'supporting',
                     associations: [{ type: 'belongs_to', name: 'user' }], validations: [] }
       },
+      routes: {
+        total_routes: 7,
+        by_controller: { 'users' => 7.times.map { { verb: 'GET', action: 'index' } } }
+      },
       non_ar_models: {
         non_ar_models: [
           { name: 'OrderCalculator', relative_path: 'app/models/order_calculator.rb', tag: 'POJO/Service' }

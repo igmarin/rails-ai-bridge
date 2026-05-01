@@ -23,6 +23,16 @@ The result:
 - Less token waste on exploration
 - More predictable, production-ready outputs
 
+### Start here if the README feels long
+
+| You want to... | Read this first |
+|---|---|
+| Install quickly | [Quick start](#quick-start) |
+| Understand the value | [What Your AI Learns](#what-your-ai-learns) |
+| Pick a setup | [Choosing the right preset](#choosing-the-right-preset) |
+| Wire MCP safely | [MCP Server](#mcp-server) and [mcp-security.md](docs/mcp-security.md) |
+| Tune generated context | [Best Practices](docs/BEST_PRACTICES.md) |
+
 This shifts AI from “helpful autocomplete” → **reliable engineering assistant**
 
 ## The problem
@@ -46,9 +56,11 @@ flowchart LR
   app --> intro --> mcp --> clients
 ```
 
-1. **Up to 27 introspectors** in the `:full` preset scan schema, models, routes, controllers, jobs, gems, conventions, and more (`:standard` runs 9 core ones by default). Opt-in extras (e.g. `non_ar_models`, `database_stats`) are not in those presets.
+1. **Up to 27 introspectors** in the `:full` preset scan schema, models, routes, controllers, jobs, gems, conventions, and more (`:standard` runs 9 core ones by default). `database_stats` remains opt-in because it queries PostgreSQL table statistics.
 2. **`rails ai:bridge`** writes bounded bridge files for Claude, Cursor, Copilot, Codex, Windsurf, Gemini, and JSON.
 3. **`rails ai:serve`** exposes **11 built-in MCP tools** (plus any `additional_tools`) so assistants pull detail on demand (`detail: "summary"` first, then drill down).
+
+Compact files are ordered for usefulness: primary domain models, busy endpoints, recently migrated tables, and optional hot-table signals appear before lower-signal supporting details.
 
 ### Folder guides
 
@@ -114,7 +126,7 @@ Optional: `gem install rails-ai-bridge` installs the gem into your Ruby environm
 ### Verify the integration in *your* Rails app
 
 1. **`bundle install` must finish cleanly** — until it does, `bundle exec rails -T` and `rails ai:serve` (from `.mcp.json`) cannot be verified. Merging this gem to `main` does not fix a broken or incomplete bundle on the host app.
-2. **Regenerate in one shot** — run `rails ai:bridge` (not only a single format) so route/controller summaries stay consistent across `CLAUDE.md`, `.cursor/rules/`, and `.github/instructions/`.
+2. **Regenerate in one shot** — run `rails ai:bridge` (not only a single format) so route/controller summaries and relevance ordering stay consistent across `CLAUDE.md`, `.cursor/rules/`, and `.github/instructions/`.
 3. **Keep team-specific rules** — generated files are snapshots. Use **`config/rails_ai_bridge/overrides.md`** for org-specific constraints (merged only after you **delete the first-line** `<!-- rails-ai-bridge:omit-merge -->` stub). Until then, the gem does not inject placeholder text into Copilot/Codex. See **`overrides.md.example`** for an outline. Alternatively re-merge into generated files after each `rails ai:bridge` (see `.codex/README.md`).
 4. **Tune list sizes** — `RailsAiBridge.configure { |c| c.copilot_compact_model_list_limit = 5 }` (and `codex_compact_model_list_limit`); set `0` to list no model names and point only to MCP.
 5. **Check your readiness** — `rails ai:doctor` prints a 0–100 score and flags anything missing after first install.
@@ -194,10 +206,10 @@ Each file respects the AI tool's format and size limits. **Commit these files** 
 
 | Category | What's introspected |
 |----------|-------------------|
-| **Database** | Every table, column, index, foreign key, and migration |
+| **Database** | Every table, column, index, foreign key, and migration. Optional PostgreSQL stats add `small` / `medium` / `large` / `hot` table hints. |
 | **Models** | Associations, validations, scopes, enums, callbacks, concerns, macros (`has_secure_password`, `encrypts`, `normalizes`, etc.), **semantic tier** (`core_entity`, `pure_join`, `rich_join`, `supporting`) |
-| **Non-AR Models** | Ruby classes under `app/models` that aren't ActiveRecord, tagged as `[POJO/Service]` (opt-in via `:non_ar_models` introspector) |
-| **Routing** | Every route with HTTP verbs, paths, controller actions, API namespaces |
+| **Non-AR Models** | Ruby classes under `app/models` that aren't ActiveRecord, tagged as `[POJO/Service]` (included in `:full`, or opt in with `:non_ar_models`) |
+| **Routing** | Every route with HTTP verbs, paths, controller actions, API namespaces, plus compact endpoint-focus summaries for busy controllers |
 | **Controllers** | Actions, filters, strong params, concerns, API controllers |
 | **Views** | Layouts, templates, partials, helpers, template engines, view components |
 | **Frontend** | Stimulus controllers (targets, values, actions, outlets), Turbo Frames/Streams, model broadcasts |
@@ -212,7 +224,7 @@ Each file respects the AI tool's format and size limits. **Commit these files** 
 
 The `:full` preset runs 27 introspectors. The `:standard` preset runs 9 core ones by default.
 
-Start with `:standard` for most apps, then selectively enable additional introspectors (like `:non_ar_models` or `:database_stats`) as your use case requires.
+Start with `:standard` for most apps, then selectively enable additional introspectors (like `:database_stats`) as your use case requires. Use `config.core_models` to tell the generator which models are primary domain entities.
 
 This keeps context focused and avoids unnecessary token usage while still allowing deep introspection when needed.
 
@@ -427,6 +439,14 @@ config.preset = :standard
 config.introspectors += %i[non_ar_models views auth api]
 ```
 
+For PostgreSQL apps where row-volume context matters, opt into safe approximate table-size hints:
+
+```ruby
+config.introspectors += %i[database_stats]
+```
+
+This adds `small`, `medium`, `large`, or `hot` hints to generated context without exposing row data.
+
 ### Check your readiness score
 
 ```bash
@@ -442,11 +462,11 @@ Prints a 0–100 AI readiness score and flags anything missing: `.mcp.json`, gen
 ```ruby
 # config/initializers/rails_ai_bridge.rb
 RailsAiBridge.configure do |config|
-  # Presets: :standard (9 introspectors, default) or :full (27). Add :non_ar_models etc. as needed.
+  # Presets: :standard (9 introspectors, default) or :full (27). Add opt-in extras as needed.
   config.preset = :standard
 
   # Cherry-pick on top of a preset
-  # config.introspectors += %i[non_ar_models views turbo auth api]
+  # config.introspectors += %i[non_ar_models views turbo auth api database_stats]
 
   # Context mode: :compact (≤150 lines, default) or :full (dump everything)
   # config.context_mode = :compact
@@ -631,7 +651,7 @@ Bug reports and pull requests: [github.com/igmarin/rails-ai-bridge/issues](https
 
 ## Acknowledgments & Origins
 
-This gem ships as **rails-ai-bridge** (Ruby **`RailsAiBridge`**, version **3.0.0**). Earlier iterations of the same codebase were distributed as `rails-ai-context`.
+This gem ships as **rails-ai-bridge** (Ruby **`RailsAiBridge`**, version **3.1.0**). Earlier iterations of the same codebase were distributed as `rails-ai-context`.
 
 RailsMCP evolved from 
 [crisnahine/rails-ai-context](https://github.com/crisnahine/rails-ai-context),

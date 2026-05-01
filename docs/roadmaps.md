@@ -51,6 +51,19 @@ is normal for open-source gems (transparency, onboarding); they are not required
 
 ---
 
+## v3.1.0 — context quality
+
+| Area | Status |
+|------|--------|
+| Task-relevance model ordering across compact serializers | Done |
+| Bounded endpoint-focus summaries with MCP drill-down hints | Done |
+| Optional PostgreSQL size buckets for `database_stats` | Done |
+| Fixture matrix for standard CRUD, large schema, API-only, Hotwire, engine-style, and regulated contexts | Done |
+| README/BEST_PRACTICES clarity pass for value and setup paths | Done |
+| Implementation gate for remaining 3.1.0 slices: tests, Reek/RuboCop, `yard-documentation`, and docs updates | Required |
+
+---
+
 ## Where to look in the repo
 
 | Need | File |

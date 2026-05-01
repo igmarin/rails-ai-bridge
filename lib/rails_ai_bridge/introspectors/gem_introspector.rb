@@ -22,23 +22,23 @@ module RailsAiBridge
       #   +:notable_gems+, and +:categories+ on success; or +{ error: String }+ on
       #   any rescued +StandardError+
       def call
-        lock_path = File.join(app.root, 'Gemfile.lock')
+        lock_path = gemfile_lock_path
         return { error: 'No Gemfile.lock found' } unless File.exist?(lock_path)
 
-        specs   = parse_lockfile(lock_path)
-        notable = detect_notable_gems(specs)
-
-        {
-          total_gems: specs.size,
-          ruby_version: specs['ruby']&.first,
-          notable_gems: notable,
-          categories: GemRegistry.categorize(notable)
-        }
+        gem_summary(parse_lockfile(lock_path))
       rescue StandardError => error
         { error: "GemIntrospector failed: #{error.class}" }
       end
 
       private
+
+      def gemfile_lock_path
+        File.join(app.root, 'Gemfile.lock')
+      end
+
+      def gem_summary(specs)
+        GemSummary.new(specs, detect_notable_gems(specs)).to_h
+      end
 
       def parse_lockfile(path)
         gems = {}
@@ -72,6 +72,25 @@ module RailsAiBridge
           }
         end
       end
+
+      # Builds the compact gem payload returned by {GemIntrospector}.
+      class GemSummary
+        def initialize(specs, notable_gems)
+          @specs = specs
+          @notable_gems = notable_gems
+        end
+
+        # @return [Hash] compact gem metadata with notable gems grouped by category
+        def to_h
+          {
+            total_gems: @specs.size,
+            ruby_version: @specs['ruby']&.first,
+            notable_gems: @notable_gems,
+            categories: GemRegistry.categorize(@notable_gems)
+          }
+        end
+      end
+      private_constant :GemSummary
     end
   end
 end

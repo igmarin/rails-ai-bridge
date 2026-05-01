@@ -28,15 +28,10 @@ module RailsAiBridge
       #   truthy value to allow overwriting
       # @raise [ArgumentError] when +on_conflict+ is not a recognised symbol or callable
       def initialize(context, format: :all, split_rules: true, on_conflict: :overwrite)
-        unless VALID_ON_CONFLICT_SYMBOLS.include?(on_conflict) || on_conflict.respond_to?(:call)
-          raise ArgumentError,
-                "on_conflict must be :overwrite, :skip, :prompt, or a callable; got #{on_conflict.inspect}"
-        end
-
         @context     = context
         @format      = format
         @split_rules = split_rules
-        @on_conflict = on_conflict
+        @conflict_policy = ConflictPolicy.build(on_conflict)
       end
 
       # Write context files to the configured output directory, skipping unchanged ones.
@@ -83,16 +78,7 @@ module RailsAiBridge
       # @param filepath [String] candidate output path
       # @return [Boolean] +true+ when the file should be overwritten
       def overwrite?(filepath)
-        case @on_conflict
-        when :overwrite then true
-        when :skip      then false
-        when :prompt
-          $stdout.print "  Overwrite #{filepath}? [y/N] "
-          $stdout.flush
-          $stdin.gets.to_s.strip.downcase == 'y'
-        else
-          @on_conflict.call(filepath)
-        end
+        @conflict_policy.overwrite?(filepath)
       end
 
       # @param fmt [Symbol] format key
@@ -113,6 +99,63 @@ module RailsAiBridge
           skipped.concat(result[:skipped])
         end
       end
+
+      # Normalizes conflict behavior for output files.
+      class ConflictPolicy
+        # @param strategy [:overwrite, :skip, :prompt, #call]
+        # @return [ConflictPolicy, PromptConflictPolicy, CallableConflictPolicy]
+        # @raise [ArgumentError] when the strategy is not supported
+        def self.build(strategy)
+          return PromptConflictPolicy.new if strategy == :prompt
+          return new(strategy) if VALID_ON_CONFLICT_SYMBOLS.include?(strategy)
+
+          CallableConflictPolicy.new(strategy.method(:call))
+        rescue NameError
+          invalid_strategy!(strategy)
+        end
+
+        def self.invalid_strategy!(strategy)
+          raise ArgumentError, "on_conflict must be :overwrite, :skip, :prompt, or a callable; got #{strategy.inspect}"
+        end
+        private_class_method :invalid_strategy!
+
+        def initialize(strategy)
+          @strategy = strategy
+        end
+
+        def overwrite?(_filepath)
+          case @strategy
+          when :overwrite then true
+          when :skip      then false
+          end
+        end
+      end
+
+      # Interactive conflict policy used only for explicit `on_conflict: :prompt`.
+      class PromptConflictPolicy
+        def initialize(input: $stdin, output: $stdout)
+          @input = input
+          @output = output
+        end
+
+        def overwrite?(filepath)
+          @output.print "  Overwrite #{filepath}? [y/N] "
+          @output.flush
+          @input.gets.to_s.strip.downcase == 'y'
+        end
+      end
+
+      # Adapter for user-provided conflict resolver objects.
+      class CallableConflictPolicy
+        def initialize(callable)
+          @callable = callable
+        end
+
+        def overwrite?(filepath)
+          @callable.call(filepath)
+        end
+      end
+      private_constant :ConflictPolicy, :PromptConflictPolicy, :CallableConflictPolicy
     end
   end
 end
