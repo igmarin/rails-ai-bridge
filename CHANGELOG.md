@@ -18,8 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   approximate row counts as `small`, `medium`, `large`, or `hot`; generated context shows these
   hints only when `database_stats` is explicitly enabled.
 - **Context quality matrix specs** — generated-output acceptance coverage now exercises standard
-  CRUD, large-schema, API-only, Hotwire, engine-style, and regulated/no-domain-metadata fixture
-  profiles, including bounded output and secret-adjacent regression checks.
+  CRUD, large-schema, API-only, Hotwire, engine-style, and regulated/no-domain-metadata profiles,
+  with real Rails-shaped fixture trees for API-only, Hotwire, and large-schema apps plus bounded
+  output and secret-adjacent regression checks.
 - **Serialization benchmark guard** — large-fixture compact serialization now has a small
   performance budget to catch accidental context bloat.
 

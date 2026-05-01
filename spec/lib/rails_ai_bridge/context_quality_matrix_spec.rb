@@ -100,7 +100,8 @@ RSpec.describe 'rails-ai-bridge context quality matrix' do
   let(:real_fixture_contexts) do
     {
       api_only_blog: RealFixtureAppContext.build(:api_only_blog),
-      hotwire_crud: RealFixtureAppContext.build(:hotwire_crud)
+      hotwire_crud: RealFixtureAppContext.build(:hotwire_crud),
+      large_schema_crm: RealFixtureAppContext.build(:large_schema_crm)
     }
   end
 
@@ -124,11 +125,16 @@ RSpec.describe 'rails-ai-bridge context quality matrix' do
   end
 
   it 'keeps regulated output free of schema and model listings' do
+    previous_mode = RailsAiBridge.configuration.context_mode
+    RailsAiBridge.configuration.context_mode = :compact
+
     output = RailsAiBridge::Serializers::Providers::CodexSerializer.new(fixtures.fetch(:regulated)).call
 
     expect(output).to include('rails_get_model_details(detail:"summary")')
     expect(output).not_to include('Database:')
     expect(output).not_to include('## Models (')
+  ensure
+    RailsAiBridge.configuration.context_mode = previous_mode
   end
 
   it 'serializes large fixture output within a small benchmark budget' do
@@ -139,9 +145,10 @@ RSpec.describe 'rails-ai-bridge context quality matrix' do
     expect(elapsed).to be < 0.5
   end
 
-  it 'builds context from real API-only and Hotwire fixture app trees' do
+  it 'builds context from real API-only, Hotwire, and large-schema fixture app trees' do
     api_context = real_fixture_contexts.fetch(:api_only_blog)
     hotwire_context = real_fixture_contexts.fetch(:hotwire_crud)
+    large_context = real_fixture_contexts.fetch(:large_schema_crm)
 
     expect(api_context.dig(:schema, :total_tables)).to eq(3)
     expect(api_context[:models]).to include('Article', 'ApiToken', 'User')
@@ -153,6 +160,11 @@ RSpec.describe 'rails-ai-bridge context quality matrix' do
     expect(hotwire_context.dig(:views, :templates)).to include('conversations')
     expect(hotwire_context.dig(:views, :partials, :per_controller)).to include('messages')
     expect(hotwire_context.dig(:stimulus, :controllers).first).to include(name: 'message')
+
+    expect(large_context.dig(:schema, :total_tables)).to eq(16)
+    expect(large_context[:models].keys).to include('Account', 'Customer', 'Invoice', 'Subscription')
+    expect(large_context[:models].size).to eq(16)
+    expect(large_context.dig(:routes, :by_controller)).to include('accounts', 'customers', 'opportunities')
   end
 
   it 'keeps generated output useful for real fixture app profiles' do
@@ -175,8 +187,26 @@ RSpec.describe 'rails-ai-bridge context quality matrix' do
       when :hotwire_crud
         expect(cursor).to include('messages')
         expect(codex).to include('Conversation')
+      when :large_schema_crm
+        expect(cursor).to include('accounts')
+        expect(codex).to include('Account')
+        expect(codex).to include('rails_get_model_details')
       end
     end
+  ensure
+    RailsAiBridge.configuration.context_mode = previous_mode
+  end
+
+  it 'keeps real large-schema fixture output bounded and relevance ordered' do
+    previous_mode = RailsAiBridge.configuration.context_mode
+    RailsAiBridge.configuration.context_mode = :compact
+
+    context = real_fixture_contexts.fetch(:large_schema_crm)
+    codex = RailsAiBridge::Serializers::Providers::CodexSerializer.new(context).call
+
+    expect(codex.lines.size).to be <= 180
+    expect(codex).to include('...13 more')
+    expect(codex.index('Account')).to be < codex.index('Customer')
   ensure
     RailsAiBridge.configuration.context_mode = previous_mode
   end

@@ -9,6 +9,10 @@ require 'pathname'
 module RealFixtureAppContext
   module_function
 
+  # Builds a serializer-ready context from a Rails-shaped fixture app.
+  #
+  # @param profile [Symbol, String] fixture directory name under +spec/fixtures/apps+
+  # @return [Hash] context hash shaped like {RailsAiBridge::Introspector#call}
   def build(profile)
     root = Pathname.new(File.expand_path("../fixtures/apps/#{profile}", __dir__))
     app = Struct.new(:root).new(root)
@@ -31,6 +35,10 @@ module RealFixtureAppContext
     }
   end
 
+  # Parses the fixture app's static schema file.
+  #
+  # @param root [Pathname] fixture app root
+  # @return [Hash] parsed schema payload or an error hash when absent
   def schema_for(root)
     path = root.join('db/schema.rb')
     return { error: "No schema.rb found at #{path}" } unless path.file?
@@ -40,6 +48,10 @@ module RealFixtureAppContext
       .call
   end
 
+  # Extracts lightweight model metadata from fixture model source files.
+  #
+  # @param root [Pathname] fixture app root
+  # @return [Hash{String => Hash}] model metadata keyed by class name
   def models_for(root)
     Dir.glob(root.join('app/models/**/*.rb')).each_with_object({}) do |path, models|
       next if path.include?('/concerns/')
@@ -60,6 +72,10 @@ module RealFixtureAppContext
     end
   end
 
+  # Extracts route metadata from the fixture app's route file.
+  #
+  # @param root [Pathname] fixture app root
+  # @return [Hash] route payload grouped by controller
   def routes_for(root)
     route_rows = RouteFile.new(root.join('config/routes.rb')).routes
 
@@ -72,6 +88,10 @@ module RealFixtureAppContext
     }
   end
 
+  # Extracts lightweight controller metadata from fixture controller source files.
+  #
+  # @param root [Pathname] fixture app root
+  # @return [Hash] controller payload keyed under +:controllers+
   def controllers_for(root)
     controllers = Dir.glob(root.join('app/controllers/**/*.rb')).each_with_object({}) do |path, data|
       content = File.read(path)
@@ -92,16 +112,28 @@ module RealFixtureAppContext
     { controllers: controllers }
   end
 
+  # Classifies fixture models using a source-file marker.
+  #
+  # @param content [String] model source
+  # @return [String] semantic tier label
   def semantic_tier_for(content)
     content.include?('# rails-ai-bridge: core') ? 'core_entity' : 'supporting'
   end
 
+  # Extracts association macro metadata from model source.
+  #
+  # @param content [String] model source
+  # @return [Array<Hash>] association descriptors
   def associations_for(content)
     content.scan(/^\s*(has_many|has_one|belongs_to|has_and_belongs_to_many)\s+:([a-z_]+)/).map do |type, name|
       { type: type, name: name }
     end
   end
 
+  # Extracts validation metadata from model source.
+  #
+  # @param content [String] model source
+  # @return [Array<Hash>] validation descriptors
   def validations_for(content)
     content.scan(/^\s*validates\s+(.+?),\s+/).flatten.flat_map do |attribute_list|
       attribute_list.scan(/:(\w+)/).flatten.map { |attribute| { kind: 'presence', attributes: [attribute] } }
@@ -131,6 +163,7 @@ module RealFixtureAppContext
       @routes = []
     end
 
+    # @return [Array<Hash>] parsed route rows
     def routes
       return [] unless @path.file?
 
