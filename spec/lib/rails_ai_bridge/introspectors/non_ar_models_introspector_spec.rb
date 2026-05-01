@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+require 'securerandom'
 
 RSpec.describe RailsAiBridge::Introspectors::NonArModelsIntrospector do
   let(:introspector) { described_class.new(Rails.application) }
@@ -38,6 +39,52 @@ RSpec.describe RailsAiBridge::Introspectors::NonArModelsIntrospector do
       it 'returns empty non_ar_models array' do
         result = introspector.call
         expect(result).to eq({ non_ar_models: [] })
+      end
+    end
+
+    context 'when app/models is configured to a custom directory' do
+      let(:custom_context) do
+        root_path = Dir.mktmpdir('rails-ai-bridge-non-ar-paths')
+        root = Pathname.new(root_path)
+        models_dir = root.join('domain/models')
+        app = double(
+          'Rails::Application',
+          root: root,
+          config: double(eager_load: true),
+          eager_load!: nil,
+          paths: { 'app/models' => [models_dir.to_s] }
+        )
+
+        {
+          root_path: root_path,
+          models_dir: models_dir,
+          introspector: described_class.new(app),
+          constant_name: "BillingPolicy#{SecureRandom.hex(4)}"
+        }
+      end
+
+      after { FileUtils.rm_rf(custom_context[:root_path]) }
+
+      before do
+        FileUtils.mkdir_p(custom_context[:models_dir])
+        File.write(custom_context[:models_dir].join('billing_policy.rb'), <<~RUBY)
+          class #{custom_context[:constant_name]}
+          end
+        RUBY
+        load custom_context[:models_dir].join('billing_policy.rb')
+      end
+
+      it 'discovers non-ActiveRecord classes from the configured models path' do
+        result = custom_context[:introspector].call
+
+        expect(result).not_to have_key(:error)
+        expect(result[:non_ar_models]).to include(
+          a_hash_including(
+            name: custom_context[:constant_name],
+            relative_path: 'app/models/billing_policy.rb',
+            tag: 'POJO/Service'
+          )
+        )
       end
     end
 

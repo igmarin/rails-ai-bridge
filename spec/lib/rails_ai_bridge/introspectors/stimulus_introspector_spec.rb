@@ -116,5 +116,39 @@ RSpec.describe RailsAiBridge::Introspectors::StimulusIntrospector do
         expect(actions).not_to include('if', 'for', 'while')
       end
     end
+
+    context 'when app/javascript/controllers is configured to a custom directory' do
+      let(:custom_context) do
+        root_path = Dir.mktmpdir('rails-ai-bridge-stimulus-paths')
+        root = Pathname.new(root_path)
+        controllers_dir = root.join('frontend/controllers')
+        app = double('Rails::Application', root: root, paths: { 'app/javascript/controllers' => [controllers_dir.to_s] })
+
+        { root_path: root_path, controllers_dir: controllers_dir, introspector: described_class.new(app) }
+      end
+
+      after { FileUtils.rm_rf(custom_context[:root_path]) }
+
+      before do
+        FileUtils.mkdir_p(custom_context[:controllers_dir].join('admin'))
+        File.write(custom_context[:controllers_dir].join('admin/filter_controller.ts'), <<~TS)
+          export default class extends Controller {
+            static targets = ["query"]
+
+            apply() {
+              this.queryTarget.value = ""
+            }
+          }
+        TS
+      end
+
+      it 'discovers controllers from the configured JavaScript controllers path' do
+        controllers = custom_context[:introspector].call[:controllers]
+
+        expect(controllers).to include(
+          a_hash_including(name: 'admin-filter', file: 'admin/filter_controller.ts', targets: ['query'], actions: ['apply'])
+        )
+      end
+    end
   end
 end

@@ -39,6 +39,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Convention detection with custom Rails paths** — architecture and directory-structure signals
   now honor configured Rails paths for directories such as `app/models` and `app/services` while
   keeping generated output on logical names instead of absolute local paths.
+- **Model introspection with custom Rails paths** — ActiveRecord source-derived metadata and
+  `non_ar_models` discovery now resolve every configured `app/models` path, so apps that place
+  domain models outside the conventional directory still generate useful model context.
+- **Controller and frontend introspection with custom Rails paths** — controller source metadata,
+  view summaries, Stimulus controllers, and Turbo frame/stream/broadcast detection now honor
+  configured `app/controllers`, `app/views`, `app/helpers`, `app/components`, and
+  `app/javascript/controllers` paths where Rails exposes them.
 - **Copilot, Codex, Cursor, Windsurf, and shared compact serializers** — key model sections now
   use the same relevance score so assistants see core, routed, recently changed, or hot-domain
   models before lower-signal supporting models.

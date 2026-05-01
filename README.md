@@ -210,11 +210,11 @@ Each file respects the AI tool's format and size limits. **Commit these files** 
 |----------|-------------------|
 | **Database** | Every table, column, index, foreign key, and migration. Optional PostgreSQL stats add `small` / `medium` / `large` / `hot` table hints. |
 | **Models** | Associations, validations, scopes, enums, callbacks, concerns, macros (`has_secure_password`, `encrypts`, `normalizes`, etc.), **semantic tier** (`core_entity`, `pure_join`, `rich_join`, `supporting`) |
-| **Non-AR Models** | Ruby classes under `app/models` that aren't ActiveRecord, tagged as `[POJO/Service]` (included in `:full`, or opt in with `:non_ar_models`) |
+| **Non-AR Models** | Ruby classes under the configured logical `app/models` path that aren't ActiveRecord, tagged as `[POJO/Service]` (included in `:full`, or opt in with `:non_ar_models`) |
 | **Routing** | Every route with HTTP verbs, paths, controller actions, API namespaces, plus compact endpoint-focus summaries for busy controllers |
-| **Controllers** | Actions, filters, strong params, concerns, API controllers |
+| **Controllers** | Actions, filters, strong params, concerns, API controllers; source metadata honors configured controller paths |
 | **Views** | Layouts, templates, partials, helpers, template engines, view components |
-| **Frontend** | Stimulus controllers (targets, values, actions, outlets), Turbo Frames/Streams, model broadcasts |
+| **Frontend** | Stimulus controllers, views, Turbo Frames/Streams, and broadcasts from configured Rails paths |
 | **Background** | ActiveJob classes, mailers, Action Cable channels |
 | **Gems** | 70+ notable gems categorized (Devise = auth, Sidekiq = jobs, Pundit = authorization, etc.) |
 | **Auth** | Devise modules, Pundit policies, CanCanCan, has_secure_password, CORS, CSP |

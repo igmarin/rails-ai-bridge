@@ -6,8 +6,12 @@ module RailsAiBridge
     class TurboIntrospector
       attr_reader :app
 
+      # Initializes the Turbo introspector and path resolver.
+      #
+      # @param app [Rails::Application] host Rails application
       def initialize(app)
         @app = app
+        @path_resolver = PathResolver.new(app)
       end
 
       def call
@@ -26,17 +30,18 @@ module RailsAiBridge
         app.root.to_s
       end
 
+      # Returns the first configured logical +app/views+ directory.
+      #
+      # @return [String, nil] absolute view directory path
       def views_dir
-        File.join(root, 'app/views')
+        @path_resolver.directories_for('app/views').first
       end
 
       def extract_turbo_frames
-        return [] unless Dir.exist?(views_dir)
-
         frames = []
-        Dir.glob(File.join(views_dir, '**/*.{erb,haml,slim}')).each do |path|
+        @path_resolver.glob_for('app/views', '**/*.{erb,haml,slim}').each do |path|
           content = File.read(path)
-          relative = path.sub("#{views_dir}/", '')
+          relative = view_relative_path(path)
 
           content.scan(/turbo_frame_tag\s+[:"']?(\w+)/).each do |match|
             frames << { id: match[0], file: relative }
@@ -49,19 +54,14 @@ module RailsAiBridge
       end
 
       def extract_turbo_stream_templates
-        return [] unless Dir.exist?(views_dir)
-
-        Dir.glob(File.join(views_dir, '**/*.turbo_stream.erb')).filter_map do |path|
-          path.sub("#{views_dir}/", '')
+        @path_resolver.glob_for('app/views', '**/*.turbo_stream.erb').filter_map do |path|
+          view_relative_path(path)
         end.sort
       end
 
       def extract_model_broadcasts
-        models_dir = File.join(root, 'app/models')
-        return [] unless Dir.exist?(models_dir)
-
         broadcasts = []
-        Dir.glob(File.join(models_dir, '**/*.rb')).each do |path|
+        @path_resolver.files_for('app/models', extension: 'rb').each do |path|
           content = File.read(path)
           model_name = File.basename(path, '.rb').camelize
 
@@ -74,6 +74,14 @@ module RailsAiBridge
         broadcasts.sort_by { |b| b[:model] }
       rescue StandardError
         []
+      end
+
+      # Converts an absolute view path to a stable path relative to logical +app/views+.
+      #
+      # @param path [String] absolute source path
+      # @return [String] path relative to the logical view directory
+      def view_relative_path(path)
+        @path_resolver.logical_file_path(path, logical_path: 'app/views').delete_prefix('app/views/')
       end
     end
   end

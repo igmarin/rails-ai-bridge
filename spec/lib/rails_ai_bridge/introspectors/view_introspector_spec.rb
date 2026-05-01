@@ -87,5 +87,50 @@ RSpec.describe RailsAiBridge::Introspectors::ViewIntrospector do
         expect(result[:view_components]).to contain_exactly('alert_component', 'badge_component')
       end
     end
+
+    context 'when view-layer directories are configured to custom paths' do
+      let(:custom_context) do
+        root_path = Dir.mktmpdir('rails-ai-bridge-view-paths')
+        root = Pathname.new(root_path)
+        views_dir = root.join('interface/templates')
+        helpers_dir = root.join('interface/helpers')
+        components_dir = root.join('interface/components')
+        app = double(
+          'Rails::Application',
+          root: root,
+          paths: {
+            'app/views' => [views_dir.to_s],
+            'app/helpers' => [helpers_dir.to_s],
+            'app/components' => [components_dir.to_s]
+          }
+        )
+
+        { root_path: root_path, views_dir: views_dir, helpers_dir: helpers_dir, components_dir: components_dir, introspector: described_class.new(app) }
+      end
+
+      after { FileUtils.rm_rf(custom_context[:root_path]) }
+
+      before do
+        FileUtils.mkdir_p(custom_context[:views_dir].join('reports'))
+        FileUtils.mkdir_p(custom_context[:views_dir].join('layouts'))
+        FileUtils.mkdir_p(custom_context[:helpers_dir])
+        FileUtils.mkdir_p(custom_context[:components_dir])
+        File.write(custom_context[:views_dir].join('layouts/application.html.erb'), '<main><%= yield %></main>')
+        File.write(custom_context[:views_dir].join('reports/index.html.erb'), '<%= render "summary" %>')
+        File.write(custom_context[:views_dir].join('reports/_summary.html.erb'), '<p>Summary</p>')
+        File.write(custom_context[:helpers_dir].join('reports_helper.rb'), "module ReportsHelper\n  def report_title; end\nend\n")
+        File.write(custom_context[:components_dir].join('summary_component.rb'), 'class SummaryComponent; end')
+      end
+
+      it 'discovers views, helpers, and components from configured logical paths' do
+        custom_result = custom_context[:introspector].call
+
+        expect(custom_result[:layouts]).to eq(['application.html.erb'])
+        expect(custom_result[:templates]).to include('reports' => ['index.html.erb'])
+        expect(custom_result[:partials][:per_controller]).to include('reports' => ['_summary.html.erb'])
+        expect(custom_result[:helpers]).to include(a_hash_including(file: 'reports_helper.rb', methods: ['report_title']))
+        expect(custom_result[:view_components]).to eq(['summary_component'])
+      end
+    end
   end
 end

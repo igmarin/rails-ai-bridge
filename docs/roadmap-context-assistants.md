@@ -21,10 +21,14 @@ This track is **separate** from [roadmap-mcp-v2.md](roadmap-mcp-v2.md) (MCP HTTP
 - Filter secret-bearing config paths from generated context, `rails_get_conventions`, and `rails://conventions` output (v3.1.0).
 - Honor configured Rails paths in convention detection so custom `app/models` and `app/services`
   locations still produce useful architecture and directory-structure context without exposing absolute paths (v3.1.0).
+- Honor configured `app/models` paths in ActiveRecord source metadata and `non_ar_models`
+  discovery, mapping custom filesystem locations back to stable logical paths in generated context (v3.1.0).
+- Honor configured controller and frontend paths in controller metadata, view summaries,
+  Stimulus controllers, and Turbo frame/stream/broadcast discovery (v3.1.0).
 
 ## In progress
 
-- Custom Rails directory introspection coverage gaps outside convention detection
+- Custom Rails directory introspection coverage gaps outside model, controller, view, Stimulus, Turbo, and convention detection
 - Remaining v3.1.0 context-quality slices must apply the `yard-documentation` skill:
   every new or changed public Ruby class/method needs an English summary plus `@param`,
   `@return`, and `@raise` tags where applicable before the slice is considered complete.

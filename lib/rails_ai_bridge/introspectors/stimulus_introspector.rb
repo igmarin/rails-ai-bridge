@@ -6,17 +6,17 @@ module RailsAiBridge
     class StimulusIntrospector
       attr_reader :app
 
+      # Initializes the Stimulus introspector and path resolver.
+      #
+      # @param app [Rails::Application] host Rails application
       def initialize(app)
         @app = app
+        @path_resolver = PathResolver.new(app)
       end
 
       def call
-        root = app.root.to_s
-        controllers_dir = File.join(root, 'app/javascript/controllers')
-        return { controllers: [] } unless Dir.exist?(controllers_dir)
-
-        controllers = Dir.glob(File.join(controllers_dir, '**/*_controller.{js,ts}')).filter_map do |path|
-          parse_controller(path, controllers_dir)
+        controllers = @path_resolver.glob_for('app/javascript/controllers', '**/*_controller.{js,ts}').filter_map do |path|
+          parse_controller(path)
         end
 
         { controllers: controllers }
@@ -26,8 +26,8 @@ module RailsAiBridge
 
       private
 
-      def parse_controller(path, base_dir)
-        relative = path.sub("#{base_dir}/", '')
+      def parse_controller(path)
+        relative = stimulus_relative_path(path)
         name = relative.sub(/_controller\.(js|ts)\z/, '').tr('/', '--')
         content = File.read(path)
 
@@ -42,6 +42,15 @@ module RailsAiBridge
         }
       rescue StandardError => error
         { name: File.basename(path), error: error.message }
+      end
+
+      # Converts an absolute Stimulus controller path to the logical controller path.
+      #
+      # @param path [String] absolute source path
+      # @return [String] path relative to the logical +app/javascript/controllers+ directory
+      def stimulus_relative_path(path)
+        @path_resolver.logical_file_path(path, logical_path: 'app/javascript/controllers')
+                      .delete_prefix('app/javascript/controllers/')
       end
 
       def extract_targets(content)

@@ -748,11 +748,11 @@ These run by default. Fast and cover core Rails structure.
 | `jobs` | ActiveJob classes with queue names. Mailers with action methods. Action Cable channels. |
 | `gems` | 70+ notable gems categorized: auth, background_jobs, admin, monitoring, search, pagination, forms, file_upload, testing, linting, security, api, frontend, utilities. |
 | `conventions` | Architecture patterns (MVC, service objects, STI, polymorphism, etc.), directory structure with file counts, config files, detected patterns. |
-| `controllers` | Actions, filters (before/after/around with only/except), strong params methods, parent class, API controller detection, concerns. |
+| `controllers` | Actions, filters (before/after/around with only/except), strong params methods, parent class, API controller detection, concerns. Source-derived metadata honors the configured logical `app/controllers` path. |
 | `tests` | Test framework (rspec/minitest), factories/fixtures with locations and counts, system tests, CI config files, coverage tool, test helpers, VCR cassettes. |
 | `migrations` | Total count, schema version, pending migrations, recent migration history with detected actions (create_table, add_column, etc.), migration statistics. |
 
-**Standard opt-in:** `non_ar_models` — Ruby classes under `app/models` that are not subclasses of `ActiveRecord::Base`, tagged **`[POJO/Service]`** in `rails_get_model_details` listings and Claude `rails-models.md`. Included in `:full`; add it manually when staying on `:standard`. Uses `Object.const_source_location` after eager load.
+**Standard opt-in:** `non_ar_models` — Ruby classes under the configured logical `app/models` Rails path that are not subclasses of `ActiveRecord::Base`, tagged **`[POJO/Service]`** in `rails_get_model_details` listings and Claude `rails-models.md`. Included in `:full`; add it manually when staying on `:standard`. Uses `Object.const_source_location` after eager load and reports stable logical paths instead of absolute custom directories.
 
 ### Full preset (27 introspectors)
 
@@ -760,10 +760,10 @@ Includes all standard introspectors plus:
 
 | Introspector | What it discovers |
 |-------------|-------------------|
-| `non_ar_models` | Ruby classes under `app/models` that are not subclasses of `ActiveRecord::Base`, tagged **`[POJO/Service]`** in model listings. |
-| `stimulus` | Stimulus controllers with targets, values (with types), actions, outlets, classes. Extracted from JS/TS files. |
-| `views` | Layouts, templates grouped by controller, partials (per-controller and shared), helpers with methods, template engines (erb, haml, slim), view components. |
-| `turbo` | Turbo Frames (IDs and files), Turbo Stream templates, model broadcasts (`broadcasts_to`, `broadcasts`). |
+| `non_ar_models` | Ruby classes under the configured logical `app/models` path that are not subclasses of `ActiveRecord::Base`, tagged **`[POJO/Service]`** in model listings. |
+| `stimulus` | Stimulus controllers with targets, values (with types), actions, outlets, classes. Extracted from JS/TS files under the configured logical `app/javascript/controllers` path. |
+| `views` | Layouts, templates grouped by controller, partials (per-controller and shared), helpers with methods, template engines (erb, haml, slim), view components. Honors configured logical `app/views`, `app/helpers`, and `app/components` paths. |
+| `turbo` | Turbo Frames (IDs and files), Turbo Stream templates, model broadcasts (`broadcasts_to`, `broadcasts`). Honors configured logical `app/views` and `app/models` paths. |
 | `i18n` | Default locale, available locales, locale files with key counts, backend class, parse errors. |
 | `config` | Cache store, session store, timezone, middleware stack, initializers, credentials keys, CurrentAttributes classes. |
 | `active_storage` | Attachments (has_one_attached, has_many_attached per model), storage services, direct upload config. |

@@ -7,8 +7,12 @@ module RailsAiBridge
     class ControllerIntrospector
       attr_reader :app
 
+      # Initializes the controller introspector and path resolver.
+      #
+      # @param app [Rails::Application] host Rails application
       def initialize(app)
         @app = app
+        @path_resolver = PathResolver.new(app)
       end
 
       def call
@@ -131,10 +135,13 @@ module RailsAiBridge
         nil
       end
 
+      # Resolves a controller source file from the configured logical +app/controllers+ path.
+      #
+      # @param ctrl [Class] controller class
+      # @return [String, nil] absolute source path when present
       def source_path(ctrl)
-        root = app.root.to_s
         underscored = ctrl.name.underscore
-        File.join(root, 'app', 'controllers', "#{underscored}.rb")
+        @path_resolver.existing_file_for('app/controllers', "#{underscored}.rb")
       end
     end
   end

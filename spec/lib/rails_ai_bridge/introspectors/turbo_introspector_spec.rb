@@ -47,5 +47,46 @@ RSpec.describe RailsAiBridge::Introspectors::TurboIntrospector do
         expect(broadcast[:methods]).to include('broadcasts_to', 'broadcasts_refreshes_to')
       end
     end
+
+    context 'when Turbo-related paths are configured to custom directories' do
+      let(:custom_context) do
+        root_path = Dir.mktmpdir('rails-ai-bridge-turbo-paths')
+        root = Pathname.new(root_path)
+        views_dir = root.join('interface/templates')
+        models_dir = root.join('domain/models')
+        app = double(
+          'Rails::Application',
+          root: root,
+          paths: {
+            'app/views' => [views_dir.to_s],
+            'app/models' => [models_dir.to_s]
+          }
+        )
+
+        { root_path: root_path, views_dir: views_dir, models_dir: models_dir, introspector: described_class.new(app) }
+      end
+
+      after { FileUtils.rm_rf(custom_context[:root_path]) }
+
+      before do
+        FileUtils.mkdir_p(custom_context[:views_dir].join('reports'))
+        FileUtils.mkdir_p(custom_context[:models_dir])
+        File.write(custom_context[:views_dir].join('reports/show.html.erb'), '<%= turbo_frame_tag :report %>')
+        File.write(custom_context[:views_dir].join('reports/create.turbo_stream.erb'), '<%= turbo_stream.append :reports %>')
+        File.write(custom_context[:models_dir].join('notification.rb'), <<~RUBY)
+          class Notification < ApplicationRecord
+            broadcasts_to :account
+          end
+        RUBY
+      end
+
+      it 'discovers Turbo frames, streams, and broadcasts from configured paths' do
+        custom_result = custom_context[:introspector].call
+
+        expect(custom_result[:turbo_frames]).to include(id: 'report', file: 'reports/show.html.erb')
+        expect(custom_result[:turbo_streams]).to include('reports/create.turbo_stream.erb')
+        expect(custom_result[:model_broadcasts]).to include(model: 'Notification', methods: ['broadcasts_to'])
+      end
+    end
   end
 end

@@ -236,5 +236,38 @@ RSpec.describe RailsAiBridge::Introspectors::ModelIntrospector do
         expect(macros).to eq({})
       end
     end
+
+    context 'when app/models is configured to a custom directory' do
+      let(:custom_context) do
+        root_path = Dir.mktmpdir('rails-ai-bridge-model-paths')
+        root = Pathname.new(root_path)
+        models_dir = root.join('domain/models')
+        app = double('Rails::Application', root: root, paths: { 'app/models' => [models_dir.to_s] })
+
+        {
+          root_path: root_path,
+          models_dir: models_dir,
+          introspector: described_class.new(app),
+          model: double(name: 'Billing::Account')
+        }
+      end
+
+      after { FileUtils.rm_rf(custom_context[:root_path]) }
+
+      before do
+        FileUtils.mkdir_p(custom_context[:models_dir].join('billing'))
+        File.write(custom_context[:models_dir].join('billing/account.rb'), <<~RUBY)
+          class Billing::Account < ApplicationRecord
+            scope :billable, -> { where(active: true) }
+            encrypts :token
+          end
+        RUBY
+      end
+
+      it 'reads source-derived metadata from the configured models path' do
+        expect(custom_context[:introspector].send(:extract_scopes, custom_context[:model])).to include('billable')
+        expect(custom_context[:introspector].send(:extract_source_macros, custom_context[:model])).to include(encrypts: ['token'])
+      end
+    end
   end
 end
