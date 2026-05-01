@@ -8,7 +8,7 @@ RSpec.describe RailsAiBridge::PathResolver do
     root = Pathname.new(root_path)
     models_dir = root.join('domain/models')
 
-    { root_path: root_path, root: root, models_dir: models_dir }
+    { root_path:, root:, models_dir: }
   end
 
   let(:app) do

@@ -88,7 +88,7 @@ module RailsAiBridge
         security_result = validate_path_security(search_path, root, path)
         return security_result if security_result.is_a?(MCP::Tool::Response)
 
-        { search_path: search_path, file_type: normalized_type, max_results: max_results, root: root }
+        { search_path:, file_type: normalized_type, max_results:, root: }
       end
 
       private_class_method def self.execute_and_format_search(pattern, search_params, path)

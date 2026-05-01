@@ -46,6 +46,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   view summaries, Stimulus controllers, and Turbo frame/stream/broadcast detection now honor
   configured `app/controllers`, `app/views`, `app/helpers`, `app/components`, and
   `app/javascript/controllers` paths where Rails exposes them.
+- **View detail access with custom Rails paths** — `rails_get_view(path:"...")` and
+  `rails://views/{path}` now resolve files through configured `app/views` paths while preserving
+  traversal protection.
 - **Copilot, Codex, Cursor, Windsurf, and shared compact serializers** — key model sections now
   use the same relevance score so assistants see core, routed, recently changed, or hot-domain
   models before lower-signal supporting models.

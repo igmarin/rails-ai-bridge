@@ -286,7 +286,7 @@ module RailsAiBridge
       # @param path [String] relative path to view file
       # @return [Hash] view analysis or error hash
       def read_view_resource(path)
-        ViewFileAnalyzer.call(root: Rails.root, relative_path: path)
+        ViewFileAnalyzer.call(root: Rails.root, app: Rails.application, relative_path: path)
       rescue SecurityError => error
         { error: error.message }
       rescue Errno::ENOENT

@@ -242,11 +242,11 @@ RSpec.describe RailsAiBridge::Introspectors::ModelIntrospector do
         root_path = Dir.mktmpdir('rails-ai-bridge-model-paths')
         root = Pathname.new(root_path)
         models_dir = root.join('domain/models')
-        app = double('Rails::Application', root: root, paths: { 'app/models' => [models_dir.to_s] })
+        app = double('Rails::Application', root:, paths: { 'app/models' => [models_dir.to_s] })
 
         {
-          root_path: root_path,
-          models_dir: models_dir,
+          root_path:,
+          models_dir:,
           introspector: described_class.new(app),
           model: double(name: 'Billing::Account')
         }

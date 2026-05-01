@@ -47,7 +47,7 @@ module RailsAiBridge
         return text_response("View introspection failed: #{data[:error]}") if data[:error]
 
         if path
-          analysis = ViewFileAnalyzer.call(root: rails_app.root, relative_path: path)
+          analysis = ViewFileAnalyzer.call(root: rails_app.root, app: rails_app, relative_path: path)
           return text_response(SpecificViewFormatter.new.call(analysis))
         end
 

@@ -56,14 +56,14 @@ RSpec.describe RailsAiBridge::Introspectors::TurboIntrospector do
         models_dir = root.join('domain/models')
         app = double(
           'Rails::Application',
-          root: root,
+          root:,
           paths: {
             'app/views' => [views_dir.to_s],
             'app/models' => [models_dir.to_s]
           }
         )
 
-        { root_path: root_path, views_dir: views_dir, models_dir: models_dir, introspector: described_class.new(app) }
+        { root_path:, views_dir:, models_dir:, introspector: described_class.new(app) }
       end
 
       after { FileUtils.rm_rf(custom_context[:root_path]) }

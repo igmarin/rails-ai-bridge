@@ -122,9 +122,9 @@ RSpec.describe RailsAiBridge::Introspectors::StimulusIntrospector do
         root_path = Dir.mktmpdir('rails-ai-bridge-stimulus-paths')
         root = Pathname.new(root_path)
         controllers_dir = root.join('frontend/controllers')
-        app = double('Rails::Application', root: root, paths: { 'app/javascript/controllers' => [controllers_dir.to_s] })
+        app = double('Rails::Application', root:, paths: { 'app/javascript/controllers' => [controllers_dir.to_s] })
 
-        { root_path: root_path, controllers_dir: controllers_dir, introspector: described_class.new(app) }
+        { root_path:, controllers_dir:, introspector: described_class.new(app) }
       end
 
       after { FileUtils.rm_rf(custom_context[:root_path]) }

@@ -49,7 +49,7 @@ RSpec.describe RailsAiBridge::Introspectors::NonArModelsIntrospector do
         models_dir = root.join('domain/models')
         app = double(
           'Rails::Application',
-          root: root,
+          root:,
           config: double(eager_load: true),
           eager_load!: nil,
           paths: { 'app/models' => [models_dir.to_s] }

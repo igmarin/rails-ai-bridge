@@ -97,7 +97,7 @@ RSpec.describe RailsAiBridge::Introspectors::ViewIntrospector do
         components_dir = root.join('interface/components')
         app = double(
           'Rails::Application',
-          root: root,
+          root:,
           paths: {
             'app/views' => [views_dir.to_s],
             'app/helpers' => [helpers_dir.to_s],
@@ -105,7 +105,7 @@ RSpec.describe RailsAiBridge::Introspectors::ViewIntrospector do
           }
         )
 
-        { root_path: root_path, views_dir: views_dir, helpers_dir: helpers_dir, components_dir: components_dir, introspector: described_class.new(app) }
+        { root_path:, views_dir:, helpers_dir:, components_dir:, introspector: described_class.new(app) }
       end
 
       after { FileUtils.rm_rf(custom_context[:root_path]) }

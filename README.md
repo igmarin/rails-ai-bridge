@@ -247,7 +247,7 @@ The gem exposes **11 built-in tools** via MCP that AI clients call on-demand (ho
 | `rails_get_gems` | Notable gems categorized by function |
 | `rails_get_conventions` | Architecture patterns, directory structure |
 | `rails_search_code` | Ripgrep (or Ruby) search under `Rails.root` with allowlisted extensions, pattern size cap, and optional wall-clock timeout |
-| `rails_get_view` | View layouts, templates, partials; optional per-file detail under `app/views` |
+| `rails_get_view` | View layouts, templates, partials; optional per-file detail under the configured `app/views` path |
 | `rails_get_stimulus` | Stimulus controllers: targets, values, actions, outlets (requires `:stimulus` introspector) |
 
 All tools are **read-only** — they never modify your application or database.

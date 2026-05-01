@@ -110,6 +110,26 @@ RSpec.describe RailsAiBridge::Resources do
       end
     end
 
+    it 'reads a specific view resource from a configured custom app/views path' do
+      Dir.mktmpdir do |dir|
+        root = Pathname.new(dir)
+        views_root = root.join('interface/templates')
+        FileUtils.mkdir_p(views_root.join('reports'))
+        File.write(views_root.join('reports/show.html.erb'), "<%= render 'summary' %>")
+
+        allow(Rails).to receive_messages(
+          application: double(root:, paths: { 'app/views' => [views_root.to_s] }),
+          root:
+        )
+
+        rows = described_class.send(:handle_read, { uri: 'rails://views/reports/show.html.erb' })
+        json = JSON.parse(rows.first[:text])
+
+        expect(json['path']).to eq('reports/show.html.erb')
+        expect(json['renders']).to include('summary')
+      end
+    end
+
     it 'raises for unknown resources' do
       expect do
         described_class.send(:handle_read, { uri: 'rails://unknown/resource' })

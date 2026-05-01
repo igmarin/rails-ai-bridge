@@ -482,7 +482,7 @@ rails_search_code(pattern: "def create", path: "app/controllers", file_type: "rb
 
 View-layer context: layouts, templates, partials, helpers, components. Requires the `:views` introspector (included in the `:full` preset, or add `config.introspectors << :views`).
 
-**Parameters:** optional `path` (file under `app/views`), `controller`, `partial`, and `detail` (`summary` / `standard` / `full`).
+**Parameters:** optional `path` (file under the configured logical `app/views` path), `controller`, `partial`, and `detail` (`summary` / `standard` / `full`).
 
 ### rails_get_stimulus
 
@@ -523,7 +523,7 @@ In addition to tools, the gem registers static MCP resources that AI clients can
 | `rails://tests` | Test infrastructure details (JSON) |
 | `rails://migrations` | Migration history and statistics (JSON) |
 | `rails://engines` | Mounted engines with paths and descriptions (JSON) |
-| `rails://views` | View-layer summary (JSON); template `rails://views/{path}` |
+| `rails://views` | View-layer summary (JSON); template `rails://views/{path}` resolves through the configured logical `app/views` path |
 | `rails://stimulus` | Stimulus summary (JSON); template `rails://stimulus/{name}` |
 | `rails://models/{name}` | Per-model details (resource template) |
 

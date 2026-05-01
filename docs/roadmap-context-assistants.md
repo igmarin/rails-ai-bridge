@@ -25,6 +25,8 @@ This track is **separate** from [roadmap-mcp-v2.md](roadmap-mcp-v2.md) (MCP HTTP
   discovery, mapping custom filesystem locations back to stable logical paths in generated context (v3.1.0).
 - Honor configured controller and frontend paths in controller metadata, view summaries,
   Stimulus controllers, and Turbo frame/stream/broadcast discovery (v3.1.0).
+- Honor configured `app/views` paths in file-level view detail reads for `rails_get_view(path:)`
+  and `rails://views/{path}` while preserving traversal checks (v3.1.0).
 
 ## In progress
 
