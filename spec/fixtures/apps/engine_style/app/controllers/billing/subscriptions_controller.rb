@@ -1,3 +1,4 @@
+# Exposes subscription actions for the billing engine-style fixture.
 class Billing::SubscriptionsController < Billing::ApplicationController
   def index
   end

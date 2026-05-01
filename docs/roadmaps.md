@@ -67,6 +67,7 @@ is normal for open-source gems (transparency, onboarding); they are not required
 | Controller, view, Stimulus, and Turbo coverage for configured Rails paths | Done |
 | View detail MCP tool/resource reads for configured `app/views` paths | Done |
 | Specialized Active Storage, Action Text, Config, Auth, and API scans for configured Rails paths | Done |
+| Custom path support coverage note separating standard/high-value work from full-preset parity candidates | Done |
 | README/BEST_PRACTICES clarity pass for value and setup paths | Done |
 | Implementation gate for remaining 3.1.0 slices: tests, Reek/RuboCop, `yard-documentation`, and docs updates | Required |
 

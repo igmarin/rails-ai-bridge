@@ -1,3 +1,4 @@
+# Drives conversation screens in the Hotwire CRUD fixture.
 class ConversationsController < ApplicationController
   def index
   end

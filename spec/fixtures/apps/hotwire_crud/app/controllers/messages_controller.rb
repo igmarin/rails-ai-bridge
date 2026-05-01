@@ -1,3 +1,4 @@
+# Handles message mutations in the Hotwire CRUD fixture.
 class MessagesController < ApplicationController
   def create
   end

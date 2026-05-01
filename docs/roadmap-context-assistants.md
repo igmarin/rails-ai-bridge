@@ -39,6 +39,21 @@ This track is **separate** from [roadmap-mcp-v2.md](roadmap-mcp-v2.md) (MCP HTTP
   every new or changed public Ruby class/method needs an English summary plus `@param`,
   `@return`, and `@raise` tags where applicable before the slice is considered complete.
 
+## Custom Path Support Coverage
+
+For **v3.1.0**, custom Rails path support is considered complete for the default `:standard`
+context-quality promise and the highest-value `:full` signals:
+
+- **Standard preset coverage:** `models`, `controllers`, and `conventions` honor configured Rails
+  paths where those introspectors read application source. `schema`, `routes`, `jobs`, `gems`,
+  `tests`, and `migrations` are not primarily driven by `app.paths`.
+- **High-value full-preset coverage:** `non_ar_models`, `views`, `stimulus`, `turbo`,
+  `active_storage`, `action_text`, `config`, `auth`, `api`, and file-level view detail reads honor
+  configured logical Rails paths where they scan source files.
+- **Deferred parity candidates:** `assets`, `i18n`, `rake_tasks`, `action_mailbox`, `devops`,
+  and `middleware` remain full-preset follow-up candidates. Treat these as targeted future work
+  when a real fixture or user app shows custom path value, not as a blocker for the 3.1.0 release.
+
 ## Relation to versioning
 
 **No semver bump is implied by this doc alone.** A future **major release** (e.g. 2.0.0) should follow **after** this work when the maintainers are ready to communicate breaking or wide-ranging changes to generated files and defaults — not as a fixed milestone on the MCP roadmap.

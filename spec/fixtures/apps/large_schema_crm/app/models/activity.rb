@@ -1,3 +1,4 @@
+# Captures account activity events in the CRM fixture.
 class Activity < ApplicationRecord
   belongs_to :account
 

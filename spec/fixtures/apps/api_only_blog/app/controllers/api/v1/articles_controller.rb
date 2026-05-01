@@ -1,3 +1,4 @@
+# Exposes versioned article CRUD endpoints for the API-only fixture.
 class Api::V1::ArticlesController < ApplicationController
   def index
   end

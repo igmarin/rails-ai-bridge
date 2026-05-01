@@ -1,3 +1,4 @@
+# Tracks invoice payments in the large-schema CRM fixture.
 class Payment < ApplicationRecord
   belongs_to :invoice
 

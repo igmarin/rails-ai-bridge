@@ -1,3 +1,4 @@
+# Exposes account collection and mutation endpoints for the CRM fixture.
 class AccountsController < ApplicationController
   def index
   end
