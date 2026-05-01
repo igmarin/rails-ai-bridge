@@ -11,37 +11,42 @@
 
 ---
 
-## Why this matters
+## What this gem does
 
-LLMs are powerful, but unreliable in real-world codebases without structure. They guess architecture, miss conventions, and waste tokens trying to understand your app.
+AI coding tools are much better when they know your Rails app before they start editing. Without that context, they guess table names, miss routes, ignore conventions, and spend tokens rediscovering structure your app already has.
 
-rails-ai-bridge fixes this by giving AI assistants **explicit, structured knowledge of your Rails app upfront**, plus on-demand introspection when deeper detail is needed.
+rails-ai-bridge turns a Rails app into an AI-readable project map:
 
-The result:
-- More accurate code generation
-- Faster time to first useful response
-- Less token waste on exploration
-- More predictable, production-ready outputs
+- **Static context files** give assistants an immediate overview of your app, conventions, schema shape, routes, and important models.
+- **A read-only MCP server** lets assistants ask for exact details only when needed, such as one model, one table, one controller, or one route group.
+- **Assistant-specific output** keeps Claude Code, Cursor, Codex, Copilot, Windsurf, Gemini, and JSON consumers aligned without making you hand-write context files.
 
-### Start here if the README feels long
+The goal is simple: help AI assistants produce code that fits your Rails app instead of generic Rails code.
+
+## Start here
+
+Use the README as the shortest path to understanding and setup. Jump to deeper docs only when you need details.
 
 | You want to... | Read this first |
 |---|---|
-| Install quickly | [Quick start](#quick-start) |
-| Understand the value | [What Your AI Learns](#what-your-ai-learns) |
-| Pick a setup | [Pick the right preset for your app](#pick-the-right-preset-for-your-app) |
-| Wire MCP safely | [MCP Server Setup](#mcp-server-setup) and [mcp-security.md](docs/mcp-security.md) |
-| Tune generated context | [Best Practices](docs/BEST_PRACTICES.md) |
+| Understand the idea in 3 minutes | [How it works](#how-it-works) |
+| Install and generate files | [Quick start](#quick-start) |
+| Check what the AI learns | [What Your AI Learns](#what-your-ai-learns) |
+| Choose `:standard`, `:full`, or opt-ins | [Pick the right preset for your app](#pick-the-right-preset-for-your-app) |
+| Use MCP safely | [MCP Server Setup](#mcp-server-setup) and [mcp-security.md](docs/mcp-security.md) |
+| Improve day-to-day AI results | [Best Practices](docs/BEST_PRACTICES.md) |
 
-This shifts AI from “helpful autocomplete” → **reliable engineering assistant**
+## When this helps
 
-## The problem
+This is useful when you want an AI assistant to work inside a real Rails codebase, especially if the app has:
 
-You open Claude Code, Cursor, or Codex and ask it to add a feature. It generates code that ignores your schema, your Devise setup, your existing enums, and the conventions already in your app.
+- More than a few models or routes
+- Existing conventions that new code should follow
+- Auth, background jobs, API endpoints, Hotwire, engines, or service objects
+- A team that wants shared AI guidance committed to the repo
+- Large schemas where dumping everything into context would be noisy
 
-**rails-ai-bridge fixes this permanently** by introspecting your Rails app and exposing that structure through compact, assistant-specific files plus a **live MCP server** with read-only `rails_*` tools ([Model Context Protocol](https://modelcontextprotocol.io)).
-
-> **[Full Guide](docs/GUIDE.md)** — every command, option, and MCP parameter.
+For tiny apps or one-off scripts, manual context may be enough. For team Rails apps, generated context plus MCP gives the assistant a much better starting point.
 
 ---
 
@@ -51,29 +56,35 @@ You open Claude Code, Cursor, or Codex and ask it to add a feature. It generates
 flowchart LR
   app[Rails_app]
   intro[Introspectors]
+  files[Static_context_files]
   mcp[MCP_server]
   clients[AI_clients]
-  app --> intro --> mcp --> clients
+  app --> intro
+  intro --> files
+  intro --> mcp
+  files --> clients
+  mcp --> clients
 ```
 
-1. **Up to 27 introspectors** in the `:full` preset scan schema, models, routes, controllers, jobs, gems, conventions, and more (`:standard` runs 9 core ones by default). `database_stats` remains opt-in because it queries PostgreSQL table statistics.
-2. **`rails ai:bridge`** writes bounded bridge files for Claude, Cursor, Copilot, Codex, Windsurf, Gemini, and JSON.
-3. **`rails ai:serve`** exposes **11 built-in MCP tools** (plus any `additional_tools`) so assistants pull detail on demand (`detail: "summary"` first, then drill down).
+1. **Introspect**: built-in scanners read your Rails app structure: schema, models, routes, controllers, gems, tests, conventions, and optional full-stack details.
+2. **Generate**: `rails ai:bridge` writes compact, assistant-specific files such as `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/`, and Copilot instructions.
+3. **Serve**: `rails ai:serve` exposes read-only `rails_*` MCP tools so an assistant can drill into exact details on demand.
+
+This creates two complementary layers:
+
+| Layer | What it does | Why it matters |
+|---|---|---|
+| Static files | Give the assistant passive project orientation at session start | Fewer cold starts and fewer generic assumptions |
+| MCP tools | Return exact live details when requested | Less context bloat and fewer schema/route hallucinations |
 
 Compact files are ordered for usefulness: primary domain models, busy endpoints, recently migrated tables, and optional hot-table signals appear before lower-signal supporting details.
 
-Generated assistant context avoids credential values and suppresses secret-bearing config paths such as `.env*`, Rails credentials, `master.key`, private key material, and custom `config/secrets` or `config/private` files.
+## Safety model
 
-### Folder guides
-
-For contributors, key folders now include local `README.md` guides:
-
-- [`lib/rails_ai_bridge/README.md`](lib/rails_ai_bridge/README.md)
-- [`lib/rails_ai_bridge/introspectors/README.md`](lib/rails_ai_bridge/introspectors/README.md)
-- [`lib/rails_ai_bridge/tools/README.md`](lib/rails_ai_bridge/tools/README.md)
-- [`lib/rails_ai_bridge/serializers/README.md`](lib/rails_ai_bridge/serializers/README.md)
-- [`lib/generators/rails_ai_bridge/README.md`](lib/generators/rails_ai_bridge/README.md)
-- [`spec/lib/rails_ai_bridge/README.md`](spec/lib/rails_ai_bridge/README.md)
+- MCP tools are **read-only**. They inspect Rails structure; they do not write files or mutate the database.
+- `database_stats` is **opt-in** because it queries PostgreSQL table statistics.
+- Generated assistant context avoids credential values and suppresses secret-bearing config paths such as `.env*`, Rails credentials, `master.key`, private key material, and custom `config/secrets` or `config/private` files.
+- HTTP MCP should stay bound to `127.0.0.1` unless you add authentication and network controls. See [docs/mcp-security.md](docs/mcp-security.md).
 
 ---
 
@@ -364,68 +375,21 @@ Codex support is centered on **`AGENTS.md`** at the repository root.
 
 ## Best Practices
 
-> See **[docs/BEST_PRACTICES.md](docs/BEST_PRACTICES.md)** for the full guide — including a client compatibility matrix, token optimization patterns, staleness management, and per-assistant workflow tips.
+The shortest path to good results:
 
-After testing with Cursor, Windsurf, Copilot, Codex, and Claude Code in real projects, these patterns consistently produce the best results.
+1. **Commit generated static files** so every teammate gets the same passive AI context.
+2. **Run MCP when doing real implementation work** so assistants can drill into current schema, routes, models, controllers, and views.
+3. **Regenerate after meaningful app changes** so static files do not drift from the code.
+4. **Start MCP calls with `detail: "summary"`** and drill into one table, model, route group, or controller only when needed.
+5. **Put team-specific rules in `config/rails_ai_bridge/overrides.md`** instead of hand-editing generated files.
 
-### Layer 1: Commit your static files
-
-The generated files (`.cursorrules`, `.cursor/rules/`, `AGENTS.md`, `.windsurfrules`, `CLAUDE.md`, `.github/copilot-instructions.md`) are loaded **passively** by AI tools on every session start — giving the assistant immediate project grounding before it reads a single line of your code.
-
-**Always commit these files.** The whole team benefits, not just the developer who ran `rails ai:bridge`.
-
-### Layer 2: Run the MCP server
-
-Static files cover overview. The MCP server covers depth. When an assistant needs full schema details, specific model associations, or a filtered route listing, the `rails_*` tools fetch live data on demand — without inflating your initial context window.
-
-The combination is additive:
-
-| Setup | What you get |
-|-------|-------------|
-| Static files only | Passive overview: project structure always loaded |
-| MCP server only | On-demand depth: accurate live data, no passive grounding |
-| **Both (recommended)** | **Passive overview + on-demand depth = best coverage** |
-
-This is the pattern that consistently outperforms either layer alone. The files reduce orientation overhead; the server handles the details when the assistant actually needs them.
-
-### Keep files fresh — regenerate after every significant change
-
-Static files are snapshots. An assistant working from a schema that is 20 commits out of date will still make assumptions based on the old structure. After any significant change — a new model, a migration, a refactor, a feature merged — run:
+Static files are snapshots. After a new model, migration, route change, significant refactor, or feature merge, run:
 
 ```bash
 rails ai:bridge
 ```
 
-**Rule of thumb:** treat `rails ai:bridge` the same way you treat `bundle install` after a `Gemfile` change — a routine step, not a one-time setup. Commit the regenerated files alongside the code change so the whole team stays in sync.
-
-#### Auto-regeneration during active development
-
-```bash
-rails ai:watch
-```
-
-Watches for file changes and regenerates relevant context files automatically. Useful when you are actively adding models, routes, or controllers and want the assistant to track along in the same session.
-
-By default `rails ai:watch` regenerates all formats. To limit regeneration to only the formats you actively use:
-
-```ruby
-# config/initializers/rails_ai_bridge.rb
-RailsAiBridge.configure do |config|
-  config.watcher_formats = %i[claude cursor]   # only CLAUDE.md + .cursorrules on change
-end
-```
-
-### Use `detail: "summary"` first with the MCP server
-
-When the MCP server is running, start broad and drill down:
-
-```
-1. rails_get_schema(detail: "summary")      → all tables, no noise
-2. rails_get_schema(table: "orders")        → full detail for one table
-3. rails_get_model_details(model: "Order")  → associations, validations, scopes
-```
-
-This keeps token usage low and answer quality high. Requesting full detail on every table at once is rarely necessary and wastes context on data the assistant does not need yet.
+For the full guide to client compatibility, token usage, overrides, staleness, and per-assistant workflow tips, read [docs/BEST_PRACTICES.md](docs/BEST_PRACTICES.md).
 
 ### Pick the right preset for your app
 
@@ -625,16 +589,17 @@ The gem parses `db/schema.rb` as text when no database is connected. Works in CI
 
 ## Documentation
 
-| Document | Description |
-|----------|-------------|
-| [docs/GUIDE.md](docs/GUIDE.md) | Full reference — every command, option, MCP parameter, and AI assistant setup |
-| [docs/BEST_PRACTICES.md](docs/BEST_PRACTICES.md) | Client compatibility matrix, token optimization, staleness management, per-assistant tips |
-| [docs/mcp-security.md](docs/mcp-security.md) | MCP HTTP hardening — tokens, `require_http_auth`, rate limits, proxies, stdio model |
-| [UPGRADING.md](UPGRADING.md) | Migration guide when upgrading between major versions |
-| [CHANGELOG.md](CHANGELOG.md) | Full version history and release notes |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Dev setup, adding introspectors/tools, PR process, and release checklist |
-| [SECURITY.md](SECURITY.md) | Security policy, vulnerability reporting, design notes, and HTTP MCP authentication |
-| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Community standards |
+The docs are layered so new users do not need to read everything at once.
+
+| If you need... | Start here |
+|---|---|
+| A quick install and mental model | This README |
+| How to get better AI output day to day | [docs/BEST_PRACTICES.md](docs/BEST_PRACTICES.md) |
+| Every command, config option, generated file, and MCP parameter | [docs/GUIDE.md](docs/GUIDE.md) |
+| HTTP MCP hardening and production safety | [docs/mcp-security.md](docs/mcp-security.md) and [SECURITY.md](SECURITY.md) |
+| Upgrade notes between major versions | [UPGRADING.md](UPGRADING.md) |
+| Release history | [CHANGELOG.md](CHANGELOG.md) |
+| Development and contribution workflow | [CONTRIBUTING.md](CONTRIBUTING.md) |
 
 ---
 
@@ -648,6 +613,15 @@ bundle exec rubocop     # lint
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide: adding introspectors, adding MCP tools, code style rules, PR process, and the maintainer release checklist.
+
+For contributors, key folders include local guides:
+
+- [`lib/rails_ai_bridge/README.md`](lib/rails_ai_bridge/README.md)
+- [`lib/rails_ai_bridge/introspectors/README.md`](lib/rails_ai_bridge/introspectors/README.md)
+- [`lib/rails_ai_bridge/tools/README.md`](lib/rails_ai_bridge/tools/README.md)
+- [`lib/rails_ai_bridge/serializers/README.md`](lib/rails_ai_bridge/serializers/README.md)
+- [`lib/generators/rails_ai_bridge/README.md`](lib/generators/rails_ai_bridge/README.md)
+- [`spec/lib/rails_ai_bridge/README.md`](spec/lib/rails_ai_bridge/README.md)
 
 Bug reports and pull requests: [github.com/igmarin/rails-ai-bridge/issues](https://github.com/igmarin/rails-ai-bridge/issues)
 

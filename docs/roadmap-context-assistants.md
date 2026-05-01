@@ -31,13 +31,21 @@ This track is **separate** from [roadmap-mcp-v2.md](roadmap-mcp-v2.md) (MCP HTTP
   scans so attachments, rich text fields, CurrentAttributes, API layers, and auth/policy signals
   remain useful in non-conventional app layouts (v3.1.0).
 
-## In progress
+## Release closure
 
-- Custom Rails directory introspection coverage gaps outside model, controller, view, Stimulus,
-  Turbo, convention, Active Storage, Action Text, Config, Auth, API, and view detail detection
-- Remaining v3.1.0 context-quality slices must apply the `yard-documentation` skill:
-  every new or changed public Ruby class/method needs an English summary plus `@param`,
-  `@return`, and `@raise` tags where applicable before the slice is considered complete.
+The v3.1.0 context-quality implementation is complete for the default `:standard` preset and the
+highest-value generated-context signals. Before merging or tagging the release, run the final gate:
+
+- `rtk bundle exec rspec`
+- `env PERF=true rtk bundle exec rspec --tag perf`
+- `rtk bundle exec rubocop --cache false --format simple`
+- `rtk bundle exec reek`
+- `rtk bundle exec reek spec/fixtures/apps`
+- `rtk bundle exec yard stats --list-undoc`
+
+Any future code-producing slice should continue to apply the `yard-documentation` skill: every new
+or changed public Ruby class/method needs an English summary plus `@param`, `@return`, and `@raise`
+tags where applicable before the slice is considered complete.
 
 ## Custom Path Support Coverage
 
@@ -53,6 +61,22 @@ context-quality promise and the highest-value `:full` signals:
 - **Deferred parity candidates:** `assets`, `i18n`, `rake_tasks`, `action_mailbox`, `devops`,
   and `middleware` remain full-preset follow-up candidates. Treat these as targeted future work
   when a real fixture or user app shows custom path value, not as a blocker for the 3.1.0 release.
+
+## Documentation readability recommendations
+
+Because this gem serves Rails developers with different experience levels, documentation should
+prefer a layered path over one large linear read:
+
+- **README:** keep as the shortest product path: problem, value, quick start, generated files,
+  common presets, and safe MCP setup. Link out before diving into every option.
+- **Best Practices:** make this the "how to get value" guide: choosing a preset, reading generated
+  context, writing useful overrides, and avoiding token/security pitfalls.
+- **Guide:** keep exhaustive reference material here: every command, config option, MCP tool, and
+  generated file behavior.
+- **Security docs:** keep threat-model and deployment advice out of the README except for clear
+  links and short warnings.
+- **Examples:** add small scenario-first examples over time, such as API-only, Hotwire CRUD,
+  regulated app, and large-schema CRM. These are easier for new users to follow than option tables.
 
 ## Relation to versioning
 
