@@ -217,10 +217,10 @@ Each file respects the AI tool's format and size limits. **Commit these files** 
 | **Frontend** | Stimulus controllers, views, Turbo Frames/Streams, and broadcasts from configured Rails paths |
 | **Background** | ActiveJob classes, mailers, Action Cable channels |
 | **Gems** | 70+ notable gems categorized (Devise = auth, Sidekiq = jobs, Pundit = authorization, etc.) |
-| **Auth** | Devise modules, Pundit policies, CanCanCan, has_secure_password, CORS, CSP |
-| **API** | Serializers, GraphQL, versioning, rate limiting, API-only mode |
+| **Auth** | Devise modules, Pundit policies, CanCanCan, has_secure_password, Rails auth, CORS, CSP; source scans honor configured Rails paths |
+| **API** | Serializers, GraphQL, versioning, rate limiting, API-only mode; source scans honor configured Rails paths |
 | **Testing** | Framework, factories/fixtures, CI config, coverage, system tests |
-| **Config** | Cache store, session store, middleware, initializers, timezone |
+| **Config** | Cache store, session store, middleware, initializers, timezone, CurrentAttributes from configured model paths |
 | **DevOps** | Puma, Procfile, Docker, deployment tools, asset pipeline |
 | **Architecture** | Service objects, STI, polymorphism, state machines, multi-tenancy, engines |
 

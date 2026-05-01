@@ -42,5 +42,35 @@ RSpec.describe RailsAiBridge::Introspectors::ActionTextIntrospector do
         expect(result[:rich_text_fields]).to eq([])
       end
     end
+
+    context 'with configured model paths' do
+      let(:app_root) { Pathname.new(Dir.mktmpdir('rails-ai-bridge-action-text')) }
+      let(:models_dir) { app_root.join('domain/models') }
+      let(:custom_app) do
+        double(
+          'Rails::Application',
+          root: app_root,
+          paths: { 'app/models' => [models_dir.to_s] }
+        )
+      end
+
+      after { FileUtils.rm_rf(app_root) }
+
+      before do
+        FileUtils.mkdir_p(models_dir)
+        File.write(models_dir.join('article.rb'), <<~RUBY)
+          class Article < ApplicationRecord
+            has_rich_text :body
+          end
+        RUBY
+      end
+
+      it 'detects rich text macros outside conventional app/models' do
+        expect(described_class.new(custom_app).call[:rich_text_fields]).to include(
+          model: 'Article',
+          field: 'body'
+        )
+      end
+    end
   end
 end

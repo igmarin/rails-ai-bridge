@@ -765,11 +765,11 @@ Includes all standard introspectors plus:
 | `views` | Layouts, templates grouped by controller, partials (per-controller and shared), helpers with methods, template engines (erb, haml, slim), view components. Honors configured logical `app/views`, `app/helpers`, and `app/components` paths. |
 | `turbo` | Turbo Frames (IDs and files), Turbo Stream templates, model broadcasts (`broadcasts_to`, `broadcasts`). Honors configured logical `app/views` and `app/models` paths. |
 | `i18n` | Default locale, available locales, locale files with key counts, backend class, parse errors. |
-| `config` | Cache store, session store, timezone, middleware stack, initializers, credentials keys, CurrentAttributes classes. |
-| `active_storage` | Attachments (has_one_attached, has_many_attached per model), storage services, direct upload config. |
-| `action_text` | Rich text fields (has_rich_text per model), Action Text installation status. |
-| `auth` | Devise models with modules, Rails 8 built-in auth, has_secure_password, Pundit policies, CanCanCan, CORS config, CSP config. |
-| `api` | API-only mode, API versioning (from directory structure), serializers (Jbuilder, AMS, etc.), GraphQL (types, mutations), rate limiting (Rack::Attack). |
+| `config` | Cache store, session store, timezone, middleware stack, initializers, credentials keys, CurrentAttributes classes from the configured logical `app/models` path. |
+| `active_storage` | Attachments (has_one_attached, has_many_attached per model), storage services, direct upload config. Attachment and direct-upload scans honor configured `app/models`, `app/views`, and `app/javascript` paths. |
+| `action_text` | Rich text fields (has_rich_text per model), Action Text installation status. Model scans honor the configured logical `app/models` path. |
+| `auth` | Devise models with modules, Rails 8 built-in auth, has_secure_password, Pundit policies, CanCanCan, CORS config, CSP config. Model and policy scans honor configured `app/models` and `app/policies` paths. |
+| `api` | API-only mode, API versioning (from directory structure), serializers (Jbuilder, AMS, etc.), GraphQL (types, mutations), rate limiting (Rack::Attack). View, serializer, GraphQL, and controller scans honor configured Rails paths. |
 | `rake_tasks` | Custom rake tasks in `lib/tasks/` with names, descriptions, namespaces, file paths. |
 | `assets` | Asset pipeline (Propshaft/Sprockets), JS bundler (importmap/esbuild/webpack/vite), CSS framework, importmap pins, manifest files. |
 | `devops` | Puma config (threads, workers, port), Procfile entries, Docker (multi-stage detection), deployment tools, health check routes. |

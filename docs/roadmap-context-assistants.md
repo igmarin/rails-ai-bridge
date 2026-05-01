@@ -27,10 +27,14 @@ This track is **separate** from [roadmap-mcp-v2.md](roadmap-mcp-v2.md) (MCP HTTP
   Stimulus controllers, and Turbo frame/stream/broadcast discovery (v3.1.0).
 - Honor configured `app/views` paths in file-level view detail reads for `rails_get_view(path:)`
   and `rails://views/{path}` while preserving traversal checks (v3.1.0).
+- Honor configured Rails paths in specialized Active Storage, Action Text, Config, Auth, and API
+  scans so attachments, rich text fields, CurrentAttributes, API layers, and auth/policy signals
+  remain useful in non-conventional app layouts (v3.1.0).
 
 ## In progress
 
-- Custom Rails directory introspection coverage gaps outside model, controller, view, Stimulus, Turbo, and convention detection
+- Custom Rails directory introspection coverage gaps outside model, controller, view, Stimulus,
+  Turbo, convention, Active Storage, Action Text, Config, Auth, API, and view detail detection
 - Remaining v3.1.0 context-quality slices must apply the `yard-documentation` skill:
   every new or changed public Ruby class/method needs an English summary plus `@param`,
   `@return`, and `@raise` tags where applicable before the slice is considered complete.

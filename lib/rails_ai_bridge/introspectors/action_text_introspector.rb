@@ -4,12 +4,17 @@ module RailsAiBridge
   module Introspectors
     # Discovers Action Text usage: rich text fields per model.
     class ActionTextIntrospector
-      attr_reader :app
+      attr_reader :app, :path_resolver
 
+      # @param app [Rails::Application] host Rails application
       def initialize(app)
         @app = app
+        @path_resolver = PathResolver.new(app)
       end
 
+      # Builds a read-only summary of Action Text usage.
+      #
+      # @return [Hash] Action Text installation flag and rich text field metadata
       def call
         {
           installed: defined?(ActionText) ? true : false,
@@ -21,16 +26,9 @@ module RailsAiBridge
 
       private
 
-      def root
-        app.root.to_s
-      end
-
       def extract_rich_text_fields
-        models_dir = File.join(root, 'app/models')
-        return [] unless Dir.exist?(models_dir)
-
         fields = []
-        Dir.glob(File.join(models_dir, '**/*.rb')).each do |path|
+        path_resolver.files_for('app/models', extension: 'rb').each do |path|
           content = File.read(path)
           model_name = File.basename(path, '.rb').camelize
 

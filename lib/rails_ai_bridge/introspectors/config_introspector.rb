@@ -5,12 +5,17 @@ module RailsAiBridge
     # Extracts application configuration: cache store, session store,
     # timezone, middleware stack, initializers, credentials keys.
     class ConfigIntrospector
-      attr_reader :app
+      attr_reader :app, :path_resolver
 
+      # @param app [Rails::Application] host Rails application
       def initialize(app)
         @app = app
+        @path_resolver = PathResolver.new(app)
       end
 
+      # Builds a read-only summary of runtime configuration signals.
+      #
+      # @return [Hash] cache, session, middleware, initializer, and CurrentAttributes metadata
       def call
         result = {
           cache_store: detect_cache_store,
@@ -72,10 +77,7 @@ module RailsAiBridge
       end
 
       def detect_current_attributes
-        models_dir = File.join(root, 'app/models')
-        return [] unless Dir.exist?(models_dir)
-
-        Dir.glob(File.join(models_dir, '**/*.rb')).filter_map do |path|
+        path_resolver.files_for('app/models', extension: 'rb').filter_map do |path|
           content = File.read(path)
           File.basename(path, '.rb').camelize if content.match?(/< ActiveSupport::CurrentAttributes|< Rails::CurrentAttributes/)
         rescue StandardError

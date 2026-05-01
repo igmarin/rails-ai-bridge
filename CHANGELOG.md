@@ -49,6 +49,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **View detail access with custom Rails paths** — `rails_get_view(path:"...")` and
   `rails://views/{path}` now resolve files through configured `app/views` paths while preserving
   traversal protection.
+- **Specialized introspectors with custom Rails paths** — Active Storage, Action Text,
+  CurrentAttributes, API serializers/GraphQL/versioning/rate-limit scans, Devise,
+  `has_secure_password`, Rails auth, Pundit, and CanCanCan detection now honor configured logical
+  Rails paths instead of assuming only conventional `app/*` directories.
 - **Copilot, Codex, Cursor, Windsurf, and shared compact serializers** — key model sections now
   use the same relevance score so assistants see core, routed, recently changed, or hot-domain
   models before lower-signal supporting models.

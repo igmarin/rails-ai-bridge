@@ -72,5 +72,55 @@ RSpec.describe RailsAiBridge::Introspectors::ApiIntrospector do
         expect(result[:rate_limiting]).to eq({ rack_attack: true })
       end
     end
+
+    context 'with configured API paths' do
+      let(:app_root) { Pathname.new(Dir.mktmpdir('rails-ai-bridge-api')) }
+      let(:paths) do
+        {
+          'app/views' => [app_root.join('frontend/views').to_s],
+          'app/serializers' => [app_root.join('presentation/serializers').to_s],
+          'app/graphql' => [app_root.join('interface/graphql').to_s],
+          'app/controllers' => [app_root.join('interface/controllers').to_s]
+        }
+      end
+      let(:custom_app) do
+        double(
+          'Rails::Application',
+          root: app_root,
+          paths: paths,
+          config: double('ApplicationConfig', api_only: true)
+        )
+      end
+
+      after { FileUtils.rm_rf(app_root) }
+
+      before do
+        paths.values.flatten.each { |path| FileUtils.mkdir_p(path) }
+        FileUtils.mkdir_p(app_root.join('interface/graphql/types'))
+        FileUtils.mkdir_p(app_root.join('interface/graphql/mutations'))
+        FileUtils.mkdir_p(app_root.join('interface/controllers/api/v2'))
+        File.write(app_root.join('frontend/views/show.json.jbuilder'), 'json.id @record.id')
+        File.write(app_root.join('presentation/serializers/order_serializer.rb'), 'class OrderSerializer; end')
+        File.write(app_root.join('interface/graphql/types/order_type.rb'), 'class Types::OrderType; end')
+        File.write(app_root.join('interface/graphql/mutations/create_order.rb'), 'class Mutations::CreateOrder; end')
+        File.write(app_root.join('interface/controllers/api/v2/orders_controller.rb'), <<~RUBY)
+          class Api::V2::OrdersController < ApplicationController
+            rate_limit to: 10, within: 1.minute
+          end
+        RUBY
+      end
+
+      it 'detects serializers, GraphQL, API versions, and rate limits outside conventional app paths' do
+        custom_result = described_class.new(custom_app).call
+
+        expect(custom_result[:serializers]).to include(
+          jbuilder: 1,
+          serializer_classes: ['OrderSerializer']
+        )
+        expect(custom_result[:graphql]).to eq(types: 1, mutations: 1, queries: 0)
+        expect(custom_result[:api_versioning]).to include('v2')
+        expect(custom_result[:rate_limiting]).to eq(rails_rate_limiting: true)
+      end
+    end
   end
 end

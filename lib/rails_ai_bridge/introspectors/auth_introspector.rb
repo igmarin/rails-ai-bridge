@@ -5,12 +5,17 @@ module RailsAiBridge
     # Discovers authentication and authorization setup: Devise, Rails 8 auth,
     # Pundit, CanCanCan, CORS, CSP.
     class AuthIntrospector
-      attr_reader :app
+      attr_reader :app, :path_resolver
 
+      # @param app [Rails::Application] host Rails application
       def initialize(app)
         @app = app
+        @path_resolver = PathResolver.new(app)
       end
 
+      # Builds a read-only summary of authentication, authorization, and security setup.
+      #
+      # @return [Hash] authentication, authorization, and browser security metadata
       def call
         {
           authentication: detect_authentication,
@@ -35,7 +40,7 @@ module RailsAiBridge
         auth[:devise] = devise_models if devise_models.any?
 
         # Rails 8 built-in auth
-        auth[:rails_auth] = true if file_exists?('app/models/session.rb') && file_exists?('app/models/current.rb')
+        auth[:rails_auth] = true if model_file_exists?('session.rb') && model_file_exists?('current.rb')
 
         # has_secure_password
         secure_pw = scan_models_for(/has_secure_password/)
@@ -47,18 +52,11 @@ module RailsAiBridge
       def detect_authorization
         authz = {}
 
-        # Pundit
-        policies_dir = File.join(root, 'app/policies')
-        if Dir.exist?(policies_dir)
-          policies = Dir.glob(File.join(policies_dir, '**/*.rb')).map do |f|
-            File.basename(f, '.rb').camelize
-          end.sort
-          authz[:pundit] = policies if policies.any?
-        end
+        policies = policy_names
+        authz[:pundit] = policies if policies.any?
 
         # CanCanCan
-        ability_path = File.join(root, 'app/models/ability.rb')
-        authz[:cancancan] = true if File.exist?(ability_path)
+        authz[:cancancan] = true if model_file_exists?('ability.rb')
 
         authz
       end
@@ -80,11 +78,8 @@ module RailsAiBridge
       end
 
       def scan_models_for(pattern)
-        models_dir = File.join(root, 'app/models')
-        return [] unless Dir.exist?(models_dir)
-
         results = []
-        Dir.glob(File.join(models_dir, '**/*.rb')).each do |path|
+        path_resolver.files_for('app/models', extension: 'rb').each do |path|
           content = File.read(path)
           matches = content.scan(pattern)
           next if matches.empty?
@@ -108,6 +103,18 @@ module RailsAiBridge
 
       def file_exists?(relative_path)
         File.exist?(File.join(root, relative_path))
+      end
+
+      def model_file_exists?(relative_path)
+        path_resolver.existing_file_for('app/models', relative_path).present?
+      end
+
+      def policy_names
+        path_resolver.files_for('app/policies', extension: 'rb').map do |file|
+          File.basename(file, '.rb').camelize
+        end.sort
+      rescue StandardError
+        []
       end
     end
   end

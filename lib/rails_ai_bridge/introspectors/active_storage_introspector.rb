@@ -5,12 +5,17 @@ module RailsAiBridge
     # Discovers Active Storage usage: attachments, storage service config,
     # direct upload detection.
     class ActiveStorageIntrospector
-      attr_reader :app
+      attr_reader :app, :path_resolver
 
+      # @param app [Rails::Application] host Rails application
       def initialize(app)
         @app = app
+        @path_resolver = PathResolver.new(app)
       end
 
+      # Builds a read-only summary of Active Storage usage.
+      #
+      # @return [Hash] Active Storage installation, attachment, service, and direct-upload metadata
       def call
         {
           installed: defined?(ActiveStorage) ? true : false,
@@ -29,11 +34,8 @@ module RailsAiBridge
       end
 
       def extract_attachments
-        models_dir = File.join(root, 'app/models')
-        return [] unless Dir.exist?(models_dir)
-
         attachments = []
-        Dir.glob(File.join(models_dir, '**/*.rb')).each do |path|
+        path_resolver.files_for('app/models', extension: 'rb').each do |path|
           content = File.read(path)
           model_name = File.basename(path, '.rb').camelize
 
@@ -63,20 +65,17 @@ module RailsAiBridge
       end
 
       def detect_direct_upload
-        views_dir = File.join(root, 'app/views')
-        js_dir = File.join(root, 'app/javascript')
+        direct_upload_files.any? do |file|
+          next false if File.directory?(file)
 
-        [views_dir, js_dir].any? do |dir|
-          next false unless Dir.exist?(dir)
-
-          Dir.glob(File.join(dir, '**/*')).any? do |f|
-            next false if File.directory?(f)
-
-            File.read(f).match?(/direct.upload|DirectUpload|direct_upload/)
-          rescue StandardError
-            false
-          end
+          File.read(file).match?(/direct.upload|DirectUpload|direct_upload/)
+        rescue StandardError
+          false
         end
+      end
+
+      def direct_upload_files
+        path_resolver.glob_for('app/views', '**/*') + path_resolver.glob_for('app/javascript', '**/*')
       end
     end
   end
