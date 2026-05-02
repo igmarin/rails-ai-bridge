@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+require 'securerandom'
 
 RSpec.describe RailsAiBridge::Introspectors::ControllerIntrospector do
   let(:introspector) { described_class.new(Rails.application) }
@@ -94,6 +95,56 @@ RSpec.describe RailsAiBridge::Introspectors::ControllerIntrospector do
         load fixture_ctrl
         formats = result[:controllers]['ItemsController'][:respond_to_formats]
         expect(formats).to contain_exactly('html', 'json', 'xml')
+      end
+    end
+
+    context 'when app/controllers is configured to a custom directory' do
+      let(:custom_context) do
+        root_path = Dir.mktmpdir('rails-ai-bridge-controller-paths')
+        root = Pathname.new(root_path)
+        controllers_dir = root.join('domain/controllers')
+        constant_name = "CustomPathReports#{SecureRandom.hex(4).camelize}Controller"
+        app = double('Rails::Application', root:, paths: { 'app/controllers' => [controllers_dir.to_s] })
+
+        {
+          root_path: root_path,
+          controllers_dir: controllers_dir,
+          introspector: described_class.new(app),
+          constant_name: constant_name,
+          file_name: "#{constant_name.underscore}.rb"
+        }
+      end
+
+      after { FileUtils.rm_rf(custom_context[:root_path]) }
+
+      before do
+        stub_const(custom_context[:constant_name], Class.new(ApplicationController) do
+          def create; end
+        end)
+
+        FileUtils.mkdir_p(custom_context[:controllers_dir])
+        File.write(custom_context[:controllers_dir].join(custom_context[:file_name]), <<~RUBY)
+          class #{custom_context[:constant_name]} < ApplicationController
+            def create
+              respond_to do |format|
+                format.json { render json: {} }
+              end
+            end
+
+            private
+
+            def report_params
+              params.require(:report).permit(:name)
+            end
+          end
+        RUBY
+      end
+
+      it 'reads source-derived controller metadata from the configured controllers path' do
+        details = custom_context[:introspector].call[:controllers][custom_context[:constant_name]]
+
+        expect(details[:strong_params]).to eq(['report_params'])
+        expect(details[:respond_to_formats]).to eq(['json'])
       end
     end
   end

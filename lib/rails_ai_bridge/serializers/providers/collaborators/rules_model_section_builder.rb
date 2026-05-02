@@ -46,7 +46,7 @@ module RailsAiBridge
           end
 
           def sorted_model_names
-            @models.keys.sort.first(model_list_limit)
+            ContextSummary.models_by_relevance(@models).map(&:first).first(model_list_limit)
           rescue TypeError, ArgumentError
             []
           end

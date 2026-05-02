@@ -51,6 +51,29 @@ is normal for open-source gems (transparency, onboarding); they are not required
 
 ---
 
+## v3.1.0 — context quality
+
+| Area | Status |
+|------|--------|
+| Task-relevance model ordering across compact serializers | Done |
+| Bounded endpoint-focus summaries with MCP drill-down hints | Done |
+| Optional PostgreSQL size buckets for `database_stats` | Done |
+| Fixture matrix for standard CRUD, large schema, API-only, Hotwire, engine-style, and regulated contexts | Done |
+| Real Rails-shaped fixture trees for API-only, Hotwire, large-schema, engine-style, and regulated/no-domain-metadata app profiles | Done |
+| MCP large-payload checks for truncation, pagination hints, and section-cache reuse | Done |
+| Secret-bearing config path filtering for generated context, conventions output, and MCP resource reads | Done |
+| Convention detector coverage for custom Rails directory paths without absolute path leakage | Done |
+| Model and non-AR model introspection coverage for custom `app/models` paths | Done |
+| Controller, view, Stimulus, and Turbo coverage for configured Rails paths | Done |
+| View detail MCP tool/resource reads for configured `app/views` paths | Done |
+| Specialized Active Storage, Action Text, Config, Auth, and API scans for configured Rails paths | Done |
+| Custom path support coverage note separating standard/high-value work from full-preset parity candidates | Done |
+| README/BEST_PRACTICES clarity pass for value and setup paths | Done |
+| Implementation gate for 3.1.0 slices: tests, Reek/RuboCop, `yard-documentation`, and docs updates | Done |
+| Final release validation before merge/tag | Required |
+
+---
+
 ## Where to look in the repo
 
 | Need | File |

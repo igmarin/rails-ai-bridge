@@ -76,7 +76,8 @@ module RailsAiBridge
           stack_overview_builder.build
         end
 
-        # Renders the key models section, sorted by complexity score (associations, validations, callbacks, scopes).
+        # Renders the key models section, sorted by task relevance (semantic tier,
+        # complexity, route density, recent migrations, and optional DB size hints).
         # Caps display at {MAX_KEY_MODELS} models and appends an overflow hint when more exist.
         # Returns +[]+ when +context[:models]+ is nil, non-Hash, or has an +:error+ key.
         #
@@ -88,8 +89,8 @@ module RailsAiBridge
           max_show = MAX_KEY_MODELS
 
           lines = ['## Key Models',
-                   'The following are the most architecturally significant models, ordered by complexity:']
-          model_entries = ModelEntries.new(models).sorted_by_complexity
+                   'The following are the most architecturally significant models, ordered by relevance:']
+          model_entries = ModelEntries.new(models, context: context).sorted_by_relevance
           model_entries.first(max_show).each do |name, data|
             lines << model_line_formatter.format_line(name, data)
           end
@@ -163,11 +164,11 @@ module RailsAiBridge
           conv = context[:conventions]
           return [] unless conv.is_a?(Hash) && !conv[:error]
 
-          config_files = conv[:config_files] || []
+          config_files = ContextSummary.safe_config_files(conv[:config_files], limit: MAX_CONFIG_FILES)
           return [] if config_files.empty?
 
           lines = ['## Key Config Files', 'Core configuration files for this application:']
-          config_files.first(MAX_CONFIG_FILES).each { |f| lines << "- `#{f}`" }
+          config_files.each { |f| lines << "- `#{f}`" }
           lines << ''
           lines
         end
@@ -221,14 +222,15 @@ module RailsAiBridge
         # Filters and sorts model entries for compact output.
         class ModelEntries
           # @param models [Hash] model payloads keyed by model name
-          def initialize(models)
+          # @param context [Hash] full introspection context
+          def initialize(models, context: {})
             @models = models
+            @context = context
           end
 
-          # @return [Array<Array(String, Hash)>] valid model entries sorted by complexity
-          def sorted_by_complexity
-            @models.select { |_name, data| data.is_a?(Hash) }
-                   .sort_by { |_name, data| -ContextSummary.model_complexity_score(data) }
+          # @return [Array<Array(String, Hash)>] valid model entries sorted by task relevance
+          def sorted_by_relevance
+            ContextSummary.models_by_relevance(@models, context: @context)
           end
         end
 

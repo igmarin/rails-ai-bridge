@@ -101,5 +101,50 @@ RSpec.describe RailsAiBridge::Introspectors::AuthIntrospector do
         expect(result[:security][:csp]).to be true
       end
     end
+
+    context 'with configured auth paths' do
+      let(:app_root) { Pathname.new(Dir.mktmpdir('rails-ai-bridge-auth')) }
+      let(:models_dir) { app_root.join('domain/models') }
+      let(:policies_dir) { app_root.join('authorization/policies') }
+      let(:custom_app) do
+        double(
+          'Rails::Application',
+          root: app_root,
+          paths: {
+            'app/models' => [models_dir.to_s],
+            'app/policies' => [policies_dir.to_s]
+          }
+        )
+      end
+
+      after { FileUtils.rm_rf(app_root) }
+
+      before do
+        FileUtils.mkdir_p(models_dir)
+        FileUtils.mkdir_p(policies_dir)
+        File.write(models_dir.join('current.rb'), 'class Current < ActiveSupport::CurrentAttributes; end')
+        File.write(models_dir.join('session.rb'), 'class Session < ApplicationRecord; end')
+        File.write(models_dir.join('user.rb'), <<~RUBY)
+          class User < ApplicationRecord
+            devise :database_authenticatable
+            has_secure_password
+          end
+        RUBY
+        File.write(models_dir.join('ability.rb'), 'class Ability; end')
+        File.write(policies_dir.join('order_policy.rb'), 'class OrderPolicy; end')
+      end
+
+      it 'detects authentication and authorization outside conventional app paths' do
+        custom_result = described_class.new(custom_app).call
+
+        expect(custom_result[:authentication][:rails_auth]).to be true
+        expect(custom_result[:authentication][:has_secure_password]).to include('User')
+        expect(custom_result[:authentication][:devise].first[:model]).to eq('User')
+        expect(custom_result[:authorization]).to include(
+          pundit: ['OrderPolicy'],
+          cancancan: true
+        )
+      end
+    end
   end
 end

@@ -55,16 +55,10 @@ module RailsAiBridge
     # @return [Hash{Symbol => Array<String>}] files grouped under +:written+ and +:skipped+
     # @raise [ArgumentError] when an unknown option key is passed
     def generate_context(app = nil, **options)
-      allowed = %i[format split_rules on_conflict].to_set
-      unknown = options.keys.to_set - allowed
-      raise ArgumentError, "Unknown option(s): #{unknown.to_a.join(', ')}" if unknown.any?
+      validate_generate_context_options!(options)
 
       app ||= Rails.application
-      context = introspect(app)
-      Serializers::ContextFileSerializer.new(context,
-                                             format: options.fetch(:format, :all),
-                                             split_rules: options.fetch(:split_rules, true),
-                                             on_conflict: options.fetch(:on_conflict, :overwrite)).call
+      build_context_serializer(introspect(app), options).call
     end
 
     # Start the MCP server programmatically
@@ -98,6 +92,25 @@ module RailsAiBridge
             'rails_ai_bridge: auto_mount in production requires an auth mechanism ' \
             "(http_mcp_token, mcp_token_resolver, mcp_jwt_decoder, or ENV['#{Mcp::Authenticator::TOKEN_ENV_KEY}'])"
     end
+
+    private
+
+    def validate_generate_context_options!(options)
+      allowed = %i[format split_rules on_conflict].to_set
+      unknown = options.keys.to_set - allowed
+      return if unknown.empty?
+
+      raise ArgumentError, "Unknown option(s): #{unknown.to_a.join(', ')}"
+    end
+
+    def build_context_serializer(context, options)
+      Serializers::ContextFileSerializer.new(context,
+                                             format: options.fetch(:format, :all),
+                                             split_rules: options.fetch(:split_rules, true),
+                                             on_conflict: options.fetch(:on_conflict, :overwrite))
+    end
+
+    public
 
     # Raises {ConfigurationError} when starting the standalone HTTP MCP server in production without a token.
     #

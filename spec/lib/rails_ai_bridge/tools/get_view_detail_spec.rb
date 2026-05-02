@@ -86,7 +86,7 @@ RSpec.describe RailsAiBridge::Tools::GetView do
           ERB
         )
 
-        allow(described_class).to receive(:rails_app).and_return(double(root: Pathname.new(dir)))
+        allow(described_class).to receive(:rails_app).and_return(double(root: Pathname.new(dir), paths: {}))
 
         result = described_class.call(path: 'users/index.html.erb')
         text = result.content.first[:text]
@@ -99,9 +99,27 @@ RSpec.describe RailsAiBridge::Tools::GetView do
       end
     end
 
+    it 'returns full detail from a configured custom app/views path' do
+      Dir.mktmpdir do |dir|
+        root = Pathname.new(dir)
+        views_dir = root.join('interface/templates/reports')
+        FileUtils.mkdir_p(views_dir)
+        File.write(views_dir.join('show.html.erb'), '<%= render "summary" %>')
+        app = double(root:, paths: { 'app/views' => [root.join('interface/templates').to_s] })
+
+        allow(described_class).to receive(:rails_app).and_return(app)
+
+        result = described_class.call(path: 'reports/show.html.erb')
+        text = result.content.first[:text]
+
+        expect(text).to include('# View: reports/show.html.erb')
+        expect(text).to include('summary')
+      end
+    end
+
     it 'rejects paths outside app/views' do
       Dir.mktmpdir do |dir|
-        allow(described_class).to receive(:rails_app).and_return(double(root: Pathname.new(dir)))
+        allow(described_class).to receive(:rails_app).and_return(double(root: Pathname.new(dir), paths: {}))
 
         result = described_class.call(path: '../secrets.yml')
         text = result.content.first[:text]

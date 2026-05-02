@@ -78,5 +78,43 @@ RSpec.describe RailsAiBridge::Introspectors::ConfigIntrospector do
         expect(result[:current_attributes]).to include('Current')
       end
     end
+
+    context 'with configured model paths' do
+      let(:app_root) { Pathname.new(Dir.mktmpdir('rails-ai-bridge-config')) }
+      let(:models_dir) { app_root.join('domain/models') }
+      let(:custom_config) do
+        double(
+          'ApplicationConfig',
+          cache_store: :memory_store,
+          session_store: ActionDispatch::Session::CookieStore,
+          time_zone: 'UTC'
+        )
+      end
+      let(:custom_app) do
+        double(
+          'Rails::Application',
+          root: app_root,
+          paths: { 'app/models' => [models_dir.to_s] },
+          config: custom_config,
+          middleware: ActionDispatch::MiddlewareStack.new,
+          credentials: double('Credentials', config: {})
+        )
+      end
+
+      before do
+        FileUtils.mkdir_p(models_dir)
+        File.write(models_dir.join('current.rb'), <<~RUBY)
+          class Current < ActiveSupport::CurrentAttributes
+            attribute :account
+          end
+        RUBY
+      end
+
+      after { FileUtils.rm_rf(app_root) }
+
+      it 'detects CurrentAttributes outside conventional app/models' do
+        expect(described_class.new(custom_app).call[:current_attributes]).to include('Current')
+      end
+    end
   end
 end

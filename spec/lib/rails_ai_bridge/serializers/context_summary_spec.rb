@@ -69,6 +69,113 @@ RSpec.describe RailsAiBridge::Serializers::ContextSummary do
     end
   end
 
+  describe '.model_relevance_score' do
+    let(:recent_version) { "#{(Time.zone.today - 5).strftime('%Y%m%d')}120000" }
+
+    it 'prioritizes configured core models over alphabetically earlier supporting models' do
+      core = {
+        table_name: 'accounts',
+        semantic_tier: 'core_entity',
+        associations: [],
+        validations: []
+      }
+      supporting = {
+        table_name: 'aardvarks',
+        semantic_tier: 'supporting',
+        associations: 6.times.map { {} },
+        validations: []
+      }
+
+      expect(described_class.model_relevance_score(core, context: {}))
+        .to be > described_class.model_relevance_score(supporting, context: {})
+    end
+
+    it 'includes route density and recent migration signals' do
+      data = {
+        table_name: 'orders',
+        associations: [],
+        validations: [],
+        callbacks: [],
+        scopes: []
+      }
+      context = {
+        routes: { by_controller: { 'orders' => 5.times.map { {} } } },
+        migrations: {
+          recent: [{ version: recent_version, filename: "#{recent_version}_add_status_to_orders.rb" }]
+        }
+      }
+
+      expect(described_class.model_relevance_score(data, name: 'Order', context: context)).to be >= 9
+    end
+  end
+
+  describe '.models_by_relevance' do
+    it 'returns valid model entries sorted by relevance with stable name tie-breaks' do
+      models = {
+        'Zebra' => { semantic_tier: 'supporting', associations: [] },
+        'Account' => { semantic_tier: 'core_entity', associations: [] },
+        'Bee' => { semantic_tier: 'supporting', associations: [] }
+      }
+
+      expect(described_class.models_by_relevance(models).map(&:first)).to eq(%w[Account Bee Zebra])
+    end
+  end
+
+  describe '.safe_config_files' do
+    it 'preserves non-sensitive config file paths in order' do
+      files = ['config/database.yml', 'config/routes.rb', 'Gemfile']
+
+      expect(described_class.safe_config_files(files)).to eq(files)
+    end
+
+    it 'omits dotenv, credential, and private key material paths' do
+      files = [
+        'config/database.yml',
+        '.env.production',
+        'config/credentials.yml.enc',
+        'config/credentials/production.yml.enc',
+        'config/master.key',
+        'config/private.pem',
+        'config/routes.rb'
+      ]
+
+      expect(described_class.safe_config_files(files)).to eq(['config/database.yml', 'config/routes.rb'])
+    end
+
+    it 'omits Windows-style dotenv, credential, and key material paths' do
+      files = [
+        'config\\database.yml',
+        '.env.local',
+        'config\\credentials\\production.yml.enc',
+        'config\\master.key',
+        'config\\certs\\private.pem',
+        'config\\routes.rb'
+      ]
+
+      expect(described_class.safe_config_files(files)).to eq(['config\\database.yml', 'config\\routes.rb'])
+    end
+
+    it 'omits broader custom-context secret path vocabulary' do
+      files = [
+        'config/database.yml',
+        'config/secrets/production.yml',
+        'config/private/service_account.json',
+        'config/credentials/payment_gateway.yml',
+        'config/application.yml',
+        'config/settings.yml',
+        'config/routes.rb'
+      ]
+
+      expect(described_class.safe_config_files(files)).to eq(['config/database.yml', 'config/routes.rb'])
+    end
+
+    it 'applies the limit after omitting sensitive paths' do
+      files = ['.env', 'config/database.yml', 'config/routes.rb']
+
+      expect(described_class.safe_config_files(files, limit: 2)).to eq(['config/database.yml', 'config/routes.rb'])
+    end
+  end
+
   describe '.top_columns' do
     let(:table_data) do
       {
@@ -203,6 +310,48 @@ RSpec.describe RailsAiBridge::Serializers::ContextSummary do
 
       line = described_class.routes_stack_line(context)
       expect(line).to eq('- Routes: 12 total — 2 route targets (controller inventory unavailable)')
+    end
+  end
+
+  describe '.route_focus_lines' do
+    it 'surfaces busiest route targets with MCP drill-down guidance' do
+      context = {
+        routes: {
+          by_controller: {
+            'profiles' => 7.times.map { |i| { verb: 'GET', action: "show#{i}" } },
+            'users' => 3.times.map { |i| { verb: 'POST', action: "create#{i}" } }
+          }
+        }
+      }
+
+      lines = described_class.route_focus_lines(context, limit: 1)
+      expect(lines.join("\n")).to include('profiles: 7 routes')
+      expect(lines.join("\n")).to include('rails_get_routes(controller:"profiles"')
+      expect(lines.join("\n")).not_to include('users: 3 routes')
+    end
+  end
+
+  describe '.database_size_bucket' do
+    it 'buckets approximate row counts into actionable labels' do
+      expect(described_class.database_size_bucket(nil)).to be_nil
+      expect(described_class.database_size_bucket(0)).to eq('small')
+      expect(described_class.database_size_bucket(75_000)).to eq('medium')
+      expect(described_class.database_size_bucket(2_000_000)).to eq('large')
+      expect(described_class.database_size_bucket(25_000_000)).to eq('hot')
+    end
+
+    it 'preserves precomputed database size buckets for table lookups' do
+      context = {
+        database_stats: {
+          tables: [
+            { table: 'users', approximate_rows: 12, size_bucket: 'hot' },
+            { 'table' => 'posts', 'approximate_rows' => 25_000_000, 'size_bucket' => 'small' }
+          ]
+        }
+      }
+
+      expect(described_class.database_size_bucket_for_table(context, 'users')).to eq('hot')
+      expect(described_class.database_size_bucket_for_table(context, 'posts')).to eq('small')
     end
   end
 end

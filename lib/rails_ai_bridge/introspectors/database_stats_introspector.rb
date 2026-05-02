@@ -25,7 +25,12 @@ module RailsAiBridge
         SQL
 
         tables = rows.map do |row|
-          { table: row['table_name'], approximate_rows: row['approximate_row_count'].to_i }
+          approximate_rows = row['approximate_row_count'].to_i
+          {
+            table: row['table_name'],
+            approximate_rows: approximate_rows,
+            size_bucket: Serializers::ContextSummary.database_size_bucket(approximate_rows)
+          }
         end
 
         { adapter: 'postgresql', tables: tables, total_tables: tables.size }

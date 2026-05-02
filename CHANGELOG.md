@@ -5,6 +5,61 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-05-01
+
+### Added
+
+- **Task-relevance ordering for compact context** — model lists now rank by semantic tier,
+  structural complexity, route density, recent migrations, and optional database-size signals
+  instead of relying mostly on alphabetical order.
+- **Endpoint focus summaries** — compact stack/project context now surfaces the busiest route
+  targets with direct `rails_get_routes(controller:"...", detail:"summary")` drill-down hints.
+- **Database size buckets** — the optional `database_stats` introspector now annotates PostgreSQL
+  approximate row counts as `small`, `medium`, `large`, or `hot`; generated context shows these
+  hints only when `database_stats` is explicitly enabled.
+- **Context quality matrix specs** — generated-output acceptance coverage now exercises standard
+  CRUD, large-schema, API-only, Hotwire, engine-style, and regulated/no-domain-metadata profiles,
+  with real Rails-shaped fixture trees for API-only, Hotwire, large-schema, engine-style, and
+  regulated/no-domain-metadata apps plus bounded output and secret-adjacent regression checks.
+- **Serialization benchmark guard** — large-fixture compact serialization now has a small
+  performance budget to catch accidental context bloat.
+- **MCP large-payload stability checks** — route/schema tool specs now exercise truncation,
+  pagination, next-offset guidance, and section-cache reuse against large payloads.
+
+### Changed
+
+- **Claude rules** — `.claude/rules/rails-context.md` now includes bounded endpoint focus and
+  route drill-down guidance; `.claude/rules/rails-schema.md` adds optional size-bucket hints.
+- **Route MCP pagination** — `rails_get_routes` standard/full output now includes a next
+  `offset` hint when more route rows are available.
+- **Secret-bearing config paths** — generated context, `rails_get_conventions`, and the
+  `rails://conventions` MCP resource now omit dotenv files, Rails credentials files, secret/private
+  directories, master keys, and private key material from config-file listings while preserving
+  safe operational files such as `config/database.yml`.
+- **Convention detection with custom Rails paths** — architecture and directory-structure signals
+  now honor configured Rails paths for directories such as `app/models` and `app/services` while
+  keeping generated output on logical names instead of absolute local paths.
+- **Model introspection with custom Rails paths** — ActiveRecord source-derived metadata and
+  `non_ar_models` discovery now resolve every configured `app/models` path, so apps that place
+  domain models outside the conventional directory still generate useful model context.
+- **Controller and frontend introspection with custom Rails paths** — controller source metadata,
+  view summaries, Stimulus controllers, and Turbo frame/stream/broadcast detection now honor
+  configured `app/controllers`, `app/views`, `app/helpers`, `app/components`, and
+  `app/javascript/controllers` paths where Rails exposes them.
+- **View detail access with custom Rails paths** — `rails_get_view(path:"...")` and
+  `rails://views/{path}` now resolve files through configured `app/views` paths while preserving
+  traversal protection.
+- **Specialized introspectors with custom Rails paths** — Active Storage, Action Text,
+  CurrentAttributes, API serializers/GraphQL/versioning/rate-limit scans, Devise,
+  `has_secure_password`, Rails auth, Pundit, and CanCanCan detection now honor configured logical
+  Rails paths instead of assuming only conventional `app/*` directories.
+- **Copilot, Codex, Cursor, Windsurf, and shared compact serializers** — key model sections now
+  use the same relevance score so assistants see core, routed, recently changed, or hot-domain
+  models before lower-signal supporting models.
+- **Generated override guidance** — compact instructions no longer include the literal
+  omit-merge marker string unless reading the actual override stub; user-facing docs still explain
+  how to activate `config/rails_ai_bridge/overrides.md`.
+
 ## [3.0.0] - 2026-04-28
 
 ### Added

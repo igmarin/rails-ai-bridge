@@ -9,6 +9,22 @@ module RailsAiBridge
       # foreign keys (matched via +_id+ suffix separately).
       HOUSEKEEPING_COLUMNS = %w[id created_at updated_at].freeze
 
+      # Config paths that should not be copied into generated context because their
+      # names directly reveal secret-bearing files or credential material.
+      SENSITIVE_CONFIG_BASENAMES = %w[
+        .env .envrc application.yml credentials.yml credentials.yml.enc master.key
+        secrets.yml secrets.yml.enc settings.yml
+      ].freeze
+      private_constant :SENSITIVE_CONFIG_BASENAMES
+
+      # File extensions commonly used for private keys and encrypted key stores.
+      SENSITIVE_CONFIG_EXTENSIONS = %w[.key .pem .p12 .pfx].freeze
+      private_constant :SENSITIVE_CONFIG_EXTENSIONS
+
+      # Path segments that frequently hold secret material in custom app contexts.
+      SENSITIVE_CONFIG_SEGMENTS = %w[credentials private secrets].freeze
+      private_constant :SENSITIVE_CONFIG_SEGMENTS
+
       module_function
 
       # @param context [Hash] full introspection hash
@@ -58,6 +74,16 @@ module RailsAiBridge
         end
       end
 
+      # Bounded route focus lines for passive context. Shows busiest endpoint
+      # areas without dumping the full route table.
+      #
+      # @param context [Hash] full introspection hash
+      # @param limit [Integer] max controllers to render
+      # @return [Array<String>] markdown lines without heading
+      def route_focus_lines(context, limit: 5)
+        RouteFocus.new(context, limit).lines
+      end
+
       # Complexity score for a single model's introspection data.
       # Used by compact serializers to surface the most architecturally significant
       # models (high association/validation/callback/scope counts) first.
@@ -69,6 +95,46 @@ module RailsAiBridge
           Array(data[:validations]).size +
           Array(data[:callbacks]).size +
           Array(data[:scopes]).size
+      end
+
+      # Task-relevance score for passive context ordering.
+      #
+      # @param data [Hash] single-model entry from +context[:models]+
+      # @param name [String, nil] model class name
+      # @param context [Hash] full introspection hash
+      # @return [Integer] non-negative score; higher = more relevant
+      def model_relevance_score(data, name: nil, context: {})
+        ModelRelevance.new(data: data, name: name, context: context).score
+      end
+
+      # Valid model entries sorted by task relevance, then model name for stable
+      # deterministic output when scores tie.
+      #
+      # @param models [Hash] model payloads keyed by model name
+      # @param context [Hash] full introspection hash
+      # @return [Array<Array(String, Hash)>]
+      def models_by_relevance(models, context: {})
+        return [] unless models.is_a?(Hash)
+
+        models.select { |_name, data| data.is_a?(Hash) && !data[:error] }
+              .sort_by { |name, data| [-model_relevance_score(data, name: name, context: context), name.to_s] }
+      end
+
+      # Valid model names grouped by semantic tier while preserving relevance ordering.
+      #
+      # @param models [Hash] model payloads keyed by model name
+      # @param context [Hash] full introspection hash
+      # @return [Hash{String => Array<String>}]
+      def models_grouped_by_semantic_tier(models, context: {})
+        models_by_relevance(models, context: context).each_with_object(Hash.new { |hash, key| hash[key] = [] }) do |(name, data), groups|
+          groups[semantic_tier_for(data)] << name
+        end
+      end
+
+      # @param data [Hash, Object] single-model entry
+      # @return [String] semantic tier with a stable fallback
+      def semantic_tier_for(data)
+        (data.is_a?(Hash) && data[:semantic_tier].presence) || 'supporting'
       end
 
       # Returns the appropriate test command string for this app's test framework.
@@ -124,6 +190,23 @@ module RailsAiBridge
         end
       end
 
+      # Human-oriented approximate table size bucket for optional database stats.
+      #
+      # @param row_count [Integer, nil] approximate rows
+      # @return [String, nil] +small+, +medium+, +large+, +hot+, or nil
+      def database_size_bucket(row_count)
+        DatabaseSize.bucket(row_count)
+      end
+
+      # Optional size bucket for a table from +context[:database_stats]+.
+      #
+      # @param context [Hash] full introspection hash
+      # @param table_name [String, nil]
+      # @return [String, nil]
+      def database_size_bucket_for_table(context, table_name)
+        DatabaseSize.bucket_for_table(context, table_name)
+      end
+
       # Short, copy-pastable baseline for compact serializers (performance, drift, MCP exposure).
       #
       # @return [Array<String>] markdown lines (including heading)
@@ -137,7 +220,255 @@ module RailsAiBridge
         ]
       end
 
+      # Filters config file paths down to entries safe for generated assistant context.
+      #
+      # @param files [Array<String>, nil] config file paths from convention detection
+      # @param limit [Integer, nil] optional maximum safe paths to return
+      # @return [Array<String>] safe config file paths, preserving input order
+      def safe_config_files(files, limit: nil)
+        safe_files = Array(files).reject { |path| sensitive_config_file?(path) }
+        limit ? safe_files.first(limit) : safe_files
+      end
+
+      # Returns true for config paths that are secret-bearing by name, even when
+      # only the path is exposed and file contents are never read.
+      #
+      # @param path [String, nil] relative config path
+      # @return [Boolean] whether the path should be omitted from generated context
+      def sensitive_config_file?(path)
+        normalized = normalized_config_path(path)
+        basename = File.basename(normalized)
+
+        dotenv_file?(basename) ||
+          sensitive_config_basename?(basename) ||
+          SENSITIVE_CONFIG_EXTENSIONS.include?(File.extname(basename)) ||
+          sensitive_config_path_segment?(normalized) ||
+          rails_environment_credentials?(normalized)
+      end
+
+      # Renders bounded route focus lines for compact passive context.
+      class RouteFocus
+        def initialize(context, limit)
+          @routes = context[:routes]
+          @limit = limit
+        end
+
+        # @return [Array<String>] bounded Markdown route-focus lines
+        def lines
+          return [] if controller_routes.empty?
+
+          sorted_routes.first(bounded_limit).map { |controller, routes| route_line(controller, routes) }
+        end
+
+        private
+
+        def controller_routes
+          return {} unless @routes.is_a?(Hash) && !@routes[:error]
+
+          by_controller = @routes[:by_controller]
+          by_controller.is_a?(Hash) ? by_controller : {}
+        end
+
+        def sorted_routes
+          controller_routes.sort_by { |controller, routes| [-route_count(routes), controller.to_s] }
+        end
+
+        def route_count(routes)
+          Array(routes).size
+        end
+
+        def bounded_limit
+          @limit.to_i.clamp(1, 20)
+        end
+
+        def route_line(controller, routes)
+          "- #{controller}: #{route_count(routes)} routes — `rails_get_routes(controller:\"#{controller}\", detail:\"summary\")`"
+        end
+      end
+
+      # Calculates model ordering relevance for compact context summaries.
+      class ModelRelevance
+        # Semantic-tier weights used before structural complexity and activity signals.
+        TIER_SCORES = {
+          'core_entity' => 100,
+          'rich_join' => 35,
+          'supporting' => 20,
+          'pure_join' => 5
+        }.freeze
+
+        def initialize(data:, name:, context:)
+          @data = data
+          @name = name
+          @context = context
+        end
+
+        # @return [Integer] model task-relevance score
+        def score
+          return 0 unless @data.is_a?(Hash)
+
+          tier_score +
+            ContextSummary.model_complexity_score(@data) +
+            route_density +
+            recent_migration_score +
+            database_size_score
+        end
+
+        private
+
+        def tier_score
+          TIER_SCORES.fetch(@data[:semantic_tier].to_s, 20)
+        end
+
+        def route_density
+          by_controller = @context.dig(:routes, :by_controller)
+          return 0 unless by_controller.is_a?(Hash)
+
+          route_keys.sum { |key| Array(by_controller[key]).size }
+        end
+
+        def route_keys
+          [controller_route_key, table_name].compact_blank.uniq
+        end
+
+        def controller_route_key
+          @name.to_s.delete_suffix('Controller').underscore.pluralize if @name
+        end
+
+        def table_name
+          @data[:table_name].to_s
+        end
+
+        def recent_migration_score
+          ContextSummary.recently_migrated?(table_name, @context[:migrations]) ? 5 : 0
+        end
+
+        def database_size_score
+          case DatabaseSize.bucket_for_table(@context, table_name)
+          when 'hot' then 12
+          when 'large' then 8
+          when 'medium' then 3
+          else 0
+          end
+        end
+      end
+
+      # Looks up optional database row-count buckets without exposing raw counts.
+      class DatabaseSize
+        # @param row_count [Integer, nil]
+        # @return [String, nil] safe size bucket label
+        def self.bucket(row_count)
+          BucketLabel.new(row_count).label
+        end
+
+        # @param context [Hash]
+        # @param table_name [String, nil]
+        # @return [String, nil] safe size bucket label for the table
+        def self.bucket_for_table(context, table_name)
+          new(context).bucket_for_table(table_name)
+        end
+
+        def initialize(context)
+          @context = context
+        end
+
+        # @param row_count [Integer, nil]
+        # @return [String, nil] safe size bucket label
+        def bucket(row_count)
+          self.class.bucket(row_count)
+        end
+
+        # @param table_name [String, nil]
+        # @return [String, nil] safe size bucket label for the table
+        def bucket_for_table(table_name)
+          table_stats = row_for(table_name.to_s)
+          return unless table_stats
+
+          stats = table_stats.with_indifferent_access
+          bucket(stats[:size_bucket] || stats[:approximate_rows])
+        end
+
+        private
+
+        def row_for(table_name)
+          return nil if table_name.empty? || invalid_stats?
+
+          Array(stats[:tables]).find do |table_stats|
+            table_stats[:table].to_s == table_name || table_stats['table'].to_s == table_name
+          end
+        end
+
+        def invalid_stats?
+          !stats.is_a?(Hash) || stats[:error] || stats[:skipped]
+        end
+
+        def stats
+          @context&.fetch(:database_stats, nil)
+        end
+
+        BUCKETS = {
+          0...50_000 => 'small',
+          50_000...1_000_000 => 'medium',
+          1_000_000...10_000_000 => 'large'
+        }.freeze
+        private_constant :BUCKETS
+
+        # Value object for mapping an approximate row count to a safe label.
+        class BucketLabel
+          SAFE_LABELS = %w[small medium large hot].freeze
+          private_constant :SAFE_LABELS
+
+          def initialize(row_count)
+            @value = row_count
+          end
+
+          # @return [String, nil] safe size bucket label
+          def label
+            return @value if SAFE_LABELS.include?(@value)
+            return nil unless rows
+
+            BUCKETS.find { |range, _bucket| range.cover?(rows) }&.last || 'hot'
+          end
+
+          private
+
+          def rows
+            @rows ||= @value&.to_i
+          end
+        end
+      end
+      private_constant :RouteFocus, :ModelRelevance, :DatabaseSize
+
       private
+
+      def normalized_config_path(path)
+        path.to_s.tr('\\', '/').downcase
+      end
+      module_function :normalized_config_path
+      private_class_method :normalized_config_path
+
+      def dotenv_file?(basename)
+        basename == '.env' || basename.start_with?('.env.')
+      end
+      module_function :dotenv_file?
+      private_class_method :dotenv_file?
+
+      def sensitive_config_basename?(basename)
+        SENSITIVE_CONFIG_BASENAMES.include?(basename)
+      end
+      module_function :sensitive_config_basename?
+      private_class_method :sensitive_config_basename?
+
+      def sensitive_config_path_segment?(path)
+        path.split('/').any? { |segment| SENSITIVE_CONFIG_SEGMENTS.include?(segment) }
+      end
+      module_function :sensitive_config_path_segment?
+      private_class_method :sensitive_config_path_segment?
+
+      def rails_environment_credentials?(path)
+        path.match?(%r{\Aconfig/credentials/.+\.yml\.enc\z})
+      end
+      module_function :rails_environment_credentials?
+      private_class_method :rails_environment_credentials?
 
       def displayable_column?(column)
         return false unless column.is_a?(Hash)

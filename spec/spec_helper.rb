@@ -32,6 +32,7 @@ RSpec.configure do |config|
 
   config.shared_context_metadata_behavior = :apply_to_host_groups
   config.filter_run_when_matching :focus
+  config.filter_run_excluding perf: true unless ENV['PERF']
   config.example_status_persistence_file_path = 'spec/examples.txt'
   config.disable_monkey_patching!
   config.order = :random

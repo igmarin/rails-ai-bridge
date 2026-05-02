@@ -49,8 +49,61 @@ RSpec.describe RailsAiBridge::Introspectors::ActiveStorageIntrospector do
       expect(result[:direct_upload]).to be false
     end
 
+    it 'treats direct upload scan path errors as no direct uploads' do
+      resolver = instance_double(
+        RailsAiBridge::PathResolver,
+        files_for: [],
+        glob_for: nil
+      )
+      allow(resolver).to receive(:glob_for).and_raise(StandardError, 'path failure')
+      allow(RailsAiBridge::PathResolver).to receive(:new).and_return(resolver)
+
+      expect(described_class.new(Rails.application).call[:direct_upload]).to be false
+    end
+
     it 'returns installed flag as boolean' do
       expect(result[:installed]).to be(true).or be(false)
+    end
+
+    context 'with configured Rails paths' do
+      let(:app_root) { Pathname.new(Dir.mktmpdir('rails-ai-bridge-active-storage')) }
+      let(:models_dir) { app_root.join('domain/models') }
+      let(:views_dir) { app_root.join('frontend/templates') }
+      let(:custom_app) do
+        double(
+          'Rails::Application',
+          root: app_root,
+          paths: {
+            'app/models' => [models_dir.to_s],
+            'app/views' => [views_dir.to_s],
+            'app/javascript' => [app_root.join('frontend/javascript').to_s]
+          }
+        )
+      end
+
+      after { FileUtils.rm_rf(app_root) }
+
+      before do
+        FileUtils.mkdir_p(models_dir)
+        FileUtils.mkdir_p(views_dir)
+        File.write(models_dir.join('asset_profile.rb'), <<~RUBY)
+          class AssetProfile < ApplicationRecord
+            has_one_attached :avatar
+          end
+        RUBY
+        File.write(views_dir.join('profiles.html.erb'), '<%= form.file_field :avatar, direct_upload: true %>')
+      end
+
+      it 'detects attachments and direct uploads outside conventional app directories' do
+        custom_result = described_class.new(custom_app).call
+
+        expect(custom_result[:attachments]).to include(
+          model: 'AssetProfile',
+          name: 'avatar',
+          type: 'has_one_attached'
+        )
+        expect(custom_result[:direct_upload]).to be true
+      end
     end
   end
 end

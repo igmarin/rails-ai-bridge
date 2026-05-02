@@ -134,8 +134,8 @@ end
 | File | Purpose | Notes |
 |------|---------|-------|
 | `CLAUDE.md` | Main context file | ≤150 lines in compact mode. Claude Code reads this automatically. |
-| `.claude/rules/rails-context.md` | Semantic layer | App metadata + models grouped by `semantic_tier`. In **compact** mode, at most 20 names per tier with an overflow line pointing to `rails_get_model_details`; **full** mode lists all. |
-| `.claude/rules/rails-schema.md` | Database table listing | Auto-loaded by Claude Code alongside CLAUDE.md. |
+| `.claude/rules/rails-context.md` | Semantic layer | App metadata + models grouped by `semantic_tier`, ordered by task relevance, plus bounded endpoint focus. In **compact** mode, at most 20 names per tier with an overflow line pointing to `rails_get_model_details`; **full** mode lists all. |
+| `.claude/rules/rails-schema.md` | Database table listing | Auto-loaded by Claude Code alongside CLAUDE.md. Adds coarse table-size buckets when `database_stats` is enabled. |
 | `.claude/rules/rails-models.md` | Model listing with associations | Includes `tier: …` per ActiveRecord model; adds **Non-ActiveRecord classes (POJO/Service)** for plain Ruby classes under `app/models`. |
 | `.claude/rules/rails-mcp-tools.md` | Full MCP tool reference | Parameters, detail levels, pagination, workflow guide. |
 
@@ -145,8 +145,8 @@ end
 |------|---------|-------|
 | `.cursorrules` | Legacy context file | Compact mode: engineering rules + stack + MCP (aligned with Copilot order). |
 | `.cursor/rules/rails-engineering.mdc` | Engineering essentials | `alwaysApply: true` — strong params, auth, N+1, security; points to overrides + full docs. |
-| `.cursor/rules/rails-project.mdc` | Project overview | `alwaysApply: true` — stack counts, gems (capped), `routes_stack_line`. |
-| `.cursor/rules/rails-models.mdc` | Model reference | `globs: app/models/**/*.rb` — auto-attaches when editing models. |
+| `.cursor/rules/rails-project.mdc` | Project overview | `alwaysApply: true` — stack counts, endpoint focus, gems (capped), `routes_stack_line`. |
+| `.cursor/rules/rails-models.mdc` | Model reference | `globs: app/models/**/*.rb` — auto-attaches when editing models; rows are ordered by task relevance. |
 | `.cursor/rules/rails-controllers.mdc` | Controller reference | `globs: app/controllers/**/*.rb` — auto-attaches when editing controllers. |
 | `.cursor/rules/rails-mcp-tools.mdc` | MCP tool reference | `alwaysApply: true` — always available. |
 
@@ -482,7 +482,7 @@ rails_search_code(pattern: "def create", path: "app/controllers", file_type: "rb
 
 View-layer context: layouts, templates, partials, helpers, components. Requires the `:views` introspector (included in the `:full` preset, or add `config.introspectors << :views`).
 
-**Parameters:** optional `path` (file under `app/views`), `controller`, `partial`, and `detail` (`summary` / `standard` / `full`).
+**Parameters:** optional `path` (file under the configured logical `app/views` path), `controller`, `partial`, and `detail` (`summary` / `standard` / `full`).
 
 ### rails_get_stimulus
 
@@ -523,7 +523,7 @@ In addition to tools, the gem registers static MCP resources that AI clients can
 | `rails://tests` | Test infrastructure details (JSON) |
 | `rails://migrations` | Migration history and statistics (JSON) |
 | `rails://engines` | Mounted engines with paths and descriptions (JSON) |
-| `rails://views` | View-layer summary (JSON); template `rails://views/{path}` |
+| `rails://views` | View-layer summary (JSON); template `rails://views/{path}` resolves through the configured logical `app/views` path |
 | `rails://stimulus` | Stimulus summary (JSON); template `rails://stimulus/{name}` |
 | `rails://models/{name}` | Per-model details (resource template) |
 
@@ -748,27 +748,28 @@ These run by default. Fast and cover core Rails structure.
 | `jobs` | ActiveJob classes with queue names. Mailers with action methods. Action Cable channels. |
 | `gems` | 70+ notable gems categorized: auth, background_jobs, admin, monitoring, search, pagination, forms, file_upload, testing, linting, security, api, frontend, utilities. |
 | `conventions` | Architecture patterns (MVC, service objects, STI, polymorphism, etc.), directory structure with file counts, config files, detected patterns. |
-| `controllers` | Actions, filters (before/after/around with only/except), strong params methods, parent class, API controller detection, concerns. |
+| `controllers` | Actions, filters (before/after/around with only/except), strong params methods, parent class, API controller detection, concerns. Source-derived metadata honors the configured logical `app/controllers` path. |
 | `tests` | Test framework (rspec/minitest), factories/fixtures with locations and counts, system tests, CI config files, coverage tool, test helpers, VCR cassettes. |
 | `migrations` | Total count, schema version, pending migrations, recent migration history with detected actions (create_table, add_column, etc.), migration statistics. |
 
-**Opt-in:** `non_ar_models` — Ruby classes under `app/models` that are not subclasses of `ActiveRecord::Base`, tagged **`[POJO/Service]`** in `rails_get_model_details` listings and Claude `rails-models.md`. Enable with `config.introspectors << :non_ar_models` (typically immediately after `:models`). Uses `Object.const_source_location` after eager load.
+**Standard opt-in:** `non_ar_models` — Ruby classes under the configured logical `app/models` Rails path that are not subclasses of `ActiveRecord::Base`, tagged **`[POJO/Service]`** in `rails_get_model_details` listings and Claude `rails-models.md`. Included in `:full`; add it manually when staying on `:standard`. Uses `Object.const_source_location` after eager load and reports stable logical paths instead of absolute custom directories.
 
-### Full preset (26 introspectors)
+### Full preset (27 introspectors)
 
 Includes all standard introspectors plus:
 
 | Introspector | What it discovers |
 |-------------|-------------------|
-| `stimulus` | Stimulus controllers with targets, values (with types), actions, outlets, classes. Extracted from JS/TS files. |
-| `views` | Layouts, templates grouped by controller, partials (per-controller and shared), helpers with methods, template engines (erb, haml, slim), view components. |
-| `turbo` | Turbo Frames (IDs and files), Turbo Stream templates, model broadcasts (`broadcasts_to`, `broadcasts`). |
+| `non_ar_models` | Ruby classes under the configured logical `app/models` path that are not subclasses of `ActiveRecord::Base`, tagged **`[POJO/Service]`** in model listings. |
+| `stimulus` | Stimulus controllers with targets, values (with types), actions, outlets, classes. Extracted from JS/TS files under the configured logical `app/javascript/controllers` path. |
+| `views` | Layouts, templates grouped by controller, partials (per-controller and shared), helpers with methods, template engines (erb, haml, slim), view components. Honors configured logical `app/views`, `app/helpers`, and `app/components` paths. |
+| `turbo` | Turbo Frames (IDs and files), Turbo Stream templates, model broadcasts (`broadcasts_to`, `broadcasts`). Honors configured logical `app/views` and `app/models` paths. |
 | `i18n` | Default locale, available locales, locale files with key counts, backend class, parse errors. |
-| `config` | Cache store, session store, timezone, middleware stack, initializers, credentials keys, CurrentAttributes classes. |
-| `active_storage` | Attachments (has_one_attached, has_many_attached per model), storage services, direct upload config. |
-| `action_text` | Rich text fields (has_rich_text per model), Action Text installation status. |
-| `auth` | Devise models with modules, Rails 8 built-in auth, has_secure_password, Pundit policies, CanCanCan, CORS config, CSP config. |
-| `api` | API-only mode, API versioning (from directory structure), serializers (Jbuilder, AMS, etc.), GraphQL (types, mutations), rate limiting (Rack::Attack). |
+| `config` | Cache store, session store, timezone, middleware stack, initializers, credentials keys, CurrentAttributes classes from the configured logical `app/models` path. |
+| `active_storage` | Attachments (has_one_attached, has_many_attached per model), storage services, direct upload config. Attachment and direct-upload scans honor configured `app/models`, `app/views`, and `app/javascript` paths. |
+| `action_text` | Rich text fields (has_rich_text per model), Action Text installation status. Model scans honor the configured logical `app/models` path. |
+| `auth` | Devise models with modules, Rails 8 built-in auth, has_secure_password, Pundit policies, CanCanCan, CORS config, CSP config. Model and policy scans honor configured `app/models` and `app/policies` paths. |
+| `api` | API-only mode, API versioning (from directory structure), serializers (Jbuilder, AMS, etc.), GraphQL (types, mutations), rate limiting (Rack::Attack). View, serializer, GraphQL, and controller scans honor configured Rails paths. |
 | `rake_tasks` | Custom rake tasks in `lib/tasks/` with names, descriptions, namespaces, file paths. |
 | `assets` | Asset pipeline (Propshaft/Sprockets), JS bundler (importmap/esbuild/webpack/vite), CSS framework, importmap pins, manifest files. |
 | `devops` | Puma config (threads, workers, port), Procfile entries, Docker (multi-stage detection), deployment tools, health check routes. |
@@ -777,7 +778,7 @@ Includes all standard introspectors plus:
 | `middleware` | Custom Rack middleware in app/middleware/ with detected patterns (auth, rate limiting, tenant isolation, logging). Full middleware stack. |
 | `engines` | Mounted Rails engines from routes.rb with paths and descriptions for 23+ known engines (Sidekiq::Web, Flipper::UI, PgHero, ActiveAdmin, etc.). |
 | `multi_database` | Multiple databases, replicas, sharding config, model-specific `connects_to` declarations. database.yml parsing fallback. |
-| `database_stats` | PostgreSQL approximate row counts via `pg_stat_user_tables`. Opt-in, requires PostgreSQL. |
+| `database_stats` | PostgreSQL approximate row counts via `pg_stat_user_tables`, bucketed as `small`, `medium`, `large`, or `hot`. Opt-in only, requires PostgreSQL. |
 
 ### Enabling the full preset
 
@@ -938,6 +939,7 @@ Works in:
 - Code search uses `Open3.capture2` with array arguments — **no shell injection**
 - File paths are validated against **path traversal** attacks
 - Credentials and secret values are **never exposed** — only key names are introspected (unless you opt in with `expose_credentials_key_names`)
+- Generated config-file listings and the `rails://conventions` MCP resource omit secret-bearing paths such as `.env*`, Rails credentials files, secret/private directories, `master.key`, and private key material
 - The gem makes **no outbound network requests**
 - File type validation prevents arbitrary file access in code search
 - `max_results` is capped at 100 to prevent resource exhaustion; `pattern` length is capped (`search_code_pattern_max_bytes`); optional per-invocation timeout (`search_code_timeout_seconds`)

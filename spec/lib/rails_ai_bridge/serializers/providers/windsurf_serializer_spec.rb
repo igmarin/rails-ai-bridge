@@ -79,6 +79,39 @@ RSpec.describe RailsAiBridge::Serializers::Providers::WindsurfSerializer do
     expect(output).to include('bin/rails test')
   end
 
+  it 'omits secret-bearing config file paths' do
+    context = {
+      app_name: 'App', rails_version: '8.0', ruby_version: '3.4',
+      schema: {}, models: {}, routes: {}, gems: {},
+      conventions: {
+        config_files: [
+          'config/database.yml',
+          '.env.production',
+          'config/master.key',
+          'config/private.pem',
+          'config/routes.rb'
+        ]
+      }
+    }
+
+    output = described_class.new(context).call
+    expect(output).to include('config/database.yml')
+    expect(output).to include('config/routes.rb')
+    expect(output).not_to include('.env')
+    expect(output).not_to include('master.key')
+    expect(output).not_to include('private.pem')
+  end
+
+  it 'omits the key config section when only secret-bearing config paths are present' do
+    context = {
+      app_name: 'App', rails_version: '8.0', ruby_version: '3.4',
+      schema: {}, models: {}, routes: {}, gems: {},
+      conventions: { config_files: ['.env', 'config/master.key'] }
+    }
+
+    expect(described_class.new(context).call).not_to include('## Key Config Files')
+  end
+
   # A4 — column hints
   it 'shows top non-housekeeping columns for key models' do
     context = {

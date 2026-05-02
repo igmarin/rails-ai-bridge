@@ -54,9 +54,10 @@ module RailsAiBridge
           end
 
           # Config files
-          if @conventions[:config_files]&.any?
+          config_files = Serializers::ContextSummary.safe_config_files(@conventions[:config_files])
+          if config_files.any?
             lines << '' << '## Config files present'
-            @conventions[:config_files].each { |f| lines << "- `#{f}`" }
+            config_files.each { |f| lines << "- `#{f}`" }
           end
 
           lines.join("\n")

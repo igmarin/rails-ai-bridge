@@ -107,10 +107,19 @@ module RailsAiBridge
             lines << ''
           end
 
+          focus_lines = ContextSummary.route_focus_lines(context, limit: 5)
+          if focus_lines.any?
+            lines << '## Endpoint focus'
+            lines << ''
+            lines.concat(focus_lines)
+            lines << ''
+          end
+
           lines << '## Pointers'
           lines << ''
           lines << '- Schema tables: see `rails-schema.md` in this folder or `rails_get_schema` (MCP).'
           lines << '- Model details: `rails_get_model_details` with `model:"Name"`.'
+          lines << '- Routes: start with `rails_get_routes(detail:"summary")`, then filter by controller.'
           lines.join("\n")
         end
 
@@ -127,12 +136,7 @@ module RailsAiBridge
         #   "supporting".
         # @return [Hash{String => Array<String>}] A hash where each key is a semantic tier and each value is an array of model names assigned to that tier.
         def group_models_by_semantic_tier(models)
-          models.each_with_object(Hash.new { |h, k| h[k] = [] }) do |(name, data), acc|
-            next if data.is_a?(Hash) && data[:error]
-
-            tier = (data.is_a?(Hash) && data[:semantic_tier].presence) || 'supporting'
-            acc[tier] << name
-          end
+          ContextSummary.models_grouped_by_semantic_tier(models, context: context)
         end
 
         # @return [Integer, nil] cap per tier, or +nil+ when all names should be listed (+:full+ context mode).
@@ -146,14 +150,13 @@ module RailsAiBridge
         # @param names [Array<String>]
         # @param cap [Integer, nil]
         def append_tier_model_bullets(lines, names, cap)
-          sorted = names.sort
           if cap.nil?
-            sorted.each { |n| lines << "- #{n}" }
+            names.each { |n| lines << "- #{n}" }
             return
           end
 
-          sorted.first(cap).each { |n| lines << "- #{n}" }
-          remaining = sorted.size - cap
+          names.first(cap).each { |n| lines << "- #{n}" }
+          remaining = names.size - cap
           return unless remaining.positive?
 
           lines << "- … +#{remaining} more (use `rails_get_model_details(detail:\"summary\")` for full list)"
@@ -184,7 +187,9 @@ module RailsAiBridge
             data = tables[name]
             col_count = data[:columns]&.size || 0
             pk = data[:primary_key] || 'id'
-            lines << "- #{name} (#{col_count} cols, pk: #{pk})"
+            size = ContextSummary.database_size_bucket_for_table(context, name)
+            suffix = size ? " [#{size}]" : ''
+            lines << "- #{name} (#{col_count} cols, pk: #{pk})#{suffix}"
           end
 
           lines.join("\n")

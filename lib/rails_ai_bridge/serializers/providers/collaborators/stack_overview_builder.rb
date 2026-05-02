@@ -30,9 +30,10 @@ module RailsAiBridge
             def self.build(context)
               sections = [
                 '## Stack',
-                DatabaseStackBuilder.build(context[:schema]),
+                DatabaseStackBuilder.build(context),
                 ModelsStackBuilder.build(context[:models]),
                 ContextSummary.routes_stack_line(context),
+                RouteFocusStackBuilder.build(context),
                 AuthStackBuilder.build(context[:auth]),
                 AsyncStackBuilder.build(context[:jobs]),
                 MigrationsStackBuilder.build(context[:migrations])
@@ -44,11 +45,59 @@ module RailsAiBridge
           # Utility class for building database stack lines
           class DatabaseStackBuilder
             # Builds database information line
-            # @param schema [Hash, nil] Schema hash from context
+            # @param context_or_schema [Hash, nil] full context or schema hash
             # @return [String, nil] Database line or nil if unavailable
-            def self.build(schema)
-              "- Database: #{schema[:adapter]} — #{schema[:total_tables]} tables" if schema.is_a?(Hash) && !schema[:error]
+            def self.build(context_or_schema)
+              schema = schema_from(context_or_schema)
+              return nil unless schema.is_a?(Hash) && !schema[:error] && !schema[:skipped]
+
+              "- Database: #{schema[:adapter]} — #{schema[:total_tables]} tables#{hot_table_suffix(context_or_schema)}"
             end
+
+            def self.schema_from(context_or_schema)
+              return nil unless context_or_schema.is_a?(Hash)
+
+              context_or_schema.key?(:schema) ? context_or_schema[:schema] : context_or_schema
+            end
+
+            def self.hot_table_names(context)
+              DatabaseStatsSummary.new(context).hot_table_names
+            end
+
+            def self.hot_table_suffix(context)
+              hot_tables = hot_table_names(context)
+              hot_tables.any? ? " — hot/large: #{hot_tables.join(', ')}" : ''
+            end
+
+            private_class_method :schema_from, :hot_table_names, :hot_table_suffix
+
+            # Extracts bounded hot-table hints from optional database stats.
+            class DatabaseStatsSummary
+              def initialize(context)
+                @context = context
+              end
+
+              # @return [Array<String>] up to three large/hot table names
+              def hot_table_names
+                return [] unless stats_available?
+
+                Array(stats[:tables]).filter_map do |row|
+                  bucket = row[:size_bucket] || ContextSummary.database_size_bucket(row[:approximate_rows])
+                  row[:table] if %w[large hot].include?(bucket)
+                end.first(3)
+              end
+
+              private
+
+              def stats_available?
+                @context.is_a?(Hash) && stats.is_a?(Hash) && !stats[:error] && !stats[:skipped]
+              end
+
+              def stats
+                @context[:database_stats] if @context.is_a?(Hash)
+              end
+            end
+            private_constant :DatabaseStatsSummary
           end
 
           # Utility class for building models stack lines
@@ -58,6 +107,18 @@ module RailsAiBridge
             # @return [String, nil] Models line or nil if unavailable
             def self.build(models)
               "- Models: #{models.size}" if models.is_a?(Hash) && !models[:error]
+            end
+          end
+
+          # Utility class for building bounded route-focus stack line
+          class RouteFocusStackBuilder
+            # @param context [Hash] Introspection context hash
+            # @return [String, nil] Endpoint focus summary or nil if unavailable
+            def self.build(context)
+              focus = ContextSummary.route_focus_lines(context, limit: 3)
+              return nil if focus.empty?
+
+              "- Endpoint focus: #{focus.map { |line| line.delete_prefix('- ') }.join('; ')}"
             end
           end
 

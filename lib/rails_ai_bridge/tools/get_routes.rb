@@ -87,7 +87,7 @@ module RailsAiBridge
         end
 
         def format_summary
-          lines = ["# Routes Summary (#{@routes[:total_routes]} total)", '']
+          lines = ["# Routes Summary (#{route_count} total)", '']
           @by_controller.keys.sort.each do |ctrl|
             actions = @by_controller[ctrl]
             verbs = actions.map { |r| r[:verb] }.tally.map { |v, c| "#{c} #{v}" }.join(', ')
@@ -99,8 +99,9 @@ module RailsAiBridge
         end
 
         def format_standard
-          limit = @limit || 100
-          lines = ["# Routes (#{@routes[:total_routes]} total)", '']
+          limit = @limit.to_i
+          limit = 100 if limit <= 0
+          lines = ["# Routes (#{route_count} total)", '']
           count = 0
           @by_controller.sort.each do |ctrl, actions|
             next if count >= @offset + limit
@@ -119,13 +120,15 @@ module RailsAiBridge
             lines.concat(ctrl_lines)
             lines << ''
           end
-          lines << '_Use `detail:"summary"` for overview, or `detail:"full"` for route names._' if @routes[:total_routes] > limit
+          lines << next_offset_hint(limit) if next_page?(limit)
+          lines << '_Use `detail:"summary"` for overview, or `detail:"full"` for route names._' if route_count > limit
           lines.join("\n")
         end
 
         def format_full
-          limit = @limit || 200
-          lines = ["# Routes Full Detail (#{@routes[:total_routes]} total)", '']
+          limit = @limit.to_i
+          limit = 200 if limit <= 0
+          lines = ["# Routes Full Detail (#{route_count} total)", '']
           lines << '| Verb | Path | Controller#Action | Name |'
           lines << '|------|------|-------------------|------|'
           count = 0
@@ -139,7 +142,31 @@ module RailsAiBridge
             end
           end
           lines << '' << "## API namespaces: #{@routes[:api_namespaces].join(', ')}" if @routes[:api_namespaces]&.any?
+          lines << next_offset_hint(limit) if next_page?(limit)
           lines.join("\n")
+        end
+
+        # @param limit [Integer] maximum route rows requested for the current page
+        # @return [Boolean] true when another page of filtered route rows exists
+        def next_page?(limit)
+          @offset + limit < route_count
+        end
+
+        # @param limit [Integer] maximum route rows requested for the current page
+        # @return [String] markdown hint showing the next +offset+ value to request
+        def next_offset_hint(limit)
+          "_Showing #{displayed_route_count(limit)} of #{route_count}. Use `offset:#{@offset + limit}` for more._"
+        end
+
+        # @param limit [Integer] maximum route rows requested for the current page
+        # @return [Integer] number of route rows displayed on this page
+        def displayed_route_count(limit)
+          [route_count - @offset, limit].min
+        end
+
+        # @return [Integer] number of route rows after any controller filter is applied
+        def route_count
+          @route_count ||= @by_controller.values.sum(&:size)
         end
       end
     end
