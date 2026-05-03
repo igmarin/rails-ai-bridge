@@ -1,5 +1,8 @@
 # rails-ai-bridge
 
+<img width="1408" height="768" alt="logo" src="https://github.com/user-attachments/assets/ee7b04bd-2d67-483e-be4a-cffdefdbdc50" />
+
+
 > **Turn any Rails app into an AI-ready system — with real context, not guesswork.**
 
 **One command. Zero config. Structured context + live introspection for AI assistants** via compact project files and an MCP server.
