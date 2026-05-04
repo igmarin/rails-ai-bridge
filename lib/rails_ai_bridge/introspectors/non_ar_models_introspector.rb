@@ -19,7 +19,7 @@ module RailsAiBridge
       # Logs best-effort class processing failures without interrupting discovery.
       ErrorLogger = Struct.new(:error, keyword_init: true) do
         def call
-          logger = Object.const_get(:Rails).logger if defined?(Rails) && Rails.logger
+          logger = Rails.logger if defined?(Rails.logger) && Rails.logger
           logger&.warn "NonArModelsIntrospector: Error processing class: #{error.class.name}"
         end
       end
@@ -123,7 +123,9 @@ module RailsAiBridge
 
         true
       rescue StandardError => error
-        Rails.logger.warn "NonArModelsIntrospector: Error validating class: #{error.class.name}" if defined?(Rails) && Rails.logger
+        if defined?(Rails.logger) && Rails.logger
+          Rails.logger.warn "NonArModelsIntrospector: Error validating class: #{error.class.name}"
+        end
         false
       end
 
