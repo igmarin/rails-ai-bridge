@@ -165,6 +165,23 @@ RSpec.describe RailsAiBridge::Services::FileManagementService do
       expect(result.errors.first).to match(/Path not allowed/)
     end
 
+    it 'rejects symlinks pointing outside the allowed base' do
+      outside_file = File.join(Dir.tmpdir, "rails-ai-bridge-outside-#{SecureRandom.hex}.txt")
+      File.write(outside_file, 'sensitive data')
+
+      symlink_path = File.join(test_dir, 'unsafe_symlink.txt')
+      File.symlink(outside_file, symlink_path)
+
+      begin
+        result = described_class.call(:read, path: symlink_path)
+        expect(result.failure?).to be(true)
+        expect(result.errors.first).to match(/Path not allowed/)
+      ensure
+        FileUtils.rm_f(outside_file)
+        FileUtils.rm_f(symlink_path)
+      end
+    end
+
     it 'rejects an empty path' do
       result = described_class.call(:read, path: '')
 

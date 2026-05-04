@@ -541,10 +541,10 @@ Frontend introspectors (views, Turbo, Stimulus, assets) degrade gracefully — t
 | `rails ai:serve` | Start MCP server (stdio) |
 | `rails ai:serve_http` | Start MCP server (HTTP) |
 | `rails ai:doctor` | Run diagnostics and AI readiness score (0-100) |
-| `rails ai:watch` | Auto-regenerate context files on code changes |
+| `rails ai:watch` | Auto-regenerate bridge files on code changes |
 | `rails ai:inspect` | Print introspection summary to stdout |
 
-> **Context modes:**
+> **Bridge modes:**
 > ```bash
 > rails ai:bridge                               # compact (default) — all formats
 > rails ai:bridge:full                          # full dump — all formats

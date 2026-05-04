@@ -21,8 +21,6 @@ module RailsAiBridge
           directory_structure: scan_directory_structure,
           config_files: detect_config_files
         }
-      rescue StandardError => error
-        { error: error.message }
       end
 
       private

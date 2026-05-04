@@ -19,7 +19,7 @@ RSpec.describe 'rails_ai_bridge rake tasks' do
     # Setup new Rake application for each test to avoid state leakage
     Rake.application = Rake::Application.new
     Rake::Task.define_task(:environment)
-    load File.expand_path('../../../../lib/rails_ai_bridge/tasks/rails_ai_bridge.rake', __dir__)
+    load task_path
 
     rake.tasks.each(&:reenable)
     allow(RailsAiBridge).to receive(:generate_context).and_return(result)

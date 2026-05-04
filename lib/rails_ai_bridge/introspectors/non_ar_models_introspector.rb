@@ -18,9 +18,8 @@ module RailsAiBridge
       private_constant :CollectionContext
       # Logs best-effort class processing failures without interrupting discovery.
       ErrorLogger = Struct.new(:error, keyword_init: true) do
-        # @return [void]
         def call
-          logger = Object.const_get(:Rails).logger if defined?(Rails.logger)
+          logger = Object.const_get(:Rails).logger if defined?(Rails) && Rails.logger
           logger&.warn "NonArModelsIntrospector: Error processing class: #{error.class.name}"
         end
       end
@@ -120,11 +119,11 @@ module RailsAiBridge
         return false if name.blank?
         return false if name.include?('.')
         return false unless name.match?(/\A[A-Z][A-Za-z0-9_:]*\z/)
-        return false if klass < ActiveRecord::Base
+        return false if defined?(ActiveRecord::Base) && klass < ActiveRecord::Base
 
         true
       rescue StandardError => error
-        Rails.logger.warn "NonArModelsIntrospector: Error validating class: #{error.class.name}" if defined?(Rails.logger)
+        Rails.logger.warn "NonArModelsIntrospector: Error validating class: #{error.class.name}" if defined?(Rails) && Rails.logger
         false
       end
 
@@ -141,7 +140,7 @@ module RailsAiBridge
         return if name.blank?
         return if name.include?('.')
         return unless name.match?(/\A[A-Z][A-Za-z0-9_:]*\z/)
-        return if klass < ActiveRecord::Base
+        return if defined?(ActiveRecord::Base) && klass < ActiveRecord::Base
 
         loc = safe_const_source_location(name)
         return unless loc&.first

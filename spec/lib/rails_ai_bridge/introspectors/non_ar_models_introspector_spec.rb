@@ -42,6 +42,18 @@ RSpec.describe RailsAiBridge::Introspectors::NonArModelsIntrospector do
       end
     end
 
+    context 'when ActiveRecord is not defined' do
+      before do
+        hide_const('ActiveRecord')
+      end
+
+      it 'returns a list of non-AR models without raising NameError' do
+        result = introspector.call
+        expect(result).not_to have_key(:error)
+        expect(result[:non_ar_models]).to be_an(Array)
+      end
+    end
+
     context 'when app/models is configured to a custom directory' do
       let(:custom_context) do
         root_path = Dir.mktmpdir('rails-ai-bridge-non-ar-paths')
