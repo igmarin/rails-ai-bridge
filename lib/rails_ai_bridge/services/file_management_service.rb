@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'fileutils'
+require 'pathname'
 
 module RailsAiBridge
   module Services
@@ -42,14 +43,10 @@ module RailsAiBridge
         return Service::Result.new(false, errors: ['Operation cannot be nil']) if operation.nil?
 
         case operation.to_sym
-        when :write
-          write_file(**)
-        when :read
-          read_file(**)
-        when :delete
-          delete_file(**)
-        when :exist?
-          file_exists?(**)
+        when :write  then write_file(**)
+        when :read   then read_file(**)
+        when :delete then delete_file(**)
+        when :exist? then file_exists?(**)
         else
           Service::Result.new(false, errors: ["Unsupported operation: #{operation}"])
         end
@@ -84,14 +81,7 @@ module RailsAiBridge
         base = File.realpath(base_dir.to_s)
         expanded = File.expand_path(path_string, base)
 
-        # Always resolve the parent if it exists to ensure we're not inside a symlinked directory
-        # that points outside the allowed base.
-        parent = File.expand_path(File.dirname(expanded))
-        parent = File.realpath(parent) if File.exist?(parent)
-
-        # If the file exists, resolve it fully to catch symlinked files pointing outside.
-        # If it doesn't exist, we rely on the parent resolution.
-        resolved_expanded = File.exist?(expanded) ? File.realpath(expanded) : File.join(parent, File.basename(expanded))
+        resolved_expanded = resolve_symlink_aware_path(expanded)
 
         prefix = base.end_with?(File::SEPARATOR) ? base : "#{base}#{File::SEPARATOR}"
         raise SecurityError, "Path not allowed: #{path}" unless resolved_expanded == base || resolved_expanded.start_with?(prefix)
@@ -99,6 +89,40 @@ module RailsAiBridge
         raise Errno::ENOENT, "No such file or directory - #{expanded}" if must_exist && !File.exist?(expanded)
 
         resolved_expanded
+      end
+
+      # Resolves a path while being sensitive to symlinks in any directory component.
+      # If the file doesn't exist, resolves its nearest existing ancestor.
+      #
+      # @param expanded [String] absolute expanded path
+      # @return [String] fully resolved realpath (or realpath-based expansion)
+      def resolve_symlink_aware_path(expanded)
+        existing_ancestor = find_existing_ancestor(expanded)
+        resolved_ancestor = File.realpath(existing_ancestor)
+
+        if File.exist?(expanded)
+          File.realpath(expanded)
+        else
+          # Append the relative difference from the existing ancestor to the target
+          relative_part = Pathname.new(expanded).relative_path_from(Pathname.new(existing_ancestor)).to_s
+          File.expand_path(relative_part, resolved_ancestor)
+        end
+      end
+
+      # Walks upward to find the nearest directory that actually exists on disk.
+      #
+      # @param path [String] starting path
+      # @return [String] nearest existing ancestor directory
+      def find_existing_ancestor(path)
+        ancestor = path
+        ancestor = File.dirname(ancestor) until File.exist?(ancestor) || root_directory?(ancestor)
+        ancestor
+      end
+
+      # @param path [String] path to check
+      # @return [Boolean] true if the path is a root directory
+      def root_directory?(path)
+        path == File::SEPARATOR || path.match?(/\A[A-Z]:\\?\z/i)
       end
 
       # @param path [String] file path (validated)

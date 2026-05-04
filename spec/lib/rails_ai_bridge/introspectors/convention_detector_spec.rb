@@ -28,10 +28,10 @@ RSpec.describe RailsAiBridge::Introspectors::ConventionDetector do
       expect(result[:config_files]).to be_an(Array)
     end
 
-    it 'raises StandardError when convention detection fails' do
+    it 'returns an error hash when convention detection fails' do
       allow(introspector).to receive(:detect_architecture).and_raise(StandardError, 'convention failure')
 
-      expect { introspector.call }.to raise_error(StandardError, 'convention failure')
+      expect(introspector.call).to eq(error: 'convention failure')
     end
 
     it 'does not advertise Rails credentials or key files as config files' do

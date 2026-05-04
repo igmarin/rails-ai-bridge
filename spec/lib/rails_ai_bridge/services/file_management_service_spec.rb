@@ -182,6 +182,25 @@ RSpec.describe RailsAiBridge::Services::FileManagementService do
       end
     end
 
+    it 'rejects writes to nested paths where an ancestor is a symlink pointing outside' do
+      outside_dir = Dir.mktmpdir("rails-ai-bridge-outside-dir-#{SecureRandom.hex}")
+
+      symlink_dir = File.join(test_dir, 'unsafe_dir_link')
+      File.symlink(outside_dir, symlink_dir)
+
+      # Attempting to write to a non-existent nested path inside the symlinked directory
+      nested_path = File.join(symlink_dir, 'new_subdir', 'file.txt')
+
+      begin
+        result = described_class.call(:write, path: nested_path, content: 'should fail')
+        expect(result.failure?).to be(true)
+        expect(result.errors.first).to match(/Path not allowed/)
+      ensure
+        FileUtils.rm_rf(outside_dir)
+        FileUtils.rm_f(symlink_dir)
+      end
+    end
+
     it 'rejects an empty path' do
       result = described_class.call(:read, path: '')
 
