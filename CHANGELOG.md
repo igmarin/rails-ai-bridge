@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2026-05-04
+
+### Added
+
+- **Recursive symlink protection** — `FileManagementService` now recursively resolves and validates every directory component of a path. This prevents directory-traversal escapes via symlinks in non-existent nested paths (e.g., writing to `unsafe_link/new_dir/file.txt`).
+- **ActiveRecord-free resilience** — `NonArModelsIntrospector` now safely handles Rails stacks without ActiveRecord (e.g., pure API or alternative ORMs) by guarding `ActiveRecord::Base` inheritance checks.
+- **Robust Rails logger guards** — all diagnostic and error logging now uses `defined?(Rails.logger)` to prevent `NoMethodError` in environments where `Rails` is defined but lacks a logger.
+
+### Changed
+
+- **Terminology alignment** — Updated generated documentation and command descriptions from "context" to "bridge" (e.g., `rails ai:watch` now describes "Auto-regenerate bridge files").
+- **ConventionDetector stability** —restored standard error-hash return `{ error: msg }` for `ConventionDetector#call` to comply with introspector standards, while maintaining explicit `Rails.logger.warn` for observability.
+
+### Fixed
+
+- **Rake task spec cleanup** — removed unused `let(:task_path)` and fixed duplication in rake task loading.
+- **Install generator optimization** — removed redundant double-introspection call during the install process.
+
 ## [3.1.0] - 2026-05-01
 
 ### Added
