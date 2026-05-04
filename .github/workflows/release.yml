@@ -83,7 +83,7 @@ jobs:
       # We configure OIDC explicitly, then build + push (no rake release: tag already exists).
       # Repository variable RUBYGEMS_OIDC_ROLE = role id from RubyGems → Trusted publishing (Variables, not Secrets).
       - name: Configure RubyGems OIDC credentials
-        uses: rubygems/configure-rubygems-credentials@v1.0.0
+        uses: rubygems/configure-rubygems-credentials@v2.0.0
         with:
           role-to-assume: ${{ vars.RUBYGEMS_OIDC_ROLE }}
 

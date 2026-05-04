@@ -29,3 +29,6 @@ gems-report.csv
 .ai-context.json
 .opencode
 .codex
+.windsurfrules
+.github/copilot-instructions.md
+.github/hooks/rtk-rewrite.json

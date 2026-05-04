@@ -22,6 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Rake task spec cleanup** — removed unused `let(:task_path)` and fixed duplication in rake task loading.
 - **Install generator optimization** — removed redundant double-introspection call during the install process.
+## [3.1.1] - 2026-05-03
+
+### Changed
+
+- **Small Security Improvement** — There was an update from rubygems security, so this made
+  a new release needed, no new functionality added
 
 ## [3.1.0] - 2026-05-01
 
