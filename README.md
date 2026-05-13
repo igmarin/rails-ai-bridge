@@ -1,7 +1,6 @@
 # rails-ai-bridge
 
-<img width="1408" height="768" alt="logo" src="https://github.com/user-attachments/assets/ee7b04bd-2d67-483e-be4a-cffdefdbdc50" />
-
+![Rails AI Bridge Logo](https://github.com/user-attachments/assets/ee7b04bd-2d67-483e-be4a-cffdefdbdc50)
 
 > **Turn any Rails app into an AI-ready system — with real context, not guesswork.**
 
@@ -167,7 +166,7 @@ Optional: `gem install rails-ai-bridge` installs the gem into your Ruby environm
 
 `rails ai:bridge` generates assistant-specific files tailored to each AI workflow:
 
-```
+```text
 your-rails-app/
 │
 ├── 🟣 Claude Code
