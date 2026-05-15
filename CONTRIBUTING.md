@@ -18,12 +18,17 @@ The test suite uses [Combustion](https://github.com/pat/combustion) to boot a mi
 
 ```
 lib/rails_ai_bridge/
-├── introspectors/     # Built-in introspectors (schema, models, non_ar_models, routes, …)
-├── tools/             # 11 built-in MCP tools (detail levels, pagination, extensible)
-├── serializers/       # Per-assistant formatters (claude, cursor, windsurf, copilot, JSON)
-├── server.rb          # MCP server setup (stdio + HTTP)
-├── engine.rb          # Rails Engine for auto-integration
-└── configuration.rb   # User-facing config (presets, context_mode, limits)
+├── introspectors/          # Built-in introspectors (schema, models, non_ar_models, routes, …)
+├── tools/                  # 11 built-in MCP tools (detail levels, pagination, extensible)
+├── rubydex_adapter.rb       # Rubydex API wrapper (singleton + query interface + stats)
+├── rubydex_adapter/         # Extracted collaborators (one concern each)
+│   ├── serializer.rb        # Hash serialization (declaration_to_hash, definition_to_hash, …)
+│   ├── indexer.rb           # Graph building + source file scanning
+│   └── method_counter.rb    # Flat method counting pipeline (no nested conditionals)
+├── serializers/            # Per-assistant formatters (claude, cursor, windsurf, copilot, JSON)
+├── server.rb               # MCP server setup (stdio + HTTP)
+├── engine.rb               # Rails Engine for auto-integration
+└── configuration.rb        # User-facing config (presets, context_mode, limits)
 ```
 
 ## Adding a New Introspector

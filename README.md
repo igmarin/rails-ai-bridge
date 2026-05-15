@@ -547,6 +547,8 @@ Built-in MCP tools and resources now read through a shared runtime context provi
 | `rails://semantic/analysis` resource | Full semantic analysis accessible via MCP resource read |
 | Context file enrichment | Semantic insights automatically included in generated AI context files |
 
+**Internal architecture:** The `RubydexAdapter` wraps the rubydex API as a thin coordinator delegating to three single-responsibility collaborators: `Serializer` (hash conversion), `Indexer` (graph construction + source file scanning), and `MethodCounter` (flat method-counting pipeline). See [CONTRIBUTING.md](CONTRIBUTING.md#project-structure) for the full project layout.
+
 **Configuration options:**
 
 | Option | Default | Description |
