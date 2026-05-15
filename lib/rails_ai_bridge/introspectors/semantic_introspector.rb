@@ -44,8 +44,9 @@ module RailsAiBridge
           complexity_hotspots: find_complexity_hotspots(adapter)
         }
       rescue StandardError => error
-        Rails.logger.warn "[rails-ai-bridge] SemanticIntrospector failed: #{error.message}"
-        { error: error.message }
+        msg = error.message
+        Rails.logger.warn "[rails-ai-bridge] SemanticIntrospector failed: #{msg}"
+        { error: msg }
       end
 
       private
@@ -58,8 +59,9 @@ module RailsAiBridge
         declarations = adapter.all_declarations.first(MAX_PATTERN_DECLARATIONS)
         return {} if declarations.empty?
 
-        classes = declarations.select { |d| d[:type] == 'class' }
-        modules = declarations.select { |d| d[:type] == 'module' }
+        by_type = declarations.group_by { |d| d[:type] }
+        classes = by_type['class'] || []
+        modules = by_type['module'] || []
 
         {
           total_classes: classes.size,
@@ -96,14 +98,15 @@ module RailsAiBridge
         return [] if declarations.empty?
 
         hotspots = declarations.filter_map do |decl|
-          detail = adapter.get_declaration(decl[:name])
+          name = decl[:name]
+          detail = adapter.get_declaration(name)
           next unless detail
 
           score = calculate_hotspot_score(detail)
           next if score < 5
 
           {
-            name: decl[:name],
+            name: name,
             type: decl[:type],
             complexity_score: score,
             definitions_count: detail[:definitions]&.size || 0,
@@ -179,8 +182,9 @@ module RailsAiBridge
       def build_inheritance_tree(classes, adapter)
         tree = {}
         classes.each do |klass|
-          descendants = adapter.descendants(klass[:name])
-          tree[klass[:name]] = descendants if descendants.any?
+          name = klass[:name]
+          descendants = adapter.descendants(name)
+          tree[name] = descendants if descendants.any?
         end
         tree.sort_by { |_, children| -children.size }.first(15).to_h
       end
@@ -192,10 +196,11 @@ module RailsAiBridge
       # @return [Array<Hash>] sorted by descendant count
       def find_most_extended(classes, adapter)
         extended = classes.filter_map do |klass|
-          descendants = adapter.descendants(klass[:name])
+          name = klass[:name]
+          descendants = adapter.descendants(name)
           next if descendants.empty?
 
-          { name: klass[:name], descendants_count: descendants.size }
+          { name: name, descendants_count: descendants.size }
         end
 
         extended.sort_by { |h| -h[:descendants_count] }.first(10)
@@ -208,7 +213,8 @@ module RailsAiBridge
       # @return [Integer] count of orphan classes
       def find_orphan_classes(classes, adapter)
         classes.count do |klass|
-          adapter.descendants(klass[:name]).empty? && adapter.ancestors(klass[:name]).size <= 1
+          name = klass[:name]
+          adapter.descendants(name).empty? && adapter.ancestors(name).size <= 1
         end
       end
     end

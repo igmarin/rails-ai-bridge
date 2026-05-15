@@ -17,6 +17,7 @@ module RailsAiBridge
       # Whether the rubydex gem is installed and loadable.
       #
       # @return [Boolean]
+      # @raise [LoadError] rescued internally, returns false
       def available?
         if @available.nil?
           @available = begin
@@ -42,6 +43,7 @@ module RailsAiBridge
       #
       # @param root [String] the Rails root path to index
       # @return [RubydexAdapter]
+      # @raise [StandardError] on indexing failure (graph set to nil, indexed to false)
       def instance(root = nil)
         @mutex ||= Mutex.new
         @mutex.synchronize do
@@ -67,21 +69,27 @@ module RailsAiBridge
       @root = root
       @graph = nil
       @indexed = false
+      @serializer = Serializer.new(@root)
+      @indexer = Indexer.new
+      @method_counter = MethodCounter.new(serializer: @serializer)
     end
 
     # Builds the rubydex graph index for the project.
     # No-op if rubydex is not available or already indexed.
     #
     # @return [void]
+    # @raise [StandardError] rescued internally, sets indexed to false
     def index!
       return if @indexed || !self.class.available?
 
-      @graph = ::Rubydex::Graph.new
-      @graph.index_all(ruby_source_files)
-      @graph.resolve
+      @graph = @indexer.build(@root)
       @indexed = true
     rescue StandardError => error
-      Rails.logger.warn "[rails-ai-bridge] Rubydex indexing failed: #{error.message}"
+      Rails.logger.warn('rubydex.indexing_failed', {
+                          event: 'rubydex.indexing_failed',
+                          error: error.message,
+                          backtrace: error.backtrace.first(5).join("\n")
+                        })
       @graph = nil
       @indexed = false
     end
@@ -98,13 +106,18 @@ module RailsAiBridge
     # @param query [String] search query (e.g. "User", "Foo#bar")
     # @param max_results [Integer] maximum number of results to return
     # @return [Array<Hash>] array of declaration summaries
+    # @raise [StandardError] rescued internally, returns empty array
     def search(query, max_results: 20)
       return [] unless indexed?
 
       results = @graph.search(query)
-      results.first(max_results).map { |decl| declaration_to_hash(decl) }
+      results.first(max_results).map { |decl| @serializer.declaration_to_hash(decl) }
     rescue StandardError => error
-      Rails.logger.warn "[rails-ai-bridge] Rubydex search failed: #{error.message}"
+      Rails.logger.warn('rubydex.search_failed', {
+                          event: 'rubydex.search_failed',
+                          error: error.message,
+                          backtrace: error.backtrace.first(5).join("\n")
+                        })
       []
     end
 
@@ -112,13 +125,14 @@ module RailsAiBridge
     #
     # @param name [String] fully qualified name (e.g. "Foo::Bar")
     # @return [Hash, nil] declaration details or nil if not found
+    # @raise [StandardError] rescued internally, returns nil
     def get_declaration(name)
       return nil unless indexed?
 
       decl = @graph[name]
       return nil unless decl
 
-      declaration_to_hash(decl, detailed: true)
+      @serializer.detailed_declaration_to_hash(decl)
     rescue StandardError
       nil
     end
@@ -126,10 +140,11 @@ module RailsAiBridge
     # Get all declarations in the graph.
     #
     # @return [Array<Hash>] array of declaration summaries
+    # @raise [StandardError] rescued internally, returns empty array
     def all_declarations
       return [] unless indexed?
 
-      @graph.declarations.map { |decl| declaration_to_hash(decl) }
+      @graph.declarations.map { |decl| @serializer.declaration_to_hash(decl) }
     rescue StandardError
       []
     end
@@ -138,13 +153,14 @@ module RailsAiBridge
     #
     # @param path [String] relative or absolute file path
     # @return [Array<Hash>] declarations found in the file
+    # @raise [StandardError] rescued internally, returns empty array
     def file_declarations(path)
       return [] unless indexed?
 
       doc = @graph.documents.find { |d| d.uri.end_with?(path) || d.uri == path }
       return [] unless doc
 
-      doc.definitions.map { |defn| definition_to_hash(defn) }
+      doc.definitions.map { |defn| @serializer.definition_to_hash(defn) }
     rescue StandardError
       []
     end
@@ -153,6 +169,7 @@ module RailsAiBridge
     #
     # @param name [String] fully qualified name
     # @return [Array<String>] descendant names
+    # @raise [StandardError] rescued internally, returns empty array
     def descendants(name)
       return [] unless indexed?
 
@@ -168,6 +185,7 @@ module RailsAiBridge
     #
     # @param name [String] fully qualified name
     # @return [Array<String>] ancestor names
+    # @raise [StandardError] rescued internally, returns empty array
     def ancestors(name)
       return [] unless indexed?
 
@@ -182,12 +200,13 @@ module RailsAiBridge
     # Get all constant references across the codebase.
     #
     # @return [Array<Hash>] constant reference details
+    # @raise [StandardError] rescued internally, returns empty array
     def constant_references
       return [] unless indexed?
 
       @graph.constant_references.map do |ref|
         { name: ref.respond_to?(:name) ? ref.name : ref.to_s,
-          location: ref.respond_to?(:location) ? format_location(ref.location) : nil }.compact
+          location: ref.respond_to?(:location) ? @serializer.format_location(ref.location) : nil }.compact
       end
     rescue StandardError
       []
@@ -196,6 +215,7 @@ module RailsAiBridge
     # High-level codebase statistics from the rubydex index.
     #
     # @return [Hash] statistics about the indexed codebase
+    # @raise [StandardError] rescued internally, returns empty hash
     def codebase_stats
       return {} unless indexed?
 
@@ -210,7 +230,7 @@ module RailsAiBridge
         total_declarations: declarations.size,
         total_classes: classes.size,
         total_modules: modules.size,
-        total_methods: count_methods(declarations),
+        total_methods: @method_counter.count(declarations),
         total_constant_references: safe_count(@graph, :constant_references),
         total_method_references: safe_count(@graph, :method_references)
       }
@@ -220,100 +240,12 @@ module RailsAiBridge
 
     private
 
-    # Collects all Ruby source files under the project root for indexing.
-    #
-    # @return [Array<String>] absolute file paths
-    def ruby_source_files
-      excluded = %w[node_modules tmp log vendor .git .bundle]
-      Dir.glob(File.join(@root, '**', '*.rb')).reject do |path|
-        excluded.any? { |dir| path.include?("/#{dir}/") }
-      end
-    end
-
-    # Converts a rubydex declaration to a serializable hash.
-    #
-    # @param decl [Object] rubydex declaration
-    # @param detailed [Boolean] whether to include full details
-    # @return [Hash]
-    def declaration_to_hash(decl, detailed: false)
-      hash = {
-        name: decl.name,
-        unqualified_name: decl.respond_to?(:unqualified_name) ? decl.unqualified_name : nil,
-        type: declaration_type(decl)
-      }
-
-      if detailed
-        hash[:definitions] = decl.definitions.map { |d| definition_to_hash(d) } if decl.respond_to?(:definitions)
-        hash[:ancestors] = decl.ancestors.map(&:name) if decl.respond_to?(:ancestors)
-        hash[:descendants] = decl.descendants.map(&:name) if decl.respond_to?(:descendants)
-        hash[:owner] = decl.owner.name if decl.respond_to?(:member) && decl.respond_to?(:owner) && decl.owner
-      end
-
-      hash.compact
-    end
-
-    # Converts a rubydex definition to a serializable hash.
-    #
-    # @param defn [Object] rubydex definition
-    # @return [Hash]
-    def definition_to_hash(defn)
-      hash = { name: defn.name }
-      hash[:location] = format_location(defn.location) if defn.respond_to?(:location)
-      hash[:comments] = defn.comments if defn.respond_to?(:comments) && defn.comments.present?
-      hash[:deprecated] = true if defn.respond_to?(:deprecated?) && defn.deprecated?
-      hash.compact
-    end
-
-    # Formats a rubydex location into a readable string.
-    #
-    # @param location [Object] rubydex location object
-    # @return [String, nil]
-    def format_location(location)
-      return nil unless location
-      return location.to_s unless location.respond_to?(:path)
-
-      path = location.path
-      path = path.sub("#{@root}/", '') if path&.start_with?(@root)
-      path
-    end
-
-    # Determines the type of a rubydex declaration.
-    #
-    # @param decl [Object] rubydex declaration
-    # @return [String]
-    def declaration_type(decl)
-      klass = decl.class.name.to_s.split('::').last&.downcase
-      case klass
-      when /class/ then 'class'
-      when /module/ then 'module'
-      when /method/ then 'method'
-      when /constant/ then 'constant'
-      else 'declaration'
-      end
-    end
-
     def class_declaration?(decl)
-      declaration_type(decl) == 'class'
+      @serializer.declaration_type(decl) == 'class'
     end
 
     def module_declaration?(decl)
-      declaration_type(decl) == 'module'
-    end
-
-    def count_methods(declarations)
-      declarations.sum do |decl|
-        if decl.respond_to?(:definitions)
-          decl.definitions.count do |d|
-            d.name.to_s.include?('(') || declaration_type(d) == 'method'
-          rescue StandardError
-            false
-          end
-        else
-          0
-        end
-      rescue StandardError
-        0
-      end
+      @serializer.declaration_type(decl) == 'module'
     end
 
     def safe_count(graph, method)

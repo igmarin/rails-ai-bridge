@@ -53,7 +53,7 @@ module RailsAiBridge
 
         if path
           results = adapter.file_declarations(path)
-          results = results.select { |r| r[:name].to_s.downcase.include?(query.downcase) }
+          results = results.select { |result| result[:name].to_s.downcase.include?(query.downcase) }
         else
           results = adapter.search(query, max_results: max_results)
         end
