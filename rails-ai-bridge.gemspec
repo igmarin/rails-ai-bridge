@@ -54,4 +54,8 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'railties', '>= 7.1', '< 9.0'
   spec.add_dependency 'thor', '>= 1.0', '< 3.0'
   spec.add_dependency 'zeitwerk', '~> 2.6' # Autoloading
+
+  # Optional: semantic code analysis via Shopify's rubydex
+  # Install rubydex separately to enable semantic search and analysis features.
+  # See README for details.
 end

@@ -39,6 +39,7 @@ module RailsAiBridge
           lines.concat(render_key_models)
           lines.concat(render_notable_gems)
           lines.concat(render_architecture)
+          lines.concat(render_semantic_insights)
           lines.concat(render_key_considerations)
           lines.concat(Formatters::Providers::McpGuideFormatter.new(context).call.split("\n"))
           lines.concat(render_key_config_files)
@@ -134,6 +135,39 @@ module RailsAiBridge
           lines = ['## Architecture', 'Detected architectural styles and common patterns:']
           arch.each { |p| lines << "- #{p}" }
           patterns.first(MAX_PATTERNS).each { |p| lines << "- #{p}" }
+          lines << ''
+          lines
+        end
+
+        # Renders semantic insights from rubydex analysis when available.
+        # Includes pattern detection results and complexity hotspot warnings.
+        # Returns +[]+ when semantic data is absent or has an +:error+ or +:info+ key.
+        #
+        # @return [Array<String>] Lines for the semantic insights section, or +[]+ if unavailable.
+        def render_semantic_insights
+          semantic = context[:semantic]
+          return [] unless semantic.is_a?(Hash) && !semantic[:error] && !semantic[:info]
+
+          lines = ['## Semantic Analysis (rubydex)']
+
+          # Codebase stats
+          stats = semantic[:codebase_stats]
+          if stats.is_a?(Hash) && stats.any?
+            lines << "- **Files:** #{stats[:total_files]}, **Classes:** #{stats[:total_classes]}, " \
+                     "**Modules:** #{stats[:total_modules]}, **Methods:** #{stats[:total_methods]}"
+          end
+
+          # Detected patterns
+          patterns = semantic.dig(:patterns, :common_patterns)
+          lines << "- **Patterns:** #{patterns.join(', ')}" if patterns.is_a?(Array) && patterns.any?
+
+          # Complexity hotspots
+          hotspots = semantic[:complexity_hotspots]
+          if hotspots.is_a?(Array) && hotspots.any?
+            hotspot_list = hotspots.first(5).map { |h| "#{h[:name]} (score: #{h[:complexity_score]})" }.join(', ')
+            lines << "- **Complexity hotspots:** #{hotspot_list}"
+          end
+
           lines << ''
           lines
         end

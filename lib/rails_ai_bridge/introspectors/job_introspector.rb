@@ -80,8 +80,8 @@ module RailsAiBridge
           {
             name: channel.name,
             stream_methods: channel.instance_methods(false)
-                            .select { |m| m.to_s.start_with?('stream_') || m == :subscribed }
-                            .map(&:to_s)
+                                   .select { |m| m.to_s.start_with?('stream_') || m == :subscribed }
+                                   .map(&:to_s)
           }
         end
 

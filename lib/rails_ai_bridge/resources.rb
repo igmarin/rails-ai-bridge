@@ -110,6 +110,13 @@ module RailsAiBridge
         description: 'Stimulus controller inventory with targets, values, actions, outlets, and classes',
         mime_type: JSON_MIME_TYPE,
         key: :stimulus
+      },
+      'rails://semantic/analysis' => {
+        name: 'Semantic Analysis',
+        description: 'Rubydex-powered semantic analysis including pattern detection, ' \
+                     'relationship mapping, complexity hotspots, and codebase statistics',
+        mime_type: JSON_MIME_TYPE,
+        key: :semantic
       }
     }.freeze
 

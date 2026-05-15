@@ -47,7 +47,7 @@ RSpec.describe RailsAiBridge::Resources do
       resources = described_class.build_resources
 
       expect(resources).to be_an(Array)
-      expect(resources.size).to eq(12) # 11 static + bridge meta
+      expect(resources.size).to eq(13) # 12 static + bridge meta
 
       meta_resource = resources.find { |r| r.uri == 'rails://bridge/meta' }
       expect(meta_resource.name).to eq('Bridge Metadata')
