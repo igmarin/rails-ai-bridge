@@ -29,8 +29,10 @@ module RailsAiBridge
       # @param root [String] the project root directory path
       # @return [Array<String>] absolute file paths
       def source_files(root)
+        root = File.expand_path(root)
         Dir.glob(File.join(root, '**', '*.rb')).reject do |path|
-          EXCLUDED_DIRS.any? { |dir| path.include?("/#{dir}/") }
+          components = path.sub("#{root}/", '').split('/')
+          EXCLUDED_DIRS.intersect?(components)
         end
       end
     end
