@@ -64,7 +64,8 @@ module RailsAiBridge
       seeds: Introspectors::SeedsIntrospector,
       middleware: Introspectors::MiddlewareIntrospector,
       engines: Introspectors::EngineIntrospector,
-      multi_database: Introspectors::MultiDatabaseIntrospector
+      multi_database: Introspectors::MultiDatabaseIntrospector,
+      semantic: Introspectors::SemanticIntrospector
     }.freeze
 
     def app_name

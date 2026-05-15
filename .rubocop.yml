@@ -32,6 +32,8 @@ Metrics/AbcSize:
   Max: 110
 RSpec/MultipleExpectations:
   Max: 25
+RSpec/MultipleMemoizedHelpers:
+  Max: 6
 RSpec/ExampleLength:
   Max: 40
 RSpec/NamedSubject:

@@ -37,13 +37,14 @@ RSpec.describe 'MCP Tool Integration' do
     end
 
     it 'builds with all tools registered' do
-      expect(server.tools.size).to eq(11)
+      expect(server.tools.size).to eq(12)
       expect(server.tools.keys).to contain_exactly(
         'rails_get_schema',
         'rails_get_routes',
         'rails_get_model_details',
         'rails_get_gems',
         'rails_search_code',
+        'rails_search_semantic',
         'rails_get_conventions',
         'rails_get_controllers',
         'rails_get_config',
@@ -67,7 +68,8 @@ RSpec.describe 'MCP Tool Integration' do
         'rails://migrations',
         'rails://engines',
         'rails://views',
-        'rails://stimulus'
+        'rails://stimulus',
+        'rails://semantic/analysis'
       )
     end
 

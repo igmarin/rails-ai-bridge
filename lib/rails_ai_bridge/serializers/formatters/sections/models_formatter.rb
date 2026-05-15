@@ -25,6 +25,9 @@ module RailsAiBridge
               lines << "- Validations: #{vals}"
             end
             lines << "- Enums: #{info[:enums].keys.join(', ')}" if info[:enums]&.any?
+            lines << "- Semantic summary: #{info[:semantic_summary]}" if info[:semantic_summary]
+            lines << "- Similar models: #{info[:similar_models].join(', ')}" if info[:similar_models]&.any?
+            lines << "- Complexity score: #{info[:complexity_score]}" if info[:complexity_score]
           end
           lines.join("\n")
         end

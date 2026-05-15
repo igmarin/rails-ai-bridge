@@ -5,6 +5,8 @@ module RailsAiBridge
     # Extracts ActiveRecord model metadata: associations, validations,
     # scopes, enums, callbacks, and class-level configuration.
     class ModelIntrospector
+      include ModelSemanticEnrichment
+
       attr_reader :app, :config
 
       # Callback name prefixes omitted from generated model context to reduce framework noise.
@@ -134,6 +136,10 @@ module RailsAiBridge
         # Source-based macro extractions
         macros = extract_source_macros(model)
         details.merge!(macros)
+
+        # Rubydex semantic analysis (when available)
+        semantic = extract_semantic_data(model)
+        details.merge!(semantic) if semantic.any?
 
         details.compact
       end

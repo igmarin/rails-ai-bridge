@@ -43,6 +43,10 @@ detectors:
     - RailsAiBridge::Config::Server#http_port
     - RailsAiBridge::Config::Server#server_name
     - RailsAiBridge::Config::Server#server_version
+    - RailsAiBridge::Config::Rubydex#rubydex_enabled
+    - RailsAiBridge::Config::Rubydex#rubydex_index_path
+    - RailsAiBridge::Config::Rubydex#semantic_context_depth
+    - RailsAiBridge::Config::Rubydex#semantic_introspector_enabled
     - RailsAiBridge#configuration
   BooleanParameter:
     exclude:
@@ -50,6 +54,8 @@ detectors:
     - RailsAiBridge::Generators::InstallGenerator#generate_context_for_formats
     - RailsAiBridge::Serializers::ContextFileSerializer#initialize
     - RailsAiBridge#generate_context
+    - RailsAiBridge::RubydexAdapter#declaration_to_hash
+    - RailsAiBridge::Services::FileManagementService#validate_path!
   ControlParameter:
     exclude:
     - RailsAiBridge::ContextProvider#rebuild
@@ -64,13 +70,14 @@ detectors:
     - RailsAiBridge::Service::Result#initialize
     - RailsAiBridge::Tools::GetView#self.build_formatter
     - RailsAiBridge::Watcher#initialize
+    - RailsAiBridge::RubydexAdapter#declaration_to_hash
+    - RailsAiBridge::Services::FileManagementService#validate_path!
   DataClump:
     exclude:
     - RailsAiBridge::Serializers::RegenerationFooter
+    - RailsAiBridge::Introspectors::SemanticIntrospector
   DuplicateMethodCall:
     exclude:
-    - RailsAiBridge::Generators::InstallGenerator#show_instructions
-    - RailsAiBridge::Generators::InstallGenerator#show_full_instructions
     - RailsAiBridge::Config::Introspection#excluded_table?
     - RailsAiBridge::ContextProvider#fetch
     - RailsAiBridge::ContextProvider#rebuild
@@ -78,8 +85,9 @@ detectors:
     - RailsAiBridge::Doctor::Checkers::TestsChecker#call
     - RailsAiBridge::ExclusionHelper#table_pattern_match?
     - RailsAiBridge::Fingerprinter#snapshot
+    - RailsAiBridge::Generators::InstallGenerator#show_full_instructions
+    - RailsAiBridge::Generators::InstallGenerator#show_instructions
     - RailsAiBridge::HttpTransportApp#build
-    - RailsAiBridge::Server#run_rack_server
     - RailsAiBridge::Introspector#app_name
     - RailsAiBridge::Introspector#call
     - RailsAiBridge::Introspectors::ActiveStorageIntrospector#extract_attachments
@@ -105,6 +113,8 @@ detectors:
     - RailsAiBridge::Introspectors::ModelIntrospector#extract_associations
     - RailsAiBridge::Introspectors::ModelIntrospector#extract_callbacks
     - RailsAiBridge::Introspectors::ModelIntrospector#extract_source_macros
+    - RailsAiBridge::Introspectors::ModelSemanticEnrichment#extract_semantic_summary
+    - RailsAiBridge::Introspectors::ModelSemanticEnrichment#find_similar_models
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#detect_model_connections
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#discover_databases
     - RailsAiBridge::Introspectors::NonArModelsIntrospector#collect_safe_object_space_entries
@@ -115,6 +125,7 @@ detectors:
     - RailsAiBridge::Introspectors::RouteIntrospector#detect_api_namespaces
     - RailsAiBridge::Introspectors::RouteIntrospector#detect_mounted_engines
     - RailsAiBridge::Introspectors::RouteIntrospector#extract_routes
+    - RailsAiBridge::Introspectors::SemanticIntrospector#detect_code_patterns
     - RailsAiBridge::Introspectors::ViewIntrospector#extract_partials
     - RailsAiBridge::Introspectors::ViewIntrospector#extract_templates
     - RailsAiBridge::Mcp::Authenticator#resolve_strategy
@@ -122,6 +133,10 @@ detectors:
     - RailsAiBridge::Mcp::HttpStructuredLog#target_logger
     - RailsAiBridge::ModelSemanticClassifier#call
     - RailsAiBridge::Resources#bridge_metadata
+    - RailsAiBridge::RubydexAdapter#codebase_stats
+    - RailsAiBridge::RubydexAdapter#declaration_to_hash
+    - RailsAiBridge::RubydexAdapter#definition_to_hash
+    - RailsAiBridge::RubydexAdapter#file_declarations
     - RailsAiBridge::Serializers::ContextFileSerializer#call
     - RailsAiBridge::Serializers::ContextFileSerializer#generate_split_rules
     - RailsAiBridge::Serializers::ContextSummary#top_columns
@@ -168,6 +183,7 @@ detectors:
     - RailsAiBridge::Serializers::Providers::RulesSerializer#render_compact
     - RailsAiBridge::Serializers::Providers::WindsurfSerializer#render
     - RailsAiBridge::Serializers::SharedAssistantGuidance#resolved_assistant_overrides_path
+    - RailsAiBridge::Server#run_rack_server
     - RailsAiBridge::Server#start_http
     - RailsAiBridge::Services::ContextGenerationService#call
     - RailsAiBridge::Services::FileManagementService#default_allowed_base_dir
@@ -197,13 +213,13 @@ detectors:
     - RailsAiBridge::Tools::GetTestInfo#self.call
     - RailsAiBridge::Tools::GetTestInfo::ResponseFormatter#format
     - RailsAiBridge::Tools::GetTestInfo::ResponseFormatter#format_helpers
+    - RailsAiBridge::Tools::GetView#self.call
     - RailsAiBridge::Tools::GetView::BaseFormatter#controller_key_for
     - RailsAiBridge::Tools::GetView::BaseFormatter#filter_view_data
     - RailsAiBridge::Tools::GetView::FullFormatter#call
     - RailsAiBridge::Tools::GetView::SpecificViewFormatter#call
     - RailsAiBridge::Tools::GetView::StandardFormatter#call
     - RailsAiBridge::Tools::GetView::SummaryFormatter#call
-    - RailsAiBridge::Tools::GetView#self.call
     - RailsAiBridge::Tools::ModelDetails::FullFormatter#call
     - RailsAiBridge::Tools::ModelDetails::SingleModelFormatter#call
     - RailsAiBridge::Tools::ModelDetails::StandardFormatter#call
@@ -211,10 +227,11 @@ detectors:
     - RailsAiBridge::Tools::Schema::SummaryFormatter#call
     - RailsAiBridge::Tools::Schema::TableFormatter#call
     - RailsAiBridge::Tools::SearchCode#self.append_ripgrep_secret_excludes
+    - RailsAiBridge::Tools::SearchSemantic#self.format_results
   FeatureEnvy:
     exclude:
-    - RailsAiBridge::Generators::InstallGenerator#add_to_gitignore
     - RailsAiBridge::Config::Introspection#excluded_table?
+    - RailsAiBridge::Generators::InstallGenerator#add_to_gitignore
     - RailsAiBridge::Introspectors::ActionMailboxIntrospector#extract_mailboxes
     - RailsAiBridge::Introspectors::ActionTextIntrospector#extract_rich_text_fields
     - RailsAiBridge::Introspectors::ActiveStorageIntrospector#extract_attachments
@@ -227,8 +244,6 @@ detectors:
     - RailsAiBridge::Introspectors::ConventionDetector#scan_directory_structure
     - RailsAiBridge::Introspectors::DevOpsIntrospector#extract_docker_info
     - RailsAiBridge::Introspectors::DevOpsIntrospector#extract_procfile
-    - RailsAiBridge::Server#create_mcp_server
-    - RailsAiBridge::Server#run_rack_server
     - RailsAiBridge::Introspectors::DevOpsIntrospector#extract_puma_config
     - RailsAiBridge::Introspectors::EngineIntrospector#discover_mounted_engines
     - RailsAiBridge::Introspectors::GemIntrospector#categorize_gems
@@ -239,6 +254,7 @@ detectors:
     - RailsAiBridge::Introspectors::ModelIntrospector#extract_source_macros
     - RailsAiBridge::Introspectors::ModelIntrospector#extract_validations
     - RailsAiBridge::Introspectors::ModelIntrospector#model_table_excluded?
+    - RailsAiBridge::Introspectors::ModelSemanticEnrichment#find_similar_models
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#detect_model_connections
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#discover_databases
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#parse_database_yml
@@ -250,15 +266,24 @@ detectors:
     - RailsAiBridge::Introspectors::SchemaIntrospector#extract_foreign_keys
     - RailsAiBridge::Introspectors::SchemaIntrospector#extract_indexes
     - RailsAiBridge::Introspectors::SeedsIntrospector#analyze_seeds_file
+    - RailsAiBridge::Introspectors::SemanticIntrospector#detect_patterns
+    - RailsAiBridge::Introspectors::SemanticIntrospector#find_complexity_hotspots
     - RailsAiBridge::Introspectors::TurboIntrospector#extract_model_broadcasts
     - RailsAiBridge::Introspectors::ViewIntrospector#detect_template_engines
+    - RailsAiBridge::RubydexAdapter#constant_references
+    - RailsAiBridge::RubydexAdapter#count_methods
+    - RailsAiBridge::RubydexAdapter#declaration_to_hash
+    - RailsAiBridge::RubydexAdapter#definition_to_hash
+    - RailsAiBridge::RubydexAdapter#format_location
     - RailsAiBridge::Serializers::ContextFileSerializer#generate_split_rules
     - RailsAiBridge::Serializers::Formatters::Sections::ConventionsFormatter#render
+    - RailsAiBridge::Serializers::Formatters::Sections::SemanticFormatter#render
     - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#render_architecture
     - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#render_compact
     - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#render_key_config_files
     - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#render_key_models
     - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#render_notable_gems
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#render_semantic_insights
     - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#render_stack_overview
     - RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer#render_context_reference
     - RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer#render_models_reference
@@ -277,8 +302,11 @@ detectors:
     - RailsAiBridge::Serializers::Providers::WindsurfSerializer#call
     - RailsAiBridge::Serializers::Providers::WindsurfSerializer#render
     - RailsAiBridge::Server#build
+    - RailsAiBridge::Server#create_mcp_server
+    - RailsAiBridge::Server#run_rack_server
     - RailsAiBridge::Server#start_http
     - RailsAiBridge::Services::AppIntrospectionService#call
+    - RailsAiBridge::Services::FileManagementService#file_exists?
     - RailsAiBridge::Tools::GetControllers::ResponseFormatter#format_full
     - RailsAiBridge::Tools::GetGems::ResponseFormatter#format
     - RailsAiBridge::Tools::GetModelDetails::ResponseFormatter#pojo_detail_markdown
@@ -295,6 +323,8 @@ detectors:
     - RailsAiBridge::Tools::Schema::TableFormatter#call
   InstanceVariableAssumption:
     exclude:
+    - RailsAiBridge::Generators::InstallGenerator
+    - RailsAiBridge::RubydexAdapter
     - RailsAiBridge::Serializers::Providers::ClaudeSerializer
     - RailsAiBridge::Serializers::Providers::CodexSerializer
     - RailsAiBridge::Serializers::Providers::CopilotSerializer
@@ -304,7 +334,6 @@ detectors:
     - RailsAiBridge::Tools::GetView::FullFormatter
     - RailsAiBridge::Tools::GetView::StandardFormatter
     - RailsAiBridge::Tools::GetView::SummaryFormatter
-    - RailsAiBridge::Generators::InstallGenerator
   IrresponsibleModule:
     exclude:
     - RailsAiBridge::Generators::InstallGenerator
@@ -348,6 +377,14 @@ detectors:
     - RailsAiBridge::Introspectors::RouteIntrospector#detect_mounted_engines
     - RailsAiBridge::Introspectors::RouteIntrospector#extract_routes
     - RailsAiBridge::Mcp::Auth::Strategies::Jwt#initialize
+    - RailsAiBridge::RubydexAdapter#ancestors
+    - RailsAiBridge::RubydexAdapter#constant_references
+    - RailsAiBridge::RubydexAdapter#count_methods
+    - RailsAiBridge::RubydexAdapter#declaration_to_hash
+    - RailsAiBridge::RubydexAdapter#definition_to_hash
+    - RailsAiBridge::RubydexAdapter#descendants
+    - RailsAiBridge::RubydexAdapter#format_location
+    - RailsAiBridge::RubydexAdapter#safe_count
     - RailsAiBridge::Services::FileManagementService#default_allowed_base_dir
   MissingSafeMethod:
     exclude:
@@ -356,13 +393,14 @@ detectors:
     - RailsAiBridge::Introspectors::ControllerIntrospector
     - RailsAiBridge::Introspectors::ModelIntrospector
     - RailsAiBridge::Introspectors::NonArModelsIntrospector
+    - RailsAiBridge::RubydexAdapter
     - RailsAiBridge::Services::FileManagementService
     - RailsAiBridge::Tools::BaseTool
     - RailsAiBridge::Watcher::BridgeRegenerator
   NestedIterators:
     exclude:
-    - RailsAiBridge::Generators::InstallGenerator#add_to_gitignore
     - RailsAiBridge::Fingerprinter#snapshot
+    - RailsAiBridge::Generators::InstallGenerator#add_to_gitignore
     - RailsAiBridge::Introspectors::ActionMailboxIntrospector#extract_mailboxes
     - RailsAiBridge::Introspectors::ActionTextIntrospector#extract_rich_text_fields
     - RailsAiBridge::Introspectors::ActiveStorageIntrospector#detect_direct_upload
@@ -373,12 +411,15 @@ detectors:
     - RailsAiBridge::Introspectors::GemIntrospector#categorize_gems
     - RailsAiBridge::Introspectors::JobIntrospector#extract_channels
     - RailsAiBridge::Introspectors::ModelIntrospector#extract_callbacks
+    - RailsAiBridge::Introspectors::ModelSemanticEnrichment#find_similar_models
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#detect_model_connections
     - RailsAiBridge::Introspectors::RouteIntrospector#group_by_controller
     - RailsAiBridge::Introspectors::SeedsIntrospector#detect_seeded_models
     - RailsAiBridge::Introspectors::TestIntrospector#detect_test_helpers
     - RailsAiBridge::Introspectors::TurboIntrospector#extract_turbo_frames
     - RailsAiBridge::ModelSemanticClassifier#self.through_join_model_names
+    - RailsAiBridge::RubydexAdapter#count_methods
+    - RailsAiBridge::RubydexAdapter#ruby_source_files
     - RailsAiBridge::Serializers::Formatters::Sections::ControllersFormatter#render
     - RailsAiBridge::Serializers::Formatters::Sections::ModelsFormatter#render
     - RailsAiBridge::Serializers::Formatters::Sections::RoutesFormatter#render
@@ -400,11 +441,13 @@ detectors:
     - RailsAiBridge::Tools::ModelDetails::FullFormatter#call
     - RailsAiBridge::Tools::ModelDetails::SingleModelFormatter#call
     - RailsAiBridge::Tools::Schema::StandardFormatter#call
+    - RailsAiBridge::Tools::SearchSemantic#self.format_results
   NilCheck:
     exclude:
     - RailsAiBridge::AssistantFormatsPreference#formats_for_default_bridge_task
     - RailsAiBridge::Config::Introspection#excluded_table?
     - RailsAiBridge::Config::Mcp#effective_http_rate_limit_max_requests
+    - RailsAiBridge::Generators::InstallGenerator#profile_from_option
     - RailsAiBridge::Introspectors::ControllerIntrospector#discover_controllers
     - RailsAiBridge::Introspectors::ControllerIntrospector#extract_respond_to
     - RailsAiBridge::Introspectors::ControllerIntrospector#extract_strong_params
@@ -419,21 +462,24 @@ detectors:
     - RailsAiBridge::Mcp::Auth::Strategies::Jwt#initialize
     - RailsAiBridge::Mcp::Authenticator#call
     - RailsAiBridge::Mcp::HttpStructuredLog#emit
+    - RailsAiBridge::RubydexAdapter#available?
     - RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer#append_non_ar_models_to_rules
     - RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer#append_tier_model_bullets
     - RailsAiBridge::Serializers::SharedAssistantGuidance#mergeable_override_content?
     - RailsAiBridge::Serializers::SharedAssistantGuidance#resolved_assistant_overrides_path
     - RailsAiBridge::Services::FileManagementService#call
     - RailsAiBridge::Tools::SearchCode#self.normalize_and_validate_file_type
-    - RailsAiBridge::Generators::InstallGenerator#profile_from_option
   RepeatedConditional:
     exclude:
     - RailsAiBridge::Introspectors::AssetPipelineIntrospector
     - RailsAiBridge::Introspectors::Schema::StaticSchemaParser
+    - RailsAiBridge::Introspectors::SemanticIntrospector
     - RailsAiBridge::Introspectors::StimulusIntrospector
     - RailsAiBridge::Introspectors::TestIntrospector
     - RailsAiBridge::Introspectors::ViewIntrospector
+    - RailsAiBridge::RubydexAdapter
     - RailsAiBridge::Tools::GetStimulus::ResponseFormatter
+    - RailsAiBridge::Tools::SearchSemantic
   TooManyInstanceVariables:
     exclude:
     - RailsAiBridge::Config::Introspection
@@ -442,25 +488,23 @@ detectors:
     - RailsAiBridge::Config::Server
     - RailsAiBridge::Configuration
     - RailsAiBridge::Mcp::HttpRateLimiter
+    - RailsAiBridge::RubydexAdapter
     - RailsAiBridge::Tools::GetModelDetails::ResponseFormatter
     - RailsAiBridge::Tools::GetRoutes::ResponseFormatter
     - RailsAiBridge::Tools::GetSchema::ResponseFormatter
   TooManyMethods:
     exclude:
-    - RailsAiBridge::Introspectors::ModelIntrospector
     - RailsAiBridge::Generators::InstallGenerator
+    - RailsAiBridge::Introspectors::ModelIntrospector
+    - RailsAiBridge::RubydexAdapter
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer
   TooManyConstants:
     exclude:
     - RailsAiBridge::Resources
     - RailsAiBridge::Server
   TooManyStatements:
     exclude:
-    - initialize
-    - RailsAiBridge::Generators::InstallGenerator#add_to_gitignore
-    - RailsAiBridge::Generators::InstallGenerator#create_assistant_overrides_template
-    - RailsAiBridge::Generators::InstallGenerator#generate_context_files
-    - RailsAiBridge::Generators::InstallGenerator#show_full_instructions
-    - RailsAiBridge::Generators::InstallGenerator#show_instructions
+    - RailsAiBridge#validate_auto_mount_configuration!
     - RailsAiBridge::AssistantFormatsPreference#formats_for_default_bridge_task
     - RailsAiBridge::AssistantFormatsPreference#write!
     - RailsAiBridge::Config::Mcp#effective_http_rate_limit_max_requests
@@ -469,6 +513,11 @@ detectors:
     - RailsAiBridge::ContextProvider#rebuild
     - RailsAiBridge::Doctor#compute_score
     - RailsAiBridge::Fingerprinter#snapshot
+    - RailsAiBridge::Generators::InstallGenerator#add_to_gitignore
+    - RailsAiBridge::Generators::InstallGenerator#create_assistant_overrides_template
+    - RailsAiBridge::Generators::InstallGenerator#generate_context_files
+    - RailsAiBridge::Generators::InstallGenerator#show_full_instructions
+    - RailsAiBridge::Generators::InstallGenerator#show_instructions
     - RailsAiBridge::HttpTransportApp#build
     - RailsAiBridge::Introspector#call
     - RailsAiBridge::Introspectors::ActionMailboxIntrospector#extract_mailboxes
@@ -514,6 +563,10 @@ detectors:
     - RailsAiBridge::Introspectors::ModelIntrospector#extract_callbacks
     - RailsAiBridge::Introspectors::ModelIntrospector#extract_model_details
     - RailsAiBridge::Introspectors::ModelIntrospector#extract_source_macros
+    - RailsAiBridge::Introspectors::ModelSemanticEnrichment#calculate_complexity_score
+    - RailsAiBridge::Introspectors::ModelSemanticEnrichment#extract_semantic_data
+    - RailsAiBridge::Introspectors::ModelSemanticEnrichment#extract_semantic_summary
+    - RailsAiBridge::Introspectors::ModelSemanticEnrichment#find_similar_models
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#detect_model_connections
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#discover_databases
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#discover_replicas
@@ -529,6 +582,13 @@ detectors:
     - RailsAiBridge::Introspectors::Schema::StaticSchemaParser#parse_table_line
     - RailsAiBridge::Introspectors::SeedsIntrospector#analyze_seeds_file
     - RailsAiBridge::Introspectors::SeedsIntrospector#detect_seeded_models
+    - RailsAiBridge::Introspectors::SemanticIntrospector#analyze_relationships
+    - RailsAiBridge::Introspectors::SemanticIntrospector#build_inheritance_tree
+    - RailsAiBridge::Introspectors::SemanticIntrospector#call
+    - RailsAiBridge::Introspectors::SemanticIntrospector#detect_code_patterns
+    - RailsAiBridge::Introspectors::SemanticIntrospector#detect_patterns
+    - RailsAiBridge::Introspectors::SemanticIntrospector#find_complexity_hotspots
+    - RailsAiBridge::Introspectors::SemanticIntrospector#find_most_extended
     - RailsAiBridge::Introspectors::StimulusIntrospector#call
     - RailsAiBridge::Introspectors::StimulusIntrospector#parse_controller
     - RailsAiBridge::Introspectors::TestIntrospector#detect_ci
@@ -551,6 +611,15 @@ detectors:
     - RailsAiBridge::ModelSemanticClassifier#call
     - RailsAiBridge::ModelSemanticClassifier#metadata_column_names
     - RailsAiBridge::ModelSemanticClassifier#self.through_join_model_names
+    - RailsAiBridge::RubydexAdapter#codebase_stats
+    - RailsAiBridge::RubydexAdapter#constant_references
+    - RailsAiBridge::RubydexAdapter#count_methods
+    - RailsAiBridge::RubydexAdapter#declaration_to_hash
+    - RailsAiBridge::RubydexAdapter#declaration_type
+    - RailsAiBridge::RubydexAdapter#file_declarations
+    - RailsAiBridge::RubydexAdapter#index!
+    - RailsAiBridge::RubydexAdapter#instance
+    - RailsAiBridge::RubydexAdapter#search
     - RailsAiBridge::Serializers::ContextFileSerializer#call
     - RailsAiBridge::Serializers::ContextFileSerializer#generate_split_rules
     - RailsAiBridge::Serializers::ContextFileSerializer#serialize
@@ -575,6 +644,11 @@ detectors:
     - RailsAiBridge::Serializers::Formatters::Sections::RoutesFormatter#render
     - RailsAiBridge::Serializers::Formatters::Sections::SchemaFormatter#render
     - RailsAiBridge::Serializers::Formatters::Sections::SeedsFormatter#render
+    - RailsAiBridge::Serializers::Formatters::Sections::SemanticFormatter#render
+    - RailsAiBridge::Serializers::Formatters::Sections::SemanticFormatter#render_codebase_stats
+    - RailsAiBridge::Serializers::Formatters::Sections::SemanticFormatter#render_complexity_hotspots
+    - RailsAiBridge::Serializers::Formatters::Sections::SemanticFormatter#render_patterns
+    - RailsAiBridge::Serializers::Formatters::Sections::SemanticFormatter#render_relationships
     - RailsAiBridge::Serializers::Formatters::Sections::TestsFormatter#render
     - RailsAiBridge::Serializers::Formatters::Sections::TurboFormatter#render
     - RailsAiBridge::Serializers::Formatters::Sections::ViewsFormatter#render
@@ -584,6 +658,7 @@ detectors:
     - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#render_key_config_files
     - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#render_key_models
     - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#render_notable_gems
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#render_semantic_insights
     - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#render_stack_overview
     - RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer#append_non_ar_models_to_rules
     - RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer#append_tier_model_bullets
@@ -617,6 +692,7 @@ detectors:
     - RailsAiBridge::Services::ConfigurationService#call
     - RailsAiBridge::Services::ContextGenerationService#call
     - RailsAiBridge::Services::FileManagementService#call
+    - RailsAiBridge::Services::FileManagementService#file_exists?
     - RailsAiBridge::Services::FileManagementService#validate_path!
     - RailsAiBridge::Services::FileManagementService#write_file
     - RailsAiBridge::Tools::BaseTool#text_response
@@ -641,13 +717,13 @@ detectors:
     - RailsAiBridge::Tools::GetStimulus::ResponseFormatter#format_full
     - RailsAiBridge::Tools::GetStimulus::ResponseFormatter#format_standard
     - RailsAiBridge::Tools::GetTestInfo::ResponseFormatter#format
+    - RailsAiBridge::Tools::GetView#self.call
     - RailsAiBridge::Tools::GetView::BaseFormatter#apply_partial_filter
     - RailsAiBridge::Tools::GetView::BaseFormatter#filter_view_data
     - RailsAiBridge::Tools::GetView::FullFormatter#call
     - RailsAiBridge::Tools::GetView::SpecificViewFormatter#call
     - RailsAiBridge::Tools::GetView::StandardFormatter#call
     - RailsAiBridge::Tools::GetView::SummaryFormatter#call
-    - RailsAiBridge::Tools::GetView#self.call
     - RailsAiBridge::Tools::ModelDetails::FullFormatter#call
     - RailsAiBridge::Tools::ModelDetails::NonArModelsAppendix#append_markdown
     - RailsAiBridge::Tools::ModelDetails::SingleModelFormatter#call
@@ -657,19 +733,20 @@ detectors:
     - RailsAiBridge::Tools::Schema::StandardFormatter#call
     - RailsAiBridge::Tools::Schema::SummaryFormatter#call
     - RailsAiBridge::Tools::Schema::TableFormatter#call
-    - RailsAiBridge::Tools::SearchCode::Formatter#call
     - RailsAiBridge::Tools::SearchCode#self.build_ripgrep_command
     - RailsAiBridge::Tools::SearchCode#self.call
     - RailsAiBridge::Tools::SearchCode#self.prepare_search
     - RailsAiBridge::Tools::SearchCode#self.process_file_for_search
     - RailsAiBridge::Tools::SearchCode#self.search_with_ruby
+    - RailsAiBridge::Tools::SearchCode::Formatter#call
+    - RailsAiBridge::Tools::SearchSemantic#self.call
+    - RailsAiBridge::Tools::SearchSemantic#self.format_results
     - RailsAiBridge::ViewFileAnalyzer#call
     - RailsAiBridge::Watcher#handle_change
     - RailsAiBridge::Watcher#start
-    - RailsAiBridge#validate_auto_mount_configuration!
+    - initialize
   UncommunicativeVariableName:
     exclude:
-    - RailsAiBridge::Generators::InstallGenerator#add_to_gitignore
     - RailsAiBridge::AssistantFormatsPreference#formats_for_default_bridge_task
     - RailsAiBridge::AssistantFormatsPreference#write!
     - RailsAiBridge::Config::Introspection#effective_introspectors
@@ -677,6 +754,7 @@ detectors:
     - RailsAiBridge::Config::Mcp#effective_http_rate_limit_window_seconds
     - RailsAiBridge::Doctor::Checkers::McpBuildableChecker#call
     - RailsAiBridge::Doctor::Checkers::ViewsChecker#call
+    - RailsAiBridge::Generators::InstallGenerator#add_to_gitignore
     - RailsAiBridge::HttpTransportApp#build
     - RailsAiBridge::Introspector#call
     - RailsAiBridge::Introspectors::ActionMailboxIntrospector#call
@@ -722,6 +800,7 @@ detectors:
     - RailsAiBridge::Introspectors::ModelIntrospector#extract_public_instance_methods
     - RailsAiBridge::Introspectors::ModelIntrospector#extract_source_macros
     - RailsAiBridge::Introspectors::ModelIntrospector#sanitize_options
+    - RailsAiBridge::Introspectors::ModelSemanticEnrichment#find_similar_models
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#call
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#detect_model_connections
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#discover_replicas
@@ -737,6 +816,12 @@ detectors:
     - RailsAiBridge::Introspectors::SchemaIntrospector#table_names
     - RailsAiBridge::Introspectors::SeedsIntrospector#analyze_seeds_file
     - RailsAiBridge::Introspectors::SeedsIntrospector#call
+    - RailsAiBridge::Introspectors::SemanticIntrospector#analyze_relationships
+    - RailsAiBridge::Introspectors::SemanticIntrospector#detect_code_patterns
+    - RailsAiBridge::Introspectors::SemanticIntrospector#detect_patterns
+    - RailsAiBridge::Introspectors::SemanticIntrospector#find_complexity_hotspots
+    - RailsAiBridge::Introspectors::SemanticIntrospector#find_most_extended
+    - RailsAiBridge::Introspectors::SemanticIntrospector#namespace_distribution
     - RailsAiBridge::Introspectors::StimulusIntrospector#call
     - RailsAiBridge::Introspectors::StimulusIntrospector#extract_actions
     - RailsAiBridge::Introspectors::StimulusIntrospector#parse_controller
@@ -753,6 +838,10 @@ detectors:
     - RailsAiBridge::ModelSemanticClassifier#call
     - RailsAiBridge::ModelSemanticClassifier#metadata_column_names
     - RailsAiBridge::Resources#read_view_resource
+    - RailsAiBridge::RubydexAdapter#codebase_stats
+    - RailsAiBridge::RubydexAdapter#count_methods
+    - RailsAiBridge::RubydexAdapter#declaration_to_hash
+    - RailsAiBridge::RubydexAdapter#file_declarations
     - RailsAiBridge::Serializers::ContextSummary#recently_migrated?
     - RailsAiBridge::Serializers::ContextSummary#top_columns
     - RailsAiBridge::Serializers::Formatters::Sections::ActionMailboxFormatter#render
@@ -775,12 +864,14 @@ detectors:
     - RailsAiBridge::Serializers::Formatters::Sections::RoutesFormatter#render
     - RailsAiBridge::Serializers::Formatters::Sections::SchemaFormatter#render
     - RailsAiBridge::Serializers::Formatters::Sections::SeedsFormatter#render
+    - RailsAiBridge::Serializers::Formatters::Sections::SemanticFormatter#render_complexity_hotspots
     - RailsAiBridge::Serializers::Formatters::Sections::TurboFormatter#render
     - RailsAiBridge::Serializers::Formatters::Sections::ViewsFormatter#render
     - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#render_architecture
     - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#render_key_config_files
     - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#render_key_models
     - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#render_notable_gems
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#render_semantic_insights
     - RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer#append_tier_model_bullets
     - RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer#group_models_by_semantic_tier
     - RailsAiBridge::Serializers::Providers::CodexSerializer#append_compact_codex_models_section
@@ -821,15 +912,16 @@ detectors:
     - RailsAiBridge::Tools::ModelDetails::SingleModelFormatter#call
     - RailsAiBridge::Tools::ModelDetails::SummaryFormatter#call
     - RailsAiBridge::Tools::Schema::StandardFormatter#call
-    - RailsAiBridge::Tools::SearchCode::Formatter#call
     - RailsAiBridge::Tools::SearchCode#self.add_excluded_paths_to_command
     - RailsAiBridge::Tools::SearchCode#self.allowed_search_file_types
     - RailsAiBridge::Tools::SearchCode#self.search_with_ripgrep
     - RailsAiBridge::Tools::SearchCode#self.search_with_ruby
     - RailsAiBridge::Tools::SearchCode#self.validate_pattern_size
-    - RailsAiBridge::Watcher::WatchDirectories#self.resolve
+    - RailsAiBridge::Tools::SearchCode::Formatter#call
+    - RailsAiBridge::Tools::SearchSemantic#self.format_results
     - RailsAiBridge::Watcher#handle_change
     - RailsAiBridge::Watcher#start
+    - RailsAiBridge::Watcher::WatchDirectories#self.resolve
   UnusedParameters:
     exclude:
     - RailsAiBridge::Tools::GetConfig#self.call
@@ -844,18 +936,13 @@ detectors:
     - RailsAiBridge::Tools::GetView#self.call
   UtilityFunction:
     exclude:
+    - RailsAiBridge::Doctor#compute_score
     - RailsAiBridge::Doctor::Checkers::BaseChecker#new_check
     - RailsAiBridge::Doctor::Checkers::StimulusMcpToolChecker#tool_registered?
-    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#extract_notable_gems
     - RailsAiBridge::Doctor::Checkers::ViewMcpToolChecker#tool_registered?
-    - RailsAiBridge::Doctor#compute_score
     - RailsAiBridge::Introspectors::ControllerIntrospector#api_controller?
     - RailsAiBridge::Introspectors::ControllerIntrospector#discover_controllers
     - RailsAiBridge::Introspectors::ControllerIntrospector#eager_load_controllers!
-    - RailsAiBridge::Server#create_stdio_transport
-    - RailsAiBridge::Server#create_http_transport
-    - RailsAiBridge::Server#register_resources
-    - RailsAiBridge::Server#validate_http_server_in_production
     - RailsAiBridge::Introspectors::ControllerIntrospector#extract_action_condition
     - RailsAiBridge::Introspectors::ControllerIntrospector#extract_actions
     - RailsAiBridge::Introspectors::ControllerIntrospector#extract_concerns
@@ -877,6 +964,9 @@ detectors:
     - RailsAiBridge::Introspectors::ModelIntrospector#extract_public_class_methods
     - RailsAiBridge::Introspectors::ModelIntrospector#extract_public_instance_methods
     - RailsAiBridge::Introspectors::ModelIntrospector#sanitize_options
+    - RailsAiBridge::Introspectors::ModelSemanticEnrichment#calculate_complexity_score
+    - RailsAiBridge::Introspectors::ModelSemanticEnrichment#extract_semantic_summary
+    - RailsAiBridge::Introspectors::ModelSemanticEnrichment#find_similar_models
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#anonymize_db_name
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#discover_replicas
     - RailsAiBridge::Introspectors::NonArModelsIntrospector#eager_load_app_models_dir
@@ -890,6 +980,12 @@ detectors:
     - RailsAiBridge::Introspectors::SchemaIntrospector#active_record_connected?
     - RailsAiBridge::Introspectors::SchemaIntrospector#adapter_name
     - RailsAiBridge::Introspectors::SchemaIntrospector#connection
+    - RailsAiBridge::Introspectors::SemanticIntrospector#build_inheritance_tree
+    - RailsAiBridge::Introspectors::SemanticIntrospector#calculate_hotspot_score
+    - RailsAiBridge::Introspectors::SemanticIntrospector#detect_code_patterns
+    - RailsAiBridge::Introspectors::SemanticIntrospector#find_most_extended
+    - RailsAiBridge::Introspectors::SemanticIntrospector#find_orphan_classes
+    - RailsAiBridge::Introspectors::SemanticIntrospector#namespace_distribution
     - RailsAiBridge::Introspectors::StimulusIntrospector#extract_actions
     - RailsAiBridge::Introspectors::StimulusIntrospector#extract_classes
     - RailsAiBridge::Introspectors::StimulusIntrospector#extract_outlets
@@ -900,6 +996,8 @@ detectors:
     - RailsAiBridge::ModelSemanticClassifier#metadata_column_names
     - RailsAiBridge::ModelSemanticClassifier#safe_column_names
     - RailsAiBridge::ModelSemanticClassifier#tier
+    - RailsAiBridge::RubydexAdapter#declaration_type
+    - RailsAiBridge::RubydexAdapter#safe_count
     - RailsAiBridge::Serializers::Formatters::Providers::CodexFooterFormatter#call
     - RailsAiBridge::Serializers::Formatters::Providers::CopilotFooterFormatter#call
     - RailsAiBridge::Serializers::Formatters::Providers::FooterFormatter#call
@@ -929,9 +1027,14 @@ detectors:
     - RailsAiBridge::Serializers::Formatters::Sections::RoutesFormatter#render
     - RailsAiBridge::Serializers::Formatters::Sections::SchemaFormatter#render
     - RailsAiBridge::Serializers::Formatters::Sections::SeedsFormatter#render
+    - RailsAiBridge::Serializers::Formatters::Sections::SemanticFormatter#render_codebase_stats
+    - RailsAiBridge::Serializers::Formatters::Sections::SemanticFormatter#render_complexity_hotspots
+    - RailsAiBridge::Serializers::Formatters::Sections::SemanticFormatter#render_patterns
+    - RailsAiBridge::Serializers::Formatters::Sections::SemanticFormatter#render_relationships
     - RailsAiBridge::Serializers::Formatters::Sections::TestsFormatter#render
     - RailsAiBridge::Serializers::Formatters::Sections::TurboFormatter#render
     - RailsAiBridge::Serializers::Formatters::Sections::ViewsFormatter#render
+    - RailsAiBridge::Serializers::Providers::BaseProviderSerializer#extract_notable_gems
     - RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer#append_non_ar_models_to_rules
     - RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer#append_tier_model_bullets
     - RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer#group_models_by_semantic_tier
@@ -942,9 +1045,14 @@ detectors:
     - RailsAiBridge::Serializers::Providers::CursorRulesSerializer#render_mcp_tools_rule
     - RailsAiBridge::Serializers::Providers::WindsurfRulesSerializer#render_mcp_tools_rule
     - RailsAiBridge::Server#build_rack_app
+    - RailsAiBridge::Server#create_http_transport
+    - RailsAiBridge::Server#create_stdio_transport
+    - RailsAiBridge::Server#register_resources
     - RailsAiBridge::Server#tool_classes
+    - RailsAiBridge::Server#validate_http_server_in_production
     - RailsAiBridge::Services::ConfigurationService#call
     - RailsAiBridge::Services::FileManagementService#default_allowed_base_dir
+    - RailsAiBridge::Services::FileManagementService#root_directory?
     - RailsAiBridge::Tools::GetConventions::ResponseFormatter#humanize_arch
     - RailsAiBridge::Tools::GetConventions::ResponseFormatter#humanize_pattern
     - RailsAiBridge::Tools::GetView::BaseFormatter#controller_key_for

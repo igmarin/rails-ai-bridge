@@ -51,12 +51,16 @@ module RailsAiBridge
     # @return [Config::Mcp]
     attr_reader :mcp
 
+    # @return [Config::Rubydex]
+    attr_reader :rubydex
+
     def initialize
       @auth          = Config::Auth.new
       @server        = Config::Server.new
       @introspection = Config::Introspection.new
       @output        = Config::Output.new
       @mcp           = Config::Mcp.new
+      @rubydex       = Config::Rubydex.new
     end
 
     # -- Config::Auth -----------------------------------------------------------
@@ -101,6 +105,20 @@ module RailsAiBridge
                    :rate_limit_window_seconds, :rate_limit_window_seconds=,
                    :http_log_json, :http_log_json=,
                    :require_http_auth, :require_http_auth=
+
+    # -- Config::Rubydex --------------------------------------------------------
+    def_delegators :@rubydex,
+                   :rubydex_enabled, :rubydex_enabled=,
+                   :rubydex_index_path, :rubydex_index_path=,
+                   :semantic_introspector_enabled, :semantic_introspector_enabled=,
+                   :semantic_context_depth, :semantic_context_depth=
+
+    # Convenience predicate for checking if rubydex is available and enabled.
+    #
+    # @return [Boolean]
+    def rubydex_available?
+      rubydex_enabled && RubydexAdapter.available?
+    end
 
     # -- Config::Output ---------------------------------------------------------
     def_delegators :@output,

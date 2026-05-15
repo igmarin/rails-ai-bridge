@@ -478,6 +478,33 @@ rails_search_code(pattern: "def create", path: "app/controllers", file_type: "rb
 
 **Security:** Uses `Open3.capture2` with array arguments (no shell injection). Validates `file_type`. Blocks path traversal. Respects `excluded_paths`. Optional wall-clock limit per call: `config.search_code_timeout_seconds` (default 5; set `0` to disable).
 
+### rails_search_semantic
+
+Semantic code search using rubydex. Searches declarations (classes, modules, methods, constants) by name and returns structured results with types, locations, and relationships. Requires rubydex to be installed and `config.rubydex_enabled = true`.
+
+**Parameters:**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `query` | string | **Required.** Search query for declarations (e.g. `User`, `Foo::Bar`, `User#save`). |
+| `path` | string | Optional file path filter (relative to Rails root). |
+| `max_results` | integer | Maximum results. Default: 20, max: 50. |
+
+**Examples:**
+
+```
+rails_search_semantic(query: "User")
+  → All declarations matching "User" with types and locations
+
+rails_search_semantic(query: "ApplicationController", path: "app/controllers")
+  → Declarations matching "ApplicationController" in app/controllers
+
+rails_search_semantic(query: "Service", max_results: 30)
+  → Up to 30 service-like declarations
+```
+
+**Notable:** Results include ancestors, descendants, and inline definitions when available, making this a richer alternative to `rails_search_code` for understanding code structure and relationships.
+
 ### rails_get_view
 
 View-layer context: layouts, templates, partials, helpers, components. Requires the `:views` introspector (included in the `:full` preset, or add `config.introspectors << :views`).

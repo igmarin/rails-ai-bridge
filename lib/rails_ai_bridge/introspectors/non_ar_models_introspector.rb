@@ -19,8 +19,8 @@ module RailsAiBridge
       # Logs best-effort class processing failures without interrupting discovery.
       ErrorLogger = Struct.new(:error, keyword_init: true) do
         def call
-          logger = Rails.logger if defined?(Rails.logger) && Rails.logger
-          logger&.warn "NonArModelsIntrospector: Error processing class: #{error.class.name}"
+          log = Rails.logger if defined?(Rails) && Rails.logger
+          log&.warn "NonArModelsIntrospector: Error processing class: #{error.class.name}"
         end
       end
       private_constant :ErrorLogger

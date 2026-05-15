@@ -30,6 +30,7 @@ module RailsAiBridge
       Tools::GetModelDetails,
       Tools::GetGems,
       Tools::SearchCode,
+      Tools::SearchSemantic,
       Tools::GetConventions,
       Tools::GetControllers,
       Tools::GetConfig,

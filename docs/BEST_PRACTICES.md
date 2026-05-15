@@ -268,9 +268,14 @@ The `rails_*` tools follow a consistent pattern across all clients that support 
 
 5. Search code for specific patterns
    rails_search_code(pattern: "before_action :authenticate")
+
+6. Semantic search when you need codebase-level understanding
+   rails_search_semantic(query: "UserService") → type-aware declaration search
 ```
 
 This pattern is referenced in every generated client file. The assistant learns it passively from the static rules — you don't need to instruct it manually.
+
+When `rails_search_code` isn't structural enough, `rails_search_semantic` uses rubydex to search declarations by type (class, module, method, constant), returning structured results with ancestors, descendants, and file locations. It's most useful when you need to understand relationships — for example, finding all subclasses of a base model or locating every definition of a specific method name.
 
 ### When MCP is unavailable
 
