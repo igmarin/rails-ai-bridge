@@ -34,18 +34,15 @@ RSpec.describe RailsAiBridge::RubydexAdapter::Indexer do
     end
 
     it 'excludes tmp, log, vendor, .git, .bundle, node_modules' do
-      %w[tmp log vendor .git .bundle node_modules].each do |dir|
+      excluded_paths = %w[tmp log vendor .git .bundle node_modules].map do |dir|
         FileUtils.mkdir_p(File.join(root, dir, 'sub'))
-        File.write(File.join(root, dir, 'sub', 'excluded.rb'), '')
+        excluded = File.join(root, dir, 'sub', 'excluded.rb')
+        File.write(excluded, '')
+        excluded
       end
 
       files = indexer.send(:source_files, root)
-      expect(files).not_to include(match(%r{/tmp/}))
-      expect(files).not_to include(match(%r{/log/}))
-      expect(files).not_to include(match(%r{/vendor/}))
-      expect(files).not_to include(match(%r{/\.git/}))
-      expect(files).not_to include(match(%r{/\.bundle/}))
-      expect(files).not_to include(match(%r{/node_modules/}))
+      excluded_paths.each { |path| expect(files).not_to include(path) }
     end
   end
 
