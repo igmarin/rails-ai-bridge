@@ -6,7 +6,7 @@ RSpec.describe RailsAiBridge::Introspectors::ModelIntrospector::CallbackExtracto
   let(:excluded_prefixes) { %w[_ autosave validate_associated] }
 
   def cb(filter)
-    instance_double('ActiveSupport::Callbacks::Callback', filter: filter)
+    instance_double(ActiveSupport::Callbacks::Callback, filter: filter)
   end
 
   def model_with(callbacks_by_type)

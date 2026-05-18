@@ -22,7 +22,7 @@ RSpec.describe RailsAiBridge::Introspectors::ModelIntrospector::SourceMacroExtra
     end
 
     it 'extracts symbol args from normalizes' do
-      result = extract("normalizes :email, with: ->(e) { e.downcase }")
+      result = extract('normalizes :email, with: ->(e) { e.downcase }')
       expect(result[:normalizes]).to eq(%w[email])
     end
 
