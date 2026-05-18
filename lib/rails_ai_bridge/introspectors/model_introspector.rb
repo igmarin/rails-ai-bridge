@@ -233,6 +233,8 @@ module RailsAiBridge
         return {} unless path && File.exist?(path)
 
         SourceMacroExtractor.new(File.read(path)).call
+      rescue StandardError
+        {}
       end
 
       def sanitize_options(options)
