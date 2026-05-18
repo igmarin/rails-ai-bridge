@@ -49,31 +49,32 @@ module RailsAiBridge
       end
 
       def group_by_controller(routes)
-        routes.group_by { |r| r[:controller] }.transform_values do |controller_routes|
-          controller_routes.map do |r|
-            { verb: r[:verb], path: r[:path], action: r[:action], name: r[:name] }.compact
-          end
-        end
+        routes.group_by { |route| route[:controller] }
+              .transform_values { |group| group.map { |route| route_summary(route) } }
+      end
+
+      def route_summary(route)
+        { verb: route[:verb], path: route[:path], action: route[:action], name: route[:name] }.compact
       end
 
       def detect_api_namespaces(routes)
         routes
-          .select { |r| r[:path].match?(%r{/api/}) }
-          .map { |r| r[:path].match(%r{(/api/v?\d*)})&.captures&.first }
+          .select { |route| route[:path].match?(%r{/api/}) }
+          .map { |route| route[:path].match(%r{(/api/v?\d*)})&.captures&.first }
           .compact
           .uniq
       end
 
       def detect_mounted_engines
         app.routes.routes
-           .select { |r| r.app.respond_to?(:app) && r.app.app.is_a?(Class) }
-           .filter_map do |r|
-             engine_class = r.app.app
+           .select { |route| route.app.respond_to?(:app) && route.app.app.is_a?(Class) }
+           .filter_map do |route|
+             engine_class = route.app.app
              next unless engine_class < Rails::Engine
 
              {
                engine: engine_class.name,
-               path: r.path.spec.to_s
+               path: route.path.spec.to_s
              }
            rescue StandardError
              nil

@@ -94,7 +94,6 @@ detectors:
     - RailsAiBridge::Introspectors::ControllerIntrospector#call
     - RailsAiBridge::Introspectors::ControllerIntrospector#discover_controllers
     - RailsAiBridge::Introspectors::ControllerIntrospector#eager_load_controllers!
-    - RailsAiBridge::Introspectors::ControllerIntrospector#extract_filters
     - RailsAiBridge::Introspectors::ConventionDetector#detect_architecture
     - RailsAiBridge::Introspectors::DatabaseStatsIntrospector#call
     - RailsAiBridge::Introspectors::EngineIntrospector#discover_mounted_engines
@@ -110,11 +109,7 @@ detectors:
     - RailsAiBridge::Introspectors::ModelIntrospector#call
     - RailsAiBridge::Introspectors::ModelIntrospector#discover_models
     - RailsAiBridge::Introspectors::ModelIntrospector#eager_load_models!
-    - RailsAiBridge::Introspectors::ModelIntrospector#extract_associations
-    - RailsAiBridge::Introspectors::ModelIntrospector#extract_callbacks
-    - RailsAiBridge::Introspectors::ModelIntrospector#extract_source_macros
     - RailsAiBridge::Introspectors::ModelSemanticEnrichment#extract_semantic_summary
-    - RailsAiBridge::Introspectors::ModelSemanticEnrichment#find_similar_models
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#detect_model_connections
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#discover_databases
     - RailsAiBridge::Introspectors::NonArModelsIntrospector#collect_safe_object_space_entries
@@ -122,7 +117,6 @@ detectors:
     - RailsAiBridge::Introspectors::NonArModelsIntrospector#eager_load_app_models_dir
     - RailsAiBridge::Introspectors::NonArModelsIntrospector#safe_to_process?
     - RailsAiBridge::Introspectors::RakeTaskIntrospector#parse_rake_file
-    - RailsAiBridge::Introspectors::RouteIntrospector#detect_api_namespaces
     - RailsAiBridge::Introspectors::RouteIntrospector#detect_mounted_engines
     - RailsAiBridge::Introspectors::RouteIntrospector#extract_routes
     - RailsAiBridge::Introspectors::SemanticIntrospector#detect_code_patterns
@@ -239,7 +233,6 @@ detectors:
     - RailsAiBridge::Introspectors::ConfigIntrospector#detect_cache_store
     - RailsAiBridge::Introspectors::ConfigIntrospector#extract_credentials_keys
     - RailsAiBridge::Introspectors::ConfigIntrospector#extract_middleware
-    - RailsAiBridge::Introspectors::ControllerIntrospector#extract_filters
     - RailsAiBridge::Introspectors::ConventionDetector#detect_patterns
     - RailsAiBridge::Introspectors::ConventionDetector#scan_directory_structure
     - RailsAiBridge::Introspectors::DevOpsIntrospector#extract_docker_info
@@ -251,7 +244,6 @@ detectors:
     - RailsAiBridge::Introspectors::MiddlewareIntrospector#discover_custom_middleware
     - RailsAiBridge::Introspectors::MigrationIntrospector#pending_migrations
     - RailsAiBridge::Introspectors::ModelIntrospector#discover_models
-    - RailsAiBridge::Introspectors::ModelIntrospector#extract_source_macros
     - RailsAiBridge::Introspectors::ModelIntrospector#extract_validations
     - RailsAiBridge::Introspectors::ModelIntrospector#model_table_excluded?
     - RailsAiBridge::Introspectors::ModelSemanticEnrichment#find_similar_models
@@ -367,8 +359,6 @@ detectors:
     exclude:
     - RailsAiBridge::Introspector#app_name
     - RailsAiBridge::Introspectors::ConfigIntrospector#extract_credentials_keys
-    - RailsAiBridge::Introspectors::ControllerIntrospector#extract_action_condition
-    - RailsAiBridge::Introspectors::ControllerIntrospector#extract_filters
     - RailsAiBridge::Introspectors::MigrationIntrospector#pending_migrations
     - RailsAiBridge::Introspectors::ModelIntrospector#extract_enums
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#discover_databases
@@ -405,15 +395,12 @@ detectors:
     - RailsAiBridge::Introspectors::ActionTextIntrospector#extract_rich_text_fields
     - RailsAiBridge::Introspectors::ActiveStorageIntrospector#detect_direct_upload
     - RailsAiBridge::Introspectors::ActiveStorageIntrospector#extract_attachments
-    - RailsAiBridge::Introspectors::ControllerIntrospector#extract_filters
     - RailsAiBridge::Introspectors::DevOpsIntrospector#extract_procfile
     - RailsAiBridge::Introspectors::EngineIntrospector#discover_mounted_engines
     - RailsAiBridge::Introspectors::GemIntrospector#categorize_gems
     - RailsAiBridge::Introspectors::JobIntrospector#extract_channels
-    - RailsAiBridge::Introspectors::ModelIntrospector#extract_callbacks
-    - RailsAiBridge::Introspectors::ModelSemanticEnrichment#find_similar_models
+    - RailsAiBridge::Introspectors::ModelSemanticEnrichment#collect_related_models
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#detect_model_connections
-    - RailsAiBridge::Introspectors::RouteIntrospector#group_by_controller
     - RailsAiBridge::Introspectors::SeedsIntrospector#detect_seeded_models
     - RailsAiBridge::Introspectors::TestIntrospector#detect_test_helpers
     - RailsAiBridge::Introspectors::TurboIntrospector#extract_turbo_frames
@@ -536,7 +523,6 @@ detectors:
     - RailsAiBridge::Introspectors::AuthIntrospector#scan_models_for
     - RailsAiBridge::Introspectors::ConfigIntrospector#detect_current_attributes
     - RailsAiBridge::Introspectors::ControllerIntrospector#call
-    - RailsAiBridge::Introspectors::ControllerIntrospector#extract_filters
     - RailsAiBridge::Introspectors::ConventionDetector#detect_architecture
     - RailsAiBridge::Introspectors::ConventionDetector#detect_patterns
     - RailsAiBridge::Introspectors::ConventionDetector#scan_directory_structure
@@ -559,10 +545,7 @@ detectors:
     - RailsAiBridge::Introspectors::MigrationIntrospector#migration_stats
     - RailsAiBridge::Introspectors::MigrationIntrospector#pending_migrations
     - RailsAiBridge::Introspectors::ModelIntrospector#call
-    - RailsAiBridge::Introspectors::ModelIntrospector#extract_associations
-    - RailsAiBridge::Introspectors::ModelIntrospector#extract_callbacks
     - RailsAiBridge::Introspectors::ModelIntrospector#extract_model_details
-    - RailsAiBridge::Introspectors::ModelIntrospector#extract_source_macros
     - RailsAiBridge::Introspectors::ModelSemanticEnrichment#calculate_complexity_score
     - RailsAiBridge::Introspectors::ModelSemanticEnrichment#extract_semantic_data
     - RailsAiBridge::Introspectors::ModelSemanticEnrichment#extract_semantic_summary
@@ -774,7 +757,6 @@ detectors:
     - RailsAiBridge::Introspectors::ConfigIntrospector#extract_initializers
     - RailsAiBridge::Introspectors::ConfigIntrospector#extract_middleware
     - RailsAiBridge::Introspectors::ControllerIntrospector#call
-    - RailsAiBridge::Introspectors::ControllerIntrospector#extract_filters
     - RailsAiBridge::Introspectors::ConventionDetector#detect_config_files
     - RailsAiBridge::Introspectors::ConventionDetector#detect_patterns
     - RailsAiBridge::Introspectors::DatabaseStatsIntrospector#call
@@ -796,11 +778,6 @@ detectors:
     - RailsAiBridge::Introspectors::MigrationIntrospector#migration_stats
     - RailsAiBridge::Introspectors::MigrationIntrospector#pending_migrations
     - RailsAiBridge::Introspectors::ModelIntrospector#call
-    - RailsAiBridge::Introspectors::ModelIntrospector#extract_public_class_methods
-    - RailsAiBridge::Introspectors::ModelIntrospector#extract_public_instance_methods
-    - RailsAiBridge::Introspectors::ModelIntrospector#extract_source_macros
-    - RailsAiBridge::Introspectors::ModelIntrospector#sanitize_options
-    - RailsAiBridge::Introspectors::ModelSemanticEnrichment#find_similar_models
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#call
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#detect_model_connections
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#discover_replicas
@@ -809,9 +786,7 @@ detectors:
     - RailsAiBridge::Introspectors::NonArModelsIntrospector#safe_to_process?
     - RailsAiBridge::Introspectors::RakeTaskIntrospector#call
     - RailsAiBridge::Introspectors::RakeTaskIntrospector#parse_rake_file
-    - RailsAiBridge::Introspectors::RouteIntrospector#detect_api_namespaces
     - RailsAiBridge::Introspectors::RouteIntrospector#detect_mounted_engines
-    - RailsAiBridge::Introspectors::RouteIntrospector#group_by_controller
     - RailsAiBridge::Introspectors::Schema::StaticSchemaParser#skip_table?
     - RailsAiBridge::Introspectors::SchemaIntrospector#table_names
     - RailsAiBridge::Introspectors::SeedsIntrospector#analyze_seeds_file
@@ -943,7 +918,6 @@ detectors:
     - RailsAiBridge::Introspectors::ControllerIntrospector#api_controller?
     - RailsAiBridge::Introspectors::ControllerIntrospector#discover_controllers
     - RailsAiBridge::Introspectors::ControllerIntrospector#eager_load_controllers!
-    - RailsAiBridge::Introspectors::ControllerIntrospector#extract_action_condition
     - RailsAiBridge::Introspectors::ControllerIntrospector#extract_actions
     - RailsAiBridge::Introspectors::ControllerIntrospector#extract_concerns
     - RailsAiBridge::Introspectors::ControllerIntrospector#extract_respond_to
@@ -957,12 +931,8 @@ detectors:
     - RailsAiBridge::Introspectors::JobIntrospector#extract_mailers
     - RailsAiBridge::Introspectors::MigrationIntrospector#detect_migration_actions
     - RailsAiBridge::Introspectors::ModelIntrospector#eager_load_models!
-    - RailsAiBridge::Introspectors::ModelIntrospector#extract_associations
-    - RailsAiBridge::Introspectors::ModelIntrospector#extract_callbacks
     - RailsAiBridge::Introspectors::ModelIntrospector#extract_concerns
     - RailsAiBridge::Introspectors::ModelIntrospector#extract_enums
-    - RailsAiBridge::Introspectors::ModelIntrospector#extract_public_class_methods
-    - RailsAiBridge::Introspectors::ModelIntrospector#extract_public_instance_methods
     - RailsAiBridge::Introspectors::ModelIntrospector#sanitize_options
     - RailsAiBridge::Introspectors::ModelSemanticEnrichment#calculate_complexity_score
     - RailsAiBridge::Introspectors::ModelSemanticEnrichment#extract_semantic_summary
@@ -974,9 +944,6 @@ detectors:
     - RailsAiBridge::Introspectors::NonArModelsIntrospector#safe_to_process?
     - RailsAiBridge::Introspectors::NonArModelsIntrospector#sanitize_error_message
     - RailsAiBridge::Introspectors::RakeTaskIntrospector#parse_rake_file
-    - RailsAiBridge::Introspectors::RouteIntrospector#detect_api_namespaces
-    - RailsAiBridge::Introspectors::RouteIntrospector#extract_constraints
-    - RailsAiBridge::Introspectors::RouteIntrospector#group_by_controller
     - RailsAiBridge::Introspectors::SchemaIntrospector#active_record_connected?
     - RailsAiBridge::Introspectors::SchemaIntrospector#adapter_name
     - RailsAiBridge::Introspectors::SchemaIntrospector#connection

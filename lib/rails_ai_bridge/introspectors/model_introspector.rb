@@ -146,18 +146,23 @@ module RailsAiBridge
 
       def extract_associations(model)
         model.reflect_on_all_associations.map do |assoc|
-          detail = {
-            name: assoc.name.to_s,
-            type: assoc.macro.to_s, # :has_many, :belongs_to, :has_one, :has_and_belongs_to_many
-            class_name: assoc.class_name,
-            foreign_key: assoc.foreign_key.to_s
-          }
-          detail[:through] = assoc.options[:through].to_s if assoc.options[:through]
-          detail[:polymorphic] = true if assoc.options[:polymorphic]
-          detail[:dependent]  = assoc.options[:dependent].to_s if assoc.options[:dependent]
-          detail[:optional]   = assoc.options[:optional] if assoc.options.key?(:optional)
-          detail.compact
+          build_association_detail(assoc)
         end
+      end
+
+      def build_association_detail(assoc)
+        opts = assoc.options
+        detail = {
+          name: assoc.name.to_s,
+          type: assoc.macro.to_s,
+          class_name: assoc.class_name,
+          foreign_key: assoc.foreign_key.to_s
+        }
+        detail[:through] = opts[:through].to_s if opts[:through]
+        detail[:polymorphic] = true if opts[:polymorphic]
+        detail[:dependent]  = opts[:dependent].to_s if opts[:dependent]
+        detail[:optional]   = opts[:optional] if opts.key?(:optional)
+        detail.compact
       end
 
       def extract_validations(model)
@@ -196,26 +201,7 @@ module RailsAiBridge
       end
 
       def extract_callbacks(model)
-        callback_types = %i[
-          before_validation after_validation
-          before_save after_save
-          before_create after_create
-          before_update after_update
-          before_destroy after_destroy
-          after_commit after_rollback
-        ]
-
-        callback_types.each_with_object({}) do |type, hash|
-          callbacks = model.send(:"_#{type}_callbacks").reject do |cb|
-            cb.filter.to_s.start_with?(*EXCLUDED_CALLBACKS) || cb.filter.is_a?(Proc)
-          end
-
-          next if callbacks.empty?
-
-          hash[type.to_s] = callbacks.map { |cb| cb.filter.to_s }
-        end
-      rescue StandardError
-        {}
+        CallbackExtractor.new(model, excluded_prefixes: EXCLUDED_CALLBACKS).call
       end
 
       def extract_concerns(model)
@@ -228,15 +214,15 @@ module RailsAiBridge
 
       def extract_public_class_methods(model)
         (model.methods - ActiveRecord::Base.methods - Object.methods)
-          .reject { |m| m.to_s.start_with?('_', 'autosave') }
+          .reject { |method_name| method_name.to_s.start_with?('_', 'autosave') }
           .sort
-          .first(30) # Cap to avoid noise
+          .first(30)
           .map(&:to_s)
       end
 
       def extract_public_instance_methods(model)
         (model.instance_methods - ActiveRecord::Base.instance_methods - Object.instance_methods)
-          .reject { |m| m.to_s.start_with?('_', 'autosave', 'validate_associated') }
+          .reject { |method_name| method_name.to_s.start_with?('_', 'autosave', 'validate_associated') }
           .sort
           .first(30)
           .map(&:to_s)
@@ -246,62 +232,11 @@ module RailsAiBridge
         path = model_source_path(model)
         return {} unless path && File.exist?(path)
 
-        source = File.read(path)
-        macros = {}
-
-        macros[:has_secure_password] = true if source.match?(/\bhas_secure_password\b/)
-        if source.match?(/\bencrypts\s+:/)
-          macros[:encrypts] = source.scan(/\bencrypts\s+(.+)/).flat_map do |m|
-            m[0].scan(/:(\w+)/).flatten
-          end
-        end
-        if source.match?(/\bnormalizes\s+:/)
-          macros[:normalizes] = source.scan(/\bnormalizes\s+(.+)/).flat_map do |m|
-            m[0].scan(/:(\w+)/).flatten
-          end
-        end
-        if source.match?(/\bhas_one_attached\s+:/)
-          macros[:has_one_attached] =
-            source.scan(/\bhas_one_attached\s+:(\w+)/).flatten
-        end
-        if source.match?(/\bhas_many_attached\s+:/)
-          macros[:has_many_attached] =
-            source.scan(/\bhas_many_attached\s+:(\w+)/).flatten
-        end
-        macros[:has_rich_text] = source.scan(/\bhas_rich_text\s+:(\w+)/).flatten if source.match?(/\bhas_rich_text\s+:/)
-        if source.match?(/\bbroadcasts/)
-          macros[:broadcasts] =
-            source.scan(/\b(broadcasts_to|broadcasts_refreshes_to|broadcasts)\b/).flatten.uniq
-        end
-        if source.match?(/\bgenerates_token_for\s+:/)
-          macros[:generates_token_for] =
-            source.scan(/\bgenerates_token_for\s+:(\w+)/).flatten
-        end
-        macros[:serialize] = source.scan(/\bserialize\s+:(\w+)/).flatten if source.match?(/\bserialize\s+:/)
-        if source.match?(/\bstore(?:_accessor)?\s+:/)
-          macros[:store] =
-            source.scan(/\bstore(?:_accessor)?\s+:(\w+)/).flatten
-        end
-
-        # Delegations
-        delegations = source.scan(/\bdelegate\s+(.+?),\s*to:\s*:(\w+)/).map do |methods_str, target|
-          { methods: methods_str.scan(/:(\w+)/).flatten, to: target }
-        end
-        macros[:delegations] = delegations if delegations.any?
-
-        if (dmt = source.match(/\bdelegate_missing_to\s+:(\w+)/))
-          macros[:delegate_missing_to] = dmt[1]
-        end
-
-        # Remove empty arrays
-        macros.reject { |_, v| v.is_a?(Array) && v.empty? }
-      rescue StandardError
-        {}
+        SourceMacroExtractor.new(File.read(path)).call
       end
 
       def sanitize_options(options)
-        # Remove procs and complex objects that don't serialize well
-        options.reject { |_k, v| v.is_a?(Proc) || v.is_a?(Regexp) }
+        options.reject { |_key, val| val.is_a?(Proc) || val.is_a?(Regexp) }
                .transform_values(&:to_s)
       end
     end

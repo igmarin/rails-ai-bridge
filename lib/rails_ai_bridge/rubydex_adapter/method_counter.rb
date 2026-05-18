@@ -30,7 +30,7 @@ module RailsAiBridge
       def method_count_for(decl)
         return 0 unless decl.respond_to?(:definitions)
 
-        decl.definitions.count { |d| method_like?(d) }
+        decl.definitions.count { |defn| method_like?(defn) }
       rescue StandardError
         0
       end

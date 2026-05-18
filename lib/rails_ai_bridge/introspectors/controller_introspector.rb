@@ -77,27 +77,7 @@ module RailsAiBridge
       end
 
       def extract_filters(ctrl)
-        return [] unless ctrl.respond_to?(:_process_action_callbacks)
-
-        ctrl._process_action_callbacks.filter_map do |cb|
-          next if cb.filter.is_a?(Proc) || cb.filter.to_s.start_with?('_')
-
-          filter = { name: cb.filter.to_s, kind: cb.kind.to_s }
-          filter[:only] = cb.instance_variable_get(:@if)&.filter_map { |c| extract_action_condition(c) }&.flatten
-          filter[:except] = cb.instance_variable_get(:@unless)&.filter_map { |c| extract_action_condition(c) }&.flatten
-          filter.delete(:only) if filter[:only] && filter[:only].empty?
-          filter.delete(:except) if filter[:except] && filter[:except].empty?
-          filter
-        end
-      rescue StandardError
-        []
-      end
-
-      def extract_action_condition(condition)
-        return nil unless condition.is_a?(String) || condition.respond_to?(:to_s)
-
-        match = condition.to_s.match(/action_name\s*==\s*['"](\w+)['"]/)
-        match ? [match[1]] : nil
+        FilterExtractor.new(ctrl).call
       end
 
       def extract_concerns(ctrl)

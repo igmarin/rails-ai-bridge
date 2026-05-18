@@ -17,11 +17,7 @@ module RailsAiBridge
       # @param decl [Object] rubydex declaration
       # @return [Hash]
       def declaration_to_hash(decl)
-        {
-          name: decl.name,
-          unqualified_name: decl.respond_to?(:unqualified_name) ? decl.unqualified_name : nil,
-          type: declaration_type(decl)
-        }.compact
+        base_declaration_hash(decl).compact
       end
 
       # Converts a rubydex declaration to a serializable hash with full details.
@@ -31,17 +27,8 @@ module RailsAiBridge
       # @param decl [Object] rubydex declaration
       # @return [Hash]
       def detailed_declaration_to_hash(decl)
-        hash = {
-          name: decl.name,
-          unqualified_name: decl.respond_to?(:unqualified_name) ? decl.unqualified_name : nil,
-          type: declaration_type(decl)
-        }
-
-        hash[:definitions] = decl.definitions.map { |d| definition_to_hash(d) } if decl.respond_to?(:definitions)
-        hash[:ancestors] = decl.ancestors.map(&:name) if decl.respond_to?(:ancestors)
-        hash[:descendants] = decl.descendants.map(&:name) if decl.respond_to?(:descendants)
-        hash[:owner] = decl.owner.name if decl.respond_to?(:member) && decl.respond_to?(:owner) && decl.owner
-
+        hash = base_declaration_hash(decl)
+        append_relationships(hash, decl)
         hash.compact
       end
 
@@ -52,8 +39,9 @@ module RailsAiBridge
       def definition_to_hash(defn)
         hash = { name: defn.name }
         hash[:location] = format_location(defn.location) if defn.respond_to?(:location)
-        hash[:comments] = defn.comments if defn.respond_to?(:comments) && defn.comments.present?
-        hash[:deprecated] = true if defn.respond_to?(:deprecated?) && defn.deprecated?
+        defn_comments = safe_send(defn, :comments)
+        hash[:comments] = defn_comments if defn_comments.present?
+        hash[:deprecated] = true if safe_send(defn, :deprecated?)
         hash.compact
       end
 
@@ -65,9 +53,7 @@ module RailsAiBridge
         return nil unless location
         return location.to_s unless location.respond_to?(:path)
 
-        path = location.path
-        path = path.sub("#{@root}/", '') if path&.start_with?(@root)
-        path
+        relativize_path(location.path)
       end
 
       # Determines the type of a rubydex declaration.
@@ -83,6 +69,34 @@ module RailsAiBridge
         when /constant/ then 'constant'
         else 'declaration'
         end
+      end
+
+      private
+
+      def base_declaration_hash(decl)
+        {
+          name: decl.name,
+          unqualified_name: safe_send(decl, :unqualified_name),
+          type: declaration_type(decl)
+        }
+      end
+
+      def append_relationships(hash, decl)
+        hash[:definitions] = decl.definitions.map { |defn| definition_to_hash(defn) } if decl.respond_to?(:definitions)
+        hash[:ancestors] = decl.ancestors.map(&:name) if decl.respond_to?(:ancestors)
+        hash[:descendants] = decl.descendants.map(&:name) if decl.respond_to?(:descendants)
+        owner = decl.respond_to?(:member) && decl.respond_to?(:owner) ? decl.owner : nil
+        hash[:owner] = owner.name if owner
+      end
+
+      def safe_send(obj, method)
+        obj.respond_to?(method) ? obj.send(method) : nil
+      end
+
+      def relativize_path(path)
+        return path unless path&.start_with?(@root)
+
+        path.sub("#{@root}/", '')
       end
     end
   end
