@@ -61,7 +61,7 @@ RSpec.describe RailsAiBridge::RubydexAdapter do
     end
 
     context 'when available' do
-      let(:mock_indexer) { instance_double('RailsAiBridge::RubydexAdapter::Indexer') }
+      let(:mock_indexer) { instance_double(RailsAiBridge::RubydexAdapter::Indexer) }
       let(:mock_graph) { double('Graph') }
 
       before do
@@ -87,8 +87,8 @@ RSpec.describe RailsAiBridge::RubydexAdapter do
 
   context 'when fully indexed' do
     let(:mock_graph) { double('Graph') }
-    let(:mock_serializer) { instance_double('RailsAiBridge::RubydexAdapter::Serializer') }
-    let(:mock_counter) { instance_double('RailsAiBridge::RubydexAdapter::MethodCounter') }
+    let(:mock_serializer) { instance_double(RailsAiBridge::RubydexAdapter::Serializer) }
+    let(:mock_counter) { instance_double(RailsAiBridge::RubydexAdapter::MethodCounter) }
 
     before do
       adapter.instance_variable_set(:@indexed, true)
@@ -229,32 +229,28 @@ RSpec.describe RailsAiBridge::RubydexAdapter do
         decl_class = double('DeclClass')
         decl_module = double('DeclModule')
 
-        allow(mock_graph).to receive(:documents).and_return([doc])
-        allow(mock_graph).to receive(:declarations).and_return([decl_class, decl_module])
         allow(mock_serializer).to receive(:declaration_type).with(decl_class).and_return('class')
         allow(mock_serializer).to receive(:declaration_type).with(decl_module).and_return('module')
         allow(mock_counter).to receive(:count).and_return(5)
 
         # safe_count methods
-        allow(mock_graph).to receive(:constant_references).and_return([1, 2])
-        allow(mock_graph).to receive(:method_references).and_return([1])
+        allow(mock_graph).to receive_messages(documents: [doc], declarations: [decl_class, decl_module], constant_references: [1, 2], method_references: [1])
 
         expect(adapter.codebase_stats).to eq({
-          total_files: 1,
-          total_declarations: 2,
-          total_classes: 1,
-          total_modules: 1,
-          total_methods: 5,
-          total_constant_references: 2,
-          total_method_references: 1
-        })
+                                               total_files: 1,
+                                               total_declarations: 2,
+                                               total_classes: 1,
+                                               total_modules: 1,
+                                               total_methods: 5,
+                                               total_constant_references: 2,
+                                               total_method_references: 1
+                                             })
       end
 
       it 'handles safe_count gracefully' do
-        allow(mock_graph).to receive(:documents).and_return([])
-        allow(mock_graph).to receive(:declarations).and_return([])
+        allow(mock_graph).to receive_messages(documents: [], declarations: [])
         allow(mock_counter).to receive(:count).and_return(0)
-        
+
         # Test safe_count where method does not exist or raises error
         expect(adapter.codebase_stats).to include(
           total_constant_references: 0,

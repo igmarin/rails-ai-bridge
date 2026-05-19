@@ -32,11 +32,11 @@ RSpec.describe RailsAiBridge::Serializers::Formatters::Sections::SemanticFormatt
           total_method_references: 100
         },
         patterns: {
-          common_patterns: ['Singleton', 'Factory'],
+          common_patterns: %w[Singleton Factory],
           namespace_distribution: { 'Admin' => 5, 'Api' => 10 }
         },
         relationships: {
-          inheritance_tree: { 'ApplicationRecord' => ['User', 'Post'] },
+          inheritance_tree: { 'ApplicationRecord' => %w[User Post] },
           most_extended: [{ name: 'BaseService', descendants_count: 8 }],
           orphan_classes: 3
         },

@@ -85,9 +85,7 @@ module RailsAiBridge
       @graph = @indexer.build(@root)
       @indexed = true
     rescue StandardError => error
-      if defined?(Rails) && Rails.respond_to?(:logger) && Rails.logger
-        Rails.logger.warn("rubydex.indexing_failed: #{error.message}\n#{error.backtrace.first(5).join("\n")}")
-      end
+      Rails.logger.warn("rubydex.indexing_failed: #{error.message}\n#{error.backtrace.first(5).join("\n")}") if defined?(Rails) && Rails.respond_to?(:logger) && Rails.logger
       @graph = nil
       @indexed = false
     end
@@ -111,9 +109,7 @@ module RailsAiBridge
       results = @graph.search(query)
       results.first(max_results).map { |decl| @serializer.declaration_to_hash(decl) }
     rescue StandardError => error
-      if defined?(Rails) && Rails.respond_to?(:logger) && Rails.logger
-        Rails.logger.warn("rubydex.search_failed: #{error.message}\n#{error.backtrace.first(5).join("\n")}")
-      end
+      Rails.logger.warn("rubydex.search_failed: #{error.message}\n#{error.backtrace.first(5).join("\n")}") if defined?(Rails) && Rails.respond_to?(:logger) && Rails.logger
       []
     end
 

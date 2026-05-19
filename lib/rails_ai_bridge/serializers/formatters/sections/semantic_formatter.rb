@@ -54,11 +54,11 @@ module RailsAiBridge
             ns.each { |name, count| sublines << "  - `#{name}`: #{count} declarations" }
           end
 
-          if sublines.any?
-            lines << ''
-            lines << '### Detected Patterns'
-            lines.concat(sublines)
-          end
+          return unless sublines.any?
+
+          lines << ''
+          lines << '### Detected Patterns'
+          lines.concat(sublines)
         end
 
         def render_relationships(lines, relationships)
@@ -84,11 +84,11 @@ module RailsAiBridge
           orphans = relationships[:orphan_classes]
           sublines << "- Leaf classes (no descendants): #{orphans}" if orphans.is_a?(Integer) && orphans.positive?
 
-          if sublines.any?
-            lines << ''
-            lines << '### Code Relationships'
-            lines.concat(sublines)
-          end
+          return unless sublines.any?
+
+          lines << ''
+          lines << '### Code Relationships'
+          lines.concat(sublines)
         end
 
         def render_complexity_hotspots(lines, hotspots)
