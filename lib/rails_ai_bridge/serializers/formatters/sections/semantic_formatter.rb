@@ -12,15 +12,18 @@ module RailsAiBridge
         private
 
         def render(data)
-          return if data[:info] || data[:error]
+          return if data[:info] || data[:error] || data.empty?
 
-          lines = ['## Semantic Analysis (rubydex)']
+          lines = []
 
           render_codebase_stats(lines, data[:codebase_stats])
           render_patterns(lines, data[:patterns])
           render_relationships(lines, data[:relationships])
           render_complexity_hotspots(lines, data[:complexity_hotspots])
 
+          return if lines.empty?
+
+          lines.unshift('## Semantic Analysis (rubydex)')
           lines.join("\n")
         end
 
@@ -41,43 +44,51 @@ module RailsAiBridge
         def render_patterns(lines, patterns)
           return unless patterns.is_a?(Hash) && patterns.any?
 
-          lines << ''
-          lines << '### Detected Patterns'
-
+          sublines = []
           common = patterns[:common_patterns]
-          lines << "- Common patterns: #{common.join(', ')}" if common.is_a?(Array) && common.any?
+          sublines << "- Common patterns: #{common.join(', ')}" if common.is_a?(Array) && common.any?
 
           ns = patterns[:namespace_distribution]
-          return unless ns.is_a?(Hash) && ns.any?
+          if ns.is_a?(Hash) && ns.any?
+            sublines << '- Namespace distribution:'
+            ns.each { |name, count| sublines << "  - `#{name}`: #{count} declarations" }
+          end
 
-          lines << '- Namespace distribution:'
-          ns.each { |name, count| lines << "  - `#{name}`: #{count} declarations" }
+          if sublines.any?
+            lines << ''
+            lines << '### Detected Patterns'
+            lines.concat(sublines)
+          end
         end
 
         def render_relationships(lines, relationships)
           return unless relationships.is_a?(Hash) && relationships.any?
 
-          lines << ''
-          lines << '### Code Relationships'
-
+          sublines = []
           tree = relationships[:inheritance_tree]
           if tree.is_a?(Hash) && tree.any?
-            lines << '- Inheritance tree (top parents):'
+            sublines << '- Inheritance tree (top parents):'
             tree.first(10).each do |parent, children|
-              lines << "  - `#{parent}` → #{children.join(', ')}"
+              sublines << "  - `#{parent}` → #{children.join(', ')}"
             end
           end
 
           extended = relationships[:most_extended]
           if extended.is_a?(Array) && extended.any?
-            lines << '- Most extended classes:'
+            sublines << '- Most extended classes:'
             extended.first(5).each do |entry|
-              lines << "  - `#{entry[:name]}` (#{entry[:descendants_count]} descendants)"
+              sublines << "  - `#{entry[:name]}` (#{entry[:descendants_count]} descendants)"
             end
           end
 
           orphans = relationships[:orphan_classes]
-          lines << "- Leaf classes (no descendants): #{orphans}" if orphans.is_a?(Integer) && orphans.positive?
+          sublines << "- Leaf classes (no descendants): #{orphans}" if orphans.is_a?(Integer) && orphans.positive?
+
+          if sublines.any?
+            lines << ''
+            lines << '### Code Relationships'
+            lines.concat(sublines)
+          end
         end
 
         def render_complexity_hotspots(lines, hotspots)
