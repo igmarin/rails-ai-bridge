@@ -74,11 +74,11 @@ module RailsAiBridge
         @ripgrep_available
       end
 
-      def self.with_search_timeout
+      def self.with_search_timeout(&)
         sec = RailsAiBridge.configuration.search_code_timeout_seconds.to_f
         return yield if sec <= 0
 
-        Timeout.timeout(sec) { yield }
+        Timeout.timeout(sec, &)
       rescue Timeout::Error
         [{ file: 'error', line_number: 0, content: "Search timed out after #{sec} seconds." }]
       end

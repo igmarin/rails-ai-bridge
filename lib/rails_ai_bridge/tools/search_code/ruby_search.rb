@@ -64,7 +64,7 @@ module RailsAiBridge
         private
 
         def ruby_glob
-          exts = @file_type ? @file_type : SearchCode.allowed_search_file_types.uniq.join(',')
+          exts = @file_type || SearchCode.allowed_search_file_types.uniq.join(',')
           File.join(@search_path, '**', "*.{#{exts}}")
         end
       end
