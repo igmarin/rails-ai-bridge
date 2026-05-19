@@ -7,8 +7,8 @@ module RailsAiBridge
   module Tools
     # MCP tool searching the app tree with ripgrep (+rg+) or a Ruby fallback.
     #
-    # Pattern size is capped by {Configuration#search_code_pattern_max_bytes} (default 2048).
-    # Wall-clock limits use {Configuration#search_code_timeout_seconds} (+0+ disables).
+    # Pattern size is capped by {RailsAiBridge::Configuration#search_code_pattern_max_bytes} (default 2048).
+    # Wall-clock limits use {RailsAiBridge::Configuration#search_code_timeout_seconds} (+0+ disables).
     class SearchCode < BaseTool
       tool_name 'rails_search_code'
       description 'Search the Rails codebase for a pattern using ripgrep (rg) or Ruby fallback. Returns
