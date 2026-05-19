@@ -26,92 +26,11 @@ module RailsAiBridge
 
         private
 
-        # Renders the compact version of the Cursor rules file.
+        # Renders the compact version of the Cursor rules file by delegating to the orchestrator.
         #
         # @return [String] The generated content.
         def render_compact
-          lines = []
-          # Custom header
-          lines << "# #{context[:app_name]} — Project Rules"
-          lines << ''
-          lines << "Rails #{context[:rails_version]} | Ruby #{context[:ruby_version]}"
-          lines << ''
-          lines.concat(SharedAssistantGuidance.compact_engineering_rules_lines)
-
-          # Use shared sections
-          lines.concat(render_stack_overview)
-          lines.concat(render_notable_gems)
-          lines.concat(render_architecture)
-          lines.concat(render_key_considerations)
-
-          lines << ''
-          lines.concat(SharedAssistantGuidance.repo_specific_guidance_section_lines)
-
-          lines << ''
-
-          append_compact_cursorrules_models_section(lines, context[:models])
-
-          # MCP tools
-          lines << '## MCP Tool Reference'
-          lines << ''
-          lines << 'All introspection tools support detail:"summary"|"standard"|"full".'
-          lines << 'Start with summary, drill into specifics with a filter.'
-          lines << ''
-          lines << '### rails_get_schema'
-          lines << 'Params: table, detail, limit, offset, format'
-          lines << '- `rails_get_schema(detail:"summary")` — all tables with column counts'
-          lines << '- `rails_get_schema(table:"users")` — full detail for one table'
-          lines << '- `rails_get_schema(detail:"summary", limit:20, offset:40)` — paginate'
-          lines << ''
-          lines << '### rails_get_model_details'
-          lines << 'Params: model, detail'
-          lines << '- `rails_get_model_details(detail:"summary")` — list model names'
-          lines << '- `rails_get_model_details(model:"User")` — full associations, validations, scopes'
-          lines << ''
-          lines << '### rails_get_routes'
-          lines << 'Params: controller, detail, limit, offset'
-          lines << '- `rails_get_routes(detail:"summary")` — route counts per controller'
-          lines << '- `rails_get_routes(controller:"users")` — routes for one controller'
-          lines << ''
-          lines << '### rails_get_controllers'
-          lines << 'Params: controller, detail'
-          lines << '- `rails_get_controllers(detail:"summary")` — names + action counts'
-          lines << '- `rails_get_controllers(controller:"UsersController")` — full detail'
-          lines << ''
-          lines << '### Other tools'
-          lines << '- `rails_get_config` — cache, session, middleware, timezone'
-          lines << '- `rails_get_test_info` — framework, factories, CI'
-          lines << '- `rails_get_gems` — categorized gem analysis'
-          lines << '- `rails_get_conventions` — architecture patterns'
-          lines << '- `rails_search_code(pattern:"regex", file_type:"rb", max_results:20)` — codebase search'
-          lines << ''
-
-          # Use shared footer
-          lines.concat(render_footer)
-
-          lines.join("\n")
-        end
-
-        # Appends a compact list of key models specific to Cursor rules.
-        # @param lines [Array<String>] The array of lines to append to.
-        # @param models [Hash] The models context.
-        def append_compact_cursorrules_models_section(lines, models)
-          return unless models.is_a?(Hash) && !models[:error] && models.any?
-
-          limit = @config.copilot_compact_model_list_limit.to_i # uses copilot limit for now
-          lines << "## Models (#{models.size} total)"
-          if limit <= 0
-            lines << '- _Use `rails_get_model_details(detail:"summary")` for names._'
-          else
-            models.keys.sort.first(limit).each do |name|
-              data = models[name]
-              assoc_count = (data[:associations] || []).size
-              lines << "- #{name} (#{assoc_count} associations)"
-            end
-            remainder = models.size - limit
-            lines << "- _...#{remainder} more — `rails_get_model_details(detail:\"summary\")`._" if remainder.positive?
-          end
-          lines << ''
+          RulesOrchestrator.new(context: context, config: @config).call
         end
       end
     end
