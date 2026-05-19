@@ -1,0 +1,7 @@
+Rails/ApplicationJob:
+  Exclude:
+    - 'spec/lib/rails_ai_bridge/introspectors/job_introspector_spec.rb'
+
+Rails/ApplicationMailer:
+  Exclude:
+    - 'spec/lib/rails_ai_bridge/introspectors/job_introspector_spec.rb'

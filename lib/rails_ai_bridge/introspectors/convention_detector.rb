@@ -22,9 +22,14 @@ module RailsAiBridge
           config_files: detect_config_files
         }
       rescue StandardError => error
-        msg = error.message
-        Rails.logger.warn "[rails-ai-bridge] ConventionDetector failed: #{error.class} [#{msg}]" if defined?(Rails) && Rails.logger
-        { error: msg }
+        self.class.log_error(error)
+        { error: error.message }
+      end
+
+      def self.log_error(error)
+        Rails.logger&.warn "[rails-ai-bridge] ConventionDetector failed: #{error.class} [#{error.message}]"
+      rescue NameError
+        # Rails.logger not defined
       end
 
       private

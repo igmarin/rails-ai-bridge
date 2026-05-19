@@ -22,6 +22,7 @@ module RailsAiBridge
         result = controllers.each_with_object({}) do |ctrl, hash|
           hash[ctrl.name] = extract_controller_details(ctrl)
         rescue StandardError => error
+          Rails.logger.debug { "CTRL ERROR: #{error.message}" }
           hash[ctrl.name] = { error: error.message }
         end
 
@@ -57,7 +58,7 @@ module RailsAiBridge
           parent_class: ctrl.superclass.name,
           api_controller: api_controller?(ctrl),
           actions: extract_actions(ctrl),
-          filters: extract_filters(ctrl),
+          filters: FilterExtractor.new(ctrl).call,
           concerns: extract_concerns(ctrl),
           strong_params: extract_strong_params(source),
           respond_to_formats: extract_respond_to(source)
@@ -74,30 +75,6 @@ module RailsAiBridge
         ctrl.action_methods.to_a.sort
       rescue StandardError
         []
-      end
-
-      def extract_filters(ctrl)
-        return [] unless ctrl.respond_to?(:_process_action_callbacks)
-
-        ctrl._process_action_callbacks.filter_map do |cb|
-          next if cb.filter.is_a?(Proc) || cb.filter.to_s.start_with?('_')
-
-          filter = { name: cb.filter.to_s, kind: cb.kind.to_s }
-          filter[:only] = cb.instance_variable_get(:@if)&.filter_map { |c| extract_action_condition(c) }&.flatten
-          filter[:except] = cb.instance_variable_get(:@unless)&.filter_map { |c| extract_action_condition(c) }&.flatten
-          filter.delete(:only) if filter[:only] && filter[:only].empty?
-          filter.delete(:except) if filter[:except] && filter[:except].empty?
-          filter
-        end
-      rescue StandardError
-        []
-      end
-
-      def extract_action_condition(condition)
-        return nil unless condition.is_a?(String) || condition.respond_to?(:to_s)
-
-        match = condition.to_s.match(/action_name\s*==\s*['"](\w+)['"]/)
-        match ? [match[1]] : nil
       end
 
       def extract_concerns(ctrl)

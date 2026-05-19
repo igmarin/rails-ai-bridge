@@ -1,7 +1,6 @@
 plugins:
   - rubocop-rails
   - rubocop-rspec
-
 AllCops:
   TargetRubyVersion: 3.2
   NewCops: enable
@@ -10,19 +9,15 @@ AllCops:
     - "vendor/**/*"
     - "spec/internal/**/*"
     - "gemfiles/**/*"
-
 Naming/FileName:
   Exclude:
     - "lib/rails-ai-bridge.rb"
 Naming/RescuedExceptionsVariableName:
   PreferredName: error
-
 Style/Documentation:
   Enabled: false
-
 Metrics/ClassLength:
   Max: 240
-
 Metrics/BlockLength:
   Max: 120
   Exclude:
@@ -73,3 +68,4 @@ Metrics/CyclomaticComplexity:
   Max: 35
 Metrics/ParameterLists:
   Max: 6
+inherit_from: .rubocop_todo.yml

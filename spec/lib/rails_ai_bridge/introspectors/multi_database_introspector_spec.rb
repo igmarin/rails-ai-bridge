@@ -5,55 +5,81 @@ require 'spec_helper'
 RSpec.describe RailsAiBridge::Introspectors::MultiDatabaseIntrospector do
   let(:app) { Rails.application }
   let(:introspector) { described_class.new(app) }
+  let(:root) { Dir.mktmpdir }
+
+  before do
+    allow(app).to receive(:root).and_return(Pathname.new(root))
+  end
+
+  after do
+    FileUtils.remove_entry(root)
+  end
 
   describe '#call' do
-    subject(:result) { introspector.call }
-
-    it 'returns databases array' do
+    it 'returns fallback data when ActiveRecord is not defined' do
+      hide_const('ActiveRecord::Base')
+      result = introspector.call
       expect(result[:databases]).to be_an(Array)
+      expect(result[:replicas]).to eq([])
     end
 
-    it 'returns multi_db flag' do
-      expect(result[:multi_db]).to be(true).or be(false)
+    it 'detects sharding from database.yml' do
+      config_dir = File.join(root, 'config')
+      FileUtils.mkdir_p(config_dir)
+      File.write(File.join(config_dir, 'database.yml'), "development:\n  primary:\n  primary_shard_one:")
+
+      result = introspector.call
+      expect(result[:sharding]).to include(detected: true)
     end
 
-    it 'returns replicas array' do
-      expect(result[:replicas]).to be_an(Array)
+    it 'detects model connections correctly' do
+      models_dir = File.join(root, 'app/models')
+      FileUtils.mkdir_p(models_dir)
+
+      File.write(File.join(models_dir, 'reader.rb'), <<~RUBY)
+        class Reader < ApplicationRecord
+          connects_to database: { reading: :replica }
+        end
+      RUBY
+
+      File.write(File.join(models_dir, 'writer.rb'), <<~RUBY)
+        class Writer < ApplicationRecord
+          connected_to(role: :reading)
+        end
+      RUBY
+
+      result = introspector.call
+      expect(result[:model_connections].size).to eq(2)
+      expect(result[:model_connections].first[:model]).to eq('Reader')
+      expect(result[:model_connections].last[:model]).to eq('Writer')
+      expect(result[:model_connections].last[:uses_connected_to]).to be(true)
     end
 
-    it 'returns model_connections array' do
-      expect(result[:model_connections]).to be_an(Array)
-    end
-
-    it 'does not return an error' do
-      expect(result[:error]).to be_nil
+    it 'handles errors gracefully' do
+      allow(introspector).to receive(:discover_databases).and_raise(StandardError, 'Oops')
+      expect(introspector.call).to eq({ error: 'Oops' })
     end
   end
 
-  describe 'model connection detection' do
-    let(:models_dir) { File.join(app.root.to_s, 'app/models') }
+  describe '#parse_database_yml' do
+    it 'parses database.yml for fallback' do
+      config_dir = File.join(root, 'config')
+      FileUtils.mkdir_p(config_dir)
+      File.write(File.join(config_dir, 'database.yml'), <<~YML)
+        development:
+          primary:
+            adapter: postgresql
+          animals:
+            adapter: postgresql
+        test:
+          primary:
+      YML
 
-    before do
-      FileUtils.mkdir_p(models_dir)
+      hide_const('ActiveRecord::Base')
+      allow(Rails).to receive(:env).and_return('development')
 
-      File.write(File.join(models_dir, 'animals_record.rb'), <<~RUBY)
-        class AnimalsRecord < ApplicationRecord
-          self.abstract_class = true
-          connects_to database: { writing: :animals, reading: :animals_replica }
-        end
-      RUBY
-    end
-
-    after do
-      FileUtils.rm_f(File.join(models_dir, 'animals_record.rb'))
-    end
-
-    it 'detects connects_to in models' do
       result = introspector.call
-      connections = result[:model_connections]
-      animal = connections.find { |c| c[:model] == 'AnimalsRecord' }
-      expect(animal).not_to be_nil
-      expect(animal[:connects_to]).to include('animals')
+      expect(result[:databases]).to include({ name: 'primary' }, { name: 'animals' })
     end
   end
 end

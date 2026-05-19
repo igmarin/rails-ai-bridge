@@ -46,21 +46,21 @@ module RailsAiBridge
       # @return [Array<String>, nil] names of similar models
       def find_similar_models(model)
         adapter = RubydexAdapter.instance
-        related = Set.new
+        name = model.name
 
-        model_ancestors = adapter.ancestors(model.name)
-        model_ancestors.each do |ancestor|
-          descendants = adapter.descendants(ancestor)
-          descendants.each { |d| related.add(d) }
-        end
+        related = ModelSemanticEnrichment.send(:collect_related_models, adapter, name)
+        related.delete(name)
 
-        adapter.descendants(model.name).each { |d| related.add(d) }
-
-        related.delete(model.name)
         result = related.to_a.sort.first(10)
         result.empty? ? nil : result
       rescue StandardError
         nil
+      end
+
+      private_class_method def self.collect_related_models(adapter, name)
+        ancestor_descendants = adapter.ancestors(name).flat_map { |ancestor| adapter.descendants(ancestor) }
+        direct_descendants = adapter.descendants(name)
+        Set.new(ancestor_descendants + direct_descendants)
       end
 
       # Calculates a complexity score for the model based on rubydex analysis.

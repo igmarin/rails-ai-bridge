@@ -85,11 +85,7 @@ module RailsAiBridge
       @graph = @indexer.build(@root)
       @indexed = true
     rescue StandardError => error
-      Rails.logger.warn('rubydex.indexing_failed', {
-                          event: 'rubydex.indexing_failed',
-                          error: error.message,
-                          backtrace: error.backtrace.first(5).join("\n")
-                        })
+      log_warning('rubydex.indexing_failed', error.message, error.backtrace)
       @graph = nil
       @indexed = false
     end
@@ -113,11 +109,7 @@ module RailsAiBridge
       results = @graph.search(query)
       results.first(max_results).map { |decl| @serializer.declaration_to_hash(decl) }
     rescue StandardError => error
-      Rails.logger.warn('rubydex.search_failed', {
-                          event: 'rubydex.search_failed',
-                          error: error.message,
-                          backtrace: error.backtrace.first(5).join("\n")
-                        })
+      log_warning('rubydex.search_failed', error.message, error.backtrace)
       []
     end
 
@@ -239,6 +231,14 @@ module RailsAiBridge
     end
 
     private
+
+    def log_warning(event, message, backtrace)
+      logger = defined?(Rails) ? Rails.logger : nil
+      return unless logger
+
+      trace = Array(backtrace).first(5).join("\n")
+      logger.warn("[#{@root}] #{event}: #{message}\n#{trace}")
+    end
 
     def class_declaration?(decl)
       @serializer.declaration_type(decl) == 'class'
