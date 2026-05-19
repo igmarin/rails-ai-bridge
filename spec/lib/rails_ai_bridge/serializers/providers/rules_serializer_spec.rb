@@ -38,7 +38,7 @@ RSpec.describe RailsAiBridge::Serializers::Providers::RulesSerializer do
 
       it 'delegates to MarkdownSerializer with rules formatters' do
         markdown_double = instance_double(RailsAiBridge::Serializers::MarkdownSerializer)
-        
+
         allow(RailsAiBridge::Serializers::MarkdownSerializer).to receive(:new)
           .with(
             context,
