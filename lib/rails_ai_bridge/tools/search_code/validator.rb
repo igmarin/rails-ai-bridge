@@ -42,14 +42,10 @@ module RailsAiBridge
           return nil if @file_type.nil? || @file_type.to_s.strip.empty?
 
           normalized = @file_type.to_s.downcase.strip.delete_prefix('.')
-          unless normalized.match?(/\A[a-z0-9]+\z/)
-            return BaseTool.text_response('Invalid file_type: use only a single safe extension (letters and digits).')
-          end
+          return BaseTool.text_response('Invalid file_type: use only a single safe extension (letters and digits).') unless normalized.match?(/\A[a-z0-9]+\z/)
 
           allowed = SearchCode.allowed_search_file_types
-          unless allowed.include?(normalized)
-            return BaseTool.text_response("Invalid file_type: #{@file_type.inspect} is not allowed. Allowed: #{allowed.sort.join(', ')}")
-          end
+          return BaseTool.text_response("Invalid file_type: #{@file_type.inspect} is not allowed. Allowed: #{allowed.sort.join(', ')}") unless allowed.include?(normalized)
 
           normalized
         end

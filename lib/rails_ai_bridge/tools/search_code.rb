@@ -24,8 +24,8 @@ module RailsAiBridge
       input_schema(
         properties: {
           pattern: { type: 'string', description: 'Search pattern (regex supported).' },
-          path: { type: 'string', description: "Subdirectory to search in." },
-          file_type: { type: 'string', description: "Filter by allowed file extension." },
+          path: { type: 'string', description: 'Subdirectory to search in.' },
+          file_type: { type: 'string', description: 'Filter by allowed file extension.' },
           max_results: { type: 'integer', description: 'Maximum number of results.' }
         },
         required: ['pattern']
@@ -40,7 +40,7 @@ module RailsAiBridge
         return validated if validated.is_a?(MCP::Tool::Response)
 
         max_res = normalize_max_results(max_results)
-        
+
         results = with_search_timeout do
           search_engine(pattern, validated, max_res, root)
         end
@@ -56,8 +56,6 @@ module RailsAiBridge
         (DEFAULT_ALLOWED_FILE_TYPES + extras).uniq
       end
 
-      private
-
       def self.normalize_max_results(max_results)
         normalized = [max_results.to_i, MAX_RESULTS_CAP].min
         normalized < 1 ? 30 : normalized
@@ -67,7 +65,7 @@ module RailsAiBridge
         if ripgrep_available?
           RipgrepSearch.new(params.merge(pattern: pattern, max_results: max_results, root: root)).call
         else
-          RubySearch.new(pattern, params[:search_path], params[:file_type], max_results, root).call
+          RubySearch.new(pattern, params.merge(max_results: max_results, root: root)).call
         end
       end
 
