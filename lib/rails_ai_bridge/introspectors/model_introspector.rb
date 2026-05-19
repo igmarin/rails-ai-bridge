@@ -117,18 +117,18 @@ module RailsAiBridge
       #   - additional keys extracted from the model source (e.g., `:has_secure_password`, `:encrypts`, attachment macros, `:delegations`, etc.)
       #   Nil-valued entries are removed from the returned hash.
       def extract_model_details(model, classifier)
-        introspector_class = self.class
+        method_extractor = MethodExtractor.new(model)
         details = {
           name: model.name,
           table_name: model.table_name,
-          associations: extract_associations(model),
+          associations: AssociationExtractor.new(model).call,
           validations: extract_validations(model),
           scopes: extract_scopes(model),
           enums: extract_enums(model),
-          callbacks: introspector_class.extract_callbacks(model),
+          callbacks: CallbackExtractor.new(model, excluded_prefixes: EXCLUDED_CALLBACKS).call,
           concerns: extract_concerns(model),
-          class_methods: introspector_class.extract_public_class_methods(model),
-          instance_methods: introspector_class.extract_public_instance_methods(model)
+          class_methods: method_extractor.extract_class_methods,
+          instance_methods: method_extractor.extract_instance_methods
         }
 
         tier = classifier.call(model)
@@ -144,71 +144,6 @@ module RailsAiBridge
         details.merge!(semantic) if semantic.any?
 
         details.compact
-      end
-
-      def extract_associations(model)
-        model.reflect_on_all_associations.map do |assoc|
-          self.class.build_association_detail(assoc)
-        end
-      end
-
-      def self.build_association_detail(assoc)
-        base_detail(assoc).merge(association_options(assoc)).compact
-      end
-
-      def self.base_detail(assoc)
-        {
-          name: assoc.name.to_s,
-          type: assoc.macro.to_s,
-          class_name: assoc.class_name,
-          foreign_key: assoc.foreign_key.to_s
-        }
-      end
-
-      def self.association_options(assoc)
-        opts = assoc.options
-        build_association_options(opts)
-      end
-
-      def self.build_association_options(opts)
-        options = {}
-        add_through_option(options, opts[:through])
-        add_dependent_option(options, opts[:dependent])
-        add_boolean_options(options, opts)
-        options
-      end
-
-      def self.add_boolean_options(options, opts)
-        options[:polymorphic] = true if opts[:polymorphic]
-        options[:optional] = opts[:optional] if opts.key?(:optional)
-      end
-
-      def self.add_through_option(options, through)
-        options[:through] = through.to_s if through
-      end
-
-      def self.add_dependent_option(options, dependent)
-        options[:dependent] = dependent.to_s if dependent
-      end
-
-      def self.extract_callbacks(model)
-        CallbackExtractor.new(model, excluded_prefixes: EXCLUDED_CALLBACKS).call
-      end
-
-      def self.extract_public_class_methods(model)
-        (model.methods - ActiveRecord::Base.methods - Object.methods)
-          .reject { |method_name| method_name.to_s.start_with?('_', 'autosave') }
-          .sort
-          .first(30)
-          .map(&:to_s)
-      end
-
-      def self.extract_public_instance_methods(model)
-        (model.instance_methods - ActiveRecord::Base.instance_methods - Object.instance_methods)
-          .reject { |method_name| method_name.to_s.start_with?('_', 'autosave', 'validate_associated') }
-          .sort
-          .first(30)
-          .map(&:to_s)
       end
 
       def extract_validations(model)

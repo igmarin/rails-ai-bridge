@@ -27,10 +27,34 @@ module RailsAiBridge
       # @param decl [Object] rubydex declaration
       # @return [Hash]
       def detailed_declaration_to_hash(decl)
-        serializer_class = self.class
-        hash = serializer_class.base_declaration_hash(decl)
-        serializer_class.append_relationships(hash, decl)
-        hash.compact
+        DetailedDeclarationMapper.new(decl, @root).to_h
+      end
+
+      # Handles mapping of a rubydex declaration to a detailed hash to avoid Feature Envy.
+      class DetailedDeclarationMapper
+        def initialize(decl, root)
+          @decl = decl
+          @root = root
+        end
+
+        def to_h
+          Serializer.base_declaration_hash(@decl).merge(
+            definitions: mapped_definitions,
+            ancestors: mapped_names(:ancestors),
+            descendants: mapped_names(:descendants),
+            owner: @decl.try(:owner)&.name
+          ).compact
+        end
+
+        private
+
+        def mapped_definitions
+          @decl.try(:definitions)&.map { |defn| Serializer.definition_to_hash(defn, @root) }
+        end
+
+        def mapped_names(relation)
+          @decl.try(relation)&.map(&:name)
+        end
       end
 
       # Converts a rubydex definition to a serializable hash.
@@ -61,34 +85,6 @@ module RailsAiBridge
           unqualified_name: decl.try(:unqualified_name),
           type: declaration_type(decl)
         }
-      end
-
-      def self.append_relationships(hash, decl)
-        hash[:definitions] = definitions_for(decl)
-        hash[:ancestors] = ancestor_names_for(decl)
-        hash[:descendants] = descendant_names_for(decl)
-        hash[:owner] = owner_name_for(decl)
-        hash
-      end
-
-      def self.definitions_for(decl)
-        defs = decl.try(:definitions)
-        defs&.map { |defn| definition_to_hash(defn, nil) }
-      end
-
-      def self.ancestor_names_for(decl)
-        ancs = decl.try(:ancestors)
-        ancs&.map(&:name)
-      end
-
-      def self.descendant_names_for(decl)
-        descs = decl.try(:descendants)
-        descs&.map(&:name)
-      end
-
-      def self.owner_name_for(decl)
-        owner = decl.try(:owner)
-        owner&.name
       end
 
       def self.definition_to_hash(defn, root)

@@ -19,6 +19,7 @@ module RailsAiBridge
         def call
           build_macros
         rescue StandardError
+          # Fails silently as it's an optional metadata source
           {}
         end
 

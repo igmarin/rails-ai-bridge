@@ -22,6 +22,7 @@ module RailsAiBridge
         result = controllers.each_with_object({}) do |ctrl, hash|
           hash[ctrl.name] = extract_controller_details(ctrl)
         rescue StandardError => error
+          Rails.logger.debug { "CTRL ERROR: #{error.message}" }
           hash[ctrl.name] = { error: error.message }
         end
 
@@ -57,7 +58,7 @@ module RailsAiBridge
           parent_class: ctrl.superclass.name,
           api_controller: api_controller?(ctrl),
           actions: extract_actions(ctrl),
-          filters: self.class.extract_filters(ctrl),
+          filters: FilterExtractor.new(ctrl).call,
           concerns: extract_concerns(ctrl),
           strong_params: extract_strong_params(source),
           respond_to_formats: extract_respond_to(source)
@@ -74,10 +75,6 @@ module RailsAiBridge
         ctrl.action_methods.to_a.sort
       rescue StandardError
         []
-      end
-
-      def self.extract_filters(ctrl)
-        FilterExtractor.new(ctrl).call
       end
 
       def extract_concerns(ctrl)
