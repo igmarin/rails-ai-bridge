@@ -42,11 +42,11 @@ module RailsAiBridge
 
         def callback_names_for(type)
           model.send(:"_#{type}_callbacks")
-               .reject { |cb| excluded_callback?(cb) }
+               .reject { |cb| self.class.excluded_callback?(cb, excluded_prefixes) }
                .map { |cb| cb.filter.to_s }
         end
 
-        def excluded_callback?(callback)
+        def self.excluded_callback?(callback, excluded_prefixes)
           filter = callback.filter
           filter.is_a?(Proc) || filter.to_s.start_with?(*excluded_prefixes)
         end

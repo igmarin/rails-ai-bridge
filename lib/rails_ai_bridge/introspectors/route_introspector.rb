@@ -18,7 +18,7 @@ module RailsAiBridge
         {
           total_routes: routes.size,
           by_controller: group_by_controller(routes),
-          api_namespaces: detect_api_namespaces(routes),
+          api_namespaces: self.class.detect_api_namespaces(routes),
           mounted_engines: detect_mounted_engines
         }
       end
@@ -36,12 +36,12 @@ module RailsAiBridge
             controller: route.defaults[:controller],
             action: route.defaults[:action],
             name: route.name,
-            constraints: extract_constraints(route)
+            constraints: self.class.extract_constraints(route)
           }.compact
         end
       end
 
-      def extract_constraints(route)
+      def self.extract_constraints(route)
         constraints = route.constraints.to_s
         constraints.empty? ? nil : constraints
       rescue StandardError
@@ -50,19 +50,24 @@ module RailsAiBridge
 
       def group_by_controller(routes)
         routes.group_by { |route| route[:controller] }
-              .transform_values { |group| group.map { |route| route_summary(route) } }
+              .transform_values { |group| self.class.summarize_routes(group) }
       end
 
-      def route_summary(route)
+      def self.summarize_routes(routes)
+        routes.map { |route| route_summary(route) }
+      end
+
+      def self.route_summary(route)
         { verb: route[:verb], path: route[:path], action: route[:action], name: route[:name] }.compact
       end
 
-      def detect_api_namespaces(routes)
-        routes
-          .select { |route| route[:path].match?(%r{/api/}) }
-          .map { |route| route[:path].match(%r{(/api/v?\d*)})&.captures&.first }
-          .compact
-          .uniq
+      def self.detect_api_namespaces(routes)
+        routes.filter_map do |route|
+          path = route[:path]
+          next unless path.match?(%r{/api/})
+
+          path.match(%r{(/api/v?\d*)})&.captures&.first
+        end.uniq
       end
 
       def detect_mounted_engines

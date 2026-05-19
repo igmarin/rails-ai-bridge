@@ -20,23 +20,22 @@ module RailsAiBridge
       # @return [Integer] total method count
       # @raise [StandardError] rescued internally, returns 0
       def count(declarations)
-        declarations.sum { |decl| method_count_for(decl) }
+        declarations.sum { |decl| self.class.method_count_for(decl, @serializer) }
       rescue StandardError
         0
       end
 
-      private
+      def self.method_count_for(decl, serializer)
+        defs = decl.try(:definitions)
+        return 0 unless defs
 
-      def method_count_for(decl)
-        return 0 unless decl.respond_to?(:definitions)
-
-        decl.definitions.count { |defn| method_like?(defn) }
+        defs.count { |defn| method_like?(defn, serializer) }
       rescue StandardError
         0
       end
 
-      def method_like?(defn)
-        defn.name.to_s.include?('(') || @serializer.declaration_type(defn) == 'method'
+      def self.method_like?(defn, serializer)
+        defn.name.to_s.include?('(') || serializer.declaration_type(defn) == 'method'
       rescue StandardError
         false
       end

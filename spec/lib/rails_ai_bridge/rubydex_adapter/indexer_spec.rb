@@ -21,9 +21,9 @@ RSpec.describe RailsAiBridge::RubydexAdapter::Indexer do
     FileUtils.rm_rf(root)
   end
 
-  describe '#source_files' do
+  describe '.source_files' do
     it 'returns Ruby files excluding ignored directories' do
-      files = indexer.send(:source_files, root).sort
+      files = described_class.send(:source_files, root).sort
 
       expected = [
         File.join(root, 'app', 'models', 'user.rb'),
@@ -41,7 +41,7 @@ RSpec.describe RailsAiBridge::RubydexAdapter::Indexer do
         excluded
       end
 
-      files = indexer.send(:source_files, root)
+      files = described_class.send(:source_files, root)
       excluded_paths.each { |path| expect(files).not_to include(path) }
     end
   end

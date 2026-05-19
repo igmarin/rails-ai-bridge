@@ -57,7 +57,7 @@ module RailsAiBridge
           parent_class: ctrl.superclass.name,
           api_controller: api_controller?(ctrl),
           actions: extract_actions(ctrl),
-          filters: extract_filters(ctrl),
+          filters: self.class.extract_filters(ctrl),
           concerns: extract_concerns(ctrl),
           strong_params: extract_strong_params(source),
           respond_to_formats: extract_respond_to(source)
@@ -76,7 +76,7 @@ module RailsAiBridge
         []
       end
 
-      def extract_filters(ctrl)
+      def self.extract_filters(ctrl)
         FilterExtractor.new(ctrl).call
       end
 

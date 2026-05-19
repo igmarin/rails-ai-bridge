@@ -23,6 +23,9 @@ Style/Documentation:
 Metrics/ClassLength:
   Max: 240
 
+Lint/IneffectiveAccessModifier:
+  Enabled: false
+
 Metrics/BlockLength:
   Max: 120
   Exclude:

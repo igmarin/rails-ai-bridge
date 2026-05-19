@@ -16,19 +16,25 @@ module RailsAiBridge
       # @return [Rubydex::Graph] indexed and resolved graph
       # @raise [StandardError] when indexing or resolving fails
       def build(root)
+        self.class.build_index(root)
+      end
+
+      def self.build_index(root)
         graph = ::Rubydex::Graph.new
-        graph.index_all(source_files(root))
+        index_files(graph, root)
         graph.resolve
         graph
       end
 
-      private
+      def self.index_files(graph, root)
+        graph.index_all(source_files(root))
+      end
 
       # Collects all non-excluded Ruby source files under the project root.
       #
       # @param root [String] the project root directory path
       # @return [Array<String>] absolute file paths
-      def source_files(root)
+      def self.source_files(root)
         root = File.expand_path(root)
         Dir.glob(File.join(root, '**', '*.rb')).reject do |path|
           components = path.sub("#{root}/", '').split('/')

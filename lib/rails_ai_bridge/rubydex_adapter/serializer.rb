@@ -17,7 +17,7 @@ module RailsAiBridge
       # @param decl [Object] rubydex declaration
       # @return [Hash]
       def declaration_to_hash(decl)
-        base_declaration_hash(decl).compact
+        self.class.base_declaration_hash(decl).compact
       end
 
       # Converts a rubydex declaration to a serializable hash with full details.
@@ -27,8 +27,9 @@ module RailsAiBridge
       # @param decl [Object] rubydex declaration
       # @return [Hash]
       def detailed_declaration_to_hash(decl)
-        hash = base_declaration_hash(decl)
-        append_relationships(hash, decl)
+        serializer_class = self.class
+        hash = serializer_class.base_declaration_hash(decl)
+        serializer_class.append_relationships(hash, decl)
         hash.compact
       end
 
@@ -37,12 +38,7 @@ module RailsAiBridge
       # @param defn [Object] rubydex definition
       # @return [Hash]
       def definition_to_hash(defn)
-        hash = { name: defn.name }
-        hash[:location] = format_location(defn.location) if defn.respond_to?(:location)
-        defn_comments = safe_send(defn, :comments)
-        hash[:comments] = defn_comments if defn_comments.present?
-        hash[:deprecated] = true if safe_send(defn, :deprecated?)
-        hash.compact
+        self.class.definition_to_hash(defn, @root)
       end
 
       # Formats a rubydex location into a readable string.
@@ -50,53 +46,92 @@ module RailsAiBridge
       # @param location [Object] rubydex location object
       # @return [String, nil]
       def format_location(location)
-        return nil unless location
-        return location.to_s unless location.respond_to?(:path)
-
-        relativize_path(location.path)
+        self.class.format_location(location, @root)
       end
 
       # Determines the type of a rubydex declaration.
       #
       # @param decl [Object] rubydex declaration
       # @return [String]
-      def declaration_type(decl)
-        klass = decl.class.name.to_s.split('::').last&.downcase
-        case klass
-        when /class/ then 'class'
-        when /module/ then 'module'
-        when /method/ then 'method'
-        when /constant/ then 'constant'
-        else 'declaration'
-        end
-      end
+      delegate :declaration_type, to: :class
 
-      private
-
-      def base_declaration_hash(decl)
+      def self.base_declaration_hash(decl)
         {
           name: decl.name,
-          unqualified_name: safe_send(decl, :unqualified_name),
+          unqualified_name: decl.try(:unqualified_name),
           type: declaration_type(decl)
         }
       end
 
-      def append_relationships(hash, decl)
-        hash[:definitions] = decl.definitions.map { |defn| definition_to_hash(defn) } if decl.respond_to?(:definitions)
-        hash[:ancestors] = decl.ancestors.map(&:name) if decl.respond_to?(:ancestors)
-        hash[:descendants] = decl.descendants.map(&:name) if decl.respond_to?(:descendants)
-        owner = decl.respond_to?(:member) && decl.respond_to?(:owner) ? decl.owner : nil
-        hash[:owner] = owner.name if owner
+      def self.append_relationships(hash, decl)
+        hash[:definitions] = definitions_for(decl)
+        hash[:ancestors] = ancestor_names_for(decl)
+        hash[:descendants] = descendant_names_for(decl)
+        hash[:owner] = owner_name_for(decl)
+        hash
       end
 
-      def safe_send(obj, method)
-        obj.respond_to?(method) ? obj.send(method) : nil
+      def self.definitions_for(decl)
+        defs = decl.try(:definitions)
+        defs&.map { |defn| definition_to_hash(defn, nil) }
       end
 
-      def relativize_path(path)
-        return path unless path&.start_with?(@root)
+      def self.ancestor_names_for(decl)
+        ancs = decl.try(:ancestors)
+        ancs&.map(&:name)
+      end
 
-        path.sub("#{@root}/", '')
+      def self.descendant_names_for(decl)
+        descs = decl.try(:descendants)
+        descs&.map(&:name)
+      end
+
+      def self.owner_name_for(decl)
+        owner = decl.try(:owner)
+        owner&.name
+      end
+
+      def self.definition_to_hash(defn, root)
+        {
+          name: defn.name,
+          location: format_location(defn.try(:location), root),
+          comments: defn.try(:comments).presence,
+          deprecated: defn.try(:deprecated?) || nil
+        }.compact
+      end
+
+      def self.format_location(location, root)
+        return nil unless location
+
+        path = location.try(:path)
+        return location.to_s unless path
+
+        relativize_path(path, root)
+      end
+
+      def self.declaration_type(decl)
+        klass = class_name(decl)
+        TYPE_PATTERNS.each do |type, pattern|
+          return type if klass.match?(pattern)
+        end
+        'declaration'
+      end
+
+      TYPE_PATTERNS = {
+        'class' => /class/,
+        'module' => /module/,
+        'method' => /method/,
+        'constant' => /constant/
+      }.freeze
+
+      def self.class_name(decl)
+        decl.class.name.to_s.split('::').last&.downcase
+      end
+
+      def self.relativize_path(path, root)
+        return path unless root && path&.start_with?(root)
+
+        path.sub("#{root}/", '')
       end
     end
   end

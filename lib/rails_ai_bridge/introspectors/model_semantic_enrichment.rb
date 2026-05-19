@@ -48,7 +48,7 @@ module RailsAiBridge
         adapter = RubydexAdapter.instance
         name = model.name
 
-        related = collect_related_models(adapter, name)
+        related = self.class.collect_related_models(adapter, name)
         related.delete(name)
 
         result = related.to_a.sort.first(10)
@@ -57,13 +57,19 @@ module RailsAiBridge
         nil
       end
 
-      def collect_related_models(adapter, name)
+      def self.collect_related_models(adapter, name)
         related = Set.new
-        adapter.ancestors(name).each do |ancestor|
-          adapter.descendants(ancestor).each { |descendant| related.add(descendant) }
-        end
-        adapter.descendants(name).each { |descendant| related.add(descendant) }
+        add_descendants_of_ancestors(adapter, name, related)
+        add_direct_descendants(adapter, name, related)
         related
+      end
+
+      def self.add_descendants_of_ancestors(adapter, name, related)
+        adapter.ancestors(name).flat_map { |ancestor| adapter.descendants(ancestor) }.each { |descendant| related << descendant }
+      end
+
+      def self.add_direct_descendants(adapter, name, related)
+        adapter.descendants(name).each { |descendant| related << descendant }
       end
 
       # Calculates a complexity score for the model based on rubydex analysis.
