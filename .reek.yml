@@ -399,7 +399,6 @@ detectors:
     - RailsAiBridge::Introspectors::EngineIntrospector#discover_mounted_engines
     - RailsAiBridge::Introspectors::GemIntrospector#categorize_gems
     - RailsAiBridge::Introspectors::JobIntrospector#extract_channels
-    - RailsAiBridge::Introspectors::ModelSemanticEnrichment#collect_related_models
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#detect_model_connections
     - RailsAiBridge::Introspectors::SeedsIntrospector#detect_seeded_models
     - RailsAiBridge::Introspectors::TestIntrospector#detect_test_helpers

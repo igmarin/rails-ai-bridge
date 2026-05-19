@@ -40,6 +40,8 @@ module RailsAiBridge
 
         attr_reader :model, :excluded_prefixes
 
+        # Uses send because _*_callbacks are private ActiveRecord internals.
+        # Safety: `type` is always from the frozen CALLBACK_TYPES constant.
         def callback_names_for(type)
           model.send(:"_#{type}_callbacks")
                .map(&:filter)

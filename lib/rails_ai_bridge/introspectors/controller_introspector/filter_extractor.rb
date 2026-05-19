@@ -34,6 +34,10 @@ module RailsAiBridge
           !(filter.is_a?(Proc) || filter.to_s.start_with?('_'))
         end
 
+        # Accesses @if/@unless ivars directly — this is Rails private API
+        # (ActiveSupport::Callbacks::Callback). No public accessor exists.
+        # If Rails changes internal representation, this degrades gracefully
+        # via the rescue StandardError in #call.
         def self.append_conditions(filter, callback)
           only = extract_action_conditions(callback.instance_variable_get(:@if))
           except = extract_action_conditions(callback.instance_variable_get(:@unless))
