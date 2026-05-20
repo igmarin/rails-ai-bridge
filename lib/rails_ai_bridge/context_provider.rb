@@ -18,7 +18,7 @@ module RailsAiBridge
           cached = cache[cache_key(app)]
           return rebuild(app) unless cached[:full]
 
-          current_fingerprint = Fingerprinter.snapshot(app)
+          current_fingerprint = Fingerprinter::CachedSnapshot.fetch(app)
           return cached[:full][:context] if ttl_valid?(cached[:full]) && current_fingerprint == cached[:full][:fingerprint]
 
           rebuild(app, fingerprint: current_fingerprint)
@@ -35,7 +35,7 @@ module RailsAiBridge
         mutex.synchronize do
           key = cache_key(app)
           cached = cache[key]
-          current_fingerprint = Fingerprinter.snapshot(app)
+          current_fingerprint = Fingerprinter::CachedSnapshot.fetch(app)
 
           full = cached[:full]
           return full[:context][section] if full && ttl_valid?(full) && current_fingerprint == full[:fingerprint]
@@ -53,6 +53,7 @@ module RailsAiBridge
       def reset!
         @cache = build_cache_store
         @mutex = Mutex.new
+        Fingerprinter::CachedSnapshot.reset!
       end
 
       private
@@ -71,7 +72,7 @@ module RailsAiBridge
         key = cache_key(app)
         cache[key][:full] = {
           context: context,
-          fingerprint: fingerprint || Fingerprinter.snapshot(app),
+          fingerprint: fingerprint || Fingerprinter::CachedSnapshot.fetch(app),
           fetched_at: monotonic_now
         }
         context.each do |section_name, section_value|

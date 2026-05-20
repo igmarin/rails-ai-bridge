@@ -95,6 +95,8 @@ module RailsAiBridge
                    :search_code_allowed_file_types, :search_code_allowed_file_types=,
                    :search_code_pattern_max_bytes, :search_code_pattern_max_bytes=,
                    :search_code_timeout_seconds, :search_code_timeout_seconds=,
+                   :snapshot_ttl, :snapshot_ttl=,
+                   :cache_warm_on_boot, :cache_warm_on_boot=,
                    :preset=, :preset,
                    :effective_introspectors,
                    :excluded_table?
