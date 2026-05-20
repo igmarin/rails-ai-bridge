@@ -30,10 +30,11 @@ module RailsAiBridge
           match = line.match(/^(.+?):(\d+):(.*)$/)
           return nil unless match
 
+          file, line_number, content = match.captures
           {
-            file: match[1].sub("#{@root}/", ''),
-            line_number: match[2].to_i,
-            content: match[3]
+            file: file.sub("#{@root}/", ''),
+            line_number: line_number.to_i,
+            content: content
           }
         end
 
@@ -57,11 +58,11 @@ module RailsAiBridge
           private
 
           def excluded_paths
-            RailsAiBridge.configuration.excluded_paths.flat_map { |p| ['--glob', "!#{p}"] }
+            RailsAiBridge.configuration.excluded_paths.flat_map { |path| ['--glob', "!#{path}"] }
           end
 
           def secret_excludes
-            %w[*.key *.pem *.p12 *.pfx *.crt .env .env.*].flat_map { |g| ['--glob', "!#{g}"] }
+            %w[*.key *.pem *.p12 *.pfx *.crt .env .env.*].flat_map { |glob| ['--glob', "!#{glob}"] }
           end
 
           def file_type_filters

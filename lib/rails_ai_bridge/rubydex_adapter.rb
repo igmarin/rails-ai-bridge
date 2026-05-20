@@ -10,6 +10,8 @@ module RailsAiBridge
   # Rubydex is an optional dependency. When not installed, all query
   # methods return empty results and {.available?} returns +false+.
   class RubydexAdapter
+    @mutex = Mutex.new
+
     # @return [Rubydex::Graph, nil] the underlying rubydex graph instance
     attr_reader :graph
 
@@ -45,7 +47,6 @@ module RailsAiBridge
       # @return [RubydexAdapter]
       # @raise [StandardError] on indexing failure (graph set to nil, indexed to false)
       def instance(root = nil)
-        @mutex ||= Mutex.new
         @mutex.synchronize do
           root ||= Rails.root.to_s
           @instance = nil if @instance && @instance_root != root
@@ -60,7 +61,7 @@ module RailsAiBridge
       #
       # @return [void]
       def reset!
-        @mutex&.synchronize { @instance = nil }
+        @mutex.synchronize { @instance = nil }
       end
     end
 
@@ -71,6 +72,7 @@ module RailsAiBridge
       @indexed = false
       @serializer = Serializer.new(@root)
       @indexer = Indexer.new
+      @incremental_indexer = IncrementalIndexer.new
       @method_counter = MethodCounter.new(serializer: @serializer)
     end
 
@@ -82,12 +84,24 @@ module RailsAiBridge
     def index!
       return if @indexed || !self.class.available?
 
-      @graph = @indexer.build(@root)
+      @graph = @incremental_indexer.build(@root)
       @indexed = true
     rescue StandardError => error
       log_warning('rubydex.indexing_failed', error.message, error.backtrace)
       @graph = nil
       @indexed = false
+    end
+
+    # Re-indexes only changed files since the last index.
+    # Falls back to a full rebuild when changes exceed the threshold.
+    #
+    # @return [void]
+    def reindex!
+      return unless @indexed && self.class.available?
+
+      @graph = @incremental_indexer.reindex_changed(@root)
+    rescue StandardError => error
+      log_warning('rubydex.reindex_failed', error.message, error.backtrace)
     end
 
     # Whether the graph has been successfully indexed.

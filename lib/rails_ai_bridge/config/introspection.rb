@@ -51,6 +51,15 @@ module RailsAiBridge
       # @return [Float] seconds before {Tools::SearchCode} aborts (+0+ disables the timeout)
       attr_accessor :search_code_timeout_seconds
 
+      # @return [Integer] TTL in seconds for fingerprint snapshot caching (avoids redundant filesystem walks)
+      attr_accessor :snapshot_ttl
+
+      # @return [Boolean] whether to pre-populate the introspection cache on Rails boot
+      attr_accessor :cache_warm_on_boot
+
+      # @return [Boolean] whether to run introspectors concurrently (requires concurrent-ruby)
+      attr_accessor :parallel_introspection
+
       ##
       # Initializes Introspection configuration with sensible defaults.
       # Sets:
@@ -85,6 +94,9 @@ module RailsAiBridge
         @search_code_allowed_file_types    = []
         @search_code_pattern_max_bytes     = 2048
         @search_code_timeout_seconds       = 5.0
+        @snapshot_ttl                      = 5
+        @cache_warm_on_boot                = false
+        @parallel_introspection            = false
       end
 
       # Switch the active introspector list to a named preset.

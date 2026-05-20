@@ -61,26 +61,65 @@ RSpec.describe RailsAiBridge::RubydexAdapter do
     end
 
     context 'when available' do
-      let(:mock_indexer) { instance_double(RailsAiBridge::RubydexAdapter::Indexer) }
+      let(:mock_incremental_indexer) { instance_double(RailsAiBridge::RubydexAdapter::IncrementalIndexer) }
       let(:mock_graph) { double('Graph') }
 
       before do
         allow(described_class).to receive(:available?).and_return(true)
-        adapter.instance_variable_set(:@indexer, mock_indexer)
+        adapter.instance_variable_set(:@incremental_indexer, mock_incremental_indexer)
       end
 
       it 'builds the graph successfully' do
-        allow(mock_indexer).to receive(:build).with(root).and_return(mock_graph)
+        allow(mock_incremental_indexer).to receive(:build).with(root).and_return(mock_graph)
         adapter.index!
         expect(adapter.indexed?).to be(true)
         expect(adapter.graph).to eq(mock_graph)
       end
 
       it 'rescues errors and sets indexed to false' do
-        allow(mock_indexer).to receive(:build).and_raise(StandardError, 'Oops')
+        allow(mock_incremental_indexer).to receive(:build).and_raise(StandardError, 'Oops')
         adapter.index!
         expect(adapter.indexed?).to be(false)
         expect(adapter.graph).to be_nil
+      end
+    end
+  end
+
+  describe '#reindex!' do
+    let(:mock_incremental_indexer) { instance_double(RailsAiBridge::RubydexAdapter::IncrementalIndexer) }
+    let(:mock_graph) { double('Graph') }
+
+    it 'does nothing when not indexed' do
+      expect(adapter.reindex!).to be_nil
+    end
+
+    it 'does nothing when rubydex is not available' do
+      adapter.instance_variable_set(:@indexed, true)
+      allow(described_class).to receive(:available?).and_return(false)
+      expect(adapter.reindex!).to be_nil
+    end
+
+    context 'when indexed and available' do
+      before do
+        allow(described_class).to receive(:available?).and_return(true)
+        adapter.instance_variable_set(:@indexed, true)
+        adapter.instance_variable_set(:@graph, mock_graph)
+        adapter.instance_variable_set(:@incremental_indexer, mock_incremental_indexer)
+      end
+
+      it 'delegates to incremental indexer' do
+        new_graph = double('NewGraph')
+        allow(mock_incremental_indexer).to receive(:reindex_changed).with(root).and_return(new_graph)
+
+        adapter.reindex!
+
+        expect(adapter.graph).to eq(new_graph)
+      end
+
+      it 'rescues errors without raising' do
+        allow(mock_incremental_indexer).to receive(:reindex_changed).and_raise(StandardError, 'fail')
+
+        expect { adapter.reindex! }.not_to raise_error
       end
     end
   end

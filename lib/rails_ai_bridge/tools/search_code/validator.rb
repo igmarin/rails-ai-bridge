@@ -39,9 +39,12 @@ module RailsAiBridge
         end
 
         def validate_and_normalize_file_type
-          return nil if @file_type.nil? || @file_type.to_s.strip.empty?
+          return nil unless @file_type
 
-          normalized = @file_type.to_s.downcase.strip.delete_prefix('.')
+          file_type_str = @file_type.to_s
+          return nil if file_type_str.strip.empty?
+
+          normalized = file_type_str.downcase.strip.delete_prefix('.')
           return BaseTool.text_response('Invalid file_type: use only a single safe extension (letters and digits).') unless normalized.match?(/\A[a-z0-9]+\z/)
 
           allowed = SearchCode.allowed_search_file_types
@@ -52,7 +55,8 @@ module RailsAiBridge
 
         def validate_path_security
           search_path = @path ? File.join(@root, @path) : @root
-          return BaseTool.text_response("Path not found: #{@path}") unless Dir.exist?(search_path)
+          path_not_found = BaseTool.text_response("Path not found: #{@path}")
+          return path_not_found unless Dir.exist?(search_path)
 
           real_search = File.realpath(search_path)
           real_root = File.realpath(@root)
@@ -60,7 +64,7 @@ module RailsAiBridge
 
           search_path
         rescue Errno::ENOENT
-          BaseTool.text_response("Path not found: #{@path}")
+          path_not_found
         end
       end
     end

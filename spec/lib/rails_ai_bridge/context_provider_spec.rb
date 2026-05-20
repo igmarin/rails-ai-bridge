@@ -51,9 +51,11 @@ RSpec.describe RailsAiBridge::ContextProvider do
     it 'rebuilds context when the fingerprint changes before ttl expiry' do
       allow(RailsAiBridge).to receive(:introspect).with(app).and_return(context, { routes: { total_routes: 3 } })
       allow(RailsAiBridge::Fingerprinter).to receive(:snapshot).with(app).and_return('fingerprint-1', 'fingerprint-2')
-      allow(RailsAiBridge::Fingerprinter).to receive(:compute).with(app).and_call_original
 
       first = described_class.fetch(app)
+
+      # Invalidate fingerprint cache so the next fetch sees the new fingerprint
+      RailsAiBridge::Fingerprinter::CachedSnapshot.invalidate!(app)
       second = described_class.fetch(app)
 
       expect(first).to eq(context)

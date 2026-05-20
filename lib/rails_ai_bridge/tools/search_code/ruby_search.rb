@@ -16,9 +16,9 @@ module RailsAiBridge
           end
 
           def process(file)
-            relative = file.sub("#{@root}/", '')
-            return if skip_file?(relative, file)
+            return if skip_file?(file)
 
+            relative = file.sub("#{@root}/", '')
             File.readlines(file).each_with_index do |line, idx|
               next unless line.match?(@regex)
 
@@ -29,7 +29,8 @@ module RailsAiBridge
 
           private
 
-          def skip_file?(relative, file)
+          def skip_file?(file)
+            relative = file.sub("#{@root}/", '')
             excluded = RailsAiBridge.configuration.excluded_paths
             return true if excluded.any? { |ex| relative.start_with?(ex) }
 
@@ -38,8 +39,8 @@ module RailsAiBridge
           end
         end
 
-        def initialize(pattern, search_params)
-          @pattern = pattern
+        def initialize(search_params)
+          @pattern = search_params[:pattern]
           @search_path = search_params[:search_path]
           @file_type = search_params[:file_type]
           @max_results = search_params[:max_results]
