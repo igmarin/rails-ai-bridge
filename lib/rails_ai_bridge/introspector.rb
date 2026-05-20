@@ -96,21 +96,19 @@ module RailsAiBridge
     end
 
     def run_sequential(names)
-      results = {}
-      names.each do |name|
-        introspector = resolve_introspector(name)
-        results[name] = introspector.call
-      rescue StandardError => error
-        results[name] = { error: error.message }
-        Rails.logger.warn "[rails-ai-bridge] #{name} introspection failed: #{error.message}"
-      end
-      results
+      names.index_with { |name| run_single(name) }
+    end
+
+    def run_single(name)
+      resolve_introspector(name).call
+    rescue StandardError => error
+      msg = error.message
+      Rails.logger.warn "[rails-ai-bridge] #{name} introspection failed: #{msg}"
+      { error: msg }
     end
 
     def run_parallel(names)
-      introspector_map = names.each_with_object({}) do |name, map|
-        map[name] = resolve_introspector_class(name)
-      end
+      introspector_map = names.index_with { |name| resolve_introspector_class(name) }
       ParallelRunner.call(introspector_map, app)
     end
 

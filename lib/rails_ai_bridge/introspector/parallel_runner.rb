@@ -58,8 +58,9 @@ module RailsAiBridge
         def resolve_future(name, future)
           future.value!
         rescue StandardError => error
-          Rails.logger.warn("[rails-ai-bridge] #{name} introspection failed: #{error.message}")
-          { error: error.message }
+          msg = error.message
+          Rails.logger.warn("[rails-ai-bridge] #{name} introspection failed: #{msg}")
+          { error: msg }
         end
       end
     end

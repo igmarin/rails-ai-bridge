@@ -104,7 +104,7 @@ RSpec.describe RailsAiBridge::Introspector do
         end
 
         RailsAiBridge.configuration.additional_introspectors[:failing] = failing_introspector
-        RailsAiBridge.configuration.introspectors = [:failing, :schema]
+        RailsAiBridge.configuration.introspectors = %i[failing schema]
 
         result = introspector.call
 

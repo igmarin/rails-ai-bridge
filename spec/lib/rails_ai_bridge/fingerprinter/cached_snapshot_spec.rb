@@ -37,7 +37,8 @@ RSpec.describe RailsAiBridge::Fingerprinter::CachedSnapshot do
       described_class.fetch(app)
 
       # Simulate TTL expiry by manipulating the fetched_at timestamp
-      entry = described_class.instance_variable_get(:@cache)[app.object_id]
+      cache = described_class.instance_variable_get(:@cache)
+      entry = cache.values.first
       entry[:fetched_at] -= described_class.snapshot_ttl + 1
 
       result = described_class.fetch(app)

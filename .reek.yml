@@ -19,6 +19,10 @@ detectors:
     - RailsAiBridge::Config::Introspection#search_code_allowed_file_types
     - RailsAiBridge::Config::Introspection#search_code_pattern_max_bytes
     - RailsAiBridge::Config::Introspection#search_code_timeout_seconds
+    - RailsAiBridge::Config::Introspection#snapshot_ttl
+    - RailsAiBridge::Config::Introspection#cache_warm_on_boot
+    - RailsAiBridge::Config::Introspection#parallel_introspection
+    - RailsAiBridge::Fingerprinter::CachedSnapshot#snapshot_ttl
     - RailsAiBridge::Config::Mcp#authorize
     - RailsAiBridge::Config::Mcp#http_log_json
     - RailsAiBridge::Config::Mcp#mode
@@ -90,6 +94,7 @@ detectors:
     - RailsAiBridge::HttpTransportApp#build
     - RailsAiBridge::Introspector#app_name
     - RailsAiBridge::Introspector#call
+    - RailsAiBridge::RubydexAdapter::IncrementalIndexer#reindex_changed
     - RailsAiBridge::Introspectors::ActiveStorageIntrospector#extract_attachments
     - RailsAiBridge::Introspectors::ControllerIntrospector#call
     - RailsAiBridge::Introspectors::ControllerIntrospector#discover_controllers
@@ -326,6 +331,7 @@ detectors:
     - RailsAiBridge::Tools::GetView::FullFormatter
     - RailsAiBridge::Tools::GetView::StandardFormatter
     - RailsAiBridge::Tools::GetView::SummaryFormatter
+    - RailsAiBridge::Fingerprinter::CachedSnapshot
   IrresponsibleModule:
     exclude:
     - RailsAiBridge::Generators::InstallGenerator
@@ -387,6 +393,7 @@ detectors:
     - RailsAiBridge::Services::FileManagementService
     - RailsAiBridge::Tools::BaseTool
     - RailsAiBridge::Watcher::BridgeRegenerator
+    - RailsAiBridge::Fingerprinter::CachedSnapshot
   NestedIterators:
     exclude:
     - RailsAiBridge::Fingerprinter#snapshot

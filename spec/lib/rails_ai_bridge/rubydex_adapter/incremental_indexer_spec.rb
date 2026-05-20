@@ -90,7 +90,7 @@ RSpec.describe RailsAiBridge::RubydexAdapter::IncrementalIndexer do
       new_file = File.join(root, 'app/models/new_model.rb')
       allow(RailsAiBridge::RubydexAdapter::Indexer).to receive(:source_files).with(root).and_return(existing_files + [new_file])
       allow(File).to receive(:mtime).and_call_original
-      allow(File).to receive(:mtime).with(new_file).and_return(Time.now + 60)
+      allow(File).to receive(:mtime).with(new_file).and_return(Time.zone.now + 60)
 
       changed = indexer.changed_files(root)
 

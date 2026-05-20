@@ -38,12 +38,7 @@ module RailsAiBridge
       # @return [Object] the rubydex graph
       def reindex_changed(root)
         return build(root) unless @graph
-
-        changed = changed_files(root)
-        return @graph if changed.empty?
-
-        total = Indexer.source_files(root).size
-        return build(root) if should_full_rebuild?(changed.size, total)
+        return @graph if changed_files(root).empty?
 
         build(root)
       end
@@ -56,31 +51,24 @@ module RailsAiBridge
       def changed_files(root)
         return [] if @file_mtimes.empty?
 
-        current_files = Indexer.source_files(root)
-        changed = []
-
-        current_files.each do |path|
-          mtime = safe_mtime(path)
-          old_mtime = @file_mtimes[path]
-          changed << path if old_mtime.nil? || mtime != old_mtime
-        end
-
-        removed = @file_mtimes.keys - current_files
-        changed.concat(removed)
-
-        changed
+        modified_or_added = find_modified_files(root)
+        removed = @file_mtimes.keys - Indexer.source_files(root)
+        modified_or_added.concat(removed)
       end
 
       private
 
-      def record_mtimes(root)
-        @file_mtimes = {}
-        Indexer.source_files(root).each do |path|
-          @file_mtimes[path] = safe_mtime(path)
+      def find_modified_files(root)
+        Indexer.source_files(root).reject do |path|
+          @file_mtimes.key?(path) && @file_mtimes[path] == file_mtime(path)
         end
       end
 
-      def safe_mtime(path)
+      def record_mtimes(root)
+        @file_mtimes = Indexer.source_files(root).index_with { |path| file_mtime(path) }
+      end
+
+      def file_mtime(path)
         File.mtime(path)
       rescue Errno::ENOENT
         nil
