@@ -3,9 +3,16 @@
 module RailsAiBridge
   class Engine < ::Rails::Engine
     # Register the MCP server after Rails finishes loading
-    initializer 'rails_ai_bridge.setup', after: :load_config_initializers do |_app|
+    initializer 'rails_ai_bridge.setup', after: :load_config_initializers do |app|
       # Make introspection available via Rails console
       Rails.application.config.rails_ai_bridge = RailsAiBridge.configuration
+
+      # Pre-populate introspection cache on boot when configured
+      if RailsAiBridge.configuration.cache_warm_on_boot
+        app.config.after_initialize do
+          CacheWarmer.warm(app)
+        end
+      end
     end
 
     # Auto-mount MCP HTTP middleware when configured

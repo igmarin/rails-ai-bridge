@@ -2,21 +2,17 @@
 
 module RailsAiBridge
   class RubydexAdapter
-    # Tracks file mtimes to support incremental reindexing.
+    # Tracks file mtimes to detect when reindexing is needed.
     #
     # On the first call, delegates to {Indexer.build_index} for a full build.
     # On subsequent calls via {#reindex_changed}, detects files that have been
-    # added, removed, or modified since the last index. When the ratio of
-    # changed files exceeds {#full_rebuild_threshold} (default 30%), a full
-    # rebuild is performed instead of an incremental update.
+    # added, removed, or modified since the last index and triggers a full
+    # rebuild when changes are detected. True incremental graph patching
+    # requires upstream rubydex support; this class provides the change-
+    # detection foundation so that a no-op fast path is taken when no
+    # files have changed.
     class IncrementalIndexer
-      # @return [Float] ratio of changed files that triggers a full rebuild
-      attr_reader :full_rebuild_threshold
-
-      # @param full_rebuild_threshold [Float] ratio (0.0–1.0) of changed files
-      #   above which a full rebuild is preferred over incremental updates
-      def initialize(full_rebuild_threshold: 0.3)
-        @full_rebuild_threshold = full_rebuild_threshold
+      def initialize
         @file_mtimes = {}
         @graph = nil
       end
@@ -31,8 +27,8 @@ module RailsAiBridge
         @graph
       end
 
-      # Re-indexes only changed files, or falls back to a full rebuild
-      # when too many files have changed or no prior index exists.
+      # Rebuilds the index when files have changed since the last build.
+      # Returns the cached graph immediately when nothing has changed.
       #
       # @param root [String] project root directory
       # @return [Object] the rubydex graph
@@ -72,12 +68,6 @@ module RailsAiBridge
         File.mtime(path)
       rescue Errno::ENOENT
         nil
-      end
-
-      def should_full_rebuild?(changed_count, total_count)
-        return true if total_count.zero?
-
-        (changed_count.to_f / total_count) > @full_rebuild_threshold
       end
     end
   end

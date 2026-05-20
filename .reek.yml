@@ -918,6 +918,7 @@ detectors:
   UtilityFunction:
     exclude:
     - RailsAiBridge::Doctor#compute_score
+    - RailsAiBridge::RubydexAdapter::IncrementalIndexer#file_mtime
     - RailsAiBridge::Doctor::Checkers::BaseChecker#new_check
     - RailsAiBridge::Doctor::Checkers::StimulusMcpToolChecker#tool_registered?
     - RailsAiBridge::Doctor::Checkers::ViewMcpToolChecker#tool_registered?

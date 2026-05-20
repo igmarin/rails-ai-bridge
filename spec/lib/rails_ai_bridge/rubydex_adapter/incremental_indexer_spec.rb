@@ -45,13 +45,11 @@ RSpec.describe RailsAiBridge::RubydexAdapter::IncrementalIndexer do
       end
     end
 
-    context 'when a file has been modified' do
-      it 'triggers a full rebuild when changes exceed threshold' do
+    context 'when files have changed' do
+      it 'triggers a full rebuild' do
         files = Array.new(10) { |i| File.join(root, "app/models/model_#{i}.rb") }
         allow(RailsAiBridge::RubydexAdapter::Indexer).to receive(:source_files).with(root).and_return(files)
 
-        # All files are "new" since file_mtimes was populated with build
-        # We need to simulate a state where many files changed
         new_graph = double('NewGraph')
         allow(RailsAiBridge::RubydexAdapter::Indexer).to receive(:build_index).with(root).and_return(new_graph)
 
@@ -95,18 +93,6 @@ RSpec.describe RailsAiBridge::RubydexAdapter::IncrementalIndexer do
       changed = indexer.changed_files(root)
 
       expect(changed).to include(new_file)
-    end
-  end
-
-  describe '#full_rebuild_threshold' do
-    it 'defaults to 0.3 (30%)' do
-      indexer = described_class.new
-      expect(indexer.full_rebuild_threshold).to eq(0.3)
-    end
-
-    it 'is configurable' do
-      indexer = described_class.new(full_rebuild_threshold: 0.5)
-      expect(indexer.full_rebuild_threshold).to eq(0.5)
     end
   end
 end
