@@ -77,9 +77,14 @@ module RailsAiBridge
         end
 
         def add_attachment_macros(macros)
-          macros[:has_one_attached] = scan_single_symbol(PATTERNS[:has_one_attached]) if match?(PATTERNS[:has_one_attached])
-          macros[:has_many_attached] = scan_single_symbol(PATTERNS[:has_many_attached]) if match?(PATTERNS[:has_many_attached])
-          macros[:has_rich_text] = scan_single_symbol(PATTERNS[:has_rich_text]) if match?(PATTERNS[:has_rich_text])
+          pattern_one = PATTERNS[:has_one_attached]
+          macros[:has_one_attached] = scan_single_symbol(pattern_one) if match?(pattern_one)
+
+          pattern_many = PATTERNS[:has_many_attached]
+          macros[:has_many_attached] = scan_single_symbol(pattern_many) if match?(pattern_many)
+
+          pattern_rich = PATTERNS[:has_rich_text]
+          macros[:has_rich_text] = scan_single_symbol(pattern_rich) if match?(pattern_rich)
         end
 
         def add_broadcast_macros(macros)
@@ -87,12 +92,16 @@ module RailsAiBridge
         end
 
         def add_token_macros(macros)
-          macros[:generates_token_for] = scan_single_symbol(PATTERNS[:generates_token_for]) if match?(PATTERNS[:generates_token_for])
+          pattern = PATTERNS[:generates_token_for]
+          macros[:generates_token_for] = scan_single_symbol(pattern) if match?(pattern)
         end
 
         def add_serialization_macros(macros)
-          macros[:serialize] = scan_single_symbol(PATTERNS[:serialize]) if match?(PATTERNS[:serialize])
-          macros[:store] = scan_single_symbol(PATTERNS[:store]) if match?(PATTERNS[:store])
+          pattern_serialize = PATTERNS[:serialize]
+          macros[:serialize] = scan_single_symbol(pattern_serialize) if match?(pattern_serialize)
+
+          pattern_store = PATTERNS[:store]
+          macros[:store] = scan_single_symbol(pattern_store) if match?(pattern_store)
         end
 
         def add_delegation_macros(macros)

@@ -47,15 +47,16 @@ module RailsAiBridge
       def changed_files(root)
         return [] if @file_mtimes.empty?
 
-        modified_or_added = find_modified_files(root)
-        removed = @file_mtimes.keys - Indexer.source_files(root)
+        current_files = Indexer.source_files(root)
+        modified_or_added = find_modified_files(current_files)
+        removed = @file_mtimes.keys - current_files
         modified_or_added.concat(removed)
       end
 
       private
 
-      def find_modified_files(root)
-        Indexer.source_files(root).reject do |path|
+      def find_modified_files(files)
+        files.reject do |path|
           @file_mtimes.key?(path) && @file_mtimes[path] == file_mtime(path)
         end
       end

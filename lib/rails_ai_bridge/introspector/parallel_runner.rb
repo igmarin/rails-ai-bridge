@@ -31,11 +31,22 @@ module RailsAiBridge
           pool&.wait_for_termination(10)
         end
 
-        # Whether +concurrent-ruby+ is available.
-        #
-        # @return [Boolean]
         def available?
-          defined?(Concurrent::Future) == 'constant'
+          return false unless defined?(Concurrent::Future) == 'constant'
+
+          # If ActiveRecord is defined and has a connection pool size of 1 or less,
+          # running in parallel is highly likely to deadlock or block in transactional
+          # tests or single-connection environments.
+          if defined?(ActiveRecord::Base)
+            pool_size = begin
+              ActiveRecord::Base.connection_pool.size
+            rescue StandardError
+              nil
+            end
+            return false if pool_size && pool_size <= 1
+          end
+
+          true
         end
 
         private
@@ -44,6 +55,8 @@ module RailsAiBridge
           introspectors.map do |name, klass|
             future = Concurrent::Future.execute(executor: pool) do
               klass.new(app).call
+            ensure
+              ActiveRecord::Base.connection_handler.clear_active_connections! if defined?(ActiveRecord::Base)
             end
             [name, future]
           end

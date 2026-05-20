@@ -41,8 +41,7 @@ module RailsAiBridge
         #
         # @return [void]
         def reset!
-          @mutex = Mutex.new
-          @cache = {}
+          @mutex.synchronize { @cache.clear }
         end
 
         # Invalidates the cached snapshot for a specific app, forcing
@@ -67,9 +66,7 @@ module RailsAiBridge
         end
 
         def effective_ttl
-          RailsAiBridge.configuration.snapshot_ttl
-        rescue NoMethodError
-          @snapshot_ttl
+          RailsAiBridge.configuration&.snapshot_ttl || @snapshot_ttl
         end
 
         def monotonic_now

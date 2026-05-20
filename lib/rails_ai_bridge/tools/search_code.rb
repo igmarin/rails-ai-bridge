@@ -40,9 +40,10 @@ module RailsAiBridge
         return validated if validated.is_a?(MCP::Tool::Response)
 
         max_res = normalize_max_results(max_results)
+        search_params = validated.merge(pattern: pattern, max_results: max_res, root: root)
 
         results = with_search_timeout do
-          search_engine(pattern, validated, max_res, root)
+          search_engine(search_params)
         end
 
         text_response(Formatter.new.call(results, pattern, path))
@@ -61,11 +62,11 @@ module RailsAiBridge
         normalized < 1 ? 30 : normalized
       end
 
-      def self.search_engine(pattern, params, max_results, root)
+      def self.search_engine(search_params)
         if ripgrep_available?
-          RipgrepSearch.new(params.merge(pattern: pattern, max_results: max_results, root: root)).call
+          RipgrepSearch.new(search_params).call
         else
-          RubySearch.new(pattern, params.merge(max_results: max_results, root: root)).call
+          RubySearch.new(search_params).call
         end
       end
 

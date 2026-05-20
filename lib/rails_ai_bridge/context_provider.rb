@@ -51,8 +51,9 @@ module RailsAiBridge
       #
       # @return [void]
       def reset!
-        @cache = build_cache_store
-        @mutex = Mutex.new
+        mutex.synchronize do
+          @cache = build_cache_store
+        end
         Fingerprinter::CachedSnapshot.reset!
       end
 

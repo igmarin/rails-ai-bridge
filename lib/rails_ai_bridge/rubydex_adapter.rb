@@ -10,6 +10,8 @@ module RailsAiBridge
   # Rubydex is an optional dependency. When not installed, all query
   # methods return empty results and {.available?} returns +false+.
   class RubydexAdapter
+    @mutex = Mutex.new
+
     # @return [Rubydex::Graph, nil] the underlying rubydex graph instance
     attr_reader :graph
 
@@ -45,7 +47,6 @@ module RailsAiBridge
       # @return [RubydexAdapter]
       # @raise [StandardError] on indexing failure (graph set to nil, indexed to false)
       def instance(root = nil)
-        @mutex ||= Mutex.new
         @mutex.synchronize do
           root ||= Rails.root.to_s
           @instance = nil if @instance && @instance_root != root
@@ -60,7 +61,7 @@ module RailsAiBridge
       #
       # @return [void]
       def reset!
-        @mutex&.synchronize { @instance = nil }
+        @mutex.synchronize { @instance = nil }
       end
     end
 
