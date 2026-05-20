@@ -8,10 +8,12 @@ RSpec.describe RailsAiBridge::Introspector do
   around do |example|
     original_introspectors = RailsAiBridge.configuration.introspectors.dup
     original_additional = RailsAiBridge.configuration.additional_introspectors.dup
+    original_parallel = RailsAiBridge.configuration.parallel_introspection
     example.run
   ensure
     RailsAiBridge.configuration.introspectors = original_introspectors
     RailsAiBridge.configuration.additional_introspectors = original_additional
+    RailsAiBridge.configuration.parallel_introspection = original_parallel
   end
 
   describe '#call' do
@@ -62,6 +64,61 @@ RSpec.describe RailsAiBridge::Introspector do
       result = introspector.call
 
       expect(result[:custom]).to eq({ custom: true })
+    end
+
+    context 'with parallel_introspection enabled' do
+      before { RailsAiBridge.configuration.parallel_introspection = true }
+
+      it 'returns the same metadata as sequential execution' do
+        result = introspector.call
+
+        expect(result[:ruby_version]).to eq(RUBY_VERSION)
+        expect(result[:rails_version]).to eq(Rails.version)
+        expect(result[:generator]).to include('rails-ai-bridge')
+      end
+
+      it 'runs custom introspectors in parallel' do
+        custom_a = Class.new do
+          def initialize(_app); end
+          def call = { a: true }
+        end
+        custom_b = Class.new do
+          def initialize(_app); end
+          def call = { b: true }
+        end
+
+        RailsAiBridge.configuration.additional_introspectors[:custom_a] = custom_a
+        RailsAiBridge.configuration.additional_introspectors[:custom_b] = custom_b
+        RailsAiBridge.configuration.introspectors = %i[custom_a custom_b]
+
+        result = introspector.call
+
+        expect(result[:custom_a]).to eq({ a: true })
+        expect(result[:custom_b]).to eq({ b: true })
+      end
+
+      it 'captures errors per introspector in parallel mode' do
+        failing_introspector = Class.new do
+          def initialize(_app); end
+          def call = raise(StandardError, 'parallel boom')
+        end
+
+        RailsAiBridge.configuration.additional_introspectors[:failing] = failing_introspector
+        RailsAiBridge.configuration.introspectors = [:failing, :schema]
+
+        result = introspector.call
+
+        expect(result[:failing]).to eq({ error: 'parallel boom' })
+        expect(result[:schema]).to be_a(Hash)
+      end
+
+      it 'falls back to sequential for a single introspector' do
+        RailsAiBridge.configuration.introspectors = [:schema]
+
+        result = introspector.call
+
+        expect(result[:schema]).to be_a(Hash)
+      end
     end
   end
 end

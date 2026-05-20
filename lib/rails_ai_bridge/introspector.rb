@@ -16,24 +16,16 @@ module RailsAiBridge
     # @param only [Array<Symbol>, nil] optional subset of introspectors to execute
     # @return [Hash] complete application context or metadata + requested sections
     def call(only: nil)
-      context = {
-        app_name: app_name,
-        ruby_version: RUBY_VERSION,
-        rails_version: Rails.version,
-        environment: Rails.env,
-        generated_at: Time.current.iso8601,
-        generator: "rails-ai-bridge v#{RailsAiBridge::VERSION}"
-      }
+      context = build_metadata
 
-      selected_introspectors(only).each do |name|
-        introspector = resolve_introspector(name)
-        context[name] = introspector.call
-      rescue StandardError => error
-        context[name] = { error: error.message }
-        Rails.logger.warn "[rails-ai-bridge] #{name} introspection failed: #{error.message}"
-      end
+      names = selected_introspectors(only)
+      results = if parallel_enabled? && names.size > 1
+                  run_parallel(names)
+                else
+                  run_sequential(names)
+                end
 
-      context
+      context.merge(results)
     end
 
     BUILTIN_INTROSPECTORS = {
@@ -88,6 +80,47 @@ module RailsAiBridge
       raise ConfigurationError, "Unknown introspector: #{name}" unless introspector_class
 
       introspector_class.new(app)
+    end
+
+    private
+
+    def build_metadata
+      {
+        app_name: app_name,
+        ruby_version: RUBY_VERSION,
+        rails_version: Rails.version,
+        environment: Rails.env,
+        generated_at: Time.current.iso8601,
+        generator: "rails-ai-bridge v#{RailsAiBridge::VERSION}"
+      }
+    end
+
+    def run_sequential(names)
+      results = {}
+      names.each do |name|
+        introspector = resolve_introspector(name)
+        results[name] = introspector.call
+      rescue StandardError => error
+        results[name] = { error: error.message }
+        Rails.logger.warn "[rails-ai-bridge] #{name} introspection failed: #{error.message}"
+      end
+      results
+    end
+
+    def run_parallel(names)
+      introspector_map = names.each_with_object({}) do |name, map|
+        map[name] = resolve_introspector_class(name)
+      end
+      ParallelRunner.call(introspector_map, app)
+    end
+
+    def resolve_introspector_class(name)
+      config.additional_introspectors[name] || BUILTIN_INTROSPECTORS[name] ||
+        raise(ConfigurationError, "Unknown introspector: #{name}")
+    end
+
+    def parallel_enabled?
+      config.parallel_introspection && ParallelRunner.available?
     end
   end
 end

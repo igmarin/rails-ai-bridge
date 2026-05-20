@@ -97,6 +97,7 @@ module RailsAiBridge
                    :search_code_timeout_seconds, :search_code_timeout_seconds=,
                    :snapshot_ttl, :snapshot_ttl=,
                    :cache_warm_on_boot, :cache_warm_on_boot=,
+                   :parallel_introspection, :parallel_introspection=,
                    :preset=, :preset,
                    :effective_introspectors,
                    :excluded_table?

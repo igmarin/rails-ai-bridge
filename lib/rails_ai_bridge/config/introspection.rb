@@ -57,6 +57,9 @@ module RailsAiBridge
       # @return [Boolean] whether to pre-populate the introspection cache on Rails boot
       attr_accessor :cache_warm_on_boot
 
+      # @return [Boolean] whether to run introspectors concurrently (requires concurrent-ruby)
+      attr_accessor :parallel_introspection
+
       ##
       # Initializes Introspection configuration with sensible defaults.
       # Sets:
@@ -93,6 +96,7 @@ module RailsAiBridge
         @search_code_timeout_seconds       = 5.0
         @snapshot_ttl                      = 5
         @cache_warm_on_boot                = false
+        @parallel_introspection            = false
       end
 
       # Switch the active introspector list to a named preset.
