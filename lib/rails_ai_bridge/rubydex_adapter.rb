@@ -71,6 +71,7 @@ module RailsAiBridge
       @indexed = false
       @serializer = Serializer.new(@root)
       @indexer = Indexer.new
+      @incremental_indexer = IncrementalIndexer.new
       @method_counter = MethodCounter.new(serializer: @serializer)
     end
 
@@ -82,12 +83,24 @@ module RailsAiBridge
     def index!
       return if @indexed || !self.class.available?
 
-      @graph = @indexer.build(@root)
+      @graph = @incremental_indexer.build(@root)
       @indexed = true
     rescue StandardError => error
       log_warning('rubydex.indexing_failed', error.message, error.backtrace)
       @graph = nil
       @indexed = false
+    end
+
+    # Re-indexes only changed files since the last index.
+    # Falls back to a full rebuild when changes exceed the threshold.
+    #
+    # @return [void]
+    def reindex!
+      return unless @indexed && self.class.available?
+
+      @graph = @incremental_indexer.reindex_changed(@root)
+    rescue StandardError => error
+      log_warning('rubydex.reindex_failed', error.message, error.backtrace)
     end
 
     # Whether the graph has been successfully indexed.
