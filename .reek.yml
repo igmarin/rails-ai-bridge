@@ -66,6 +66,7 @@ detectors:
     exclude:
     - RailsAiBridge::ContextProvider#rebuild
     - RailsAiBridge::Doctor::Checkers::BaseChecker#check
+    - RailsAiBridge::RubydexAdapter#apply_failure_state
     - RailsAiBridge::Doctor#initialize
     - RailsAiBridge::Introspectors::MiddlewareIntrospector#categorize_middleware
     - RailsAiBridge::Mcp::HttpRateLimiter#initialize
@@ -353,6 +354,7 @@ detectors:
     - RailsAiBridge::Doctor::Checkers::BaseChecker#check
     - RailsAiBridge::Doctor::Checkers::BaseChecker#new_check
     - RailsAiBridge::Mcp::HttpStructuredLog#emit
+    - RailsAiBridge::RubydexAdapter::IncrementalIndexer#initialize
     - RailsAiBridge::Serializers::ContextFileSerializer#generate_split_rules
     - RailsAiBridge::Serializers::ProviderDocumentHeader#call
     - RailsAiBridge::Tools::GetRoutes#self.call
@@ -390,6 +392,9 @@ detectors:
     - RailsAiBridge::RubydexAdapter#descendants
     - RailsAiBridge::RubydexAdapter#format_location
     - RailsAiBridge::RubydexAdapter#safe_count
+    - RailsAiBridge::RubydexAdapter::IncrementalIndexer#patch_graph
+    - RailsAiBridge::RubydexAdapter::IncrementalIndexer#re_index_file
+    - RailsAiBridge::RubydexAdapter::IncrementalIndexer#remove_from_graph
     - RailsAiBridge::Services::FileManagementService#default_allowed_base_dir
     - RailsAiBridge::RubydexAdapter::IncrementalIndexer#apply_incremental_changes
     - RailsAiBridge::RubydexAdapter::IncrementalIndexer#reindex_file
@@ -452,6 +457,7 @@ detectors:
     exclude:
     - RailsAiBridge::AssistantFormatsPreference#formats_for_default_bridge_task
     - RailsAiBridge::Config::Introspection#excluded_table?
+    - RailsAiBridge::RubydexAdapter#sanitize_index_path
     - RailsAiBridge::Config::Mcp#effective_http_rate_limit_max_requests
     - RailsAiBridge::Generators::InstallGenerator#profile_from_option
     - RailsAiBridge::Introspectors::ControllerIntrospector#discover_controllers
@@ -496,6 +502,7 @@ detectors:
     - RailsAiBridge::Configuration
     - RailsAiBridge::Mcp::HttpRateLimiter
     - RailsAiBridge::RubydexAdapter
+    - RailsAiBridge::RubydexAdapter::IncrementalIndexer
     - RailsAiBridge::Tools::GetModelDetails::ResponseFormatter
     - RailsAiBridge::Tools::GetRoutes::ResponseFormatter
     - RailsAiBridge::Tools::GetSchema::ResponseFormatter
@@ -504,6 +511,7 @@ detectors:
     - RailsAiBridge::Generators::InstallGenerator
     - RailsAiBridge::Introspectors::ModelIntrospector
     - RailsAiBridge::RubydexAdapter
+    - RailsAiBridge::RubydexAdapter::IncrementalIndexer
     - RailsAiBridge::Serializers::Providers::BaseProviderSerializer
   TooManyConstants:
     exclude:
@@ -514,6 +522,9 @@ detectors:
     - RailsAiBridge#validate_auto_mount_configuration!
     - RailsAiBridge::AssistantFormatsPreference#formats_for_default_bridge_task
     - RailsAiBridge::AssistantFormatsPreference#write!
+    - RailsAiBridge::RubydexAdapter::IncrementalIndexer#call
+    - RailsAiBridge::RubydexAdapter::IncrementalIndexer#patch_graph
+    - RailsAiBridge::RubydexAdapter::IncrementalIndexer#run_reindex
     - RailsAiBridge::Config::Mcp#effective_http_rate_limit_max_requests
     - RailsAiBridge::ContextProvider#fetch
     - RailsAiBridge::ContextProvider#fetch_section

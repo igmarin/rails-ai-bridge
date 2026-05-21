@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'pathname'
+
 module RailsAiBridge
   # Wrapper class for Shopify's rubydex semantic analysis API.
   #
@@ -248,27 +250,67 @@ module RailsAiBridge
 
     private
 
+    # Builds the keyword-options hash forwarded to {IncrementalIndexer.call}.
+    #
+    # Sanitizes the configured +rubydex_index_path+ by resolving it relative to
+    # +@root+ with Pathname and verifying the result stays inside +@root+.
+    # Returns +nil+ for +index_path+ when the value is absent or escapes the
+    # project root (prevents writes outside the project via path traversal).
+    #
+    # @return [Hash]
     def indexer_options
       config = RailsAiBridge.configuration
-      index_path = config.rubydex_index_path
       {
         threshold: config.rubydex_incremental_threshold,
         persist: config.rubydex_persist_index,
-        index_path: index_path ? File.join(@root, index_path) : nil
+        index_path: sanitize_index_path(config.rubydex_index_path)
       }
     end
 
+    # Resolves and validates a configured index path against +@root+.
+    #
+    # @param configured [String, nil] raw configured path (relative or absolute)
+    # @return [String, nil] cleaned absolute path, or +nil+ if unsafe/absent
+    def sanitize_index_path(configured)
+      return nil unless configured
+
+      root_pn      = Pathname(@root).cleanpath
+      resolved_str = root_pn.join(configured).cleanpath.to_s
+
+      resolved_str.start_with?(root_pn.to_s) ? resolved_str : nil
+    end
+
+    # Applies a {Service::Result} from {IncrementalIndexer} to instance state.
+    #
+    # For +:index!+, failure clears the graph. For +:reindex!+, failure
+    # deliberately preserves the existing graph so in-flight queries keep
+    # working after a transient error.
+    #
+    # @param result [Service::Result]
+    # @param operation [Symbol] +:index!+ or +:reindex!+
+    # @return [void]
     def handle_index_result(result, operation)
-      data = result.data
       if result.success?
+        data = result.data
         @graph = data[:graph]
         @file_mtimes = data[:file_mtimes]
         @indexed = true
       else
         log_warning("rubydex.#{operation}", result.errors.join(', '), [])
-        @graph = nil
-        @indexed = false
+        apply_failure_state(operation)
       end
+    end
+
+    # Clears graph state on a build failure; no-op on reindex failure so that
+    # the existing working graph is preserved.
+    #
+    # @param operation [Symbol]
+    # @return [void]
+    def apply_failure_state(operation)
+      return unless operation == :index!
+
+      @graph = nil
+      @indexed = false
     end
 
     def log_warning(event, message, backtrace)

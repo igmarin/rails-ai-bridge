@@ -57,6 +57,14 @@ module RailsAiBridge
 
       private
 
+      # Performs a full index build, records integer-second mtimes, and
+      # optionally persists them to disk.
+      #
+      # @param root [String] project root directory
+      # @param _threshold [Float] unused (present for consistent arity with {#reindex})
+      # @param persist [Boolean] whether to write mtimes to disk
+      # @param index_path [String, nil] directory for the JSON mtime file
+      # @return [Service::Result] success result with +:graph+ and +:file_mtimes+
       def build(root, _threshold, persist, index_path)
         graph = Indexer.build_index(root)
         file_mtimes = record_mtimes(root)
@@ -64,6 +72,15 @@ module RailsAiBridge
         Service::Result.new(true, data: { graph: graph, file_mtimes: file_mtimes })
       end
 
+      # Detects changed files and patches the graph incrementally or rebuilds.
+      #
+      # @param root [String] project root directory
+      # @param graph [Object, nil] existing rubydex graph; +nil+ forces a full build
+      # @param file_mtimes [Hash<String, Integer>] previously recorded integer-second mtimes
+      # @param threshold [Float] change fraction above which a full rebuild is triggered
+      # @param persist [Boolean] whether to load/save mtimes to disk
+      # @param index_path [String, nil] directory for the JSON mtime file
+      # @return [Service::Result] success result with +:graph+ and +:file_mtimes+
       def reindex(root, graph, file_mtimes, threshold, persist, index_path)
         file_mtimes = load_mtimes(index_path) if persist && index_path && file_mtimes.empty?
         rebuild = -> { build(root, threshold, persist, index_path) }
@@ -81,6 +98,13 @@ module RailsAiBridge
         Service::Result.new(true, data: { graph: graph, file_mtimes: updated_mtimes })
       end
 
+      # Iterates over changed paths, updating the graph in-place.
+      # Calls +graph.resolve+ afterwards if supported.
+      #
+      # @param graph [Object] existing rubydex graph
+      # @param changes [Array<String>] paths of added, modified, or removed files
+      # @param root [String] project root directory
+      # @return [void]
       def apply_incremental_changes(graph, changes, root)
         current_set = current_files(root).to_set
 
@@ -95,6 +119,12 @@ module RailsAiBridge
         graph.resolve if graph.respond_to?(:resolve)
       end
 
+      # Re-indexes a single modified file into the graph.
+      # No-op when the graph does not support +delete_document+ or +index_source+.
+      #
+      # @param graph [Object] rubydex graph
+      # @param path [String] absolute file path
+      # @return [void]
       def reindex_file(graph, path)
         return unless graph.respond_to?(:delete_document) && graph.respond_to?(:index_source)
 
@@ -105,12 +135,24 @@ module RailsAiBridge
         nil
       end
 
+      # Removes a deleted file from the graph.
+      # No-op when the graph does not support +delete_document+.
+      #
+      # @param graph [Object] rubydex graph
+      # @param path [String] absolute file path
+      # @return [void]
       def remove_file(graph, path)
         return unless graph.respond_to?(:delete_document)
 
         graph.delete_document(path)
       end
 
+      # Returns paths of files that were added, modified, or removed since the
+      # last recorded snapshot.
+      #
+      # @param root [String] project root directory
+      # @param file_mtimes [Hash<String, Integer>] recorded integer-second mtime map
+      # @return [Array<String>] changed file paths
       def changed_files(root, file_mtimes)
         return [] if file_mtimes.empty?
 
@@ -120,26 +162,53 @@ module RailsAiBridge
         modified.concat(removed)
       end
 
+      # Returns files whose integer-second mtime differs from the snapshot.
+      #
+      # @param current_files [Array<String>] current source file paths
+      # @param file_mtimes [Hash<String, Integer>] recorded integer-second mtime map
+      # @return [Array<String>]
       def find_modified_files(current_files, file_mtimes)
         current_files.reject do |path|
           file_mtimes.key?(path) && file_mtimes[path] == file_mtime(path)
         end
       end
 
+      # Returns all Ruby source files under +root+.
+      #
+      # @param root [String] project root directory
+      # @return [Array<String>]
       def current_files(root)
         Indexer.source_files(root)
       end
 
+      # Returns +true+ when the fraction of changed files meets or exceeds the
+      # threshold, or when +total_count+ is zero (avoids division-by-zero).
+      #
+      # @param changed_count [Integer] number of changed files
+      # @param total_count [Integer] total number of source files
+      # @param threshold [Float] fractional limit
+      # @return [Boolean]
       def threshold_exceeded?(changed_count, total_count, threshold)
         return true if total_count.zero? && changed_count.positive?
 
         changed_count.to_f / total_count > threshold
       end
 
+      # Builds an integer-second mtime snapshot for all current source files.
+      #
+      # @param root [String] project root directory
+      # @return [Hash<String, Integer>] path → integer-second mtime map
       def record_mtimes(root)
         current_files(root).index_with { |path| file_mtime(path) }
       end
 
+      # Returns an updated mtime map that reflects the given set of changes.
+      # Removed files are dropped; added/modified files get a fresh mtime.
+      #
+      # @param file_mtimes [Hash<String, Integer>] existing mtime map
+      # @param root [String] project root directory
+      # @param changes [Array<String>] paths that changed
+      # @return [Hash<String, Integer>] updated mtime map
       def update_mtimes(file_mtimes, root, changes)
         current = current_files(root).to_set
         updated = file_mtimes.dup
@@ -155,12 +224,23 @@ module RailsAiBridge
         updated
       end
 
+      # Returns the integer-second mtime for a single file.
+      # Storing as integers avoids IEEE 754 float-precision loss during JSON
+      # serialization round-trips, eliminating spurious "file changed" detections.
+      #
+      # @param path [String] absolute file path
+      # @return [Integer, nil] +nil+ if the file no longer exists
       def file_mtime(path)
-        File.mtime(path)
+        File.mtime(path).to_i
       rescue Errno::ENOENT
         nil
       end
 
+      # Writes the mtime map as JSON to disk, creating the directory if needed.
+      #
+      # @param file_mtimes [Hash<String, Integer>] integer-second mtime map
+      # @param index_path [String, nil] target directory; no-op if +nil+
+      # @return [void]
       def persist_mtimes(file_mtimes, index_path)
         return unless index_path
 
@@ -170,6 +250,10 @@ module RailsAiBridge
         log_error(:persist_mtimes, error)
       end
 
+      # Reads the persisted mtime map from the JSON file.
+      #
+      # @param index_path [String, nil] directory containing the mtime file
+      # @return [Hash<String, Integer>] empty hash when the file does not exist
       def load_mtimes(index_path)
         return {} unless index_path
 
@@ -182,19 +266,37 @@ module RailsAiBridge
         {}
       end
 
+      # Builds the full path to the JSON mtime file.
+      #
+      # @param index_path [String] the index directory
+      # @return [String]
       def mtimes_path(index_path)
         File.join(index_path, MTIMES_FILENAME)
       end
 
+      # Converts the mtime map to a JSON-safe hash of integer seconds.
+      # Integer seconds round-trip losslessly through JSON, unlike floats.
+      #
+      # @param file_mtimes [Hash<String, Integer>]
+      # @return [Hash<String, Integer>]
       def serialize_mtimes(file_mtimes)
-        file_mtimes.transform_values { |time| time&.to_f }
+        file_mtimes.transform_values { |time| time&.to_i }
       end
 
+      # Parses the raw JSON hash back to an integer-second mtime map.
+      #
+      # @param content [String] raw JSON string
+      # @return [Hash<String, Integer>]
       def deserialize_mtimes(content)
         json = JSON.parse(content).compact
-        json.transform_values { |timestamp| Time.at(timestamp).utc }
+        json.transform_values { |timestamp| timestamp&.to_i }
       end
 
+      # Logs an error via Rails.logger when available.
+      #
+      # @param operation [Symbol] the operation that failed
+      # @param error [StandardError] the raised exception
+      # @return [void]
       def log_error(operation, error)
         logger = defined?(Rails) && Rails.respond_to?(:logger) ? Rails.logger : nil
         return unless logger

@@ -86,6 +86,19 @@ RSpec.describe RailsAiBridge::RubydexAdapter do
         expect(adapter.indexed?).to be(false)
         expect(adapter.graph).to be_nil
       end
+
+      it 'rejects path traversal in rubydex_index_path' do
+        RailsAiBridge.configuration.rubydex_index_path = '../../etc/evil'
+        captured_options = nil
+        allow(RailsAiBridge::RubydexAdapter::IncrementalIndexer).to receive(:call) do |_op, **opts|
+          captured_options = opts
+          success_result
+        end
+
+        adapter.index!
+
+        expect(captured_options[:index_path]).to be_nil
+      end
     end
   end
 
@@ -107,18 +120,18 @@ RSpec.describe RailsAiBridge::RubydexAdapter do
       let(:success_result) do
         RailsAiBridge::Service::Result.new(true, data: { graph: new_graph, file_mtimes: {} })
       end
-      let(:test_time) { Time.zone.now }
+      let(:test_mtime) { Time.zone.now.to_i }
 
       before do
         allow(described_class).to receive(:available?).and_return(true)
         adapter.instance_variable_set(:@indexed, true)
         adapter.instance_variable_set(:@graph, mock_graph)
-        adapter.instance_variable_set(:@file_mtimes, { 'app.rb' => test_time })
+        adapter.instance_variable_set(:@file_mtimes, { 'app.rb' => test_mtime })
       end
 
       it 'delegates to incremental indexer service' do
         allow(RailsAiBridge::RubydexAdapter::IncrementalIndexer).to receive(:call)
-          .with(:reindex, root: root, graph: mock_graph, file_mtimes: { 'app.rb' => test_time },
+          .with(:reindex, root: root, graph: mock_graph, file_mtimes: { 'app.rb' => test_mtime },
                           threshold: 0.3, persist: false, index_path: anything)
           .and_return(success_result)
 
@@ -127,11 +140,32 @@ RSpec.describe RailsAiBridge::RubydexAdapter do
         expect(adapter.graph).to eq(new_graph)
       end
 
-      it 'rescues errors without raising' do
+      it 'preserves existing graph when reindex returns a failure result' do
+        failure_result = RailsAiBridge::Service::Result.new(false, errors: ['transient error'])
+        allow(RailsAiBridge::RubydexAdapter::IncrementalIndexer).to receive(:call).and_return(failure_result)
+
+        adapter.reindex!
+
+        # Graph and indexed state must be preserved so queries keep working.
+        expect(adapter.graph).to eq(mock_graph)
+        expect(adapter.indexed?).to be(true)
+      end
+
+      it 'rescues unexpected errors without raising' do
         allow(RailsAiBridge::RubydexAdapter::IncrementalIndexer).to receive(:call)
           .and_raise(StandardError, 'fail')
 
         expect { adapter.reindex! }.not_to raise_error
+      end
+
+      it 'preserves existing graph on unexpected error' do
+        allow(RailsAiBridge::RubydexAdapter::IncrementalIndexer).to receive(:call)
+          .and_raise(StandardError, 'fail')
+
+        adapter.reindex!
+
+        expect(adapter.graph).to eq(mock_graph)
+        expect(adapter.indexed?).to be(true)
       end
     end
   end
