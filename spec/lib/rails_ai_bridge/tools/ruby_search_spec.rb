@@ -52,8 +52,12 @@ RSpec.describe RailsAiBridge::Tools::SearchCode::RubySearch do
     it 'prevents ReDoS with a timeout' do
       write_file('app/models/user.rb', "#{'a' * 50_000}b")
       # A regex that exhibits catastrophic backtracking on non-matches
-      results = make_searcher(pattern: '^(a+)+$').call
-      expect(results).to be_empty
+      require 'benchmark'
+      elapsed = Benchmark.realtime do
+        results = make_searcher(pattern: '^(a+)+$').call
+        expect(results).to be_empty
+      end
+      expect(elapsed).to be < 2.5
     end
 
     it 'respects max_results limit' do

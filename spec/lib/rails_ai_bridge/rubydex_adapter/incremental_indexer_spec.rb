@@ -149,6 +149,26 @@ RSpec.describe RailsAiBridge::RubydexAdapter::IncrementalIndexer do
         expect(result.data[:graph]).to eq(graph)
       end
 
+      it 'triggers full rebuild when changes ratio exactly equals the threshold' do
+        file_mtimes = {
+          changed_file => (Time.zone.now - 100).to_r,
+          unchanged_file => File.mtime(unchanged_file).to_r,
+          removed_file => (Time.zone.now - 100).to_r,
+          stable_a => File.mtime(stable_a).to_r,
+          stable_b => File.mtime(stable_b).to_r
+        }
+        # 4 source files + 1 removed = 5 total files
+        # 2 changed (changed_file + removed_file) => 2.0 / 5 = 0.4
+        new_graph = double('NewGraph')
+        allow(RailsAiBridge::RubydexAdapter::Indexer).to receive(:build_index).with(root).and_return(new_graph)
+
+        result = described_class.call(:reindex, root: root, graph: graph, file_mtimes: file_mtimes, threshold: 0.4)
+
+        expect(result).to be_success
+        expect(RailsAiBridge::RubydexAdapter::Indexer).to have_received(:build_index).with(root)
+        expect(graph).not_to have_received(:resolve)
+      end
+
       it 'skips index_source when graph does not support it' do
         allow(graph).to receive(:respond_to?).with(:index_source).and_return(false)
         file_mtimes = {

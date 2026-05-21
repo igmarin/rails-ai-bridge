@@ -282,7 +282,9 @@ module RailsAiBridge
       resolved_pn = root_pn.join(configured).expand_path
 
       begin
-        target_pn = resolved_pn.exist? ? resolved_pn.realpath : resolved_pn.parent.realpath
+        existing_pn = resolved_pn
+        existing_pn = existing_pn.parent until existing_pn.exist? || existing_pn.root?
+        target_pn = existing_pn.realpath
       rescue Errno::ENOENT
         return nil
       end

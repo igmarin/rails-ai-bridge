@@ -55,7 +55,8 @@ module RailsAiBridge
         end
       rescue StandardError => error
         log_error(operation, error)
-        Rails.logger.debug error.backtrace
+        logger = defined?(Rails) && Rails.respond_to?(:logger) ? Rails.logger : nil
+        logger&.debug error.backtrace
         Service::Result.new(false, errors: ["#{self.class} #{operation} failed: #{error.message}"])
       end
 
@@ -285,7 +286,7 @@ module RailsAiBridge
       # @param file_mtimes [Hash<String, Rational>]
       # @return [Hash<String, Integer>]
       def serialize_mtimes(file_mtimes)
-        file_mtimes.transform_values { |time| time&.to_r }
+        file_mtimes.transform_values { |time| time&.to_r&.to_s }
       end
 
       # Parses the raw JSON hash back to an integer-second mtime map.
@@ -303,10 +304,10 @@ module RailsAiBridge
       # @param error [StandardError] the raised exception
       # @return [void]
       def log_error(operation, error)
-        Rails.logger.debug error.backtrace
         logger = defined?(Rails) && Rails.respond_to?(:logger) ? Rails.logger : nil
         return unless logger
 
+        logger.debug error.backtrace
         trace = Array(error.backtrace).first(5).join("\n")
         logger.error("[#{self.class}] #{operation}: #{error.message}\n#{trace}")
       end
