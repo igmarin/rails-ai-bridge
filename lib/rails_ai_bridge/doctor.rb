@@ -17,6 +17,7 @@ module RailsAiBridge
       check_tests: Checkers::TestsChecker,
       check_migrations: Checkers::MigrationsChecker,
       check_context_files: Checkers::ContextFilesChecker,
+      check_bridge_freshness: Checkers::BridgeFreshnessChecker,
       check_mcp_buildable: Checkers::McpBuildableChecker,
       check_ripgrep: Checkers::RipgrepChecker,
       check_view_mcp_tool: Checkers::ViewMcpToolChecker,

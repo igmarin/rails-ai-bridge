@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Bridge file freshness stamps** — generated bridge files (CLAUDE.md, AGENTS.md, GEMINI.md, .cursorrules, etc.) now embed a freshness header containing the generation timestamp, a 12-character source fingerprint (SHA-256 of `db/schema.rb` + `config/routes.rb`), and the gem version. Files are skipped on re-generation when their fingerprint matches, eliminating unnecessary timestamps and noisy git diffs.
+- **`Fingerprinter.source_fingerprint`** — new singleton method that hashes the app's schema and routes files into a compact 12-char hex fingerprint used by the freshness system.
+- **`db/structure.sql` fallback** — `source_fingerprint` automatically falls back to `db/structure.sql` when `db/schema.rb` is absent (apps using SQL schema format are now supported).
+- **`FreshnessHeader` module** — centralized utility for embedding and extracting freshness metadata from bridge files. Supports both Markdown (HTML comment header) and JSON (`_meta` object) formats, with backward-compatible parsing of older files that lack the gem-version field.
+- **Bridge freshness Doctor check** — a new `BridgeFreshnessChecker` is registered with the `Doctor` service. It reports stale bridge files (fingerprint mismatch) or missing bridge files as `:warn`, and fresh files as `:pass`. The Doctor now runs 16 total checks.
+- **`rails ai:check` rake task** — runs all diagnostic checks and exits with code `1` if any check fails, enabling straightforward CI/CD integration (e.g., `rails ai:check || exit 1`).
+- **`CHECK=1` pre-generation guard** — pass `CHECK=1` to `rails ai:bridge` (or any bridge sub-task) to run Doctor diagnostics first; generation is aborted if any check fails.
+- **`RailsAiBridge::RakeHelpers` module** — extracted top-level rake helper methods (`print_result`, `apply_context_mode_override`, `conflict_strategy`, `run_pre_generation_checks`) from global `Object` scope into a properly namespaced module.
+
+### Changed
+
+- **`FreshnessHeader`** — expanded API with `embed_for(fmt, ...)`, `extract_metadata_for(fmt, content)`, and `extract_fingerprint_for(fmt, content)` dispatching methods. JSON and Markdown branching is now fully centralized here, removing format-aware `if fmt == :json` conditionals from callers.
+- **`ContextFileSerializer`** — refactored to use a new `FreshnessWriter` inner class that encapsulates freshness metadata embedding and file write decisions. This eliminates `ControlParameter`, `UtilityFunction`, and `LongParameterList` Reek warnings.
+- **`BridgeFreshnessChecker`** — refactored with a `ScanResult` struct to eliminate the 6-parameter `check_file` method; introduced `scan_files`, `accumulate_file_result`, `stale?`, and `freshness_check` helpers reducing `TooManyStatements` and `DuplicateMethodCall` Reek warnings.
+- **`Fingerprinter.source_fingerprint`** — extracted `schema_path(root)` and `read_source_content(paths)` private helpers to reduce method statement count.
+- **`RubySearch`** — wrapped the 5 search params into a `SearchParams` struct to resolve the `TooManyInstanceVariables` Reek warning; extracted `secret_file?(basename)` from `skip_file?` to fix `FeatureEnvy`; added `SECRET_EXTENSIONS` constant.
+- **`RipgrepSearch::CommandBuilder`** — moved hardcoded secret file globs to a `SECRET_EXCLUDES` constant; renamed helpers to `excluded_path_flags` / `secret_exclude_flags`; added `# :reek:UtilityFunction` suppressions for intentional stateless helpers.
+- **`Validator`** — extracted `effective_max_bytes`, `present?`, `normalize_extension`, `safe_extension?`, `build_search_path`, `within_root?`, `path_not_found`, and `pattern_too_long_error` helpers. Fixes `DuplicateMethodCall` on `BaseTool.text_response("Path not found: ...")` in `validate_path_security`.
+- **`SourceMacroExtractor`** — split `add_attachment_macros` into three single-step helpers (`add_single_attached`, `add_many_attached`, `add_rich_text`) to reduce statement counts.
+- **Rake namespace splitting** — `namespace :ai` reopened across multiple smaller blocks in `rails_ai_bridge.rake` to comply with `Metrics/BlockLength` RuboCop limit.
+
+### Fixed
+
+- **`ASSISTANT_TABLE` constant redefinition warning** — wrapped constant definition in `unless defined?` to prevent warnings when Rake tasks are loaded multiple times in test environments.
+
+### Tests
+
+- Added **48 new examples** covering:
+  - `AppOverviewFormatter` — nil/error guards, optional fields, field ordering
+  - `GemsFormatter` — nil/error guards, total count, Notable Gems section, category+name sort order
+  - `MigrationsFormatter` — nil/error guards, schema version, pending migrations count, recent migrations with and without actions
+  - `RubySearch` / `FileProcessor` — pattern matching, max_results cap, secret file skipping (`.env`, `.key`, `.pem`, `.p12`, `.pfx`, `.crt`), excluded paths, file_type filtering, case-insensitive search, relative paths, unreadable file recovery, `:full` return signal
+  - `Fingerprinter` — restored `.compute` and `.changed?` unit tests; added `db/structure.sql` fallback and schema.rb-wins-when-both-exist edge cases
+  - `FreshnessHeader` — backward-compatible parsing of headers without gem version
+- **Total: 1,703 examples, 0 failures, 94.57% line coverage** (up from 94.04%)
+
 ## [3.2.0] - 2026-05-04
 
 ### Added

@@ -219,5 +219,64 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
         described_class.new(context, on_conflict: :invalid_value)
       end.to raise_error(ArgumentError, /on_conflict must be/)
     end
+
+    describe 'freshness headers' do
+      it 'injects markdown comments in CLAUDE.md' do
+        Dir.mktmpdir do |dir|
+          allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
+          described_class.new(context, format: :claude, split_rules: false).call
+
+          claude_content = File.read(File.join(dir, 'CLAUDE.md'))
+          expect(claude_content).to start_with('<!-- Generated at:')
+
+          fingerprint = RailsAiBridge::FreshnessHeader.extract_fingerprint(claude_content)
+          expect(fingerprint).to match(/\A[a-f0-9]{12}\z/)
+
+          version = RailsAiBridge::FreshnessHeader.extract_version(claude_content)
+          expect(version).to eq(RailsAiBridge::VERSION)
+        end
+      end
+
+      it 'injects _meta key in JSON files' do
+        Dir.mktmpdir do |dir|
+          allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
+          described_class.new(context, format: :json, split_rules: false).call
+
+          json_path = File.join(dir, '.ai-context.json')
+          json_data = JSON.parse(File.read(json_path))
+
+          expect(json_data).to have_key('_meta')
+          expect(json_data['_meta']['source_fingerprint']).to match(/\A[a-f0-9]{12}\z/)
+          expect(json_data['_meta']['generated_at']).to match(/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\z/)
+          expect(json_data['_meta']['gem_version']).to eq(RailsAiBridge::VERSION)
+        end
+      end
+
+      it 'rewrites the file when the fingerprint changes, even if body content remains same' do
+        Dir.mktmpdir do |dir|
+          allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
+
+          # Compute a real source fingerprint and mock it
+          allow(RailsAiBridge::Fingerprinter).to receive(:source_fingerprint).and_return('a1b2c3d4e5f6')
+          described_class.new(context, format: :claude, split_rules: false).call
+
+          # Second call should skip since it is unchanged
+          result1 = described_class.new(context, format: :claude, split_rules: false).call
+          expect(result1[:skipped].size).to eq(1)
+          expect(result1[:written]).to be_empty
+
+          # Modify fingerprint
+          allow(RailsAiBridge::Fingerprinter).to receive(:source_fingerprint).and_return('f6e5d4c3b2a1')
+          result2 = described_class.new(context, format: :claude, split_rules: false).call
+
+          # Should not skip; should rewrite because fingerprint changed
+          expect(result2[:written].size).to eq(1)
+          expect(result2[:skipped]).to be_empty
+
+          new_content = File.read(File.join(dir, 'CLAUDE.md'))
+          expect(RailsAiBridge::FreshnessHeader.extract_fingerprint(new_content)).to eq('f6e5d4c3b2a1')
+        end
+      end
+    end
   end
 end

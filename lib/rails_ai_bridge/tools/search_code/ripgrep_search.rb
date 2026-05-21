@@ -7,11 +7,15 @@ module RailsAiBridge
     class SearchCode
       # Executes codebase searches using ripgrep.
       class RipgrepSearch
+        # @param params [Hash] search parameters with keys +:root+, +:pattern+, +:search_path+, +:file_type+, +:max_results+
         def initialize(params)
           @params = params
           @root = params[:root]
         end
 
+        # Executes the ripgrep search and parses results.
+        #
+        # @return [Array<Hash>] array of result hashes with +:file+, +:line_number+, +:content+
         def call
           cmd = CommandBuilder.new(@params).build
           output, _status = Open3.capture2(*cmd, err: File::NULL)
@@ -22,10 +26,18 @@ module RailsAiBridge
 
         private
 
+        # Parses the raw ripgrep output into structured result hashes.
+        #
+        # @param output [String] raw ripgrep stdout
+        # @return [Array<Hash>] parsed results
         def parse_output(output)
           output.lines.filter_map { |line| parse_line(line) }
         end
 
+        # Parses a single line of ripgrep output (file:line:content).
+        #
+        # @param line [String] a single output line
+        # @return [Hash, nil] parsed result or nil if the line doesn't match
         def parse_line(line)
           match = line.match(/^(.+?):(\d+):(.*)$/)
           return nil unless match
@@ -40,6 +52,17 @@ module RailsAiBridge
 
         # Builds the CLI command string.
         class CommandBuilder
+          # Extensions and globs that should never be searched (lowercase and uppercase variants).
+          SECRET_EXCLUDES = %w[
+            *.key *.KEY
+            *.pem *.PEM
+            *.p12 *.P12
+            *.pfx *.PFX
+            *.crt *.CRT
+            .env .env.* .ENV .ENV.*
+          ].freeze
+
+          # @param params [Hash] search parameters with keys +:pattern+, +:search_path+, +:file_type+, +:max_results+
           def initialize(params)
             @pattern = params[:pattern]
             @path = params[:search_path]
@@ -47,24 +70,38 @@ module RailsAiBridge
             @max = params[:max_results]
           end
 
+          # Builds the full ripgrep command array.
+          #
+          # @return [Array<String>] command tokens for +Open3.capture2+
           def build
             cmd = ['rg', '--no-heading', '--line-number', '--max-count', @max.to_s]
-            cmd.concat(excluded_paths)
-            cmd.concat(secret_excludes)
+            cmd.concat(excluded_path_flags)
+            cmd.concat(secret_exclude_flags)
             cmd.concat(file_type_filters)
             cmd.push(@pattern, @path)
           end
 
           private
 
-          def excluded_paths
+          # Builds --glob flags for user-configured excluded paths.
+          #
+          # @return [Array<String>] glob flag tokens
+          # :reek:UtilityFunction
+          def excluded_path_flags
             RailsAiBridge.configuration.excluded_paths.flat_map { |path| ['--glob', "!#{path}"] }
           end
 
-          def secret_excludes
-            %w[*.key *.pem *.p12 *.pfx *.crt .env .env.*].flat_map { |glob| ['--glob', "!#{glob}"] }
+          # Builds --glob flags to exclude secret file patterns.
+          #
+          # @return [Array<String>] glob flag tokens
+          # :reek:UtilityFunction
+          def secret_exclude_flags
+            SECRET_EXCLUDES.flat_map { |glob| ['--glob', "!#{glob}"] }
           end
 
+          # Builds --type or --glob flags for file type filtering.
+          #
+          # @return [Array<String>] type/glob flag tokens
           def file_type_filters
             if @file_type
               ['--type-add', "custom:*.#{@file_type}", '--type', 'custom']

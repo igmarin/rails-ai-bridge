@@ -44,28 +44,11 @@ module RailsAiBridge
         written = []
         skipped = []
 
+        timestamp_now = Time.now.utc.iso8601
+        fingerprint = Fingerprinter.source_fingerprint(Rails.application)
+
         formats.each do |fmt|
-          filename = FORMAT_MAP[fmt]
-          unless filename
-            valid = FORMAT_MAP.keys.join(', ')
-            raise ArgumentError, "Unknown format: #{fmt}. Valid formats: #{valid}"
-          end
-
-          filepath = File.join(output_dir, filename)
-
-          # Ensure subdirectory exists (e.g. .github/)
-          FileUtils.mkdir_p(File.dirname(filepath))
-
-          content = serialize(fmt)
-
-          file_exists = File.exist?(filepath)
-          unchanged   = file_exists && File.read(filepath) == content
-          if !unchanged && (!file_exists || overwrite?(filepath))
-            File.write(filepath, content)
-            written << filepath
-          else
-            skipped << filepath
-          end
+          process_format(fmt, output_dir, timestamp_now, fingerprint, written, skipped)
         end
 
         generate_split_rules(formats, output_dir, written, skipped) if split_rules
@@ -74,6 +57,22 @@ module RailsAiBridge
       end
 
       private
+
+      # :reek:LongParameterList
+      # Processes a single format and writes or skips it.
+      def process_format(fmt, output_dir, timestamp_now, fingerprint, written, skipped)
+        filename = FORMAT_MAP[fmt]
+        unless filename
+          valid = FORMAT_MAP.keys.join(', ')
+          raise ArgumentError, "Unknown format: #{fmt}. Valid formats: #{valid}"
+        end
+
+        filepath = File.join(output_dir, filename)
+        FileUtils.mkdir_p(File.dirname(filepath))
+
+        writer = FreshnessWriter.new(fmt, serialize(fmt), fingerprint, timestamp_now)
+        writer.write_to(filepath, @conflict_policy, written, skipped)
+      end
 
       # @param filepath [String] candidate output path
       # @return [Boolean] +true+ when the file should be overwritten
@@ -100,6 +99,70 @@ module RailsAiBridge
         end
       end
 
+      # Encapsulates format-specific freshness metadata embedding and file write logic.
+      # Separating this from ContextFileSerializer removes ControlParameter and UtilityFunction
+      # reek warnings from the serializer (the fmt-branching now lives in the right class).
+      class FreshnessWriter
+        # @param fmt [Symbol] format key
+        # @param raw_content [String] serialized content before freshness embedding
+        # @param fingerprint [String] 12-char source fingerprint
+        # @param timestamp_now [String] ISO 8601 UTC timestamp
+        def initialize(fmt, raw_content, fingerprint, timestamp_now)
+          @fmt         = fmt
+          @raw_content = raw_content
+          @fingerprint = fingerprint
+          @timestamp_now = timestamp_now
+        end
+
+        # Writes the file to disk, skipping if unchanged or blocked by the conflict policy.
+        #
+        # @param filepath [String] output file path
+        # @param conflict_policy [ConflictPolicy] resolution strategy
+        # @param written [Array<String>] accumulator for written paths
+        # @param skipped [Array<String>] accumulator for skipped paths
+        # @return [void]
+        # :reek:LongParameterList
+        def write_to(filepath, conflict_policy, written, skipped)
+          existing_content = read_existing(filepath)
+          timestamp_to_use = resolve_timestamp(existing_content)
+          candidate = build_candidate_content(timestamp_to_use)
+
+          if skip?(filepath, existing_content, candidate, conflict_policy)
+            skipped << filepath
+          else
+            write_file(filepath, candidate, timestamp_to_use)
+            written << filepath
+          end
+        end
+
+        private
+
+        def read_existing(filepath)
+          File.exist?(filepath) ? File.read(filepath) : nil
+        end
+
+        def resolve_timestamp(existing_content)
+          return @timestamp_now unless existing_content
+
+          embedded_fp, embedded_ts = FreshnessHeader.extract_metadata_for(@fmt, existing_content)
+          embedded_fp == @fingerprint && embedded_ts ? embedded_ts : @timestamp_now
+        end
+
+        def build_candidate_content(timestamp)
+          FreshnessHeader.embed_for(@fmt, @raw_content, timestamp, @fingerprint)
+        end
+
+        def skip?(filepath, existing_content, candidate, conflict_policy)
+          existing_content && (existing_content == candidate || !conflict_policy.overwrite?(filepath))
+        end
+
+        def write_file(filepath, candidate, timestamp_to_use)
+          final_content = timestamp_to_use == @timestamp_now ? candidate : build_candidate_content(@timestamp_now)
+          File.write(filepath, final_content)
+        end
+      end
+      private_constant :FreshnessWriter
+
       # Normalizes conflict behavior for output files.
       class ConflictPolicy
         # @param strategy [:overwrite, :skip, :prompt, #call]
@@ -123,6 +186,10 @@ module RailsAiBridge
           @strategy = strategy
         end
 
+        # Determines whether to overwrite a file based on the configured strategy.
+        #
+        # @param _filepath [String] candidate file path (unused for built-in strategies)
+        # @return [Boolean] +true+ when :overwrite, +false+ when :skip
         def overwrite?(_filepath)
           case @strategy
           when :overwrite then true
@@ -133,11 +200,17 @@ module RailsAiBridge
 
       # Interactive conflict policy used only for explicit `on_conflict: :prompt`.
       class PromptConflictPolicy
+        # @param input [IO] input stream (defaults to $stdin)
+        # @param output [IO] output stream (defaults to $stdout)
         def initialize(input: $stdin, output: $stdout)
           @input = input
           @output = output
         end
 
+        # Prompts the user and returns +true+ only if they answer +y+.
+        #
+        # @param filepath [String] candidate file path
+        # @return [Boolean]
         def overwrite?(filepath)
           @output.print "  Overwrite #{filepath}? [y/N] "
           @output.flush
@@ -147,10 +220,15 @@ module RailsAiBridge
 
       # Adapter for user-provided conflict resolver objects.
       class CallableConflictPolicy
+        # @param callable [#call] callable object invoked with filepath
         def initialize(callable)
           @callable = callable
         end
 
+        # Delegates the overwrite decision to the wrapped callable.
+        #
+        # @param filepath [String] candidate file path
+        # @return [Boolean]
         def overwrite?(filepath)
           @callable.call(filepath)
         end
