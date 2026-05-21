@@ -41,12 +41,13 @@ module RailsAiBridge
 
           # Checks if a filename matches secret file patterns (case-insensitive .env and common key extensions).
           #
-          # @param basename [String] file basename
-          # @return [Boolean] +true+ if the file looks like a secret file
+          # `@param` basename [String] file basename
+          # `@return` [Boolean] +true+ if the file looks like a secret file
           def self.secret_file?(basename)
-            return true if basename.match?(/\A\.env/i)
+            normalized = basename.downcase
+            return true if normalized.start_with?('.env')
 
-            SECRET_EXTENSIONS.any? { |ext| basename.end_with?(ext) }
+            SECRET_EXTENSIONS.any? { |ext| normalized.end_with?(ext) }
           end
 
           private
