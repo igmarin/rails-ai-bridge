@@ -114,7 +114,7 @@ module RailsAiBridge
           value = future.value(timeout)
 
           if future.complete?
-            return { error: future.reason.message } if future.rejected?
+            return { error: future.reason&.message || future.reason.inspect } if future.rejected?
 
             value
           else

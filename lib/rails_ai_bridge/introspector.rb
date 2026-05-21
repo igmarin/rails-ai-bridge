@@ -174,9 +174,7 @@ module RailsAiBridge
     # @param name [Symbol]
     # @return [Object] introspector result or +{ error: String }+ on failure
     def run_single(name)
-      klass = config.additional_introspectors[name] || BUILTIN_INTROSPECTORS[name]
-      raise ConfigurationError, "Unknown introspector: #{name}" unless klass
-
+      klass = resolve_introspector_class(name)
       timed = TimedRunner.call(klass, app)
       Rails.logger.debug { "[rails-ai-bridge] #{name} introspection completed in #{timed[:duration_ms]}ms" }
       timed[:result]

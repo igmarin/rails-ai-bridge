@@ -88,16 +88,21 @@ RSpec.describe RailsAiBridge::RubydexAdapter do
       end
 
       it 'rejects path traversal in rubydex_index_path' do
-        RailsAiBridge.configuration.rubydex_index_path = '../../etc/evil'
-        captured_options = nil
-        allow(RailsAiBridge::RubydexAdapter::IncrementalIndexer).to receive(:call) do |_op, **opts|
-          captured_options = opts
-          success_result
+        orig = RailsAiBridge.configuration.rubydex_index_path
+        begin
+          RailsAiBridge.configuration.rubydex_index_path = '../../etc/evil'
+          captured_options = nil
+          allow(RailsAiBridge::RubydexAdapter::IncrementalIndexer).to receive(:call) do |_op, **opts|
+            captured_options = opts
+            success_result
+          end
+
+          adapter.index!
+
+          expect(captured_options[:index_path]).to be_nil
+        ensure
+          RailsAiBridge.configuration.rubydex_index_path = orig
         end
-
-        adapter.index!
-
-        expect(captured_options[:index_path]).to be_nil
       end
     end
   end

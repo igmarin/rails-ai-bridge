@@ -1,6 +1,22 @@
 # frozen_string_literal: true
 
 module RailsAiBridge
+  # Rails Engine that integrates +rails-ai-bridge+ into the host application.
+  #
+  # Registers two initializers that run as part of the normal Rails boot
+  # sequence:
+  #
+  # * +rails_ai_bridge.setup+ — exposes {RailsAiBridge.configuration} on
+  #   +Rails.application.config.rails_ai_bridge+ and, when
+  #   {Configuration#cache_warm_on_boot} is enabled, schedules a
+  #   {CacheWarmer.warm} call via +after_initialize+.
+  # * +rails_ai_bridge.middleware+ — validates the auto-mount configuration
+  #   and, when {Configuration#auto_mount} is +true+, inserts
+  #   {Middleware} into the Rack stack.
+  #
+  # The engine also defines a +rake_tasks+ block (loads
+  # +tasks/rails_ai_bridge.rake+) and a +generators+ block (loads the
+  # {RailsAiBridge::Generators::InstallGenerator}).
   class Engine < ::Rails::Engine
     # Register the MCP server after Rails finishes loading
     initializer 'rails_ai_bridge.setup', after: :load_config_initializers do |app|

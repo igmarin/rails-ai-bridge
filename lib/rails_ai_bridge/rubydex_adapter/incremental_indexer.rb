@@ -15,12 +15,15 @@ module RailsAiBridge
     # Optionally persists file mtimes to disk so change detection works
     # across process restarts.
     class IncrementalIndexer < RailsAiBridge::Service
+      # Filename used to persist the integer-second mtime snapshot on disk.
+      #
+      # @return [String]
       MTIMES_FILENAME = 'mtimes.json'
 
       # Entry point that creates an instance and dispatches the operation.
       #
       # @param operation [Symbol] +:build+ or +:reindex+
-      # @param kwargs [Hash] forwarded to {#call}
+      # @param options [Hash] forwarded to {#call}
       # @return [Service::Result]
       def self.call(operation, **)
         new.call(operation, **)
@@ -32,9 +35,9 @@ module RailsAiBridge
       # @param root [String] project root directory
       # @param graph [Rubydex::Graph, nil] existing graph (for +:reindex+)
       # @param file_mtimes [Hash<String, Time>] mtimes from last index
-      # @param threshold [Float] fallback threshold (0.0-1.0)
-      # @param persist [Boolean] whether to persist mtimes
-      # @param index_path [String, nil] directory for persistence
+      # @option options [Float] :threshold fallback rebuild threshold (0.0–1.0), default +0.3+
+      # @option options [Boolean] :persist whether to persist mtimes to disk, default +false+
+      # @option options [String, nil] :index_path directory for the mtime JSON file, default +nil+
       # @return [Service::Result] result with +graph+ and +file_mtimes+ in data
       # @raise [StandardError] rescued and returned as failure result
       def call(operation, root:, graph: nil, file_mtimes: {}, **options)
@@ -86,14 +89,14 @@ module RailsAiBridge
         rebuild = -> { build(root, threshold, persist, index_path) }
         return rebuild.call unless graph
 
-        changes = changed_files(root, file_mtimes)
+        files   = current_files(root)
+        changes = changed_files(files, file_mtimes)
         return Service::Result.new(true, data: { graph: graph, file_mtimes: file_mtimes }) if changes.empty?
 
-        total = current_files(root).size
-        return rebuild.call if threshold_exceeded?(changes.size, total, threshold)
+        return rebuild.call if threshold_exceeded?(changes.size, files.size, threshold)
 
-        apply_incremental_changes(graph, changes, root)
-        updated_mtimes = update_mtimes(file_mtimes, root, changes)
+        apply_incremental_changes(graph, changes, files)
+        updated_mtimes = update_mtimes(file_mtimes, files, changes)
         persist_mtimes(updated_mtimes, index_path) if persist && index_path
         Service::Result.new(true, data: { graph: graph, file_mtimes: updated_mtimes })
       end
@@ -103,10 +106,10 @@ module RailsAiBridge
       #
       # @param graph [Object] existing rubydex graph
       # @param changes [Array<String>] paths of added, modified, or removed files
-      # @param root [String] project root directory
+      # @param files [Array<String>] pre-computed list of current source files
       # @return [void]
-      def apply_incremental_changes(graph, changes, root)
-        current_set = current_files(root).to_set
+      def apply_incremental_changes(graph, changes, files)
+        current_set = files.to_set
 
         changes.each do |path|
           if current_set.include?(path)
@@ -150,15 +153,16 @@ module RailsAiBridge
       # Returns paths of files that were added, modified, or removed since the
       # last recorded snapshot.
       #
-      # @param root [String] project root directory
+      # When +file_mtimes+ is empty (no prior snapshot), treats every current
+      # file as modified so the incremental path still reaches the threshold
+      # check and triggers a full rebuild when appropriate.
+      #
+      # @param files [Array<String>] pre-computed list of current source files
       # @param file_mtimes [Hash<String, Integer>] recorded integer-second mtime map
       # @return [Array<String>] changed file paths
-      def changed_files(root, file_mtimes)
-        return [] if file_mtimes.empty?
-
-        current = current_files(root)
-        modified = find_modified_files(current, file_mtimes)
-        removed = file_mtimes.keys - current
+      def changed_files(files, file_mtimes)
+        modified = find_modified_files(files, file_mtimes)
+        removed = file_mtimes.keys - files
         modified.concat(removed)
       end
 
@@ -206,11 +210,11 @@ module RailsAiBridge
       # Removed files are dropped; added/modified files get a fresh mtime.
       #
       # @param file_mtimes [Hash<String, Integer>] existing mtime map
-      # @param root [String] project root directory
+      # @param files [Array<String>] pre-computed list of current source files
       # @param changes [Array<String>] paths that changed
       # @return [Hash<String, Integer>] updated mtime map
-      def update_mtimes(file_mtimes, root, changes)
-        current = current_files(root).to_set
+      def update_mtimes(file_mtimes, files, changes)
+        current = files.to_set
         updated = file_mtimes.dup
 
         changes.each do |path|

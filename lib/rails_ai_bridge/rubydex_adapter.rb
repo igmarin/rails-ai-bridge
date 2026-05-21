@@ -269,15 +269,22 @@ module RailsAiBridge
 
     # Resolves and validates a configured index path against +@root+.
     #
+    # Accepts the path only when it is +root+ itself or a strict descendant
+    # (separated by +File::SEPARATOR+), preventing sibling-path bypasses such
+    # as +/tmp/root-evil+ matching a prefix check against +/tmp/root+.
+    #
     # @param configured [String, nil] raw configured path (relative or absolute)
     # @return [String, nil] cleaned absolute path, or +nil+ if unsafe/absent
     def sanitize_index_path(configured)
       return nil unless configured
 
-      root_pn      = Pathname(@root).cleanpath
-      resolved_str = root_pn.join(configured).cleanpath.to_s
+      root_pn     = Pathname(@root).cleanpath
+      resolved_pn = root_pn.join(configured).cleanpath
 
-      resolved_str.start_with?(root_pn.to_s) ? resolved_str : nil
+      inside_root = resolved_pn == root_pn ||
+                    resolved_pn.to_s.start_with?(root_pn.to_s + File::SEPARATOR)
+
+      inside_root ? resolved_pn.to_s : nil
     end
 
     # Applies a {Service::Result} from {IncrementalIndexer} to instance state.
