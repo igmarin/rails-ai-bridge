@@ -22,6 +22,8 @@ detectors:
     - RailsAiBridge::Config::Introspection#snapshot_ttl
     - RailsAiBridge::Config::Introspection#cache_warm_on_boot
     - RailsAiBridge::Config::Introspection#parallel_introspection
+    - RailsAiBridge::Config::Introspection#parallel_pool_size
+    - RailsAiBridge::Config::Introspection#parallel_timeout_seconds
     - RailsAiBridge::Fingerprinter::CachedSnapshot#snapshot_ttl
     - RailsAiBridge::Config::Mcp#authorize
     - RailsAiBridge::Config::Mcp#http_log_json
@@ -99,6 +101,8 @@ detectors:
     - RailsAiBridge::HttpTransportApp#build
     - RailsAiBridge::Introspector#app_name
     - RailsAiBridge::Introspector#call
+    - RailsAiBridge::Introspector::ParallelRunner#resolve_future
+    - RailsAiBridge::Introspector::TimedRunner#self.call
     - RailsAiBridge::RubydexAdapter::IncrementalIndexer#reindex
     - RailsAiBridge::Introspectors::ActiveStorageIntrospector#extract_attachments
     - RailsAiBridge::Introspectors::ControllerIntrospector#call
@@ -538,6 +542,10 @@ detectors:
     - RailsAiBridge::Generators::InstallGenerator#show_instructions
     - RailsAiBridge::HttpTransportApp#build
     - RailsAiBridge::Introspector#call
+    - RailsAiBridge::Introspector#run_single
+    - RailsAiBridge::Introspector::ParallelRunner#call
+    - RailsAiBridge::Introspector::ParallelRunner#resolve_future
+    - RailsAiBridge::Introspector::TimedRunner#self.call
     - RailsAiBridge::Introspectors::ActionMailboxIntrospector#extract_mailboxes
     - RailsAiBridge::Introspectors::ActionTextIntrospector#extract_rich_text_fields
     - RailsAiBridge::Introspectors::ActiveStorageIntrospector#detect_direct_upload

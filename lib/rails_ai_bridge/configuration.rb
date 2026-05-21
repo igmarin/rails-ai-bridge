@@ -98,6 +98,8 @@ module RailsAiBridge
                    :snapshot_ttl, :snapshot_ttl=,
                    :cache_warm_on_boot, :cache_warm_on_boot=,
                    :parallel_introspection, :parallel_introspection=,
+                   :parallel_pool_size, :parallel_pool_size=,
+                   :parallel_timeout_seconds, :parallel_timeout_seconds=,
                    :preset=, :preset,
                    :effective_introspectors,
                    :excluded_table?
