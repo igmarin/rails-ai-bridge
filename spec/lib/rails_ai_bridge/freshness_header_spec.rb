@@ -60,4 +60,49 @@ RSpec.describe RailsAiBridge::FreshnessHeader do
       end
     end
   end
+
+  describe 'format-dispatching methods' do
+    let(:json_content) { '{"data":"value"}' }
+    let(:embedded_json) { described_class.embed_for(:json, json_content, timestamp, fingerprint) }
+
+    describe '.embed_for' do
+      it 'embeds into json when format is :json' do
+        expect(JSON.parse(embedded_json)['_meta']).to include(
+          'generated_at' => timestamp,
+          'source_fingerprint' => fingerprint
+        )
+      end
+
+      it 'falls back to html comment for non-json formats' do
+        result = described_class.embed_for(:claude, content, timestamp, fingerprint)
+        expect(result).to start_with("<!-- Generated at: #{timestamp}")
+      end
+    end
+
+    describe '.extract_metadata_for' do
+      it 'extracts from json when format is :json' do
+        expect(described_class.extract_metadata_for(:json, embedded_json)).to eq([fingerprint, timestamp])
+      end
+
+      it 'returns nils for invalid json' do
+        expect(described_class.extract_metadata_for(:json, 'invalid')).to eq([nil, nil])
+      end
+
+      it 'extracts from html comment for non-json formats' do
+        embedded_md = described_class.embed_for(:claude, content, timestamp, fingerprint)
+        expect(described_class.extract_metadata_for(:claude, embedded_md)).to eq([fingerprint, timestamp])
+      end
+    end
+
+    describe '.extract_fingerprint_for' do
+      it 'extracts from json when format is :json' do
+        expect(described_class.extract_fingerprint_for(:json, embedded_json)).to eq(fingerprint)
+      end
+
+      it 'extracts from html comment for non-json formats' do
+        embedded_md = described_class.embed_for(:claude, content, timestamp, fingerprint)
+        expect(described_class.extract_fingerprint_for(:claude, embedded_md)).to eq(fingerprint)
+      end
+    end
+  end
 end

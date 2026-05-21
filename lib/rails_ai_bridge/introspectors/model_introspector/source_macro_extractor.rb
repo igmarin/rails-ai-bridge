@@ -43,20 +43,22 @@ module RailsAiBridge
           {}
         end
 
+        private
+
         # Builds the full macros hash by dispatching to all category collectors.
         #
         # @return [Hash] detected macros with empty arrays removed
         def build_macros
           macros = {}
           populate_macros(macros)
-          self.class.filter_empty_arrays(macros)
+          filter_empty_arrays(macros)
         end
 
         # Removes entries whose values are empty arrays.
         #
         # @param macros [Hash] raw macros hash
         # @return [Hash] filtered hash
-        def self.filter_empty_arrays(macros)
+        def filter_empty_arrays(macros)
           macros.compact.reject { |_, value| value.is_a?(Array) && value.empty? }
         end
 
@@ -73,8 +75,6 @@ module RailsAiBridge
           add_serialization_macros(macros)
           add_delegation_macros(macros)
         end
-
-        private
 
         attr_reader :source
 

@@ -72,7 +72,7 @@ module RailsAiBridge
 
         def call
           results = []
-          regex = Regexp.new(@params.pattern, Regexp::IGNORECASE)
+          regex = Regexp.new(@params.pattern, Regexp::IGNORECASE, timeout: 2)
           processor = FileProcessor.new(regex, results, @params.max_results, @params.root)
 
           Dir.glob(ruby_glob).each do |file|

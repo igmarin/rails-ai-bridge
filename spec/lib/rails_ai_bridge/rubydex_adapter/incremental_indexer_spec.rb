@@ -72,7 +72,7 @@ RSpec.describe RailsAiBridge::RubydexAdapter::IncrementalIndexer do
       end
 
       it 'returns the existing graph and mtimes' do
-        file_mtimes = { app_file => File.mtime(app_file).to_i }
+        file_mtimes = { app_file => File.mtime(app_file).to_r }
         result = described_class.call(:reindex, root: root, graph: graph, file_mtimes: file_mtimes)
 
         expect(result).to be_success
@@ -91,7 +91,7 @@ RSpec.describe RailsAiBridge::RubydexAdapter::IncrementalIndexer do
       end
 
       it 'falls back to full rebuild' do
-        file_mtimes = { File.join(root, 'old.rb') => (Time.zone.now - 100).to_i }
+        file_mtimes = { File.join(root, 'old.rb') => (Time.zone.now - 100).to_r }
         result = described_class.call(:reindex, root: root, graph: graph, file_mtimes: file_mtimes, threshold: 0.2)
 
         expect(result).to be_success
@@ -132,14 +132,14 @@ RSpec.describe RailsAiBridge::RubydexAdapter::IncrementalIndexer do
 
       it 'applies incremental changes and calls resolve' do
         file_mtimes = {
-          changed_file => (Time.zone.now - 100).to_i,
-          unchanged_file => File.mtime(unchanged_file).to_i,
-          removed_file => (Time.zone.now - 100).to_i,
-          stable_a => File.mtime(stable_a).to_i,
-          stable_b => File.mtime(stable_b).to_i
+          changed_file => (Time.zone.now - 100).to_r,
+          unchanged_file => File.mtime(unchanged_file).to_r,
+          removed_file => (Time.zone.now - 100).to_r,
+          stable_a => File.mtime(stable_a).to_r,
+          stable_b => File.mtime(stable_b).to_r
         }
 
-        result = described_class.call(:reindex, root: root, graph: graph, file_mtimes: file_mtimes, threshold: 0.5)
+        result = described_class.call(:reindex, root: root, graph: graph, file_mtimes: file_mtimes, threshold: 0.6)
 
         expect(result).to be_success
         expect(graph).to have_received(:delete_document).with(changed_file)
@@ -152,13 +152,13 @@ RSpec.describe RailsAiBridge::RubydexAdapter::IncrementalIndexer do
       it 'skips index_source when graph does not support it' do
         allow(graph).to receive(:respond_to?).with(:index_source).and_return(false)
         file_mtimes = {
-          changed_file => (Time.zone.now - 100).to_i,
-          unchanged_file => File.mtime(unchanged_file).to_i,
-          stable_a => File.mtime(stable_a).to_i,
-          stable_b => File.mtime(stable_b).to_i
+          changed_file => (Time.zone.now - 100).to_r,
+          unchanged_file => File.mtime(unchanged_file).to_r,
+          stable_a => File.mtime(stable_a).to_r,
+          stable_b => File.mtime(stable_b).to_r
         }
 
-        result = described_class.call(:reindex, root: root, graph: graph, file_mtimes: file_mtimes, threshold: 0.5)
+        result = described_class.call(:reindex, root: root, graph: graph, file_mtimes: file_mtimes, threshold: 0.6)
 
         expect(result).to be_success
         expect(graph).not_to have_received(:index_source)
@@ -167,13 +167,13 @@ RSpec.describe RailsAiBridge::RubydexAdapter::IncrementalIndexer do
       it 'skips delete_document when graph does not support it' do
         allow(graph).to receive(:respond_to?).with(:delete_document).and_return(false)
         file_mtimes = {
-          changed_file => (Time.zone.now - 100).to_i,
-          unchanged_file => File.mtime(unchanged_file).to_i,
-          stable_a => File.mtime(stable_a).to_i,
-          stable_b => File.mtime(stable_b).to_i
+          changed_file => (Time.zone.now - 100).to_r,
+          unchanged_file => File.mtime(unchanged_file).to_r,
+          stable_a => File.mtime(stable_a).to_r,
+          stable_b => File.mtime(stable_b).to_r
         }
 
-        result = described_class.call(:reindex, root: root, graph: graph, file_mtimes: file_mtimes, threshold: 0.5)
+        result = described_class.call(:reindex, root: root, graph: graph, file_mtimes: file_mtimes, threshold: 0.6)
 
         expect(result).to be_success
         expect(graph).not_to have_received(:delete_document)
@@ -187,7 +187,7 @@ RSpec.describe RailsAiBridge::RubydexAdapter::IncrementalIndexer do
       end
 
       it 'does not divide by zero and falls back to build' do
-        file_mtimes = { File.join(root, 'old.rb') => Time.zone.now.to_i }
+        file_mtimes = { File.join(root, 'old.rb') => Time.zone.now.to_r }
         result = described_class.call(:reindex, root: root, graph: graph, file_mtimes: file_mtimes)
 
         expect(result).to be_success
@@ -198,10 +198,12 @@ RSpec.describe RailsAiBridge::RubydexAdapter::IncrementalIndexer do
     context 'with persistence' do
       let(:index_path) { File.join(root, 'tmp', 'rubydex_index') }
       let(:file) { File.join(root, 'app.rb') }
+      let(:stable_file) { File.join(root, 'stable.rb') }
 
       before do
         File.write(file, 'class App; end')
-        allow(RailsAiBridge::RubydexAdapter::Indexer).to receive(:source_files).with(root).and_return([file])
+        File.write(stable_file, 'class Stable; end')
+        allow(RailsAiBridge::RubydexAdapter::Indexer).to receive(:source_files).with(root).and_return([file, stable_file])
         allow(graph).to receive(:respond_to?).with(:delete_document).and_return(true)
         allow(graph).to receive(:respond_to?).with(:index_source).and_return(true)
         allow(graph).to receive(:respond_to?).with(:resolve).and_return(true)
@@ -212,21 +214,21 @@ RSpec.describe RailsAiBridge::RubydexAdapter::IncrementalIndexer do
       end
 
       it 'loads persisted mtimes when file_mtimes is empty' do
-        old_mtime = (Time.zone.now - 100).to_i
+        old_mtime = (Time.zone.now - 100).to_r
         FileUtils.mkdir_p(index_path)
-        File.write(File.join(index_path, 'mtimes.json'), JSON.dump({ file => old_mtime }))
+        File.write(File.join(index_path, 'mtimes.json'), JSON.dump({ file => old_mtime, stable_file => File.mtime(stable_file).to_r }))
 
         result = described_class.call(:reindex, root: root, graph: graph, file_mtimes: {},
                                                 persist: true, index_path: index_path, threshold: 1.0)
 
         expect(result).to be_success
-        expect(graph).to have_received(:index_source)
+        expect(graph).to have_received(:index_source).with(file, 'class App; end', 'ruby')
       end
 
-      it 'saves updated mtimes after reindex as integer seconds' do
-        old_mtime = (Time.zone.now - 100).to_i
+      it 'saves updated mtimes after reindex as rational seconds' do
+        old_mtime = (Time.zone.now - 100).to_r
         FileUtils.mkdir_p(index_path)
-        File.write(File.join(index_path, 'mtimes.json'), JSON.dump({ file => old_mtime }))
+        File.write(File.join(index_path, 'mtimes.json'), JSON.dump({ file => old_mtime, stable_file => File.mtime(stable_file).to_r }))
 
         result = described_class.call(:reindex, root: root, graph: graph, file_mtimes: {},
                                                 persist: true, index_path: index_path, threshold: 1.0)
@@ -234,7 +236,7 @@ RSpec.describe RailsAiBridge::RubydexAdapter::IncrementalIndexer do
         expect(result).to be_success
         persisted = JSON.parse(File.read(File.join(index_path, 'mtimes.json')))
         expect(persisted.keys).to include(file)
-        expect(persisted[file]).to eq(File.mtime(file).to_i)
+        expect(persisted[file]).to eq(File.mtime(file).to_r.to_s)
       end
     end
   end

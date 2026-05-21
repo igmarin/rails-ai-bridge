@@ -48,6 +48,38 @@ RSpec.describe RailsAiBridge::RubydexAdapter do
     end
   end
 
+  describe '#sanitize_index_path' do
+    it 'returns nil for nil input' do
+      expect(adapter.send(:sanitize_index_path, nil)).to be_nil
+    end
+
+    it 'allows paths inside the root' do
+      expect(adapter.send(:sanitize_index_path, 'tmp/rubydex')).to end_with('tmp/rubydex')
+    end
+
+    it 'returns nil for path traversal outside the root' do
+      expect(adapter.send(:sanitize_index_path, '../outside_dir')).to be_nil
+      expect(adapter.send(:sanitize_index_path, 'tmp/../../etc/passwd')).to be_nil
+    end
+
+    it 'returns nil if the path traverses outside via symlinks' do
+      Dir.mktmpdir do |temp|
+        root_dir = File.join(temp, 'root')
+        outside_dir = File.join(temp, 'outside')
+        FileUtils.mkdir_p(root_dir)
+        FileUtils.mkdir_p(outside_dir)
+
+        # Create a symlink inside root pointing outside
+        symlink_path = File.join(root_dir, 'symlinked')
+        File.symlink(outside_dir, symlink_path)
+
+        local_adapter = described_class.new(root_dir)
+        # Attempt to access the symlink
+        expect(local_adapter.send(:sanitize_index_path, 'symlinked')).to be_nil
+      end
+    end
+  end
+
   describe '#index!' do
     it 'does nothing if already indexed' do
       adapter.instance_variable_set(:@indexed, true)

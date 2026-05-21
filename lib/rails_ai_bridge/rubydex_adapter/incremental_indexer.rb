@@ -34,7 +34,7 @@ module RailsAiBridge
       # @param operation [Symbol] +:build+ or +:reindex+
       # @param root [String] project root directory
       # @param graph [Rubydex::Graph, nil] existing graph (for +:reindex+)
-      # @param file_mtimes [Hash<String, Time>] mtimes from last index
+      # @param file_mtimes [Hash<String, Rational>] mtimes from last index
       # @option options [Float] :threshold fallback rebuild threshold (0.0–1.0), default +0.3+
       # @option options [Boolean] :persist whether to persist mtimes to disk, default +false+
       # @option options [String, nil] :index_path directory for the mtime JSON file, default +nil+
@@ -55,6 +55,7 @@ module RailsAiBridge
         end
       rescue StandardError => error
         log_error(operation, error)
+        Rails.logger.debug error.backtrace
         Service::Result.new(false, errors: ["#{self.class} #{operation} failed: #{error.message}"])
       end
 
@@ -79,7 +80,7 @@ module RailsAiBridge
       #
       # @param root [String] project root directory
       # @param graph [Object, nil] existing rubydex graph; +nil+ forces a full build
-      # @param file_mtimes [Hash<String, Integer>] previously recorded integer-second mtimes
+      # @param file_mtimes [Hash<String, Rational>] previously recorded rational mtimes
       # @param threshold [Float] change fraction above which a full rebuild is triggered
       # @param persist [Boolean] whether to load/save mtimes to disk
       # @param index_path [String, nil] directory for the JSON mtime file
@@ -158,7 +159,7 @@ module RailsAiBridge
       # check and triggers a full rebuild when appropriate.
       #
       # @param files [Array<String>] pre-computed list of current source files
-      # @param file_mtimes [Hash<String, Integer>] recorded integer-second mtime map
+      # @param file_mtimes [Hash<String, Rational>] recorded rational mtime map
       # @return [Array<String>] changed file paths
       def changed_files(files, file_mtimes)
         modified = find_modified_files(files, file_mtimes)
@@ -169,7 +170,7 @@ module RailsAiBridge
       # Returns files whose integer-second mtime differs from the snapshot.
       #
       # @param current_files [Array<String>] current source file paths
-      # @param file_mtimes [Hash<String, Integer>] recorded integer-second mtime map
+      # @param file_mtimes [Hash<String, Rational>] recorded rational mtime map
       # @return [Array<String>]
       def find_modified_files(current_files, file_mtimes)
         current_files.reject do |path|
@@ -195,7 +196,7 @@ module RailsAiBridge
       def threshold_exceeded?(changed_count, total_count, threshold)
         return true if total_count.zero? && changed_count.positive?
 
-        changed_count.to_f / total_count > threshold
+        changed_count.to_f / total_count >= threshold
       end
 
       # Builds an integer-second mtime snapshot for all current source files.
@@ -209,7 +210,7 @@ module RailsAiBridge
       # Returns an updated mtime map that reflects the given set of changes.
       # Removed files are dropped; added/modified files get a fresh mtime.
       #
-      # @param file_mtimes [Hash<String, Integer>] existing mtime map
+      # @param file_mtimes [Hash<String, Rational>] existing mtime map
       # @param files [Array<String>] pre-computed list of current source files
       # @param changes [Array<String>] paths that changed
       # @return [Hash<String, Integer>] updated mtime map
@@ -235,14 +236,14 @@ module RailsAiBridge
       # @param path [String] absolute file path
       # @return [Integer, nil] +nil+ if the file no longer exists
       def file_mtime(path)
-        File.mtime(path).to_i
+        File.mtime(path).to_r
       rescue Errno::ENOENT
         nil
       end
 
       # Writes the mtime map as JSON to disk, creating the directory if needed.
       #
-      # @param file_mtimes [Hash<String, Integer>] integer-second mtime map
+      # @param file_mtimes [Hash<String, Rational>] rational mtime map
       # @param index_path [String, nil] target directory; no-op if +nil+
       # @return [void]
       def persist_mtimes(file_mtimes, index_path)
@@ -281,10 +282,10 @@ module RailsAiBridge
       # Converts the mtime map to a JSON-safe hash of integer seconds.
       # Integer seconds round-trip losslessly through JSON, unlike floats.
       #
-      # @param file_mtimes [Hash<String, Integer>]
+      # @param file_mtimes [Hash<String, Rational>]
       # @return [Hash<String, Integer>]
       def serialize_mtimes(file_mtimes)
-        file_mtimes.transform_values { |time| time&.to_i }
+        file_mtimes.transform_values { |time| time&.to_r }
       end
 
       # Parses the raw JSON hash back to an integer-second mtime map.
@@ -293,7 +294,7 @@ module RailsAiBridge
       # @return [Hash<String, Integer>]
       def deserialize_mtimes(content)
         json = JSON.parse(content).compact
-        json.transform_values { |timestamp| timestamp&.to_i }
+        json.transform_values { |timestamp| timestamp&.to_r }
       end
 
       # Logs an error via Rails.logger when available.
@@ -302,6 +303,7 @@ module RailsAiBridge
       # @param error [StandardError] the raised exception
       # @return [void]
       def log_error(operation, error)
+        Rails.logger.debug error.backtrace
         logger = defined?(Rails) && Rails.respond_to?(:logger) ? Rails.logger : nil
         return unless logger
 

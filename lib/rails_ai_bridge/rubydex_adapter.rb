@@ -278,11 +278,17 @@ module RailsAiBridge
     def sanitize_index_path(configured)
       return nil unless configured
 
-      root_pn     = Pathname(@root).cleanpath
-      resolved_pn = root_pn.join(configured).cleanpath
+      root_pn     = Pathname(@root).realpath
+      resolved_pn = root_pn.join(configured).expand_path
 
-      inside_root = resolved_pn == root_pn ||
-                    resolved_pn.to_s.start_with?(root_pn.to_s + File::SEPARATOR)
+      begin
+        target_pn = resolved_pn.exist? ? resolved_pn.realpath : resolved_pn.parent.realpath
+      rescue Errno::ENOENT
+        return nil
+      end
+
+      inside_root = target_pn == root_pn ||
+                    target_pn.to_s.start_with?(root_pn.to_s + File::SEPARATOR)
 
       inside_root ? resolved_pn.to_s : nil
     end
