@@ -41,5 +41,27 @@ RSpec.describe RailsAiBridge::Introspectors::ModelIntrospector::AssociationExtra
       expect(detail[:through]).to eq('user_posts')
       expect(detail[:dependent]).to eq('destroy')
     end
+
+    it 'handles associations with empty options gracefully' do
+      assoc = double('Association', name: :comments, macro: :has_many, class_name: 'Comment', foreign_key: 'post_id', options: {})
+      allow(model).to receive(:reflect_on_all_associations).and_return([assoc])
+
+      result = extractor.call.first
+      expect(result[:name]).to eq('comments')
+      expect(result).not_to have_key(:polymorphic)
+      expect(result).not_to have_key(:through)
+    end
+
+    it 'handles multiple associations' do
+      assoc1 = double('Association', name: :comments, macro: :has_many, class_name: 'Comment', foreign_key: 'post_id', options: {})
+      assoc2 = double('Association', name: :author, macro: :belongs_to, class_name: 'User', foreign_key: 'author_id', options: { optional: true })
+      allow(model).to receive(:reflect_on_all_associations).and_return([assoc1, assoc2])
+
+      result = extractor.call
+      expect(result.size).to eq(2)
+      expect(result.first[:name]).to eq('comments')
+      expect(result.last[:name]).to eq('author')
+      expect(result.last[:optional]).to be(true)
+    end
   end
 end

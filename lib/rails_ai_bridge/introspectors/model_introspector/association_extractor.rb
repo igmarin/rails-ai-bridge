@@ -11,11 +11,15 @@ module RailsAiBridge
       class AssociationExtractor
         # Builds hash details for a single ActiveRecord association.
         class DetailBuilder
+          # @param assoc [ActiveRecord::Reflection::MacroReflection] association reflection
           def initialize(assoc)
             @assoc = assoc
             @opts = assoc.options
           end
 
+          # Builds the association details hash by combining base metadata and options.
+          #
+          # @return [Hash] the extracted association details
           def build
             base_detail.merge(association_options).compact
           end

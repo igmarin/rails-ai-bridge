@@ -46,8 +46,10 @@ module RailsAiBridge
           futures  = schedule_futures(introspectors, app, pool)
           collect_results(futures, timeout)
         ensure
-          pool&.shutdown
-          pool&.wait_for_termination(timeout || 10)
+          if pool
+            pool.shutdown
+            pool.kill unless pool.wait_for_termination(timeout || 10)
+          end
         end
 
         # Returns +true+ when parallel execution is safe to use.
@@ -84,7 +86,7 @@ module RailsAiBridge
             future = Concurrent::Future.execute(executor: pool) do
               klass.new(app).call
             ensure
-              ActiveRecord::Base.connection_handler.clear_active_connections! if defined?(ActiveRecord::Base)
+              ActiveRecord::Base.connection_pool.release_connection if defined?(ActiveRecord::Base)
             end
             [name, future]
           end

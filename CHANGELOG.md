@@ -5,69 +5,70 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.4.0] - 2026-05-21
 
 ### Added
 
-- **`TimedRunner` — per-introspector wall-clock timing** — new `RailsAiBridge::Introspector::TimedRunner.call(klass, app)` value object wraps any introspector class and returns `{ result:, duration_ms: }`. Uses `Process.clock_gettime(CLOCK_MONOTONIC)` for accurate measurement regardless of system clock adjustments. Duration is recorded even when the introspector raises, so you can diagnose slow-then-failing classes. Sequential runs now log duration at `debug` level via `Rails.logger.debug`.
-- **Config-driven `ParallelRunner` pool size** — `config.parallel_pool_size` (default `4`) sets the upper bound for the `Concurrent::FixedThreadPool`; the actual size is `min(introspector_count, pool_size)` so no idle threads are ever created.
-- **Per-future timeout for parallel introspection** — `config.parallel_timeout_seconds` (default `10`) is enforced on each `Concurrent::Future` via `future.value(timeout)`. Introspectors that exceed their budget are cancelled and return `{ error: "timed out after Ns" }` without blocking the rest of the pool. The pool's `wait_for_termination` also uses this value.
-- **Rubydex incremental indexing** — new `RailsAiBridge::RubydexAdapter::IncrementalIndexer` service skips unchanged files on re-index using mtime tracking (integer seconds, no IEEE 754 precision loss). A full rebuild is triggered when the ratio of changed files exceeds `config.rubydex_incremental_threshold` (default `0.3`). The mtime snapshot can optionally survive process restarts via `config.rubydex_persist_index` (default `false`).
-- **`config.rubydex_incremental_threshold`** (default `0.3`) — ratio of changed-to-total files above which the incremental indexer falls back to a full rebuild.
-- **`config.rubydex_persist_index`** (default `false`) — when `true`, the rubydex mtime snapshot is written to disk alongside the index so incremental re-indexing survives process restarts.
-- **Path-traversal guard for rubydex index path** — `RubydexAdapter#indexer_options` now sanitises `config.rubydex_index_path` through a `Pathname#cleanpath` + root-prefix check, returning `nil` (and falling back to the default) for any path that escapes `Rails.root`.
+- **`TimedRunner` — per-introspector wall-clock timing** (#36) — new `RailsAiBridge::Introspector::TimedRunner.call(klass, app)` value object wraps any introspector class and returns `{ result:, duration_ms: }`. Uses `Process.clock_gettime(CLOCK_MONOTONIC)` for accurate measurement regardless of system clock adjustments. Duration is recorded even when the introspector raises, so you can diagnose slow-then-failing classes. Sequential runs now log duration at `debug` level via `Rails.logger.debug`.
+- **Config-driven `ParallelRunner` pool size** (#36) — `config.parallel_pool_size` (default `4`) sets the upper bound for the `Concurrent::FixedThreadPool`; the actual size is `min(introspector_count, pool_size)` so no idle threads are ever created.
+- **Per-future timeout for parallel introspection** (#36) — `config.parallel_timeout_seconds` (default `10`) is enforced on each `Concurrent::Future` via `future.value(timeout)`. Introspectors that exceed their budget are cancelled and return `{ error: "timed out after Ns" }` without blocking the rest of the pool. The pool's `wait_for_termination` also uses this value.
+- **Rubydex incremental indexing** (#38) — new `RailsAiBridge::RubydexAdapter::IncrementalIndexer` service skips unchanged files on re-index using mtime tracking (integer seconds, no IEEE 754 precision loss). A full rebuild is triggered when the ratio of changed files exceeds `config.rubydex_incremental_threshold` (default `0.3`). The mtime snapshot can optionally survive process restarts via `config.rubydex_persist_index` (default `false`).
+- **`config.rubydex_incremental_threshold`** (#38) (default `0.3`) — ratio of changed-to-total files above which the incremental indexer falls back to a full rebuild.
+- **`config.rubydex_persist_index`** (#38) (default `false`) — when `true`, the rubydex mtime snapshot is written to disk alongside the index so incremental re-indexing survives process restarts.
+- **Path-traversal guard for rubydex index path** (#38) — `RubydexAdapter#indexer_options` now sanitises `config.rubydex_index_path` through a `Pathname#cleanpath` + root-prefix check, returning `nil` (and falling back to the default) for any path that escapes `Rails.root`.
+- **Bridge file freshness stamps** (#37) — generated bridge files (CLAUDE.md, AGENTS.md, GEMINI.md, .cursorrules, etc.) now embed a freshness header containing the generation timestamp, a 12-character source fingerprint (SHA-256 of `db/schema.rb` + `config/routes.rb`), and the gem version. Files are skipped on re-generation when their fingerprint matches, eliminating unnecessary timestamps and noisy git diffs.
+- **`Fingerprinter.source_fingerprint`** (#37) — new singleton method that hashes the app's schema and routes files into a compact 12-char hex fingerprint used by the freshness system.
+
+### Fixed (Security & Architecture Audit)
+
+- **ReDoS Vulnerability in `RubySearch`** — Added a 2-second timeout to the `Regexp.new` engine to prevent catastrophic backtracking denial-of-service on malicious search patterns.
+- **Path Traversal via Symlinks in `RubydexAdapter`** — `sanitize_index_path` now uses `Pathname#realpath` to strictly validate that the configured index path resolves safely inside the `Rails.root` boundary.
+- **TOCTOU Race Condition in `IncrementalIndexer`** — Upgraded mtime tracking from integer seconds (`to_i`) to rational (`to_r`) for precise sub-second caching, preventing scenarios where high-frequency file modifications within the same second bypassed change detection.
+- **Threshold Edge Case in `IncrementalIndexer`** — Changed the rebuild cutoff comparison from `>` to `>=` so that precise boundary thresholds (like 100% of files) trigger full rebuilds correctly.
+- **Memory Leaks & Exhaustion in `ParallelRunner`** — Replaced deprecated `clear_active_connections!` with `connection_pool.release_connection`, and explicitly added `pool.kill` to forcefully shut down long-running threads on timeouts.
+- **State Leakage in Extractors** — Refactored `FilterExtractor`, `AssociationExtractor`, and `SourceMacroExtractor` to eliminate shared mutable state, establishing purely functional object APIs and tightening private encapsulation.
+- **`db/structure.sql` fallback** (#37) — `source_fingerprint` automatically falls back to `db/structure.sql` when `db/schema.rb` is absent (apps using SQL schema format are now supported).
+- **`FreshnessHeader` module** (#37) — centralized utility for embedding and extracting freshness metadata from bridge files. Supports both Markdown (HTML comment header) and JSON (`_meta` object) formats, with backward-compatible parsing of older files that lack the gem-version field.
+- **Bridge freshness Doctor check** (#37) — a new `BridgeFreshnessChecker` is registered with the `Doctor` service. It reports stale bridge files (fingerprint mismatch) or missing bridge files as `:warn`, and fresh files as `:pass`. The Doctor now runs 16 total checks.
+- **`rails ai:check` rake task** (#37) — runs all diagnostic checks and exits with code `1` if any check fails, enabling straightforward CI/CD integration (e.g., `rails ai:check || exit 1`).
+- **`CHECK=1` pre-generation guard** (#37) — pass `CHECK=1` to `rails ai:bridge` (or any bridge sub-task) to run Doctor diagnostics first; generation is aborted if any check fails.
+- **`RailsAiBridge::RakeHelpers` module** (#37) — extracted top-level rake helper methods (`print_result`, `apply_context_mode_override`, `conflict_strategy`, `run_pre_generation_checks`) from global `Object` scope into a properly namespaced module.
+- **`CacheWarmer` & `CachedSnapshot`** (#36) — implemented TTL-based thread-safe caching system with `config.cache_warm_on_boot` to preemptively load context into memory on application start.
 
 ### Changed
 
-- **`Introspector#run_single`** — sequential execution is now routed through `TimedRunner` instead of a bare `rescue` block. Error handling behaviour is unchanged (`{ error: message }`), but every introspector call now produces a debug-level duration log entry.
-- **`ParallelRunner#resolve_future`** — uses `future.value(timeout)` + `future.complete?` check instead of blocking `future.value!`. A `nil` return from a timed-out future is no longer misinterpreted as a successful result.
-- **`ParallelRunner` pool shutdown** — `wait_for_termination` now uses `config.parallel_timeout_seconds` instead of a hardcoded `10`.
-- **`RubydexAdapter#handle_index_result`** — on `:reindex!` failure, existing `@graph` and `@indexed` state is preserved rather than reset to `nil`/`false`, preventing a full context blackout on transient indexing errors.
-- **Integer mtimes throughout `IncrementalIndexer`** — `serialize_mtimes`, `deserialize_mtimes`, and `file_mtime` now all operate in integer seconds (`Time#to_i`) to avoid IEEE 754 floating-point comparison drift.
-
-### Tests
-
-- Added **20 new examples** covering:
-  - `TimedRunner` — result forwarding, error capture, monotonic duration, error-path duration
-  - `ParallelRunner` — config-driven pool size, per-future timeout, pool shutdown, mixed success/failure, `available?` with pool-size and missing-constant edge cases
-  - `Introspector` — sequential `TimedRunner` wiring (plain result, no `duration_ms` envelope), error capture in sequential mode, debug log assertion
-- **Total: 1,734 examples, 0 failures, 94.55% line coverage**
-
-- **Bridge file freshness stamps** — generated bridge files (CLAUDE.md, AGENTS.md, GEMINI.md, .cursorrules, etc.) now embed a freshness header containing the generation timestamp, a 12-character source fingerprint (SHA-256 of `db/schema.rb` + `config/routes.rb`), and the gem version. Files are skipped on re-generation when their fingerprint matches, eliminating unnecessary timestamps and noisy git diffs.
-- **`Fingerprinter.source_fingerprint`** — new singleton method that hashes the app's schema and routes files into a compact 12-char hex fingerprint used by the freshness system.
-- **`db/structure.sql` fallback** — `source_fingerprint` automatically falls back to `db/structure.sql` when `db/schema.rb` is absent (apps using SQL schema format are now supported).
-- **`FreshnessHeader` module** — centralized utility for embedding and extracting freshness metadata from bridge files. Supports both Markdown (HTML comment header) and JSON (`_meta` object) formats, with backward-compatible parsing of older files that lack the gem-version field.
-- **Bridge freshness Doctor check** — a new `BridgeFreshnessChecker` is registered with the `Doctor` service. It reports stale bridge files (fingerprint mismatch) or missing bridge files as `:warn`, and fresh files as `:pass`. The Doctor now runs 16 total checks.
-- **`rails ai:check` rake task** — runs all diagnostic checks and exits with code `1` if any check fails, enabling straightforward CI/CD integration (e.g., `rails ai:check || exit 1`).
-- **`CHECK=1` pre-generation guard** — pass `CHECK=1` to `rails ai:bridge` (or any bridge sub-task) to run Doctor diagnostics first; generation is aborted if any check fails.
-- **`RailsAiBridge::RakeHelpers` module** — extracted top-level rake helper methods (`print_result`, `apply_context_mode_override`, `conflict_strategy`, `run_pre_generation_checks`) from global `Object` scope into a properly namespaced module.
-
-### Changed
-
-- **`FreshnessHeader`** — expanded API with `embed_for(fmt, ...)`, `extract_metadata_for(fmt, content)`, and `extract_fingerprint_for(fmt, content)` dispatching methods. JSON and Markdown branching is now fully centralized here, removing format-aware `if fmt == :json` conditionals from callers.
-- **`ContextFileSerializer`** — refactored to use a new `FreshnessWriter` inner class that encapsulates freshness metadata embedding and file write decisions. This eliminates `ControlParameter`, `UtilityFunction`, and `LongParameterList` Reek warnings.
-- **`BridgeFreshnessChecker`** — refactored with a `ScanResult` struct to eliminate the 6-parameter `check_file` method; introduced `scan_files`, `accumulate_file_result`, `stale?`, and `freshness_check` helpers reducing `TooManyStatements` and `DuplicateMethodCall` Reek warnings.
-- **`Fingerprinter.source_fingerprint`** — extracted `schema_path(root)` and `read_source_content(paths)` private helpers to reduce method statement count.
-- **`RubySearch`** — wrapped the 5 search params into a `SearchParams` struct to resolve the `TooManyInstanceVariables` Reek warning; extracted `secret_file?(basename)` from `skip_file?` to fix `FeatureEnvy`; added `SECRET_EXTENSIONS` constant.
-- **`RipgrepSearch::CommandBuilder`** — moved hardcoded secret file globs to a `SECRET_EXCLUDES` constant; renamed helpers to `excluded_path_flags` / `secret_exclude_flags`; added `# :reek:UtilityFunction` suppressions for intentional stateless helpers.
-- **`Validator`** — extracted `effective_max_bytes`, `present?`, `normalize_extension`, `safe_extension?`, `build_search_path`, `within_root?`, `path_not_found`, and `pattern_too_long_error` helpers. Fixes `DuplicateMethodCall` on `BaseTool.text_response("Path not found: ...")` in `validate_path_security`.
-- **`SourceMacroExtractor`** — split `add_attachment_macros` into three single-step helpers (`add_single_attached`, `add_many_attached`, `add_rich_text`) to reduce statement counts.
-- **Rake namespace splitting** — `namespace :ai` reopened across multiple smaller blocks in `rails_ai_bridge.rake` to comply with `Metrics/BlockLength` RuboCop limit.
+- **`Introspector#run_single`** (#36) — sequential execution is now routed through `TimedRunner` instead of a bare `rescue` block. Error handling behaviour is unchanged (`{ error: message }`), but every introspector call now produces a debug-level duration log entry.
+- **`ParallelRunner#resolve_future`** (#36) — uses `future.value(timeout)` + `future.complete?` check instead of blocking `future.value!`. A `nil` return from a timed-out future is no longer misinterpreted as a successful result.
+- **`ParallelRunner` pool shutdown** (#36) — `wait_for_termination` now uses `config.parallel_timeout_seconds` instead of a hardcoded `10`.
+- **`RubydexAdapter#handle_index_result`** (#38) — on `:reindex!` failure, existing `@graph` and `@indexed` state is preserved rather than reset to `nil`/`false`, preventing a full context blackout on transient indexing errors.
+- **Integer mtimes throughout `IncrementalIndexer`** (#38) — `serialize_mtimes`, `deserialize_mtimes`, and `file_mtime` now all operate in integer seconds (`Time#to_i`) to avoid IEEE 754 floating-point comparison drift.
+- **`FreshnessHeader`** (#37) — expanded API with `embed_for(fmt, ...)`, `extract_metadata_for(fmt, content)`, and `extract_fingerprint_for(fmt, content)` dispatching methods. JSON and Markdown branching is now fully centralized here, removing format-aware `if fmt == :json` conditionals from callers.
+- **`ContextFileSerializer`** (#37) — refactored to use a new `FreshnessWriter` inner class that encapsulates freshness metadata embedding and file write decisions. This eliminates `ControlParameter`, `UtilityFunction`, and `LongParameterList` Reek warnings.
+- **`BridgeFreshnessChecker`** (#37) — refactored with a `ScanResult` struct to eliminate the 6-parameter `check_file` method; introduced `scan_files`, `accumulate_file_result`, `stale?`, and `freshness_check` helpers reducing `TooManyStatements` and `DuplicateMethodCall` Reek warnings.
+- **`Fingerprinter.source_fingerprint`** (#37) — extracted `schema_path(root)` and `read_source_content(paths)` private helpers to reduce method statement count.
+- **`RubySearch`** (#35) — wrapped the 5 search params into a `SearchParams` struct to resolve the `TooManyInstanceVariables` Reek warning; extracted `secret_file?(basename)` from `skip_file?` to fix `FeatureEnvy`; added `SECRET_EXTENSIONS` constant.
+- **`RipgrepSearch::CommandBuilder`** (#35) — moved hardcoded secret file globs to a `SECRET_EXCLUDES` constant; renamed helpers to `excluded_path_flags` / `secret_exclude_flags`; added `# :reek:UtilityFunction` suppressions for intentional stateless helpers.
+- **`Validator`** (#35) — extracted `effective_max_bytes`, `present?`, `normalize_extension`, `safe_extension?`, `build_search_path`, `within_root?`, `path_not_found`, and `pattern_too_long_error` helpers. Fixes `DuplicateMethodCall` on `BaseTool.text_response("Path not found: ...")` in `validate_path_security`.
+- **`SourceMacroExtractor`** (#35) — split `add_attachment_macros` into three single-step helpers (`add_single_attached`, `add_many_attached`, `add_rich_text`) to reduce statement counts.
+- **Rake namespace splitting** (#35) — `namespace :ai` reopened across multiple smaller blocks in `rails_ai_bridge.rake` to comply with `Metrics/BlockLength` RuboCop limit.
 
 ### Fixed
 
-- **`ASSISTANT_TABLE` constant redefinition warning** — wrapped constant definition in `unless defined?` to prevent warnings when Rake tasks are loaded multiple times in test environments.
+- **`ASSISTANT_TABLE` constant redefinition warning** (#35) — wrapped constant definition in `unless defined?` to prevent warnings when Rake tasks are loaded multiple times in test environments.
 
 ### Tests
 
-- Added **48 new examples** covering:
+- Added **68 new examples** covering:
+  - `TimedRunner` — result forwarding, error capture, monotonic duration, error-path duration
+  - `ParallelRunner` — config-driven pool size, per-future timeout, pool shutdown, mixed success/failure, `available?` with pool-size and missing-constant edge cases
+  - `Introspector` — sequential `TimedRunner` wiring (plain result, no `duration_ms` envelope), error capture in sequential mode, debug log assertion
   - `AppOverviewFormatter` — nil/error guards, optional fields, field ordering
   - `GemsFormatter` — nil/error guards, total count, Notable Gems section, category+name sort order
   - `MigrationsFormatter` — nil/error guards, schema version, pending migrations count, recent migrations with and without actions
   - `RubySearch` / `FileProcessor` — pattern matching, max_results cap, secret file skipping (`.env`, `.key`, `.pem`, `.p12`, `.pfx`, `.crt`), excluded paths, file_type filtering, case-insensitive search, relative paths, unreadable file recovery, `:full` return signal
   - `Fingerprinter` — restored `.compute` and `.changed?` unit tests; added `db/structure.sql` fallback and schema.rb-wins-when-both-exist edge cases
   - `FreshnessHeader` — backward-compatible parsing of headers without gem version
-- **Total: 1,703 examples, 0 failures, 94.57% line coverage** (up from 94.04%)
+- **Total: 1,745 examples, 0 failures, 94.49% line coverage** (up from 94.04%)
 
 ## [3.2.0] - 2026-05-04
 

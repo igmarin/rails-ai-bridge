@@ -69,6 +69,14 @@ RSpec.describe 'rails_ai_bridge rake tasks' do
       rake['ai:bridge_for'].invoke
       expect(RailsAiBridge).to have_received(:generate_context).with(format: :claude, split_rules: true, on_conflict: :overwrite)
     end
+
+    it 'passes unknown formats as symbols' do
+      ENV['FORMAT'] = 'unknown_format_xyz'
+      rake['ai:bridge_for'].invoke
+      expect(RailsAiBridge).to have_received(:generate_context).with(format: :unknown_format_xyz, split_rules: true, on_conflict: :overwrite)
+    ensure
+      ENV.delete('FORMAT')
+    end
   end
 
   describe 'ai:bridge:full' do
