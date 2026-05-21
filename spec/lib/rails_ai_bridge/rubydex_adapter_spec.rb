@@ -61,23 +61,27 @@ RSpec.describe RailsAiBridge::RubydexAdapter do
     end
 
     context 'when available' do
-      let(:mock_incremental_indexer) { instance_double(RailsAiBridge::RubydexAdapter::IncrementalIndexer) }
       let(:mock_graph) { double('Graph') }
+      let(:success_result) do
+        RailsAiBridge::Service::Result.new(true, data: { graph: mock_graph, file_mtimes: {} })
+      end
 
       before do
         allow(described_class).to receive(:available?).and_return(true)
-        adapter.instance_variable_set(:@incremental_indexer, mock_incremental_indexer)
+        allow(RailsAiBridge::RubydexAdapter::IncrementalIndexer).to receive(:call)
+          .with(:build, root: root, threshold: 0.3, persist: false, index_path: anything)
+          .and_return(success_result)
       end
 
       it 'builds the graph successfully' do
-        allow(mock_incremental_indexer).to receive(:build).with(root).and_return(mock_graph)
         adapter.index!
         expect(adapter.indexed?).to be(true)
         expect(adapter.graph).to eq(mock_graph)
       end
 
       it 'rescues errors and sets indexed to false' do
-        allow(mock_incremental_indexer).to receive(:build).and_raise(StandardError, 'Oops')
+        allow(RailsAiBridge::RubydexAdapter::IncrementalIndexer).to receive(:call)
+          .and_raise(StandardError, 'Oops')
         adapter.index!
         expect(adapter.indexed?).to be(false)
         expect(adapter.graph).to be_nil
@@ -86,7 +90,6 @@ RSpec.describe RailsAiBridge::RubydexAdapter do
   end
 
   describe '#reindex!' do
-    let(:mock_incremental_indexer) { instance_double(RailsAiBridge::RubydexAdapter::IncrementalIndexer) }
     let(:mock_graph) { double('Graph') }
 
     it 'does nothing when not indexed' do
@@ -100,16 +103,24 @@ RSpec.describe RailsAiBridge::RubydexAdapter do
     end
 
     context 'when indexed and available' do
+      let(:new_graph) { double('NewGraph') }
+      let(:success_result) do
+        RailsAiBridge::Service::Result.new(true, data: { graph: new_graph, file_mtimes: {} })
+      end
+      let(:test_time) { Time.zone.now }
+
       before do
         allow(described_class).to receive(:available?).and_return(true)
         adapter.instance_variable_set(:@indexed, true)
         adapter.instance_variable_set(:@graph, mock_graph)
-        adapter.instance_variable_set(:@incremental_indexer, mock_incremental_indexer)
+        adapter.instance_variable_set(:@file_mtimes, { 'app.rb' => test_time })
       end
 
-      it 'delegates to incremental indexer' do
-        new_graph = double('NewGraph')
-        allow(mock_incremental_indexer).to receive(:reindex_changed).with(root).and_return(new_graph)
+      it 'delegates to incremental indexer service' do
+        allow(RailsAiBridge::RubydexAdapter::IncrementalIndexer).to receive(:call)
+          .with(:reindex, root: root, graph: mock_graph, file_mtimes: { 'app.rb' => test_time },
+                          threshold: 0.3, persist: false, index_path: anything)
+          .and_return(success_result)
 
         adapter.reindex!
 
@@ -117,7 +128,8 @@ RSpec.describe RailsAiBridge::RubydexAdapter do
       end
 
       it 'rescues errors without raising' do
-        allow(mock_incremental_indexer).to receive(:reindex_changed).and_raise(StandardError, 'fail')
+        allow(RailsAiBridge::RubydexAdapter::IncrementalIndexer).to receive(:call)
+          .and_raise(StandardError, 'fail')
 
         expect { adapter.reindex! }.not_to raise_error
       end

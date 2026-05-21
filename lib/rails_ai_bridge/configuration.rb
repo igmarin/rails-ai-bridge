@@ -114,7 +114,9 @@ module RailsAiBridge
                    :rubydex_enabled, :rubydex_enabled=,
                    :rubydex_index_path, :rubydex_index_path=,
                    :semantic_introspector_enabled, :semantic_introspector_enabled=,
-                   :semantic_context_depth, :semantic_context_depth=
+                   :semantic_context_depth, :semantic_context_depth=,
+                   :rubydex_incremental_threshold, :rubydex_incremental_threshold=,
+                   :rubydex_persist_index, :rubydex_persist_index=
 
     # Convenience predicate for checking if rubydex is available and enabled.
     #

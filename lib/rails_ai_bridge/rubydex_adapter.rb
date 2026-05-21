@@ -70,9 +70,9 @@ module RailsAiBridge
       @root = root
       @graph = nil
       @indexed = false
+      @file_mtimes = {}
       @serializer = Serializer.new(@root)
       @indexer = Indexer.new
-      @incremental_indexer = IncrementalIndexer.new
       @method_counter = MethodCounter.new(serializer: @serializer)
     end
 
@@ -84,8 +84,8 @@ module RailsAiBridge
     def index!
       return if @indexed || !self.class.available?
 
-      @graph = @incremental_indexer.build(@root)
-      @indexed = true
+      result = IncrementalIndexer.call(:build, root: @root, **indexer_options)
+      handle_index_result(result, :index!)
     rescue StandardError => error
       log_warning('rubydex.indexing_failed', error.message, error.backtrace)
       @graph = nil
@@ -99,7 +99,9 @@ module RailsAiBridge
     def reindex!
       return unless @indexed && self.class.available?
 
-      @graph = @incremental_indexer.reindex_changed(@root)
+      result = IncrementalIndexer.call(:reindex, root: @root, graph: @graph, file_mtimes: @file_mtimes,
+                                                 **indexer_options)
+      handle_index_result(result, :reindex!)
     rescue StandardError => error
       log_warning('rubydex.reindex_failed', error.message, error.backtrace)
     end
@@ -245,6 +247,29 @@ module RailsAiBridge
     end
 
     private
+
+    def indexer_options
+      config = RailsAiBridge.configuration
+      index_path = config.rubydex_index_path
+      {
+        threshold: config.rubydex_incremental_threshold,
+        persist: config.rubydex_persist_index,
+        index_path: index_path ? File.join(@root, index_path) : nil
+      }
+    end
+
+    def handle_index_result(result, operation)
+      data = result.data
+      if result.success?
+        @graph = data[:graph]
+        @file_mtimes = data[:file_mtimes]
+        @indexed = true
+      else
+        log_warning("rubydex.#{operation}", result.errors.join(', '), [])
+        @graph = nil
+        @indexed = false
+      end
+    end
 
     def log_warning(event, message, backtrace)
       logger = defined?(Rails) ? Rails.logger : nil
