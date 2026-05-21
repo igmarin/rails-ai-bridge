@@ -37,12 +37,20 @@ module RailsAiBridge
 
         private
 
+        # Safely computes the source fingerprint, returning a warn check on failure.
+        #
+        # @return [String, Doctor::Check] fingerprint string or error check
         def safe_source_fingerprint
           RailsAiBridge::Fingerprinter.source_fingerprint(app)
         rescue StandardError => error
           check_error('Failed to compute source fingerprint', error)
         end
 
+        # Builds a warn-level check for a given error context.
+        #
+        # @param msg [String] error description
+        # @param error [StandardError] the raised exception
+        # @return [Doctor::Check]
         def check_error(msg, error)
           new_check(
             name: 'Bridge file freshness',
@@ -52,6 +60,11 @@ module RailsAiBridge
           )
         end
 
+        # Scans all configured format files in the output directory for staleness.
+        #
+        # @param output_dir [String] bridge file output directory
+        # @param current_fp [String] current source fingerprint
+        # @return [ScanResult] found and stale file lists
         def scan_files(output_dir, current_fp)
           scan = ScanResult.new
           formats.each do |fmt|
@@ -63,6 +76,14 @@ module RailsAiBridge
           scan
         end
 
+        # Checks a single file and records it as found (and stale if applicable).
+        #
+        # @param filename [String] relative filename
+        # @param fmt [Symbol] format key
+        # @param current_fp [String] current source fingerprint
+        # @param output_dir [String] output directory path
+        # @param scan [ScanResult] accumulator
+        # @return [void]
         # :reek:FeatureEnvy
         def accumulate_file_result(filename, fmt, current_fp, output_dir, scan)
           filepath = File.join(output_dir, filename)
@@ -72,6 +93,12 @@ module RailsAiBridge
           scan.stale_files << filename if stale?(fmt, filepath, current_fp)
         end
 
+        # Checks whether a single file's embedded fingerprint matches the current one.
+        #
+        # @param fmt [Symbol] format key
+        # @param filepath [String] absolute file path
+        # @param current_fp [String] current source fingerprint
+        # @return [Boolean] +true+ if the file is stale or unreadable
         # :reek:UtilityFunction
         def stale?(fmt, filepath, current_fp)
           content = File.read(filepath)
@@ -80,16 +107,27 @@ module RailsAiBridge
           true
         end
 
+        # Builds the diagnostic outcome from a scan result.
+        #
+        # @param scan [ScanResult] file scan results
+        # @return [Doctor::Check]
         def build_outcome(scan)
+          stale_files = scan.stale_files
           if scan.found_files.empty?
             freshness_check(:warn, 'No bridge files found on disk', 'Run `rails ai:bridge` to generate them')
-          elsif scan.stale_files.any?
-            freshness_check(:warn, "Stale bridge files: #{scan.stale_files.join(', ')}", 'Run `rails ai:bridge` to regenerate them')
+          elsif stale_files.any?
+            freshness_check(:warn, "Stale bridge files: #{stale_files.join(', ')}", 'Run `rails ai:bridge` to regenerate them')
           else
             freshness_check(:pass, 'All generated bridge files are fresh', nil)
           end
         end
 
+        # Builds a check result for freshness validation.
+        #
+        # @param status [Symbol] check status (+:pass+, +:warn+)
+        # @param message [String] description
+        # @param fix [String, nil] remediation instructions
+        # @return [Doctor::Check]
         def freshness_check(status, message, fix)
           new_check(name: 'Bridge file freshness', status: status, message: message, fix: fix)
         end

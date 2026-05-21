@@ -39,8 +39,8 @@ RSpec.describe RailsAiBridge::Fingerprinter do
       it 'returns a 12-character hex fingerprint of empty inputs' do
         fingerprint = described_class.source_fingerprint(app)
         expect(fingerprint).to match(/\A[a-f0-9]{12}\z/)
-        # SHA256 of empty string is e3b0c44298f...
-        expect(fingerprint).to eq('e3b0c44298fc')
+        combined = "=== structure.sql ===\n\n---\n=== routes.rb ===\n\n---\n"
+        expect(fingerprint).to eq(Digest::SHA256.hexdigest(combined)[0...12])
       end
     end
 
@@ -53,7 +53,8 @@ RSpec.describe RailsAiBridge::Fingerprinter do
       end
 
       it 'hashes the schema and routes content in order' do
-        expected = Digest::SHA256.hexdigest('schema contentroutes content')[0...12]
+        combined = "=== schema.rb ===\nschema content\n---\n=== routes.rb ===\nroutes content\n---\n"
+        expected = Digest::SHA256.hexdigest(combined)[0...12]
         expect(described_class.source_fingerprint(app)).to eq(expected)
       end
 
@@ -74,7 +75,8 @@ RSpec.describe RailsAiBridge::Fingerprinter do
       end
 
       it 'uses db/structure.sql as the schema source' do
-        expected = Digest::SHA256.hexdigest('sql contentroutes content')[0...12]
+        combined = "=== structure.sql ===\nsql content\n---\n=== routes.rb ===\nroutes content\n---\n"
+        expected = Digest::SHA256.hexdigest(combined)[0...12]
         expect(described_class.source_fingerprint(app)).to eq(expected)
       end
     end
@@ -87,7 +89,8 @@ RSpec.describe RailsAiBridge::Fingerprinter do
       end
 
       it 'prefers db/schema.rb over db/structure.sql' do
-        expected = Digest::SHA256.hexdigest('schema wins')[0...12]
+        combined = "=== schema.rb ===\nschema wins\n---\n=== routes.rb ===\n\n---\n"
+        expected = Digest::SHA256.hexdigest(combined)[0...12]
         expect(described_class.source_fingerprint(app)).to eq(expected)
       end
     end

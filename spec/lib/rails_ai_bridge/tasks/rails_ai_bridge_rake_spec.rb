@@ -7,14 +7,15 @@ RSpec.describe 'rails_ai_bridge rake tasks' do
   let(:rake) { Rake.application }
   let(:task_path) { File.expand_path('../../../../lib/rails_ai_bridge/tasks/rails_ai_bridge.rake', __dir__) }
   let(:result) { { written: [], skipped: [] } }
-  let(:original_context_mode) { RailsAiBridge.configuration.context_mode }
-  let(:original_rake_application) { Rake.application }
+  let!(:original_context_mode) { RailsAiBridge.configuration.context_mode }
+  let!(:original_rake_application) { Rake.application }
 
   before do
     # Ensure ENV keys that affect rake tasks start in a known state
     ENV.delete('FORMAT')
     ENV.delete('CONFIRM')
     ENV.delete('CONTEXT_MODE')
+    ENV.delete('CHECK')
 
     # Setup new Rake application for each test to avoid state leakage
     Rake.application = Rake::Application.new
@@ -32,6 +33,7 @@ RSpec.describe 'rails_ai_bridge rake tasks' do
     ENV.delete('FORMAT')
     ENV.delete('CONFIRM')
     ENV.delete('CONTEXT_MODE')
+    ENV.delete('CHECK')
   end
 
   describe 'ai:bridge' do
@@ -118,6 +120,7 @@ RSpec.describe 'rails_ai_bridge rake tasks' do
                                                               })
 
       expect { rake['ai:inspect'].invoke }.to output(/TestApp — AI Context Summary/).to_stdout
+      rake['ai:inspect'].reenable
       expect { rake['ai:inspect'].invoke }.not_to output(/📦 Database/).to_stdout
     end
   end

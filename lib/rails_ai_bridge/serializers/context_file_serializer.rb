@@ -103,6 +103,10 @@ module RailsAiBridge
       # Separating this from ContextFileSerializer removes ControlParameter and UtilityFunction
       # reek warnings from the serializer (the fmt-branching now lives in the right class).
       class FreshnessWriter
+        # @param fmt [Symbol] format key
+        # @param raw_content [String] serialized content before freshness embedding
+        # @param fingerprint [String] 12-char source fingerprint
+        # @param timestamp_now [String] ISO 8601 UTC timestamp
         def initialize(fmt, raw_content, fingerprint, timestamp_now)
           @fmt         = fmt
           @raw_content = raw_content
@@ -110,6 +114,13 @@ module RailsAiBridge
           @timestamp_now = timestamp_now
         end
 
+        # Writes the file to disk, skipping if unchanged or blocked by the conflict policy.
+        #
+        # @param filepath [String] output file path
+        # @param conflict_policy [ConflictPolicy] resolution strategy
+        # @param written [Array<String>] accumulator for written paths
+        # @param skipped [Array<String>] accumulator for skipped paths
+        # @return [void]
         # :reek:LongParameterList
         def write_to(filepath, conflict_policy, written, skipped)
           existing_content = read_existing(filepath)
@@ -175,6 +186,10 @@ module RailsAiBridge
           @strategy = strategy
         end
 
+        # Determines whether to overwrite a file based on the configured strategy.
+        #
+        # @param _filepath [String] candidate file path (unused for built-in strategies)
+        # @return [Boolean] +true+ when :overwrite, +false+ when :skip
         def overwrite?(_filepath)
           case @strategy
           when :overwrite then true
@@ -185,11 +200,17 @@ module RailsAiBridge
 
       # Interactive conflict policy used only for explicit `on_conflict: :prompt`.
       class PromptConflictPolicy
+        # @param input [IO] input stream (defaults to $stdin)
+        # @param output [IO] output stream (defaults to $stdout)
         def initialize(input: $stdin, output: $stdout)
           @input = input
           @output = output
         end
 
+        # Prompts the user and returns +true+ only if they answer +y+.
+        #
+        # @param filepath [String] candidate file path
+        # @return [Boolean]
         def overwrite?(filepath)
           @output.print "  Overwrite #{filepath}? [y/N] "
           @output.flush
@@ -199,10 +220,15 @@ module RailsAiBridge
 
       # Adapter for user-provided conflict resolver objects.
       class CallableConflictPolicy
+        # @param callable [#call] callable object invoked with filepath
         def initialize(callable)
           @callable = callable
         end
 
+        # Delegates the overwrite decision to the wrapped callable.
+        #
+        # @param filepath [String] candidate file path
+        # @return [Boolean]
         def overwrite?(filepath)
           @callable.call(filepath)
         end

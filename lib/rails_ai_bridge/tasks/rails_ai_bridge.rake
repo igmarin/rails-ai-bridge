@@ -17,13 +17,20 @@ end
 module RailsAiBridge
   # Helper methods for Rake tasks — extracted here to avoid polluting global Object.
   module RakeHelpers
-    TRUTHY_ENV_VALUES = %w[1 true yes y].freeze
+    TRUTHY_ENV_VALUES = %w[1 true yes y].freeze unless defined?(TRUTHY_ENV_VALUES)
 
+    # Prints the result hash from +generate_context+ to stdout.
+    #
+    # @param result [Hash{Symbol => Array<String>}] keys +:written+ and +:skipped+
+    # @return [void]
     def self.print_result(result)
       result[:written].each { |f| puts "  ✅ #{f}" }
       result[:skipped].each { |f| puts "  ⏭️  #{f} (unchanged)" }
     end
 
+    # Overrides the context mode from the +CONTEXT_MODE+ env var if set.
+    #
+    # @return [void]
     def self.apply_context_mode_override
       return unless ENV['CONTEXT_MODE']
 
@@ -34,10 +41,17 @@ module RailsAiBridge
 
     # Returns :prompt when CONFIRM is one of "1", "true", "yes", "y" so rake tasks
     # ask before overwriting changed files. CONFIRM=0 or CONFIRM=false stays silent.
+    # Resolves the conflict strategy from the +CONFIRM+ env var.
+    #
+    # @return [:prompt, :overwrite] +:prompt+ when CONFIRM is truthy, +:overwrite+ otherwise
     def self.conflict_strategy
       TRUTHY_ENV_VALUES.include?(ENV['CONFIRM'].to_s.downcase.strip) ? :prompt : :overwrite
     end
 
+    # Runs pre-generation diagnostic checks when +CHECK+ env var is truthy.
+    # Aborts the task if any check fails.
+    #
+    # @return [void]
     def self.run_pre_generation_checks
       return unless TRUTHY_ENV_VALUES.include?(ENV['CHECK'].to_s.downcase.strip)
 
@@ -131,8 +145,8 @@ namespace :ai do
     task full: :environment do
       require 'rails_ai_bridge'
 
-      RailsAiBridge.configuration.context_mode = :full
       RailsAiBridge::RakeHelpers.apply_context_mode_override
+      RailsAiBridge.configuration.context_mode = :full
       RailsAiBridge::RakeHelpers.run_pre_generation_checks
 
       puts "🔍 Introspecting #{Rails.application.class.module_parent_name} (full mode)..."
