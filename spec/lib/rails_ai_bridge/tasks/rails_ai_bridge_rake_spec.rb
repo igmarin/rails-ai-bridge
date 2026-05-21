@@ -141,4 +141,79 @@ RSpec.describe 'rails_ai_bridge rake tasks' do
       expect(RailsAiBridge).to have_received(:generate_context).with(format: :gemini, split_rules: true, on_conflict: :overwrite)
     end
   end
+
+  describe 'ai:check' do
+    context 'when checks pass or warn' do
+      it 'outputs results and exits normally' do
+        doctor_result = {
+          score: 80,
+          checks: [
+            double(name: 'CheckPass', message: 'Passed check', status: :pass, fix: nil),
+            double(name: 'CheckWarn', message: 'Warning check', status: :warn, fix: 'Fix this warn')
+          ]
+        }
+        doctor_instance = double('Doctor', run: doctor_result)
+        allow(RailsAiBridge::Doctor).to receive(:new).and_return(doctor_instance)
+
+        expect { rake['ai:check'].invoke }.to output(
+          %r{🩺 Running AI readiness diagnostics\.\.\..*✅ CheckPass: Passed check.*⚠️  CheckWarn: Warning check.*AI Readiness Score: 80/100.*✅ Diagnostics passed\.}m
+        ).to_stdout
+      end
+    end
+
+    context 'when a check fails' do
+      it 'exits with exit code 1' do
+        doctor_result = {
+          score: 40,
+          checks: [
+            double(name: 'CheckFail', message: 'Failed check', status: :fail, fix: 'Fix this fail')
+          ]
+        }
+        doctor_instance = double('Doctor', run: doctor_result)
+        allow(RailsAiBridge::Doctor).to receive(:new).and_return(doctor_instance)
+
+        expect { rake['ai:check'].invoke }.to raise_error(SystemExit) do |error|
+          expect(error.status).to eq(1)
+        end
+      end
+    end
+  end
+
+  describe 'CHECK=1 integration' do
+    before do
+      ENV['CHECK'] = '1'
+    end
+
+    after do
+      ENV.delete('CHECK')
+    end
+
+    context 'when checks pass' do
+      it 'proceeds to run context generation' do
+        doctor_result = {
+          score: 100,
+          checks: [double(name: 'CheckPass', message: 'Passed check', status: :pass, fix: nil)]
+        }
+        doctor_instance = double('Doctor', run: doctor_result)
+        allow(RailsAiBridge::Doctor).to receive(:new).and_return(doctor_instance)
+
+        expect { rake['ai:bridge'].invoke }.to output(/Proceeding with file generation/).to_stdout
+        expect(RailsAiBridge).to have_received(:generate_context)
+      end
+    end
+
+    context 'when a check fails' do
+      it 'aborts and does not run context generation' do
+        doctor_result = {
+          score: 50,
+          checks: [double(name: 'CheckFail', message: 'Failed check', status: :fail, fix: 'Fix this')]
+        }
+        doctor_instance = double('Doctor', run: doctor_result)
+        allow(RailsAiBridge::Doctor).to receive(:new).and_return(doctor_instance)
+
+        expect { rake['ai:bridge'].invoke }.to raise_error(SystemExit)
+        expect(RailsAiBridge).not_to have_received(:generate_context)
+      end
+    end
+  end
 end

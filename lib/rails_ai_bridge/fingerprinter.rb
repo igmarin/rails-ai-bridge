@@ -56,6 +56,25 @@ module RailsAiBridge
       def changed?(app, previous)
         snapshot(app) != previous
       end
+
+      def source_fingerprint(app)
+        root = app.root
+        paths = [schema_path(root), File.join(root, 'config/routes.rb')]
+        Digest::SHA256.hexdigest(read_source_content(paths))[0...12]
+      end
+
+      private
+
+      def schema_path(root)
+        rb_path = File.join(root, 'db/schema.rb')
+        return rb_path if File.exist?(rb_path)
+
+        File.join(root, 'db/structure.sql')
+      end
+
+      def read_source_content(paths)
+        paths.map { |path| File.exist?(path) ? File.read(path) : '' }.join
+      end
     end
   end
 end

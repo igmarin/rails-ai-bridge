@@ -33,3 +33,5 @@ gems-report.csv
 .github/copilot-instructions.md
 .github/hooks/rtk-rewrite.json
 .antigravitycli/
+AGENTS.md.bak
+LEAN-CTX.md

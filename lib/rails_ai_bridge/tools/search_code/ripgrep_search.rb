@@ -40,6 +40,9 @@ module RailsAiBridge
 
         # Builds the CLI command string.
         class CommandBuilder
+          # Extensions and globs that should never be searched.
+          SECRET_EXCLUDES = %w[*.key *.pem *.p12 *.pfx *.crt .env .env.*].freeze
+
           def initialize(params)
             @pattern = params[:pattern]
             @path = params[:search_path]
@@ -49,20 +52,22 @@ module RailsAiBridge
 
           def build
             cmd = ['rg', '--no-heading', '--line-number', '--max-count', @max.to_s]
-            cmd.concat(excluded_paths)
-            cmd.concat(secret_excludes)
+            cmd.concat(excluded_path_flags)
+            cmd.concat(secret_exclude_flags)
             cmd.concat(file_type_filters)
             cmd.push(@pattern, @path)
           end
 
           private
 
-          def excluded_paths
+          # :reek:UtilityFunction
+          def excluded_path_flags
             RailsAiBridge.configuration.excluded_paths.flat_map { |path| ['--glob', "!#{path}"] }
           end
 
-          def secret_excludes
-            %w[*.key *.pem *.p12 *.pfx *.crt .env .env.*].flat_map { |glob| ['--glob', "!#{glob}"] }
+          # :reek:UtilityFunction
+          def secret_exclude_flags
+            SECRET_EXCLUDES.flat_map { |glob| ['--glob', "!#{glob}"] }
           end
 
           def file_type_filters

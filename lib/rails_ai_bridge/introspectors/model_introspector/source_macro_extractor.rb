@@ -77,14 +77,24 @@ module RailsAiBridge
         end
 
         def add_attachment_macros(macros)
-          pattern_one = PATTERNS[:has_one_attached]
-          macros[:has_one_attached] = scan_single_symbol(pattern_one) if match?(pattern_one)
+          add_single_attached(macros)
+          add_many_attached(macros)
+          add_rich_text(macros)
+        end
 
-          pattern_many = PATTERNS[:has_many_attached]
-          macros[:has_many_attached] = scan_single_symbol(pattern_many) if match?(pattern_many)
+        def add_single_attached(macros)
+          pattern = PATTERNS[:has_one_attached]
+          macros[:has_one_attached] = scan_single_symbol(pattern) if match?(pattern)
+        end
 
-          pattern_rich = PATTERNS[:has_rich_text]
-          macros[:has_rich_text] = scan_single_symbol(pattern_rich) if match?(pattern_rich)
+        def add_many_attached(macros)
+          pattern = PATTERNS[:has_many_attached]
+          macros[:has_many_attached] = scan_single_symbol(pattern) if match?(pattern)
+        end
+
+        def add_rich_text(macros)
+          pattern = PATTERNS[:has_rich_text]
+          macros[:has_rich_text] = scan_single_symbol(pattern) if match?(pattern)
         end
 
         def add_broadcast_macros(macros)

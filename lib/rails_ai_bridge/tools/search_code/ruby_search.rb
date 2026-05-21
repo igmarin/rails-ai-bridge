@@ -4,10 +4,14 @@ module RailsAiBridge
   module Tools
     class SearchCode
       # Executes codebase searches using Ruby fallback.
-      # Executes codebase searches using Ruby fallback.
       class RubySearch
+        # Value object wrapping validated search parameters.
+        SearchParams = Struct.new(:pattern, :search_path, :file_type, :max_results, :root, keyword_init: true)
+
         # Encapsulates file-level search logic.
         class FileProcessor
+          SECRET_EXTENSIONS = %w[.key .pem .p12 .pfx .crt].freeze
+
           def initialize(regex, results, max_results, root)
             @regex = regex
             @results = results
@@ -34,23 +38,24 @@ module RailsAiBridge
             excluded = RailsAiBridge.configuration.excluded_paths
             return true if excluded.any? { |ex| relative.start_with?(ex) }
 
-            basename = File.basename(file)
-            basename.match?(/\A\.env/i) || basename.end_with?('.key', '.pem', '.p12', '.pfx', '.crt')
+            secret_file?(File.basename(file))
+          end
+
+          def secret_file?(basename)
+            return true if basename.match?(/\A\.env/i)
+
+            SECRET_EXTENSIONS.any? { |ext| basename.end_with?(ext) }
           end
         end
 
         def initialize(search_params)
-          @pattern = search_params[:pattern]
-          @search_path = search_params[:search_path]
-          @file_type = search_params[:file_type]
-          @max_results = search_params[:max_results]
-          @root = search_params[:root]
+          @params = SearchParams.new(**search_params.slice(:pattern, :search_path, :file_type, :max_results, :root))
         end
 
         def call
           results = []
-          regex = Regexp.new(@pattern, Regexp::IGNORECASE)
-          processor = FileProcessor.new(regex, results, @max_results, @root)
+          regex = Regexp.new(@params.pattern, Regexp::IGNORECASE)
+          processor = FileProcessor.new(regex, results, @params.max_results, @params.root)
 
           Dir.glob(ruby_glob).each do |file|
             break if processor.process(file) == :full
@@ -65,8 +70,8 @@ module RailsAiBridge
         private
 
         def ruby_glob
-          exts = @file_type || SearchCode.allowed_search_file_types.uniq.join(',')
-          File.join(@search_path, '**', "*.{#{exts}}")
+          exts = @params.file_type || SearchCode.allowed_search_file_types.uniq.join(',')
+          File.join(@params.search_path, '**', "*.{#{exts}}")
         end
       end
     end

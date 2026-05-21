@@ -44,28 +44,11 @@ module RailsAiBridge
         written = []
         skipped = []
 
+        timestamp_now = Time.now.utc.iso8601
+        fingerprint = Fingerprinter.source_fingerprint(Rails.application)
+
         formats.each do |fmt|
-          filename = FORMAT_MAP[fmt]
-          unless filename
-            valid = FORMAT_MAP.keys.join(', ')
-            raise ArgumentError, "Unknown format: #{fmt}. Valid formats: #{valid}"
-          end
-
-          filepath = File.join(output_dir, filename)
-
-          # Ensure subdirectory exists (e.g. .github/)
-          FileUtils.mkdir_p(File.dirname(filepath))
-
-          content = serialize(fmt)
-
-          file_exists = File.exist?(filepath)
-          unchanged   = file_exists && File.read(filepath) == content
-          if !unchanged && (!file_exists || overwrite?(filepath))
-            File.write(filepath, content)
-            written << filepath
-          else
-            skipped << filepath
-          end
+          process_format(fmt, output_dir, timestamp_now, fingerprint, written, skipped)
         end
 
         generate_split_rules(formats, output_dir, written, skipped) if split_rules
@@ -74,6 +57,22 @@ module RailsAiBridge
       end
 
       private
+
+      # :reek:LongParameterList
+      # Processes a single format and writes or skips it.
+      def process_format(fmt, output_dir, timestamp_now, fingerprint, written, skipped)
+        filename = FORMAT_MAP[fmt]
+        unless filename
+          valid = FORMAT_MAP.keys.join(', ')
+          raise ArgumentError, "Unknown format: #{fmt}. Valid formats: #{valid}"
+        end
+
+        filepath = File.join(output_dir, filename)
+        FileUtils.mkdir_p(File.dirname(filepath))
+
+        writer = FreshnessWriter.new(fmt, serialize(fmt), fingerprint, timestamp_now)
+        writer.write_to(filepath, @conflict_policy, written, skipped)
+      end
 
       # @param filepath [String] candidate output path
       # @return [Boolean] +true+ when the file should be overwritten
@@ -99,6 +98,59 @@ module RailsAiBridge
           skipped.concat(result[:skipped])
         end
       end
+
+      # Encapsulates format-specific freshness metadata embedding and file write logic.
+      # Separating this from ContextFileSerializer removes ControlParameter and UtilityFunction
+      # reek warnings from the serializer (the fmt-branching now lives in the right class).
+      class FreshnessWriter
+        def initialize(fmt, raw_content, fingerprint, timestamp_now)
+          @fmt         = fmt
+          @raw_content = raw_content
+          @fingerprint = fingerprint
+          @timestamp_now = timestamp_now
+        end
+
+        # :reek:LongParameterList
+        def write_to(filepath, conflict_policy, written, skipped)
+          existing_content = read_existing(filepath)
+          timestamp_to_use = resolve_timestamp(existing_content)
+          candidate = build_candidate_content(timestamp_to_use)
+
+          if skip?(filepath, existing_content, candidate, conflict_policy)
+            skipped << filepath
+          else
+            write_file(filepath, candidate, timestamp_to_use)
+            written << filepath
+          end
+        end
+
+        private
+
+        def read_existing(filepath)
+          File.exist?(filepath) ? File.read(filepath) : nil
+        end
+
+        def resolve_timestamp(existing_content)
+          return @timestamp_now unless existing_content
+
+          embedded_fp, embedded_ts = FreshnessHeader.extract_metadata_for(@fmt, existing_content)
+          embedded_fp == @fingerprint && embedded_ts ? embedded_ts : @timestamp_now
+        end
+
+        def build_candidate_content(timestamp)
+          FreshnessHeader.embed_for(@fmt, @raw_content, timestamp, @fingerprint)
+        end
+
+        def skip?(filepath, existing_content, candidate, conflict_policy)
+          existing_content && (existing_content == candidate || !conflict_policy.overwrite?(filepath))
+        end
+
+        def write_file(filepath, candidate, timestamp_to_use)
+          final_content = timestamp_to_use == @timestamp_now ? candidate : build_candidate_content(@timestamp_now)
+          File.write(filepath, final_content)
+        end
+      end
+      private_constant :FreshnessWriter
 
       # Normalizes conflict behavior for output files.
       class ConflictPolicy

@@ -53,3 +53,10 @@ Uses combustion gem for testing Rails engine behavior in isolation.
 - All tools prefixed with `rails_` per MCP naming best practices
 - `generate_context` returns `{ written: [], skipped: [] }` hash
 - Zeitwerk autoloads all files — no `require_relative` needed for new classes
+
+<!-- lean-ctx -->
+## lean-ctx
+
+Prefer lean-ctx MCP tools over native equivalents for token savings.
+Full rules: @LEAN-CTX.md
+<!-- /lean-ctx -->
