@@ -60,20 +60,39 @@ module RailsAiBridge
       # @return [Boolean] whether to run introspectors concurrently (requires concurrent-ruby)
       attr_accessor :parallel_introspection
 
-      ##
+      # @return [Integer] maximum number of threads in the parallel execution pool.
+      #   Capped at the number of introspectors so no idle threads are created.
+      #   Default is +4+. Only relevant when {#parallel_introspection} is +true+.
+      attr_accessor :parallel_pool_size
+
+      # @return [Integer] seconds to wait for each introspector future and for the
+      #   thread pool to shut down cleanly. Introspectors that exceed this budget
+      #   have their result replaced with +{ error: "timed out after Ns" }+.
+      #   Default is +10+. Only relevant when {#parallel_introspection} is +true+.
+      attr_accessor :parallel_timeout_seconds
+
       # Initializes Introspection configuration with sensible defaults.
-      # Sets:
-      # - @introspectors to a duplicate of Configuration::PRESETS[:standard]
-      # - @preset to :standard, matching the default introspector list
-      # - @excluded_paths to ["node_modules", "tmp", "log", "vendor", ".git"]
-      # - @excluded_models to common Rails/ActiveStorage/Action* classes
-      # - @core_models, @excluded_tables, and @disabled_introspection_categories to empty arrays
-      # - @cache_ttl to 30
-      # - @expose_credentials_key_names to false
-      # - @additional_introspectors to an empty hash
-      # - @search_code_allowed_file_types to an empty array
-      # - @search_code_pattern_max_bytes to 2048
-      # - @search_code_timeout_seconds to 5.0
+      #
+      # | Attribute                          | Default                                              |
+      # |------------------------------------|------------------------------------------------------|
+      # | +introspectors+                    | +Configuration::PRESETS[:standard].dup+              |
+      # | +preset+                           | +:standard+                                          |
+      # | +excluded_paths+                   | +%w[node_modules tmp log vendor .git]+               |
+      # | +excluded_models+                  | common Rails/ActiveStorage/Action* class names       |
+      # | +core_models+                      | +[]+                                                 |
+      # | +excluded_tables+                  | +[]+                                                 |
+      # | +disabled_introspection_categories+| +[]+                                                 |
+      # | +cache_ttl+                        | +30+ (seconds)                                       |
+      # | +expose_credentials_key_names+     | +false+                                              |
+      # | +additional_introspectors+         | +{}+                                                 |
+      # | +search_code_allowed_file_types+   | +[]+                                                 |
+      # | +search_code_pattern_max_bytes+    | +2048+                                               |
+      # | +search_code_timeout_seconds+      | +5.0+                                                |
+      # | +snapshot_ttl+                     | +5+ (seconds)                                        |
+      # | +cache_warm_on_boot+               | +false+                                              |
+      # | +parallel_introspection+           | +false+                                              |
+      # | +parallel_pool_size+               | +4+ (threads)                                        |
+      # | +parallel_timeout_seconds+         | +10+ (seconds per-future and pool shutdown)          |
       #
       def initialize
         @introspectors      = Configuration::PRESETS[:standard].dup
@@ -97,6 +116,8 @@ module RailsAiBridge
         @snapshot_ttl                      = 5
         @cache_warm_on_boot                = false
         @parallel_introspection            = false
+        @parallel_pool_size                = 4
+        @parallel_timeout_seconds          = 10
       end
 
       # Switch the active introspector list to a named preset.

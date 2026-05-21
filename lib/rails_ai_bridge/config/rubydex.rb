@@ -19,11 +19,19 @@ module RailsAiBridge
       # @return [Symbol] depth of semantic context in generated files (:summary, :standard, :full)
       attr_accessor :semantic_context_depth
 
+      # @return [Float] ratio of changed files that triggers a full rebuild (0.0–1.0)
+      attr_accessor :rubydex_incremental_threshold
+
+      # @return [Boolean] whether to persist file mtimes across process restarts
+      attr_accessor :rubydex_persist_index
+
       def initialize
         @rubydex_enabled = false
         @rubydex_index_path = 'tmp/rubydex_index'
         @semantic_introspector_enabled = false
         @semantic_context_depth = :standard
+        @rubydex_incremental_threshold = 0.3
+        @rubydex_persist_index = false
       end
     end
   end

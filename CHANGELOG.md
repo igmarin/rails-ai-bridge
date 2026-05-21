@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`TimedRunner` — per-introspector wall-clock timing** — new `RailsAiBridge::Introspector::TimedRunner.call(klass, app)` value object wraps any introspector class and returns `{ result:, duration_ms: }`. Uses `Process.clock_gettime(CLOCK_MONOTONIC)` for accurate measurement regardless of system clock adjustments. Duration is recorded even when the introspector raises, so you can diagnose slow-then-failing classes. Sequential runs now log duration at `debug` level via `Rails.logger.debug`.
+- **Config-driven `ParallelRunner` pool size** — `config.parallel_pool_size` (default `4`) sets the upper bound for the `Concurrent::FixedThreadPool`; the actual size is `min(introspector_count, pool_size)` so no idle threads are ever created.
+- **Per-future timeout for parallel introspection** — `config.parallel_timeout_seconds` (default `10`) is enforced on each `Concurrent::Future` via `future.value(timeout)`. Introspectors that exceed their budget are cancelled and return `{ error: "timed out after Ns" }` without blocking the rest of the pool. The pool's `wait_for_termination` also uses this value.
+- **Rubydex incremental indexing** — new `RailsAiBridge::RubydexAdapter::IncrementalIndexer` service skips unchanged files on re-index using mtime tracking (integer seconds, no IEEE 754 precision loss). A full rebuild is triggered when the ratio of changed files exceeds `config.rubydex_incremental_threshold` (default `0.3`). The mtime snapshot can optionally survive process restarts via `config.rubydex_persist_index` (default `false`).
+- **`config.rubydex_incremental_threshold`** (default `0.3`) — ratio of changed-to-total files above which the incremental indexer falls back to a full rebuild.
+- **`config.rubydex_persist_index`** (default `false`) — when `true`, the rubydex mtime snapshot is written to disk alongside the index so incremental re-indexing survives process restarts.
+- **Path-traversal guard for rubydex index path** — `RubydexAdapter#indexer_options` now sanitises `config.rubydex_index_path` through a `Pathname#cleanpath` + root-prefix check, returning `nil` (and falling back to the default) for any path that escapes `Rails.root`.
+
+### Changed
+
+- **`Introspector#run_single`** — sequential execution is now routed through `TimedRunner` instead of a bare `rescue` block. Error handling behaviour is unchanged (`{ error: message }`), but every introspector call now produces a debug-level duration log entry.
+- **`ParallelRunner#resolve_future`** — uses `future.value(timeout)` + `future.complete?` check instead of blocking `future.value!`. A `nil` return from a timed-out future is no longer misinterpreted as a successful result.
+- **`ParallelRunner` pool shutdown** — `wait_for_termination` now uses `config.parallel_timeout_seconds` instead of a hardcoded `10`.
+- **`RubydexAdapter#handle_index_result`** — on `:reindex!` failure, existing `@graph` and `@indexed` state is preserved rather than reset to `nil`/`false`, preventing a full context blackout on transient indexing errors.
+- **Integer mtimes throughout `IncrementalIndexer`** — `serialize_mtimes`, `deserialize_mtimes`, and `file_mtime` now all operate in integer seconds (`Time#to_i`) to avoid IEEE 754 floating-point comparison drift.
+
+### Tests
+
+- Added **20 new examples** covering:
+  - `TimedRunner` — result forwarding, error capture, monotonic duration, error-path duration
+  - `ParallelRunner` — config-driven pool size, per-future timeout, pool shutdown, mixed success/failure, `available?` with pool-size and missing-constant edge cases
+  - `Introspector` — sequential `TimedRunner` wiring (plain result, no `duration_ms` envelope), error capture in sequential mode, debug log assertion
+- **Total: 1,734 examples, 0 failures, 94.55% line coverage**
+
 - **Bridge file freshness stamps** — generated bridge files (CLAUDE.md, AGENTS.md, GEMINI.md, .cursorrules, etc.) now embed a freshness header containing the generation timestamp, a 12-character source fingerprint (SHA-256 of `db/schema.rb` + `config/routes.rb`), and the gem version. Files are skipped on re-generation when their fingerprint matches, eliminating unnecessary timestamps and noisy git diffs.
 - **`Fingerprinter.source_fingerprint`** — new singleton method that hashes the app's schema and routes files into a compact 12-char hex fingerprint used by the freshness system.
 - **`db/structure.sql` fallback** — `source_fingerprint` automatically falls back to `db/structure.sql` when `db/schema.rb` is absent (apps using SQL schema format are now supported).

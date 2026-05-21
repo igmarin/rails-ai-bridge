@@ -66,6 +66,48 @@ RSpec.describe RailsAiBridge::Introspector do
       expect(result[:custom]).to eq({ custom: true })
     end
 
+    context 'sequential execution via TimedRunner' do
+      it 'returns the plain introspector result (not the timed envelope)' do
+        custom = Class.new do
+          def initialize(_app); end
+          def call = { value: 42 }
+        end
+        RailsAiBridge.configuration.additional_introspectors[:custom] = custom
+        RailsAiBridge.configuration.introspectors = [:custom]
+
+        result = introspector.call
+
+        expect(result[:custom]).to eq({ value: 42 })
+        expect(result[:custom]).not_to have_key(:duration_ms)
+      end
+
+      it 'captures introspector errors as { error: } hashes in sequential mode' do
+        boom = Class.new do
+          def initialize(_app); end
+          def call = raise(StandardError, 'sequential boom')
+        end
+        RailsAiBridge.configuration.additional_introspectors[:boom] = boom
+        RailsAiBridge.configuration.introspectors = [:boom]
+
+        result = introspector.call
+
+        expect(result[:boom]).to eq({ error: 'sequential boom' })
+      end
+
+      it 'logs the duration at debug level for each introspector' do
+        custom = Class.new do
+          def initialize(_app); end
+          def call = {}
+        end
+        RailsAiBridge.configuration.additional_introspectors[:timed_custom] = custom
+        RailsAiBridge.configuration.introspectors = [:timed_custom]
+
+        expect(Rails.logger).to receive(:debug).at_least(:once)
+
+        introspector.call
+      end
+    end
+
     context 'with parallel_introspection enabled' do
       before { RailsAiBridge.configuration.parallel_introspection = true }
 

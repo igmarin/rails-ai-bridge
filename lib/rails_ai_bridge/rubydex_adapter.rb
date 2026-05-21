@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'pathname'
+
 module RailsAiBridge
   # Wrapper class for Shopify's rubydex semantic analysis API.
   #
@@ -70,9 +72,9 @@ module RailsAiBridge
       @root = root
       @graph = nil
       @indexed = false
+      @file_mtimes = {}
       @serializer = Serializer.new(@root)
       @indexer = Indexer.new
-      @incremental_indexer = IncrementalIndexer.new
       @method_counter = MethodCounter.new(serializer: @serializer)
     end
 
@@ -84,8 +86,8 @@ module RailsAiBridge
     def index!
       return if @indexed || !self.class.available?
 
-      @graph = @incremental_indexer.build(@root)
-      @indexed = true
+      result = IncrementalIndexer.call(:build, root: @root, **indexer_options)
+      handle_index_result(result, :index!)
     rescue StandardError => error
       log_warning('rubydex.indexing_failed', error.message, error.backtrace)
       @graph = nil
@@ -99,7 +101,9 @@ module RailsAiBridge
     def reindex!
       return unless @indexed && self.class.available?
 
-      @graph = @incremental_indexer.reindex_changed(@root)
+      result = IncrementalIndexer.call(:reindex, root: @root, graph: @graph, file_mtimes: @file_mtimes,
+                                                 **indexer_options)
+      handle_index_result(result, :reindex!)
     rescue StandardError => error
       log_warning('rubydex.reindex_failed', error.message, error.backtrace)
     end
@@ -245,6 +249,76 @@ module RailsAiBridge
     end
 
     private
+
+    # Builds the keyword-options hash forwarded to {IncrementalIndexer.call}.
+    #
+    # Sanitizes the configured +rubydex_index_path+ by resolving it relative to
+    # +@root+ with Pathname and verifying the result stays inside +@root+.
+    # Returns +nil+ for +index_path+ when the value is absent or escapes the
+    # project root (prevents writes outside the project via path traversal).
+    #
+    # @return [Hash]
+    def indexer_options
+      config = RailsAiBridge.configuration
+      {
+        threshold: config.rubydex_incremental_threshold,
+        persist: config.rubydex_persist_index,
+        index_path: sanitize_index_path(config.rubydex_index_path)
+      }
+    end
+
+    # Resolves and validates a configured index path against +@root+.
+    #
+    # Accepts the path only when it is +root+ itself or a strict descendant
+    # (separated by +File::SEPARATOR+), preventing sibling-path bypasses such
+    # as +/tmp/root-evil+ matching a prefix check against +/tmp/root+.
+    #
+    # @param configured [String, nil] raw configured path (relative or absolute)
+    # @return [String, nil] cleaned absolute path, or +nil+ if unsafe/absent
+    def sanitize_index_path(configured)
+      return nil unless configured
+
+      root_pn     = Pathname(@root).cleanpath
+      resolved_pn = root_pn.join(configured).cleanpath
+
+      inside_root = resolved_pn == root_pn ||
+                    resolved_pn.to_s.start_with?(root_pn.to_s + File::SEPARATOR)
+
+      inside_root ? resolved_pn.to_s : nil
+    end
+
+    # Applies a {Service::Result} from {IncrementalIndexer} to instance state.
+    #
+    # For +:index!+, failure clears the graph. For +:reindex!+, failure
+    # deliberately preserves the existing graph so in-flight queries keep
+    # working after a transient error.
+    #
+    # @param result [Service::Result]
+    # @param operation [Symbol] +:index!+ or +:reindex!+
+    # @return [void]
+    def handle_index_result(result, operation)
+      if result.success?
+        data = result.data
+        @graph = data[:graph]
+        @file_mtimes = data[:file_mtimes]
+        @indexed = true
+      else
+        log_warning("rubydex.#{operation}", result.errors.join(', '), [])
+        apply_failure_state(operation)
+      end
+    end
+
+    # Clears graph state on a build failure; no-op on reindex failure so that
+    # the existing working graph is preserved.
+    #
+    # @param operation [Symbol]
+    # @return [void]
+    def apply_failure_state(operation)
+      return unless operation == :index!
+
+      @graph = nil
+      @indexed = false
+    end
 
     def log_warning(event, message, backtrace)
       logger = defined?(Rails) ? Rails.logger : nil

@@ -21,16 +21,28 @@ RSpec.describe RailsAiBridge::Config::Rubydex do
     expect(config.semantic_context_depth).to eq(:standard)
   end
 
+  it 'has default incremental threshold' do
+    expect(config.rubydex_incremental_threshold).to eq(0.3)
+  end
+
+  it 'has persist index disabled by default' do
+    expect(config.rubydex_persist_index).to be(false)
+  end
+
   it 'is configurable' do
     config.rubydex_enabled = true
     config.rubydex_index_path = 'custom/path'
     config.semantic_introspector_enabled = true
     config.semantic_context_depth = :full
+    config.rubydex_incremental_threshold = 0.5
+    config.rubydex_persist_index = true
 
     expect(config.rubydex_enabled).to be(true)
     expect(config.rubydex_index_path).to eq('custom/path')
     expect(config.semantic_introspector_enabled).to be(true)
     expect(config.semantic_context_depth).to eq(:full)
+    expect(config.rubydex_incremental_threshold).to eq(0.5)
+    expect(config.rubydex_persist_index).to be(true)
   end
 end
 
@@ -59,6 +71,16 @@ RSpec.describe RailsAiBridge::Configuration do
   it 'delegates semantic_context_depth to rubydex sub-config' do
     config.semantic_context_depth = :full
     expect(config.rubydex.semantic_context_depth).to eq(:full)
+  end
+
+  it 'delegates rubydex_incremental_threshold to rubydex sub-config' do
+    config.rubydex_incremental_threshold = 0.5
+    expect(config.rubydex.rubydex_incremental_threshold).to eq(0.5)
+  end
+
+  it 'delegates rubydex_persist_index to rubydex sub-config' do
+    config.rubydex_persist_index = true
+    expect(config.rubydex.rubydex_persist_index).to be(true)
   end
 
   describe '#rubydex_available?' do
