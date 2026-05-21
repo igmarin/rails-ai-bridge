@@ -54,7 +54,11 @@ RSpec.describe RailsAiBridge::RubydexAdapter do
     end
 
     it 'allows paths inside the root' do
-      expect(adapter.send(:sanitize_index_path, 'tmp/rubydex')).to end_with('tmp/rubydex')
+      Dir.mktmpdir do |temp|
+        adapter_in_temp = described_class.new(temp)
+        FileUtils.mkdir_p(File.join(temp, 'tmp'))
+        expect(adapter_in_temp.send(:sanitize_index_path, 'tmp/rubydex')).to end_with('tmp/rubydex')
+      end
     end
 
     it 'returns nil for path traversal outside the root' do
