@@ -137,7 +137,7 @@ module RailsAiBridge
         # @return [Boolean]
         # :reek:UtilityFunction
         def within_root?(real_search, real_root)
-          real_search.start_with?(real_root)
+          real_search == real_root || real_search.start_with?("#{real_root}#{File::SEPARATOR}")
         end
 
         # Returns a path-not-found error response.
