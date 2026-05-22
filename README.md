@@ -261,7 +261,7 @@ The gem exposes **12 built-in tools** via MCP that AI clients call on-demand (ho
 | `rails_get_conventions` | Architecture patterns, directory structure |
 | `rails_search_code` | Ripgrep (or Ruby) search under `Rails.root` with allowlisted extensions, pattern size cap, and optional wall-clock timeout |
 | `rails_get_view` | View layouts, templates, partials; optional per-file detail under the configured `app/views` path |
-| `rails_search_semantic` | Semantic code search using rubydex — find declarations by name with types, locations, and relationships (requires rubydex) |
+| `rails_search_semantic` | Semantic code search using rubydex — find declarations by name with types, locations, and relationships |
 | `rails_get_stimulus` | Stimulus controllers: targets, values, actions, outlets (requires `:stimulus` introspector) |
 
 All tools are **read-only** — they never modify your application or database.
@@ -516,19 +516,17 @@ Built-in MCP tools and resources now read through a shared runtime context provi
 
 ### Rubydex Integration (Semantic Code Analysis)
 
-[Rubydex](https://github.com/Shopify/rubydex) is Shopify's high-performance Ruby static analysis toolkit. When installed, rails-ai-bridge can leverage rubydex for semantic code understanding:
+[Rubydex](https://github.com/Shopify/rubydex) is Shopify's high-performance Ruby static analysis toolkit. rails-ai-bridge leverages rubydex out-of-the-box for semantic code understanding.
 
 **Setup:**
 
-1. Add rubydex to your Gemfile:
-   ```ruby
-   gem 'rubydex', '>= 0.1.0.beta9'
-   ```
+Rubydex is installed automatically as a core dependency and is enabled by default.
 
-2. Enable in your initializer:
+To customize it in your initializer (`config/initializers/rails_ai_bridge.rb`):
+
    ```ruby
    RailsAiBridge.configure do |config|
-     config.rubydex_enabled = true
+     # config.rubydex_enabled = false # Set to false to disable semantic analysis
 
      # Optional: enable the semantic introspector (adds :semantic to introspectors)
      config.semantic_introspector_enabled = true
@@ -560,7 +558,7 @@ Built-in MCP tools and resources now read through a shared runtime context provi
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `rubydex_enabled` | `false` | Enable rubydex integration |
+| `rubydex_enabled` | `true` | Enable rubydex integration |
 | `rubydex_index_path` | `"tmp/rubydex_index"` | Path for the rubydex index (must stay within `Rails.root`) |
 | `semantic_introspector_enabled` | `false` | Enable the dedicated semantic introspector |
 | `semantic_context_depth` | `:standard` | Depth of semantic context in generated files (`:summary`, `:standard`, `:full`) |

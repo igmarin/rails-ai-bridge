@@ -26,7 +26,7 @@ module RailsAiBridge
       attr_accessor :rubydex_persist_index
 
       def initialize
-        @rubydex_enabled = false
+        @rubydex_enabled = true
         @rubydex_index_path = 'tmp/rubydex_index'
         @semantic_introspector_enabled = false
         @semantic_context_depth = :standard

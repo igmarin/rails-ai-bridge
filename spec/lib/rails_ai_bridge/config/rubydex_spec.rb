@@ -5,8 +5,8 @@ require 'spec_helper'
 RSpec.describe RailsAiBridge::Config::Rubydex do
   let(:config) { described_class.new }
 
-  it 'has rubydex disabled by default' do
-    expect(config.rubydex_enabled).to be(false)
+  it 'has rubydex enabled by default' do
+    expect(config.rubydex_enabled).to be(true)
   end
 
   it 'has default index path' do
@@ -54,8 +54,8 @@ RSpec.describe RailsAiBridge::Configuration do
   end
 
   it 'delegates rubydex_enabled to rubydex sub-config' do
-    config.rubydex_enabled = true
-    expect(config.rubydex.rubydex_enabled).to be(true)
+    config.rubydex_enabled = false
+    expect(config.rubydex.rubydex_enabled).to be(false)
   end
 
   it 'delegates rubydex_index_path to rubydex sub-config' do

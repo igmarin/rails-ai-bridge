@@ -23,7 +23,7 @@ RSpec.describe RailsAiBridge::Introspectors::SemanticIntrospector do
 
       it 'returns info message' do
         result = introspector.call
-        expect(result[:info]).to include('Rubydex is not available')
+        expect(result[:info]).to include('Rubydex semantic analysis is currently disabled')
       end
     end
 
@@ -35,7 +35,7 @@ RSpec.describe RailsAiBridge::Introspectors::SemanticIntrospector do
 
       it 'returns info message' do
         result = introspector.call
-        expect(result[:info]).to include('Rubydex is not available')
+        expect(result[:info]).to include('Rubydex semantic analysis is currently disabled')
       end
     end
 

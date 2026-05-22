@@ -45,8 +45,8 @@ module RailsAiBridge
       # @return [MCP::Tool::Response]
       def self.call(query:, path: nil, max_results: 20)
         unless rubydex_available?
-          return text_response('Rubydex is not available. Install the rubydex gem and set ' \
-                               'config.rubydex_enabled = true to enable semantic search.')
+          return text_response('Rubydex semantic analysis is currently disabled. ' \
+                               'Set config.rubydex_enabled = true to enable semantic search.')
         end
 
         max_results = normalize_max_results(max_results)

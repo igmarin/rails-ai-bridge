@@ -31,8 +31,8 @@ module RailsAiBridge
       def call
         config = RailsAiBridge.configuration
         unless config.rubydex_available?
-          return { info: 'Rubydex is not available. Install the rubydex gem and set ' \
-                         'config.rubydex_enabled = true to enable semantic analysis.' }
+          return { info: 'Rubydex semantic analysis is currently disabled. ' \
+                         'Set config.rubydex_enabled = true to enable it.' }
         end
 
         adapter = RubydexAdapter.instance(app.root.to_s)

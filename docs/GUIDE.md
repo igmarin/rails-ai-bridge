@@ -480,7 +480,7 @@ rails_search_code(pattern: "def create", path: "app/controllers", file_type: "rb
 
 ### rails_search_semantic
 
-Semantic code search using rubydex. Searches declarations (classes, modules, methods, constants) by name and returns structured results with types, locations, and relationships. Requires rubydex to be installed and `config.rubydex_enabled = true`.
+Semantic code search using rubydex. Searches declarations (classes, modules, methods, constants) by name and returns structured results with types, locations, and relationships. Requires `config.rubydex_enabled = true` (default).
 
 **Parameters:**
 
@@ -509,7 +509,7 @@ rails_search_semantic(query: "Service", max_results: 30)
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `rubydex_enabled` | Boolean | `false` | Enable rubydex integration |
+| `rubydex_enabled` | Boolean | `true` | Enable rubydex integration |
 | `rubydex_index_path` | String | `"tmp/rubydex_index"` | Index storage path (must stay within `Rails.root`; path-traversal attempts are silently rejected and the default is used) |
 | `semantic_introspector_enabled` | Boolean | `false` | Enable the dedicated `:semantic` introspector |
 | `semantic_context_depth` | Symbol | `:standard` | Depth of semantic insights in generated context files (`:summary`, `:standard`, `:full`) |
@@ -571,9 +571,35 @@ In addition to tools, the gem registers static MCP resources that AI clients can
 
 ## MCP Server Setup
 
-### Auto-discovery (recommended)
+### 1. HTTP/SSE Server (Highly Recommended for IDEs)
 
-The install generator creates `.mcp.json` in your project root:
+If you use a Ruby version manager like `rbenv` or `rvm`, IDEs (like **Antigravity**, **Cursor**, or **Windsurf**) often fail to load the correct Ruby environment when launching sub-processes. The most bulletproof approach is to mount the MCP server directly into your running Rails application over HTTP/SSE. 
+
+1. Enable the HTTP server in your initializer (`config/initializers/rails_ai_bridge.rb`):
+
+```ruby
+RailsAiBridge.configure do |config|
+  config.auto_mount = true
+  config.http_path  = "/mcp"       # The endpoint the IDE will connect to
+  config.http_bind  = "127.0.0.1"  # Localhost only for security
+end
+```
+
+2. Start your Rails server normally in your terminal:
+```bash
+bin/rails server
+```
+
+3. In your IDE's MCP settings (e.g., Antigravity, Cursor), add a new MCP server:
+- **Type**: `SSE`
+- **Name**: `rails-ai-bridge`
+- **URL**: `http://localhost:3000/mcp` (Adjust port if your Rails server runs on a different port)
+
+### 2. Standard STDIO Server (For Claude Code & CLI Tools)
+
+For CLI tools like **Claude Code**, the standard stdio sub-process works perfectly because it inherits your active terminal's shell environment.
+
+The install generator creates `.mcp.json` in your project root with this configuration:
 
 ```json
 {
@@ -586,14 +612,22 @@ The install generator creates `.mcp.json` in your project root:
 }
 ```
 
-**Claude Code** and **Cursor** auto-detect this file. Codex uses the generated `AGENTS.md` plus your local Codex configuration.
+**Claude Code** auto-detects this file automatically. 
 
-### Claude Code
+If you absolutely must use STDIO in an IDE that struggles with `rbenv`/`nvm`, explicitly passing the Gemfile or using a wrapper script is required:
 
-Auto-discovered via `.mcp.json`. Or add manually:
-
-```bash
-claude mcp add rails-ai-bridge -- bundle exec rails ai:serve
+```json
+{
+  "mcpServers": {
+    "rails-ai-bridge": {
+      "command": "bundle",
+      "args": ["exec", "rails", "ai:serve"],
+      "env": {
+        "BUNDLE_GEMFILE": "${workspaceFolder}/Gemfile"
+      }
+    }
+  }
+}
 ```
 
 ### Claude Desktop
@@ -606,15 +640,17 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
     "rails-ai-bridge": {
       "command": "bundle",
       "args": ["exec", "rails", "ai:serve"],
-      "cwd": "/path/to/your/rails/app"
+      "env": {
+        "BUNDLE_GEMFILE": "/absolute/path/to/your/rails/app/Gemfile"
+      }
     }
   }
 }
 ```
 
-### Cursor
+### Cursor / Antigravity
 
-Auto-discovered via `.mcp.json`. Or add manually in **Cursor Settings > MCP**:
+Auto-discovered via `.mcp.json`. Or add manually in **Settings > MCP**:
 
 ```json
 {
@@ -622,7 +658,9 @@ Auto-discovered via `.mcp.json`. Or add manually in **Cursor Settings > MCP**:
     "rails-ai-bridge": {
       "command": "bundle",
       "args": ["exec", "rails", "ai:serve"],
-      "cwd": "/path/to/your/rails/app"
+      "env": {
+        "BUNDLE_GEMFILE": "${workspaceFolder}/Gemfile"
+      }
     }
   }
 }

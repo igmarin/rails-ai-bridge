@@ -37,6 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`rubydex` enabled by default** — The `rubydex` gem (v0.2.3) is now a mandatory dependency and semantic analysis is enabled out of the box (`@rubydex_enabled = true`). This provides zero-config code graph and semantic context functionality to all users.
+- **Improved IDE configurations in documentation** — Promoted HTTP/SSE as the primary and highly recommended connection method for `rbenv`/`rvm` users within IDEs (like Antigravity and Cursor) to bypass subprocess ruby environment pathing issues.
 - **`Introspector#run_single`** (#36) — sequential execution is now routed through `TimedRunner` instead of a bare `rescue` block. Error handling behaviour is unchanged (`{ error: message }`), but every introspector call now produces a debug-level duration log entry.
 - **`ParallelRunner#resolve_future`** (#36) — uses `future.value(timeout)` + `future.complete?` check instead of blocking `future.value!`. A `nil` return from a timed-out future is no longer misinterpreted as a successful result.
 - **`ParallelRunner` pool shutdown** (#36) — `wait_for_termination` now uses `config.parallel_timeout_seconds` instead of a hardcoded `10`.

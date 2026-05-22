@@ -21,7 +21,7 @@ RSpec.describe RailsAiBridge::Tools::SearchSemantic do
       it 'returns unavailability message' do
         response = described_class.call(query: 'User')
         text = response.content.first[:text]
-        expect(text).to include('Rubydex is not available')
+        expect(text).to include('Rubydex semantic analysis is currently disabled')
       end
     end
 
@@ -34,7 +34,7 @@ RSpec.describe RailsAiBridge::Tools::SearchSemantic do
       it 'returns unavailability message' do
         response = described_class.call(query: 'User')
         text = response.content.first[:text]
-        expect(text).to include('Rubydex is not available')
+        expect(text).to include('Rubydex semantic analysis is currently disabled')
       end
     end
 
