@@ -8,6 +8,9 @@ loader.ignore("#{__dir__}/generators")
 loader.ignore("#{__dir__}/rails-ai-bridge.rb")
 loader.setup
 
+# Require registry module for configuration
+require_relative 'rails_ai_bridge/registry'
+
 module RailsAiBridge
   class Error < StandardError; end
   class ConfigurationError < Error; end

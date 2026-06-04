@@ -488,6 +488,10 @@ end
 | `parallel_introspection` | `false` | Run introspectors concurrently (requires `concurrent-ruby`, which is already a Rails dependency) |
 | `parallel_pool_size` | `4` | Max threads in the parallel pool; capped at the number of active introspectors so no idle threads are created |
 | `parallel_timeout_seconds` | `10` | Per-introspector future timeout (seconds); timed-out introspectors return `{ error: "timed out after Ns" }` without blocking the others |
+| `registry.registry_manifest_path` | `"config/rails_ai_bridge_registry.json"` | Path to the registry manifest JSON file for skill pack resolution |
+| `registry.skill_cache_dir` | `"~/.rails-ai-bridge/cache"` | Directory for caching git repositories containing skill packs |
+| `registry.skill_packs` | `nil` | Explicit pack names to load, or `nil` for auto-detection based on framework |
+| `registry.local_registry_paths` | `[]` | Local registry directory paths for skill pack overrides |
 
 Other HTTP MCP knobs live only on the nested object, for example `RailsAiBridge.configuration.mcp.authorize`, `mcp.mode`, `mcp.security_profile`, and `mcp.require_auth_in_production` — see [docs/GUIDE.md](docs/GUIDE.md) and [docs/mcp-security.md](docs/mcp-security.md).
 </details>
