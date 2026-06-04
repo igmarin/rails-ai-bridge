@@ -459,6 +459,7 @@ detectors:
     - RailsAiBridge::Tools::SearchSemantic#self.format_results
   NilCheck:
     exclude:
+    - RailsAiBridge::Registry::DeprecatedEntry#removed_in?
     - RailsAiBridge::AssistantFormatsPreference#formats_for_default_bridge_task
     - RailsAiBridge::Config::Introspection#excluded_table?
     - RailsAiBridge::RubydexAdapter#sanitize_index_path
@@ -523,6 +524,7 @@ detectors:
     - RailsAiBridge::Server
   TooManyStatements:
     exclude:
+    - RailsAiBridge::Registry::FrontmatterParser#self.extract_frontmatter_lines
     - RailsAiBridge#validate_auto_mount_configuration!
     - RailsAiBridge::AssistantFormatsPreference#formats_for_default_bridge_task
     - RailsAiBridge::AssistantFormatsPreference#write!
