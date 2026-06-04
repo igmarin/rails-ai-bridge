@@ -28,11 +28,13 @@ necessary for the future skill compiler feature.
 ### PR 1 — Data structures + frontmatter parser
 
 **Files:**
-- `lib/rails_ai_bridge/registry/manifest.rb` — `RegistryManifest`, `PackDefinition`
+- `lib/rails_ai_bridge/registry/registry_manifest.rb` — `RegistryManifest`
+- `lib/rails_ai_bridge/registry/pack_definition.rb` — `PackDefinition`
 - `lib/rails_ai_bridge/registry/tile_manifest.rb` — `TileManifest`, `SkillEntry`, `AgentEntry`, `DeprecatedEntry`
 - `lib/rails_ai_bridge/registry/frontmatter_parser.rb` — YAML frontmatter extraction (internal utility)
 - `lib/rails_ai_bridge/registry.rb` — module entry point
-- `spec/lib/rails_ai_bridge/registry/manifest_spec.rb`
+- `spec/lib/rails_ai_bridge/registry/registry_manifest_spec.rb`
+- `spec/lib/rails_ai_bridge/registry/pack_definition_spec.rb`
 - `spec/lib/rails_ai_bridge/registry/tile_manifest_spec.rb`
 - `spec/lib/rails_ai_bridge/registry/frontmatter_parser_spec.rb`
 

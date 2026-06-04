@@ -10,12 +10,9 @@ module RailsAiBridge
   # deprecation redirect handling, and framework auto-detection.
   #
   # @see Registry::RegistryManifest
+  # @see Registry::PackDefinition
   # @see Registry::TileManifest
   # @see Registry::FrontmatterParser
   module Registry
   end
 end
-
-require_relative 'registry/manifest'
-require_relative 'registry/tile_manifest'
-require_relative 'registry/frontmatter_parser'
