@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Registry data structures (PR 1)** — new `RailsAiBridge::Registry` module with immutable value objects
+  porting the Rust `agent-mcp-runtime` registry types to Ruby:
+  - `Registry::RegistryManifest` — root manifest (version, packs, default\_stack); `from_json` / `from_file`
+  - `Registry::PackDefinition` — single pack descriptor (source, tile, always\_loaded, depends\_on)
+  - `Registry::TileManifest` — pack skill/agent catalog; `from_json` / `from_file`
+  - `Registry::SkillEntry`, `Registry::AgentEntry` — metadata entries for skills and agents
+  - `Registry::DeprecatedEntry` — deprecation redirect (moved\_to, message, removed\_in)
+  - `Registry::FrontmatterParser` — internal YAML frontmatter extractor for skill markdown files;
+    used when a `SkillEntry` carries no description in `tile.json`
+
 ## [3.4.0] - 2026-05-21
 
 ### Added
