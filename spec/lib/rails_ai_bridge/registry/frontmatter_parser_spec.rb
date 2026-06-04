@@ -45,6 +45,28 @@ RSpec.describe RailsAiBridge::Registry::FrontmatterParser do
       end
     end
 
+    context 'when frontmatter contains invalid YAML syntax' do
+      it 'raises ParseError' do
+        content = "---\nname: foo\n  bad: indent: [unclosed\n---\n"
+        expect { described_class.parse(content) }
+          .to raise_error(RailsAiBridge::Registry::FrontmatterParser::ParseError, /invalid yaml/i)
+      end
+    end
+
+    context 'when frontmatter YAML is not a mapping' do
+      it 'raises ParseError for a YAML sequence' do
+        content = "---\n- item_one\n- item_two\n---\n"
+        expect { described_class.parse(content) }
+          .to raise_error(RailsAiBridge::Registry::FrontmatterParser::ParseError, /must be a yaml mapping/i)
+      end
+
+      it 'raises ParseError for a plain scalar' do
+        content = "---\njust a string\n---\n"
+        expect { described_class.parse(content) }
+          .to raise_error(RailsAiBridge::Registry::FrontmatterParser::ParseError, /must be a yaml mapping/i)
+      end
+    end
+
     context 'when required fields are missing' do
       it 'raises ParseError for missing name' do
         content = "---\nversion: 1.0.0\ndescription: foo\n---\n"

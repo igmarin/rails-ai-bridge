@@ -59,7 +59,12 @@ module RailsAiBridge
 
       # @api private
       def self.parse_yaml(lines)
-        YAML.safe_load(lines.join, permitted_classes: []) || {}
+        data = YAML.safe_load(lines.join, permitted_classes: []) || {}
+        raise ParseError, 'Frontmatter must be a YAML mapping/object' unless data.is_a?(Hash)
+
+        data
+      rescue Psych::SyntaxError => error
+        raise ParseError, "Invalid YAML frontmatter: #{error.message}"
       end
 
       # @api private
