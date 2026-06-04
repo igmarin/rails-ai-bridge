@@ -2,33 +2,19 @@
 
 source 'https://rubygems.org'
 
+# Specify your gem's dependencies in rails-ai-bridge.gemspec
 gemspec
 
-rails_version = ENV.fetch('RAILS_VERSION', '8.0')
-
-# Using irb (built-in) instead of pry for better security
-
-sqlite_version =
-  if rails_version.start_with?('8')
-    '>= 2.1'
-  else
-    '~> 1.7'
-  end
-
 group :development, :test do
-  gem 'activerecord', "~> #{rails_version}.0"
-  gem 'railties', "~> #{rails_version}.0"
-  gem 'sqlite3', sqlite_version
-
-  # Development dependencies
-  gem 'combustion', '~> 1.5' # Test Rails engines in isolation
-  gem 'reek', '~> 6.0' # MFA enabled - code quality analysis
+  gem 'combustion', '~> 1.3'
+  gem 'rails', '~> 7.1'
+  gem 'reek', '~> 6.1'
   gem 'rspec', '~> 3.13'
-  gem 'rubocop', '~> 1.86'
-  gem 'rubocop-rails', '~> 2.0' # MFA enabled - Rails-specific cops
-  gem 'rubocop-rspec', '~> 3.0' # MFA enabled - RSpec-specific cops
-  gem 'rubycritic', '~> 4.0' # MFA enabled - additional code metrics
+  gem 'rubocop', '~> 1.65'
+  gem 'rubocop-rails', '~> 2.35'
+  gem 'rubocop-rails-omakase', '~> 1.0'
+  gem 'rubocop-rspec', '~> 3.0'
   gem 'simplecov', '~> 0.22'
-  gem 'skunk', '~> 0.5.4'
-  gem 'yard', '~> 0.9' # MFA enabled - documentation generation
+  gem 'skunk', '~> 0.5'
+  gem 'sqlite3', '~> 1.4'
 end

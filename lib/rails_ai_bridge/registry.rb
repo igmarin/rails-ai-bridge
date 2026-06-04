@@ -17,6 +17,11 @@ module RailsAiBridge
   # @see Registry::GitRunner
   # @see Registry::DefaultGitRunner
   # @see Registry::SkillSourceResolver
+  # @see Registry::PackResolver
+  # @see Registry::Resolver
+  # @see Registry::LoadedPack
+  # @see Registry::ResolvedSkill
+  # @see Registry::SkillSummary
   module Registry
   end
 end
