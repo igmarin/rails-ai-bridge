@@ -47,6 +47,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `registry.skill_packs` — explicit pack names to load, or `nil` for auto-detection based on framework
   - `registry.local_registry_paths` — local registry directory paths for skill pack overrides
   - Registry module required in main `rails_ai_bridge.rb` for configuration availability
+- **Registry Rake tasks + MCP tools (PR 5)** — CLI and MCP interfaces for registry resolution:
+  - `rails ai:registry:list_skills` — Rake task to list all available skills from the registry
+  - `rails ai:registry:resolve_skill[name]` — Rake task to resolve and print a skill by name
+  - `rails_list_skills` — MCP tool to list all available skills across loaded skill packs
+  - `rails_list_agents` — MCP tool to list all available agents across loaded skill packs
+  - `rails_list_packs` — MCP tool to list loaded skill packs with their priority levels
+  - `docs/registry-resolution.md` — user-facing documentation for registry resolution system,
+    including priority rules, configuration options, manifest structure, and usage examples
+  - `RailsAiBridge::Registry::ResolverBuilder` — shared module for building registry resolvers,
+    eliminating code duplication between Rake tasks and MCP tools
+  - `RailsAiBridge::RakeHelpers` — module for Rake task helpers to avoid polluting global namespace
 
 ## [3.4.0] - 2026-05-21
 

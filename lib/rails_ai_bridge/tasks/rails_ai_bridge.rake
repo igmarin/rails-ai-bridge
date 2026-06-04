@@ -276,3 +276,64 @@ namespace :ai do
     end
   end
 end
+
+namespace :ai do
+  namespace :registry do
+    desc 'List all available skills from the registry'
+    task list_skills: :environment do
+      require 'rails_ai_bridge'
+
+      resolver = RailsAiBridge::RakeHelpers.build_registry_resolver
+      unless resolver
+        puts '❌ Registry resolution not available. Configure registry settings in config/registry.'
+        exit 1
+      end
+
+      skills = resolver.list_skills
+      if skills.empty?
+        puts 'No skills available'
+        exit 0
+      end
+
+      puts '# Available Skills'
+      puts ''
+      skills.each do |skill|
+        puts "- **#{skill.name}** (from #{skill.pack})"
+        puts "  #{skill.description}"
+        puts ''
+      end
+    end
+
+    desc 'Resolve and print a skill by name (usage: rails ai:registry:resolve_skill[name])'
+    task :resolve_skill, %i[name] => :environment do |_t, args|
+      require 'rails_ai_bridge'
+
+      skill_name = args[:name] || ENV.fetch('NAME', nil)
+
+      unless skill_name
+        puts 'Usage: rails ai:registry:resolve_skill[name]'
+        puts '   or: NAME=skill rails ai:registry:resolve_skill'
+        exit 1
+      end
+
+      resolver = RailsAiBridge::RakeHelpers.build_registry_resolver
+      unless resolver
+        puts '❌ Registry resolution not available. Configure registry settings in config/registry.'
+        exit 1
+      end
+
+      resolved = resolver.resolve_skill(skill_name)
+
+      unless resolved
+        puts "❌ Skill '#{skill_name}' not found in registry"
+        exit 1
+      end
+
+      puts "# Skill: #{resolved.name}"
+      puts "# Pack: #{resolved.pack}"
+      puts "# Path: #{resolved.path}"
+      puts ''
+      puts resolved.content
+    end
+  end
+end

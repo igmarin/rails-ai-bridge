@@ -247,7 +247,7 @@ This keeps context focused and avoids unnecessary token usage while still allowi
 
 ## MCP Tools
 
-The gem exposes **12 built-in tools** via MCP that AI clients call on-demand (hosts can append more via `config.additional_tools`):
+The gem exposes **15 built-in tools** via MCP that AI clients call on-demand (hosts can append more via `config.additional_tools`):
 
 | Tool | What it returns |
 |------|----------------|
@@ -263,6 +263,9 @@ The gem exposes **12 built-in tools** via MCP that AI clients call on-demand (ho
 | `rails_get_view` | View layouts, templates, partials; optional per-file detail under the configured `app/views` path |
 | `rails_search_semantic` | Semantic code search using rubydex — find declarations by name with types, locations, and relationships |
 | `rails_get_stimulus` | Stimulus controllers: targets, values, actions, outlets (requires `:stimulus` introspector) |
+| `rails_list_skills` | List all available skills across loaded skill packs from the registry |
+| `rails_list_agents` | List all available agents across loaded skill packs from the registry |
+| `rails_list_packs` | List loaded skill packs with their priority levels |
 
 All tools are **read-only** — they never modify your application or database.
 
@@ -606,6 +609,8 @@ Frontend introspectors (views, Turbo, Stimulus, assets) degrade gracefully — t
 | `rails ai:doctor` | Run diagnostics and AI readiness score (0-100) |
 | `rails ai:watch` | Auto-regenerate bridge files on code changes |
 | `rails ai:inspect` | Print introspection summary to stdout |
+| `rails ai:registry:list_skills` | List all available skills from the registry |
+| `rails ai:registry:resolve_skill[name]` | Resolve and print a skill by name |
 
 > **Bridge modes:**
 > ```bash
