@@ -13,6 +13,10 @@ module RailsAiBridge
   # @see Registry::PackDefinition
   # @see Registry::TileManifest
   # @see Registry::FrontmatterParser
+  # @see Registry::PackDetector
+  # @see Registry::GitRunner
+  # @see Registry::DefaultGitRunner
+  # @see Registry::SkillSourceResolver
   module Registry
   end
 end

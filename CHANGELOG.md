@@ -18,6 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `Registry::DeprecatedEntry` — deprecation redirect (moved\_to, message, removed\_in)
   - `Registry::FrontmatterParser` — internal YAML frontmatter extractor for skill markdown files;
     used when a `SkillEntry` carries no description in `tile.json`
+- **Git source resolver + pack detector (PR 2)** — git repository caching and framework auto-detection:
+  - `Registry::GitRunner` — module interface for git operations (injectable for tests)
+  - `Registry::DefaultGitRunner` — Open3-based implementation using stdlib git commands
+  - `Registry::SkillSourceResolver` — resolves remote git sources to local cache directories;
+    clones if missing, pulls if cached; cache dir defaults to `~/.rails-ai-bridge/cache/`
+    (env override: `RAILS_AI_BRIDGE_CACHE_DIR`); cache key uses sanitized source + SHA256 hash
+  - `Registry::DetectedFramework` — enum-like value object (Rails, Hanami)
+  - `Registry::PackDetector` — detects Rails/Hanami frameworks from Gemfile content;
+    supports single/double quotes, version constraints, ignores commented lines
 
 ## [3.4.0] - 2026-05-21
 
