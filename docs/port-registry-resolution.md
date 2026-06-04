@@ -1,6 +1,6 @@
 # Port Registry Resolution from Rust Runtime to rails-ai-bridge
 
-**Status:** Agreed — pending first PR
+**Status:** In progress — PR 1 completed, PR 2 next
 **Reference source:** `../agent-mcp-runtime/src/registry/` (Rust)
 **Delivery model:** Sequential PRs, each reviewed by Qodo + CodeRabbit before proceeding
 
@@ -22,6 +22,29 @@ necessary for the future skill compiler feature.
 | Configuration access | New `Config::Registry` sub-object; accessed as `configuration.registry.*` — no top-level delegators |
 | Priorities | Hardcoded matching Rust (`local=0`, `rails/hanami=10`, `core=20`, `other=30`) |
 | Frontmatter parser | Include as internal utility (`Registry::FrontmatterParser`) — used when `tile.json` `SkillEntry` has no `description` |
+
+## PR 1 — Completed ✅
+
+**Implemented:** Data structures + frontmatter parser
+
+**Files created:**
+- `lib/rails_ai_bridge/registry/registry_manifest.rb` — `RegistryManifest` (Zeitwerk-compliant)
+- `lib/rails_ai_bridge/registry/pack_definition.rb` — `PackDefinition` (Zeitwerk-compliant)
+- `lib/rails_ai_bridge/registry/tile_manifest.rb` — `TileManifest`, `SkillEntry`, `AgentEntry`, `DeprecatedEntry`
+- `lib/rails_ai_bridge/registry/frontmatter_parser.rb` — `FrontmatterParser`, `SkillMetadata`, `ParseError`
+- `lib/rails_ai_bridge/registry.rb` — module entry point
+- `spec/lib/rails_ai_bridge/registry/registry_manifest_spec.rb` — 14 examples
+- `spec/lib/rails_ai_bridge/registry/pack_definition_spec.rb` — 2 examples
+- `spec/lib/rails_ai_bridge/registry/tile_manifest_spec.rb` — 29 examples
+- `spec/lib/rails_ai_bridge/registry/frontmatter_parser_spec.rb` — 9 examples
+
+**Decisions made during implementation:**
+- **Zeitwerk naming**: Split `manifest.rb` into `registry_manifest.rb` + `pack_definition.rb` so filenames map to constants. No `require_relative` calls needed in `registry.rb` — Zeitwerk autoloads everything correctly.
+- **Error handling**: `parse_yaml` now guards `Psych::SyntaxError` (invalid YAML) and non-Hash YAML (sequences/scalars), raising `ParseError` consistently in both cases.
+- **Reek suppressions**: Added `NilCheck` suppression for `DeprecatedEntry#removed_in?` (intentional nil check on value object predicate) and `TooManyStatements` for `FrontmatterParser#extract_frontmatter_lines` (necessary complexity for delimiter scanning).
+- **Spec coverage**: 52 examples covering happy paths, defaults, file errors, invalid YAML, non-mapping YAML, and edge cases.
+
+**Quality gates:** 52/52 specs green · rubocop clean · reek 0 warnings · coverage 81.36%
 
 ## PR Breakdown
 
