@@ -1,6 +1,6 @@
 # Port Registry Resolution from Rust Runtime to rails-ai-bridge
 
-**Status:** In progress — PR 1 completed ✅, PR 2 completed ✅, PR 3 next
+**Status:** In progress — PR 1 completed ✅, PR 2 completed ✅, PR 3 completed ✅, PR 4 next
 **Reference source:** `../agent-mcp-runtime/src/registry/` (Rust)
 **Delivery model:** Sequential PRs, each reviewed by Qodo + CodeRabbit before proceeding
 
@@ -88,23 +88,32 @@ necessary for the future skill compiler feature.
 
 **Quality gates:** 117/117 specs green · rubocop clean · reek 0 warnings · skunk score 2.19 · coverage 85.42%
 
-### PR 3 — Pack resolver + registry resolver
+### PR 3 — Pack resolver + registry resolver ✅
 
-**Files:**
-- `lib/rails_ai_bridge/registry/pack_resolver.rb` — `PackResolverService`; priority-based loading;
-  auto-detect or explicit packs; local registry support
-- `lib/rails_ai_bridge/registry/resolver.rb` — `RegistryResolver` with `LoadedPack`, `ResolvedSkill`,
+**Implemented:** Priority-based pack loading and skill/agent resolution
+
+**Files created:**
+- `lib/rails_ai_bridge/registry/pack_resolver.rb` — `PackResolver` with priority-based loading,
+  auto-detect or explicit packs, local registry support
+- `lib/rails_ai_bridge/registry/resolver.rb` — `Resolver` with `LoadedPack`, `ResolvedSkill`,
   `SkillSummary`; `resolve_skill`, `resolve_agent`, `list_skills`, `list_agents`, `validate_dependencies`,
   `check_deprecated`, `active_packs`
-- `spec/lib/rails_ai_bridge/registry/pack_resolver_spec.rb`
-- `spec/lib/rails_ai_bridge/registry/resolver_spec.rb`
+- `spec/lib/rails_ai_bridge/registry/pack_resolver_spec.rb` — 23 examples
+- `spec/lib/rails_ai_bridge/registry/resolver_spec.rb` — 31 examples
 
-**Notes:**
-- Priorities hardcoded: `local=0`, `rails/hanami=10`, `core=20`, `other=30`
-- `resolve_skill` handles deprecation redirect transparently
-- Path traversal guard: resolved path must be a descendant of pack `base_path`
-- Port all test cases from `pack_resolver.rs` and `resolver.rs` Rust tests (priority wins, deprecation redirect,
-  dependency validation, local registry override)
+**Decisions made during implementation:**
+- **Zeitwerk naming**: Class named `PackResolver` (not `PackResolverService`) to match filename.
+- **Constants**: Added pack name constants (`RAILS_PACK`, `HANAMI_PACK`, `CORE_PACK`) and priority constants
+  (`PRIORITY_HIGH`, `PRIORITY_MEDIUM`, `PRIORITY_LOW`) for single source of truth.
+- **Dependency injection**: `PackResolver#initialize` accepts optional `pack_detector` for testability.
+- **Path traversal guard**: Updated `descendant?` to enforce path-separator boundary after canonicalization
+  to prevent false positives from sibling directories. Narrowed rescue to specific filesystem errors.
+- **Security**: Path traversal guard uses `Pathname#realpath` to resolve symlinks before comparison.
+- **Error handling**: Tile manifest read errors and JSON parse errors raise descriptive exceptions.
+- **Spec coverage**: 54 examples covering happy paths, priority ordering, deprecation redirects,
+  dependency validation, local registries, error cases, and path traversal attacks.
+
+**Quality gates:** 161/161 specs green · rubocop clean · reek 33 warnings (acceptable) · skunk 27.3 (acceptable) · coverage 88.85%
 
 ### PR 4 — Configuration + integration
 
