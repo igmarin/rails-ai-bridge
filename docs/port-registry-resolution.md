@@ -1,6 +1,6 @@
 # Port Registry Resolution from Rust Runtime to rails-ai-bridge
 
-**Status:** In progress — PR 1 completed, PR 2 next
+**Status:** In progress — PR 1 completed ✅, PR 2 completed ✅, PR 3 next
 **Reference source:** `../agent-mcp-runtime/src/registry/` (Rust)
 **Delivery model:** Sequential PRs, each reviewed by Qodo + CodeRabbit before proceeding
 
@@ -66,20 +66,27 @@ necessary for the future skill compiler feature.
 - `json` gem is standard library in Ruby 3+ — no gemspec change needed
 - Port test cases from `manifest.rs`, `tile.rs`, and `parser.rs` Rust tests
 
-### PR 2 — Git source resolver + pack detector
+### PR 2 — Git source resolver + pack detector ✅
 
-**Files:**
-- `lib/rails_ai_bridge/registry/git_source_resolver.rb` — `SkillSourceResolver`, `GitRunner` interface,
-  `DefaultGitRunner` (Open3), injectable for tests
-- `lib/rails_ai_bridge/registry/pack_detector.rb` — `PackDetector`, detects Rails/Hanami from Gemfile; accepts path override
-- `spec/lib/rails_ai_bridge/registry/git_source_resolver_spec.rb` — uses mock runner
-- `spec/lib/rails_ai_bridge/registry/pack_detector_spec.rb`
+**Implemented:** Git repository caching and framework auto-detection
 
-**Notes:**
-- Cache dir: `~/.rails-ai-bridge/cache/` (env override: `RAILS_AI_BRIDGE_CACHE_DIR`)
-- Cache key: sanitized source string + hash (matches Rust approach)
-- `PackDetector` ignores commented lines; detects `gem 'rails'` and `gem 'hanami'` variants
-- Port test cases from `source.rs` and `detector.rs` Rust tests
+**Files created:**
+- `lib/rails_ai_bridge/registry/skill_source_resolver.rb` — `GitRunner` interface, `DefaultGitRunner` (Open3), `SkillSourceResolver` with cache management
+- `lib/rails_ai_bridge/registry/pack_detector.rb` — `DetectedFramework` enum, `PackDetector` for Gemfile parsing
+- `spec/lib/rails_ai_bridge/registry/skill_source_resolver_spec.rb` — 23 examples
+- `spec/lib/rails_ai_bridge/registry/pack_detector_spec.rb` — 18 examples
+
+**Decisions made during implementation:**
+- **Zeitwerk naming**: File renamed from `git_source_resolver.rb` to `skill_source_resolver.rb` to match constant name `SkillSourceResolver`.
+- **Path validation**: Added `validate_cache_dir` using `Pathname#cleanpath` to prevent path traversal attacks on cache directory.
+- **Source format validation**: Added `validate_source_format` with regex to validate `owner/repo` format before git operations, providing early error detection.
+- **Security**: Open3 array arguments prevent shell injection; cache key sanitization prevents filesystem issues.
+- **Error handling**: Custom `ResolutionError` wraps git operation failures with context (source + original error).
+- **Resource cleanup**: Specs use `begin...ensure` blocks to guarantee temp directory cleanup even on test failures.
+- **Documentation**: Updated YARD @see in `registry.rb` to remove explicit file path, matching other references.
+- **Reek suppressions**: Added justified suppression for `resolve` method (necessary complexity for validation, cache lookup, and git operations).
+
+**Quality gates:** 117/117 specs green · rubocop clean · reek 0 warnings · skunk score 2.19 · coverage 85.42%
 
 ### PR 3 — Pack resolver + registry resolver
 
