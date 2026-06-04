@@ -210,6 +210,13 @@ RSpec.describe RailsAiBridge::Registry::PackDetector do
         end
       end
     end
+
+    context 'when path contains traversal' do
+      it 'returns empty array for path with ..' do
+        result = described_class.detect_in_path('/tmp/../etc')
+        expect(result).to be_empty
+      end
+    end
   end
 
   describe '.detect' do

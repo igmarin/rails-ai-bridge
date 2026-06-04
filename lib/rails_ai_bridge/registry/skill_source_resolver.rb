@@ -90,7 +90,8 @@ module RailsAiBridge
       # @return [String] path to the default cache directory
       # @raise [RuntimeError] if HOME environment variable is not set or inaccessible
       def self.default_cache_dir
-        return ENV['RAILS_AI_BRIDGE_CACHE_DIR'] if ENV.key?('RAILS_AI_BRIDGE_CACHE_DIR')
+        dir = ENV.fetch('RAILS_AI_BRIDGE_CACHE_DIR', nil)
+        return dir if dir && !dir.strip.empty?
 
         home = Dir.home
         File.join(home, '.rails-ai-bridge', 'cache')

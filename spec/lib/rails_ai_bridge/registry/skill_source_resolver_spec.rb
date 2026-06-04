@@ -30,7 +30,15 @@ RSpec.describe RailsAiBridge::Registry::SkillSourceResolver do
       it 'handles empty string override' do
         ENV['RAILS_AI_BRIDGE_CACHE_DIR'] = ''
         result = described_class.default_cache_dir
-        expect(result).to eq('')
+        expected = File.join(Dir.home, '.rails-ai-bridge', 'cache')
+        expect(result).to eq(expected)
+      end
+
+      it 'handles whitespace-only string' do
+        ENV['RAILS_AI_BRIDGE_CACHE_DIR'] = '   '
+        result = described_class.default_cache_dir
+        expected = File.join(Dir.home, '.rails-ai-bridge', 'cache')
+        expect(result).to eq(expected)
       end
     end
 

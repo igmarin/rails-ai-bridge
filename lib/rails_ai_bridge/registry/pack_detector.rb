@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'pathname'
+
 module RailsAiBridge
   module Registry
     # Enum-like value object representing detected Ruby frameworks.
@@ -37,8 +39,12 @@ module RailsAiBridge
       #
       # @param base_path [String] path to the directory containing a Gemfile
       # @return [Array<DetectedFramework>] array of detected frameworks
+      # :reek:TooManyStatements -- Necessary complexity for path validation and file reading
       def self.detect_in_path(base_path)
-        gemfile_path = File.join(base_path, 'Gemfile')
+        clean_path = Pathname.new(base_path).cleanpath.to_s
+        return [] if clean_path.include?('..')
+
+        gemfile_path = File.join(clean_path, 'Gemfile')
         if File.exist?(gemfile_path)
           content = File.read(gemfile_path)
           detect_from_content(content)
