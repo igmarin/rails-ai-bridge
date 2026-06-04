@@ -27,6 +27,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `Registry::DetectedFramework` — enum-like value object (Rails, Hanami)
   - `Registry::PackDetector` — detects Rails/Hanami frameworks from Gemfile content;
     supports single/double quotes, version constraints, ignores commented lines
+- **Pack resolver + registry resolver (PR 3)** — priority-based pack loading and skill/agent resolution:
+  - `Registry::PackResolver` — service object that resolves and loads skill packs from the registry manifest;
+    handles always\_loaded packs, explicit pack selection, framework auto-detection, and local registry overrides;
+    returns a `Registry::Resolver` with all packs loaded and prioritized
+  - `Registry::Resolver` — core resolver that aggregates active packs and resolves queries;
+    provides priority-based resolution of skills and agents, handles deprecation redirects,
+    validates dependencies, and guards against path traversal attacks
+  - `Registry::LoadedPack` — value object representing a loaded pack (name, tile, base\_path, priority)
+  - `Registry::ResolvedSkill` — value object representing a resolved skill/agent (name, pack, path, content)
+  - `Registry::SkillSummary` — value object for skill/agent catalogs (name, pack, description)
+  - Priority assignment: local=0, rails/hanami=10, core=20, other=30 (lower is higher priority)
+  - Path traversal guard using canonical path comparison to prevent directory escape attacks
+  - Dependency validation with warnings for unsatisfied pack dependencies
+- **Registry configuration (PR 4)** — configuration object for registry resolution:
+  - `Config::Registry` — configuration sub-object for registry resolution settings
+  - `registry.registry_manifest_path` — path to registry manifest JSON (default: `config/rails_ai_bridge_registry.json`)
+  - `registry.skill_cache_dir` — directory for caching git repositories (default: `~/.rails-ai-bridge/cache`)
+  - `registry.skill_packs` — explicit pack names to load, or `nil` for auto-detection based on framework
+  - `registry.local_registry_paths` — local registry directory paths for skill pack overrides
+  - Registry module required in main `rails_ai_bridge.rb` for configuration availability
 
 ## [3.4.0] - 2026-05-21
 

@@ -3,11 +3,11 @@
 require 'forwardable'
 
 module RailsAiBridge
-  # Facade that composes five config sub-objects and exposes a flat DSL.
+  # Facade that composes six config sub-objects and exposes a flat DSL.
   #
   # All attributes remain accessible directly on this object for backward
   # compatibility. Callers that need only one concern can receive the sub-object
-  # via +#auth+, +#server+, +#introspection+, +#output+, or +#mcp+.
+  # via +#auth+, +#server+, +#introspection+, +#output+, +#mcp+, or +#registry+.
   #
   # Flat delegators are provided for the most commonly set attributes on each
   # sub-object. Less-common attributes (e.g. +mcp.mode+, +mcp.authorize+) are
@@ -18,6 +18,7 @@ module RailsAiBridge
   # @see Config::Introspection
   # @see Config::Output
   # @see Config::Mcp
+  # @see Config::Registry
   # @see RailsAiBridge.configure
   class Configuration
     extend Forwardable
@@ -54,6 +55,9 @@ module RailsAiBridge
     # @return [Config::Rubydex]
     attr_reader :rubydex
 
+    # @return [Config::Registry]
+    attr_reader :registry
+
     def initialize
       @auth          = Config::Auth.new
       @server        = Config::Server.new
@@ -61,6 +65,7 @@ module RailsAiBridge
       @output        = Config::Output.new
       @mcp           = Config::Mcp.new
       @rubydex       = Config::Rubydex.new
+      @registry      = Config::Registry.new
     end
 
     # -- Config::Auth -----------------------------------------------------------
