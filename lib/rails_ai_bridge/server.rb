@@ -36,7 +36,8 @@ module RailsAiBridge
       Tools::GetConfig,
       Tools::GetTestInfo,
       Tools::GetView,
-      Tools::GetStimulus
+      Tools::GetStimulus,
+      Tools::ListRegistry
     ].freeze
 
     # Initialize a new MCP server instance.
