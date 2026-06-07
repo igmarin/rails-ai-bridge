@@ -276,3 +276,66 @@ namespace :ai do
     end
   end
 end
+
+namespace :ai do
+  namespace :skills do
+    desc 'List all available skills from configured skill packs'
+    task list: :environment do
+      require 'rails_ai_bridge'
+
+      resolver = RailsAiBridge::Registry.build_resolver
+      unless resolver
+        path = RailsAiBridge.configuration.registry.registry_manifest_path
+        warn RailsAiBridge::Registry::RakePresenter.no_manifest_message(path)
+        exit 1
+      end
+
+      puts RailsAiBridge::Registry::RakePresenter.new(resolver).skills_table
+    end
+
+    desc 'Resolve and print a skill by name (usage: rails "ai:skills:resolve[pack_name,skill_name]")'
+    task :resolve, %i[pack name] => :environment do |_t, args|
+      require 'rails_ai_bridge'
+
+      pack_arg = args[:pack] || ENV.fetch('PACK', nil)
+      name_arg = args[:name] || ENV.fetch('SKILL', nil)
+
+      unless name_arg
+        warn 'Usage: rails "ai:skills:resolve[pack_name,skill_name]"'
+        warn 'Example: rails "ai:skills:resolve[rails,code-review]"'
+        exit 1
+      end
+
+      resolver = RailsAiBridge::Registry.build_resolver
+      unless resolver
+        path = RailsAiBridge.configuration.registry.registry_manifest_path
+        warn RailsAiBridge::Registry::RakePresenter.no_manifest_message(path)
+        exit 1
+      end
+
+      output = RailsAiBridge::Registry::RakePresenter.new(resolver)
+                                                     .resolve_skill_output(name_arg, requested_pack: pack_arg)
+      puts output
+      exit 1 if output.start_with?("Skill '#{name_arg}' not found")
+    end
+
+    desc 'Clear the local skill pack git cache'
+    task clear_cache: :environment do
+      require 'rails_ai_bridge'
+
+      cache_dir = RailsAiBridge.configuration.registry.skill_cache_dir
+
+      unless Dir.exist?(cache_dir)
+        puts "Cache directory does not exist: #{cache_dir}"
+        exit 0
+      end
+
+      packs = Dir.children(cache_dir).select { |entry| File.directory?(File.join(cache_dir, entry)) }
+      packs.each { |entry| FileUtils.rm_rf(File.join(cache_dir, entry)) }
+
+      RailsAiBridge::Registry.invalidate_resolver_cache!
+
+      puts "Cleared #{packs.length} cached pack(s) from #{cache_dir}"
+    end
+  end
+end

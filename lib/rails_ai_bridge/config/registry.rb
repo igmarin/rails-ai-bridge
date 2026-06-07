@@ -23,11 +23,15 @@ module RailsAiBridge
       # @return [Array<String>] local registry directory paths
       attr_accessor :local_registry_paths
 
+      # @return [Integer] TTL in seconds for the in-memory resolver cache (default: 1800 = 30 min)
+      attr_accessor :resolver_ttl
+
       def initialize
         @registry_manifest_path = 'config/rails_ai_bridge_registry.json'
         @skill_cache_dir = File.expand_path('~/.rails-ai-bridge/cache')
         @skill_packs = nil
         @local_registry_paths = []
+        @resolver_ttl = 1800
       end
     end
   end

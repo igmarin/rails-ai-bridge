@@ -102,7 +102,7 @@ module RailsAiBridge
           pack_def = manifest.packs[name]
           raise "Pack '#{name}' not defined in registry manifest" unless pack_def
 
-          base_path = @source_resolver.resolve(pack_def.source)
+          base_path = @source_resolver.resolve(pack_def.source, ref: pack_def.ref)
           tile_path = File.join(base_path, pack_def.tile)
 
           raise "Failed to read tile manifest for pack '#{name}' at #{tile_path}" unless File.exist?(tile_path)
@@ -132,7 +132,7 @@ module RailsAiBridge
         return loaded_packs unless local_registries
 
         local_registries.each_with_index do |path, i|
-          tile_path = File.join(path, 'tile.json')
+          tile_path = File.join(path, 'directory.json')
 
           raise "Failed to read local registry tile manifest at #{tile_path}" unless File.exist?(tile_path)
 
@@ -151,10 +151,13 @@ module RailsAiBridge
 
       # Computes priority for a pack based on its name.
       #
+      # Matching is case-insensitive. Only exact name matches qualify for
+      # high/medium priority — "rails-extras" gets PRIORITY_LOW.
+      #
       # @param name [String] pack name
       # @return [Integer] priority value (lower is higher priority)
       def compute_priority(name)
-        case name
+        case name.downcase
         when RAILS_PACK, HANAMI_PACK
           PRIORITY_HIGH
         when CORE_PACK

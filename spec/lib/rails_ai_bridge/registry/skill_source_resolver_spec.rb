@@ -137,10 +137,12 @@ RSpec.describe RailsAiBridge::Registry::SkillSourceResolver do
           .to raise_error(RailsAiBridge::Registry::SkillSourceResolver::ResolutionError, /Invalid source format/)
       end
 
-      it 'raises ResolutionError for path traversal in source' do
+      it 'returns the local path directly for relative traversal sources' do
+        # ../relative paths are now treated as valid local path sources by SourceParser.
+        # Path traversal security for file content is enforced by the Resolver layer.
         resolver = described_class.new(cache_dir, mock_runner)
-        expect { resolver.resolve('../etc/passwd') }
-          .to raise_error(RailsAiBridge::Registry::SkillSourceResolver::ResolutionError, /Invalid source format/)
+        result = resolver.resolve('../etc/passwd')
+        expect(result).to eq('../etc/passwd')
       end
     end
 
@@ -342,51 +344,64 @@ RSpec.describe RailsAiBridge::Registry::GitRunner do
 end
 
 RSpec.describe RailsAiBridge::Registry::DefaultGitRunner do
+  # Open3.capture3 is stubbed throughout this describe block.
+  # Real git network calls must never appear in unit tests — they are slow,
+  # require internet access, may trigger OS credential dialogs (macOS Keychain),
+  # and fail silently in headless CI environments.
+  subject(:runner) { described_class.new }
+
+  let(:failing_status) { instance_double(Process::Status, success?: false) }
+  let(:succeeding_status) { instance_double(Process::Status, success?: true) }
+
   describe '#clone_repo' do
-    it 'executes git clone command' do
-      runner = described_class.new
-      temp_dir = Dir.mktmpdir
-      dest = File.join(temp_dir, 'test-repo')
+    it 'calls git clone with the url and destination' do
+      allow(Open3).to receive(:capture3)
+        .with('git', 'clone', 'https://github.com/org/repo.git', '/tmp/dest')
+        .and_return(['', '', succeeding_status])
 
-      # Use a real but simple git command that should work
-      # We'll mock this in practice, but for coverage we need to call it
-      expect { runner.clone_repo('https://github.com/igmarin/test.git', dest) }
-        .to raise_error(/git clone failed/)
-
-      FileUtils.rm_rf(temp_dir)
+      expect { runner.clone_repo('https://github.com/org/repo.git', '/tmp/dest') }.not_to raise_error
     end
 
-    it 'raises RuntimeError on failure' do
-      runner = described_class.new
-      temp_dir = Dir.mktmpdir
-      dest = File.join(temp_dir, 'test-repo')
+    it 'raises RuntimeError when git clone exits non-zero' do
+      allow(Open3).to receive(:capture3)
+        .and_return(['', 'Repository not found.', failing_status])
 
-      expect { runner.clone_repo('invalid-url', dest) }
-        .to raise_error(RuntimeError, /git clone failed/)
+      expect { runner.clone_repo('https://github.com/org/missing.git', '/tmp/dest') }
+        .to raise_error(RuntimeError, /git clone failed: Repository not found\./)
+    end
 
-      FileUtils.rm_rf(temp_dir)
+    it 'includes the stderr output in the raised error message' do
+      allow(Open3).to receive(:capture3)
+        .and_return(['', 'fatal: authentication required', failing_status])
+
+      expect { runner.clone_repo('https://example.com/repo.git', '/tmp/dest') }
+        .to raise_error(RuntimeError, /authentication required/)
     end
   end
 
   describe '#pull_repo' do
-    it 'executes git pull command' do
-      runner = described_class.new
-      temp_dir = Dir.mktmpdir
+    it 'calls git pull inside the given directory' do
+      allow(Open3).to receive(:capture3)
+        .with('git', 'pull', chdir: '/tmp/local-pack')
+        .and_return(['Already up to date.', '', succeeding_status])
 
-      expect { runner.pull_repo(temp_dir) }
-        .to raise_error(/git pull failed/)
-
-      FileUtils.rm_rf(temp_dir)
+      expect { runner.pull_repo('/tmp/local-pack') }.not_to raise_error
     end
 
-    it 'raises RuntimeError on failure' do
-      runner = described_class.new
-      temp_dir = Dir.mktmpdir
+    it 'raises RuntimeError when git pull exits non-zero' do
+      allow(Open3).to receive(:capture3)
+        .and_return(['', 'error: could not lock config file', failing_status])
 
-      expect { runner.pull_repo(temp_dir) }
-        .to raise_error(RuntimeError, /git pull failed/)
+      expect { runner.pull_repo('/tmp/local-pack') }
+        .to raise_error(RuntimeError, /git pull failed: error: could not lock config file/)
+    end
 
-      FileUtils.rm_rf(temp_dir)
+    it 'includes the stderr output in the raised error message' do
+      allow(Open3).to receive(:capture3)
+        .and_return(['', 'CONFLICT (content): Merge conflict in file.rb', failing_status])
+
+      expect { runner.pull_repo('/tmp/local-pack') }
+        .to raise_error(RuntimeError, /Merge conflict/)
     end
   end
 end

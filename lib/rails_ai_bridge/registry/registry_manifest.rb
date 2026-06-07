@@ -19,9 +19,10 @@ module RailsAiBridge
         packs = (hash['packs'] || {}).transform_values do |pack_hash|
           PackDefinition.new(
             source: pack_hash.fetch('source'),
-            tile: pack_hash.fetch('tile'),
+            tile: pack_hash.fetch('tile', 'directory.json'),
             always_loaded: pack_hash.fetch('always_loaded', false),
-            depends_on: pack_hash.fetch('depends_on', [])
+            depends_on: pack_hash.fetch('depends_on', []),
+            ref: pack_hash.fetch('ref', nil)
           )
         end
 

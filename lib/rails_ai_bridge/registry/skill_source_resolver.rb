@@ -110,25 +110,31 @@ module RailsAiBridge
         "#{sanitized}_#{hash}"
       end
 
-      # Resolves a remote source to a local path.
+      # Resolves a source to a local path.
       #
-      # Clones the repository if not cached, or runs git pull if it already exists.
+      # Delegates format detection to {SourceParser}. Local paths are returned
+      # immediately without any git operations. For git sources, the repository
+      # is cloned if not cached, or pulled if it already exists.
       #
-      # @param source [String] source string (e.g., 'igmarin/ruby-core-skills')
-      # @return [String] local path to the cached repository
+      # @param source [String] source string — local path, git URL, or owner/repo shorthand
+      # @param ref [String, nil] optional git ref (branch, tag, or SHA) to check out after
+      #   cloning or pulling; nil means the default branch
+      # @return [String] local path to the resolved directory
       # @raise [ResolutionError] if git operations fail or source format is invalid
-      # :reek:TooManyStatements -- Necessary complexity for validation, cache lookup, and git operations
-      def resolve(source)
-        validate_source_format(source)
-        cache_key = self.class.compute_cache_key(source)
+      def resolve(source, ref: nil)
+        parsed = SourceParser.parse(source)
+        return parsed.resolved_url if parsed.type == :local_path
+
+        cache_key  = self.class.compute_cache_key(source)
         cache_path = File.join(@cache_dir, cache_key)
 
         if File.exist?(cache_path)
           perform_pull(source, cache_path)
         else
-          perform_clone(source, cache_path)
+          perform_clone(source, cache_path, parsed.resolved_url)
         end
 
+        checkout_ref(source, cache_path, ref) if ref
         cache_path
       end
 
@@ -141,12 +147,6 @@ module RailsAiBridge
         cache_dir
       end
 
-      def validate_source_format(source)
-        return if source.match?(%r{\A[a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+\z})
-
-        raise ResolutionError, "Invalid source format: #{source}. Expected 'owner/repo' format"
-      end
-
       def perform_pull(source, cache_path)
         @git_runner.pull_repo(cache_path)
       rescue StandardError => error
@@ -154,14 +154,19 @@ module RailsAiBridge
       end
 
       # :reek:TooManyStatements -- Necessary complexity for git clone setup, execution, and error handling
-      def perform_clone(source, cache_path)
+      def perform_clone(source, cache_path, clone_url)
         FileUtils.mkdir_p(@cache_dir)
-        clone_url = "https://github.com/#{source}.git"
-
         @git_runner.clone_repo(clone_url, cache_path)
       rescue StandardError => error
         FileUtils.rm_rf(cache_path)
         raise ResolutionError, "git clone failed for pack: #{source}: #{error.message}"
+      end
+
+      def checkout_ref(source, cache_path, ref)
+        _stdout, stderr, status = Open3.capture3('git', 'checkout', ref, chdir: cache_path)
+        return if status.success?
+
+        raise ResolutionError, "git checkout #{ref} failed for pack: #{source}: #{stderr}"
       end
     end
   end

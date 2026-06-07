@@ -47,6 +47,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `registry.skill_packs` — explicit pack names to load, or `nil` for auto-detection based on framework
   - `registry.local_registry_paths` — local registry directory paths for skill pack overrides
   - Registry module required in main `rails_ai_bridge.rb` for configuration availability
+- **Registry tools, cache, source formats, and docs (PR 5 → PR 6)** — user-visible entry points
+  plus three production-quality refinements:
+  - `Tools::ListRegistry` (`rails_list_registry`) — single MCP tool replacing the previous
+    `rails_list_skills`, `rails_list_agents`, and `rails_list_packs`; required `type:` param
+    (`"skills"` | `"agents"` | `"packs"`); optional `pack:` filter for skills/agents;
+    inner `RegistryCatalogFormatter` class owns all markdown rendering (SRP)
+  - `Registry::ResolverCache` — thread-safe in-memory cache for the wired `Resolver`;
+    configurable TTL via `config.registry.resolver_ttl` (default 1800 s = 30 min);
+    nil results never cached so manifest-missing setup retries on next call;
+    `Registry.invalidate_resolver_cache!` for explicit invalidation
+  - `Config::Registry#resolver_ttl` — new accessor with 1800 s default
+  - `Registry::SourceParser` — new single-responsibility parser that classifies source strings
+    into `:local_path`, `:git_url`, or `:github_shorthand` and resolves canonical URLs;
+    raises `ResolutionError` naming all three valid formats for invalid inputs;
+    `SkillSourceResolver#resolve` now delegates to `SourceParser` and returns local paths
+    directly without git operations
+  - `PackDefinition#ref` — new optional field for git version pinning (branch, tag, or SHA);
+    `SkillSourceResolver` runs `git checkout ref` after clone/pull when set
+  - `PackResolver` — default pack catalog filename changed from `tile.json` to `directory.json`;
+    priority matching is now case-insensitive
+  - `Registry::RakePresenter` — extracted from inline rake task logic; owns all CLI formatting
+    for skill tables and resolve output
+  - `rails ai:skills:list` — delegates to `RakePresenter`
+  - `rails "ai:skills:resolve[pack,skill_name]"` — delegates to `RakePresenter`
+  - `rails ai:skills:clear_cache` — new rake task; removes cached pack repositories and
+    invalidates the in-memory resolver cache
+  - `docs/skill-registry-guide.md` — new user guide covering concepts, quick start, source
+    formats, priority rules, version pinning, `directory.json` format, MCP tool reference,
+    rake task reference, resolver cache, troubleshooting, and security model
+  - `docs/registry-resolution.md` — updated to "Registry Resolution Reference"; all
+    `tile.json` references updated to `directory.json`; new source formats table; new
+    `ref` field; `resolver_ttl` config option; cache management section; security section
+    updated for `SourceParser`
 
 ## [3.4.0] - 2026-05-21
 

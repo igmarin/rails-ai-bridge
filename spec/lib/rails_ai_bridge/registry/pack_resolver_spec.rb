@@ -20,9 +20,9 @@ RSpec.describe RailsAiBridge::Registry::PackResolver do
     FileUtils.rm_rf(cache_dir)
   end
 
-  # Helper to create a mock tile.json file
+  # Helper to create a mock directory.json file
   def create_mock_tile(base_path, name: 'test-pack', skills: {}, agents: {})
-    tile_path = File.join(base_path, 'tile.json')
+    tile_path = File.join(base_path, 'directory.json')
     tile_data = {
       'name' => name,
       'version' => '1.0.0',
@@ -63,9 +63,10 @@ RSpec.describe RailsAiBridge::Registry::PackResolver do
         packs = {
           'core' => RailsAiBridge::Registry::PackDefinition.new(
             source: 'dummy/core',
-            tile: 'tile.json',
+            tile: 'directory.json',
             always_loaded: true,
-            depends_on: []
+            depends_on: [],
+            ref: nil
           )
         }
 
@@ -93,9 +94,10 @@ RSpec.describe RailsAiBridge::Registry::PackResolver do
         packs = {
           'core' => RailsAiBridge::Registry::PackDefinition.new(
             source: 'dummy/core',
-            tile: 'tile.json',
+            tile: 'directory.json',
             always_loaded: true,
-            depends_on: []
+            depends_on: [],
+            ref: nil
           )
         }
 
@@ -124,9 +126,10 @@ RSpec.describe RailsAiBridge::Registry::PackResolver do
         packs = {
           'core' => RailsAiBridge::Registry::PackDefinition.new(
             source: 'dummy/core',
-            tile: 'tile.json',
+            tile: 'directory.json',
             always_loaded: false,
-            depends_on: []
+            depends_on: [],
+            ref: nil
           )
         }
 
@@ -155,9 +158,10 @@ RSpec.describe RailsAiBridge::Registry::PackResolver do
         packs = {
           'rails' => RailsAiBridge::Registry::PackDefinition.new(
             source: 'dummy/rails',
-            tile: 'tile.json',
+            tile: 'directory.json',
             always_loaded: false,
-            depends_on: []
+            depends_on: [],
+            ref: nil
           )
         }
 
@@ -187,9 +191,10 @@ RSpec.describe RailsAiBridge::Registry::PackResolver do
         packs = {
           'core' => RailsAiBridge::Registry::PackDefinition.new(
             source: 'dummy/core',
-            tile: 'tile.json',
+            tile: 'directory.json',
             always_loaded: false,
-            depends_on: []
+            depends_on: [],
+            ref: nil
           )
         }
 
@@ -242,21 +247,24 @@ RSpec.describe RailsAiBridge::Registry::PackResolver do
         packs = {
           'core' => RailsAiBridge::Registry::PackDefinition.new(
             source: 'dummy/core',
-            tile: 'tile.json',
+            tile: 'directory.json',
             always_loaded: false,
-            depends_on: []
+            depends_on: [],
+            ref: nil
           ),
           'rails' => RailsAiBridge::Registry::PackDefinition.new(
             source: 'dummy/rails',
-            tile: 'tile.json',
+            tile: 'directory.json',
             always_loaded: false,
-            depends_on: []
+            depends_on: [],
+            ref: nil
           ),
           'other' => RailsAiBridge::Registry::PackDefinition.new(
             source: 'dummy/other',
-            tile: 'tile.json',
+            tile: 'directory.json',
             always_loaded: false,
-            depends_on: []
+            depends_on: [],
+            ref: nil
           )
         }
 
@@ -287,9 +295,10 @@ RSpec.describe RailsAiBridge::Registry::PackResolver do
         packs = {
           'hanami' => RailsAiBridge::Registry::PackDefinition.new(
             source: 'dummy/hanami',
-            tile: 'tile.json',
+            tile: 'directory.json',
             always_loaded: false,
-            depends_on: []
+            depends_on: [],
+            ref: nil
           )
         }
 
@@ -317,9 +326,10 @@ RSpec.describe RailsAiBridge::Registry::PackResolver do
         packs = {
           'core' => RailsAiBridge::Registry::PackDefinition.new(
             source: 'dummy/core',
-            tile: 'tile.json',
+            tile: 'directory.json',
             always_loaded: false,
-            depends_on: []
+            depends_on: [],
+            ref: nil
           )
         }
 
@@ -331,7 +341,7 @@ RSpec.describe RailsAiBridge::Registry::PackResolver do
 
         allow(mock_git_runner).to receive(:clone_repo) do |_url, dest|
           FileUtils.mkdir_p(dest)
-          # Don't create tile.json to trigger read error
+          # Don't create directory.json to trigger read error
         end
         allow(mock_git_runner).to receive(:pull_repo)
 
@@ -365,9 +375,10 @@ RSpec.describe RailsAiBridge::Registry::PackResolver do
         packs = {
           'core' => RailsAiBridge::Registry::PackDefinition.new(
             source: 'dummy/core',
-            tile: 'tile.json',
+            tile: 'directory.json',
             always_loaded: false,
-            depends_on: []
+            depends_on: [],
+            ref: nil
           )
         }
 
@@ -380,7 +391,7 @@ RSpec.describe RailsAiBridge::Registry::PackResolver do
         allow(mock_git_runner).to receive(:clone_repo) do |_url, dest|
           FileUtils.mkdir_p(dest)
           # Create invalid JSON
-          File.write(File.join(dest, 'tile.json'), 'invalid json')
+          File.write(File.join(dest, 'directory.json'), 'invalid json')
         end
         allow(mock_git_runner).to receive(:pull_repo)
 
@@ -393,7 +404,7 @@ RSpec.describe RailsAiBridge::Registry::PackResolver do
       it 'handles local registry JSON parse errors' do
         local_dir = Dir.mktmpdir
         # Create invalid JSON
-        File.write(File.join(local_dir, 'tile.json'), 'invalid json')
+        File.write(File.join(local_dir, 'directory.json'), 'invalid json')
 
         packs = {}
 

@@ -1,6 +1,6 @@
 # Port Registry Resolution from Rust Runtime to rails-ai-bridge
 
-**Status:** In progress — PR 1 completed ✅, PR 2 completed ✅, PR 3 completed ✅, PR 4 next
+**Status:** Complete — PR 1 ✅, PR 2 ✅, PR 3 ✅, PR 4 ✅, PR 5 ✅
 **Reference source:** `../agent-mcp-runtime/src/registry/` (Rust)
 **Delivery model:** Sequential PRs, each reviewed by Qodo + CodeRabbit before proceeding
 
@@ -161,15 +161,15 @@ necessary for the future skill compiler feature.
 
 ## Success Criteria
 
-- [ ] All registry modules created with passing specs (PR 1–3)
-- [ ] `Config::Registry` wired and documented (PR 4)
-- [ ] `rails_ai_bridge:list_skills` and `rails_ai_bridge:resolve_skill[pack,name]` Rake tasks work (PR 5)
-- [ ] `rails_list_skills`, `rails_list_agents`, `rails_list_packs` MCP tools exposed (PR 5)
-- [ ] `docs/registry-resolution.md` written (PR 5)
-- [ ] Priority-based resolution handles core/rails/hanami/planning correctly
-- [ ] Deprecation redirects work (old skill name → new location)
-- [ ] Path traversal guard enforced in resolver
-- [ ] `CHANGELOG.md` updated in every PR
-- [ ] `README.md` updated in PR 4 and PR 5
-- [ ] `UPGRADING.md` updated if breaking changes are introduced
+- [x] All registry modules created with passing specs (PR 1–3)
+- [x] `Config::Registry` wired and documented (PR 4)
+- [x] `rails ai:skills:list` and `rails "ai:skills:resolve[pack,name]"` Rake tasks work (PR 5)
+- [x] `rails_list_skills`, `rails_list_agents`, `rails_list_packs` MCP tools exposed (PR 5)
+- [x] `docs/registry-resolution.md` written (PR 5)
+- [x] Priority-based resolution handles core/rails/hanami/planning correctly
+- [x] Deprecation redirects work (old skill name → new location)
+- [x] Path traversal guard enforced in resolver
+- [x] `CHANGELOG.md` updated in every PR
+- [x] `README.md` updated in PR 4 and PR 5
+- [ ] `UPGRADING.md` updated if breaking changes are introduced (no breaking changes introduced)
 - [ ] All PRs pass Qodo + CodeRabbit review gates
