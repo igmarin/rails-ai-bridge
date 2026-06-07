@@ -2,6 +2,7 @@
 
 require 'json'
 require 'yaml'
+require_relative 'registry/skill_source_resolver'
 
 module RailsAiBridge
   # Registry resolution system for skill packs.
