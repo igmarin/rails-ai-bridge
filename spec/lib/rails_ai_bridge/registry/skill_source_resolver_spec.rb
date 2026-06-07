@@ -494,17 +494,23 @@ RSpec.describe RailsAiBridge::Registry::SkillSourceResolver do
 end
 
 RSpec.describe RailsAiBridge::Registry::GitRunner do
+  subject(:runner) { Class.new { include RailsAiBridge::Registry::GitRunner }.new }
+
   describe '#clone_repo' do
     it 'raises NotImplementedError by default' do
-      runner = Class.new { include RailsAiBridge::Registry::GitRunner }.new
       expect { runner.clone_repo('url', 'dest') }.to raise_error(NotImplementedError)
     end
   end
 
   describe '#pull_repo' do
     it 'raises NotImplementedError by default' do
-      runner = Class.new { include RailsAiBridge::Registry::GitRunner }.new
       expect { runner.pull_repo('path') }.to raise_error(NotImplementedError)
+    end
+  end
+
+  describe '#checkout_ref' do
+    it 'raises NotImplementedError by default' do
+      expect { runner.checkout_ref('path', 'v1.0.0') }.to raise_error(NotImplementedError)
     end
   end
 end
@@ -583,7 +589,16 @@ RSpec.describe RailsAiBridge::Registry::DefaultGitRunner do
         .and_return(['', 'error: pathspec did not match', failing_status])
 
       expect { runner.checkout_ref('/tmp/pack', 'bad-ref') }
-        .to raise_error(RuntimeError, /git checkout failed/)
+        .to raise_error(RuntimeError, 'git checkout failed')
+    end
+
+    it 'does not embed raw stderr in the error message' do
+      allow(Open3).to receive(:capture3)
+        .with('git', 'checkout', 'bad-ref', chdir: '/tmp/pack')
+        .and_return(['', 'error: pathspec did not match', failing_status])
+
+      expect { runner.checkout_ref('/tmp/pack', 'bad-ref') }
+        .to raise_error(RuntimeError) { |e| expect(e.message).not_to include('pathspec') }
     end
   end
 
@@ -601,15 +616,15 @@ RSpec.describe RailsAiBridge::Registry::DefaultGitRunner do
         .and_return(['', 'Repository not found.', failing_status])
 
       expect { runner.clone_repo('https://github.com/org/missing.git', '/tmp/dest') }
-        .to raise_error(RuntimeError, /git clone failed: Repository not found\./)
+        .to raise_error(RuntimeError, 'git clone failed')
     end
 
-    it 'includes the stderr output in the raised error message' do
+    it 'does not embed raw stderr in the error message (credential safety)' do
       allow(Open3).to receive(:capture3)
-        .and_return(['', 'fatal: authentication required', failing_status])
+        .and_return(['', 'fatal: authentication required for https://token@github.com/org/repo', failing_status])
 
-      expect { runner.clone_repo('https://example.com/repo.git', '/tmp/dest') }
-        .to raise_error(RuntimeError, /authentication required/)
+      expect { runner.clone_repo('https://token@github.com/org/repo.git', '/tmp/dest') }
+        .to raise_error(RuntimeError) { |e| expect(e.message).not_to include('token') }
     end
   end
 
@@ -627,15 +642,15 @@ RSpec.describe RailsAiBridge::Registry::DefaultGitRunner do
         .and_return(['', 'error: could not lock config file', failing_status])
 
       expect { runner.pull_repo('/tmp/local-pack') }
-        .to raise_error(RuntimeError, /git pull failed: error: could not lock config file/)
+        .to raise_error(RuntimeError, 'git pull failed')
     end
 
-    it 'includes the stderr output in the raised error message' do
+    it 'does not embed raw stderr in the error message' do
       allow(Open3).to receive(:capture3)
         .and_return(['', 'CONFLICT (content): Merge conflict in file.rb', failing_status])
 
       expect { runner.pull_repo('/tmp/local-pack') }
-        .to raise_error(RuntimeError, /Merge conflict/)
+        .to raise_error(RuntimeError) { |e| expect(e.message).not_to include('Merge conflict') }
     end
   end
 end

@@ -65,7 +65,7 @@ module RailsAiBridge
       def clone_repo(url, dest)
         with_timeout('git clone') do
           _stdout, stderr, status = Open3.capture3('git', 'clone', url, dest)
-          raise "git clone failed: #{stderr}" unless status.success?
+          fail_with_sanitized_error!('git clone', stderr) unless status.success?
         end
       end
 
@@ -77,7 +77,7 @@ module RailsAiBridge
       def pull_repo(path)
         with_timeout('git pull') do
           _stdout, stderr, status = Open3.capture3('git', 'pull', chdir: path)
-          raise "git pull failed: #{stderr}" unless status.success?
+          fail_with_sanitized_error!('git pull', stderr) unless status.success?
         end
       end
 
@@ -90,7 +90,7 @@ module RailsAiBridge
       def checkout_ref(path, ref)
         with_timeout('git checkout') do
           _stdout, stderr, status = Open3.capture3('git', 'checkout', ref, chdir: path)
-          raise "git checkout failed: #{stderr}" unless status.success?
+          fail_with_sanitized_error!('git checkout', stderr) unless status.success?
         end
       end
 
@@ -100,6 +100,22 @@ module RailsAiBridge
         Timeout.timeout(@timeout, &)
       rescue Timeout::Error
         raise "#{label} timed out after #{@timeout}s"
+      end
+
+      # Logs the full stderr output at debug level (for diagnostics) and raises a
+      # generic, credential-safe error message.
+      #
+      # Git stderr may contain credential information embedded in remote URLs
+      # (e.g. https://token@github.com/...) and should never be surfaced in
+      # user-facing exception messages.
+      #
+      # @param label [String] human-readable command label (e.g. "git clone")
+      # @param stderr [String] raw stderr output from the git subprocess
+      # @raise [RuntimeError] always
+      def fail_with_sanitized_error!(label, stderr)
+        sanitized = stderr.to_s.gsub(%r{(?<=://)([^@/]+@)}, '[REDACTED]@').strip.truncate(200)
+        Rails.logger.debug { "[rails-ai-bridge] #{label} failed — #{sanitized}" }
+        raise "#{label} failed"
       end
     end
 

@@ -107,7 +107,10 @@ module RailsAiBridge
           base_path = @source_resolver.resolve(pack_def.source, ref: pack_def.ref)
           tile_path = File.join(base_path, pack_def.tile)
 
-          raise SkillSourceResolver::ResolutionError, "Failed to read tile manifest for pack '#{name}' at #{tile_path}" unless File.exist?(tile_path)
+          unless File.exist?(tile_path)
+            Rails.logger.debug { "[rails-ai-bridge] tile manifest missing for pack '#{name}' at #{tile_path}" }
+            raise SkillSourceResolver::ResolutionError, "Failed to read tile manifest for pack '#{name}'"
+          end
 
           tile = TileManifest.from_file(tile_path)
           priority = compute_priority(name)

@@ -29,11 +29,44 @@ module RailsAiBridge
       # @return [Integer] TTL in seconds between git pull refreshes per cached pack (default: 86400 = 24 h).
       #   Set to 0 to pull on every resolver rebuild. Skill pack files are documentation and rarely
       #   change between releases, so a long freshness window is appropriate.
-      attr_accessor :git_pull_ttl
+      attr_reader :git_pull_ttl
 
       # @return [Integer] timeout in seconds for individual git operations (clone, pull, checkout).
       #   Prevents a slow or unreachable remote from blocking the calling thread indefinitely.
-      attr_accessor :git_timeout
+      attr_reader :git_timeout
+
+      # Sets the git pull TTL.
+      #
+      # Coerces the value to a non-negative integer; raises +ArgumentError+ for
+      # non-numeric or negative inputs.
+      #
+      # @param value [Integer, #to_i] pull refresh interval in seconds; 0 pulls on every rebuild
+      # @raise [ArgumentError] if value cannot be coerced to a non-negative integer
+      def git_pull_ttl=(value)
+        int = Integer(value)
+        raise ArgumentError, "git_pull_ttl must be >= 0, got #{int}" if int.negative?
+
+        @git_pull_ttl = int
+      rescue ArgumentError, TypeError
+        raise ArgumentError, "git_pull_ttl must be a non-negative integer, got #{value.inspect}"
+      end
+
+      # Sets the git operation timeout.
+      #
+      # Coerces the value to a positive integer (must be >= 1); raises +ArgumentError+
+      # for non-numeric, zero, or negative inputs because a zero-second timeout is
+      # never useful and would cause every git operation to fail immediately.
+      #
+      # @param value [Integer, #to_i] timeout in seconds
+      # @raise [ArgumentError] if value cannot be coerced to a positive integer
+      def git_timeout=(value)
+        int = Integer(value)
+        raise ArgumentError, "git_timeout must be >= 1, got #{int}" unless int >= 1
+
+        @git_timeout = int
+      rescue ArgumentError, TypeError
+        raise ArgumentError, "git_timeout must be a positive integer, got #{value.inspect}"
+      end
 
       # Sets the in-memory resolver cache TTL.
       #

@@ -325,23 +325,36 @@ namespace :ai do
     task clear_cache: :environment do
       require 'rails_ai_bridge'
 
-      cache_dir = File.expand_path(RailsAiBridge.configuration.registry.skill_cache_dir.to_s)
+      raw_dir = RailsAiBridge.configuration.registry.skill_cache_dir.to_s
 
-      abort 'Refusing to clear cache: skill_cache_dir is empty' if cache_dir.empty?
+      abort 'Refusing to clear cache: skill_cache_dir is empty' if raw_dir.strip.empty?
 
-      # Guard against misconfigured paths that could delete unrelated directories.
+      # Resolve the configured path first with expand_path (handles ~ and relative paths),
+      # then abort early if the directory does not exist (realpath would raise).
+      expanded = File.expand_path(raw_dir)
+
+      unless Dir.exist?(expanded)
+        puts "Cache directory does not exist: #{expanded}"
+        exit 0
+      end
+
+      # Use realpath to canonicalize the path and follow any symlinks before
+      # checking dangerous roots — this prevents a symlink pointing to / or $HOME
+      # from bypassing the safety guard.
+      begin
+        cache_dir = File.realpath(expanded)
+      rescue Errno::ENOENT
+        abort "Refusing to clear cache: configured path no longer exists: #{expanded}"
+      end
+
+      # Guard against misconfigured or symlinked paths that could delete unrelated directories.
       dangerous_roots = [
-        File.expand_path('/'),
-        File.expand_path('.'),
-        File.expand_path(Dir.home)
+        File.realpath('/'),
+        File.realpath(Dir.pwd),
+        File.realpath(Dir.home)
       ].map { |p| p.chomp('/') }
 
       abort "Refusing to clear cache from unsafe path: #{cache_dir}" if dangerous_roots.include?(cache_dir.chomp('/'))
-
-      unless Dir.exist?(cache_dir)
-        puts "Cache directory does not exist: #{cache_dir}"
-        exit 0
-      end
 
       packs = Dir.children(cache_dir).select { |entry| File.directory?(File.join(cache_dir, entry)) }
       packs.each { |entry| FileUtils.rm_rf(File.join(cache_dir, entry)) }

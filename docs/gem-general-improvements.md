@@ -35,6 +35,7 @@ if packs do not pin a `ref`. There is no equivalent of `Gemfile.lock` for skill 
 
 - After a successful resolver build, write a `config/rails_ai_bridge_registry.lock` JSON file
   containing the resolved SHA for each pack's HEAD commit:
+
   ```json
   {
     "rails-core-skills": { "sha": "abc123...", "resolved_at": "2025-06-01T10:00:00Z" },
@@ -63,6 +64,7 @@ a different, richer format. The two diverge over time.
 - Output a stable JSON schema that agents can parse directly when the MCP server is not available
   (e.g. in CI or when writing custom tooling).
 - Schema:
+
   ```json
   {
     "packs": [{ "name": "...", "version": "...", "summary": "...", "priority": 10 }],
