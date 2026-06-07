@@ -59,6 +59,7 @@ module RailsAiBridge
     # Register generators
     generators do
       require_relative '../generators/rails_ai_bridge/install/install_generator'
+      require_relative '../generators/rails_ai_bridge/help/help_generator'
     end
   end
 end

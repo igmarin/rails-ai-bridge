@@ -56,5 +56,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'zeitwerk', '~> 2.6' # Autoloading
 
   # Semantic code analysis via Shopify's rubydex
-  spec.add_dependency 'rubydex', '~> 0.2', '>= 0.2.3'
+  spec.add_dependency 'rubydex', '~> 0.2.4'
 end
