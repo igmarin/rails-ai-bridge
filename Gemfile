@@ -7,7 +7,7 @@ gemspec
 
 group :development, :test do
   gem 'combustion', '~> 1.3'
-  gem 'rails', '~> 7.1'
+  gem 'rails', '~> 8.1'
   gem 'reek', '~> 6.1'
   gem 'rspec', '~> 3.13'
   gem 'rubocop', '~> 1.65'
