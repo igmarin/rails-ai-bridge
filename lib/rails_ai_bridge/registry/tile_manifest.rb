@@ -80,6 +80,8 @@ module RailsAiBridge
         from_json(JSON.parse(File.read(path)))
       rescue JSON::ParserError => error
         raise ArgumentError, "Tile manifest at '#{path}' contains invalid JSON: #{error.message}"
+      rescue SystemCallError => error
+        raise ArgumentError, "Tile manifest at '#{path}' could not be read: #{error.message}"
       end
 
       # @api private

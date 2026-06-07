@@ -142,7 +142,7 @@ module RailsAiBridge
         @cache_dir = validate_cache_dir(cache_dir)
         @git_runner = git_runner
         @pull_ttl = pull_ttl
-        @last_pulled = {} # cache_path => Time — in-memory freshness tracking
+        @last_pulled = {} # cache_path => Float (monotonic seconds) — in-memory freshness tracking
         @pull_mutex = Mutex.new
       end
 
@@ -224,13 +224,13 @@ module RailsAiBridge
 
         @pull_mutex.synchronize do
           last = @last_pulled[cache_path]
-          last.nil? || (Time.zone.now - last) >= @pull_ttl
+          last.nil? || (Process.clock_gettime(Process::CLOCK_MONOTONIC) - last) >= @pull_ttl
         end
       end
 
       # Records the time of a successful pull for +cache_path+. Thread-safe.
       def record_pull(cache_path)
-        @pull_mutex.synchronize { @last_pulled[cache_path] = Time.zone.now }
+        @pull_mutex.synchronize { @last_pulled[cache_path] = Process.clock_gettime(Process::CLOCK_MONOTONIC) }
       end
 
       # Validates +cache_dir+ by checking that the path does not contain traversal

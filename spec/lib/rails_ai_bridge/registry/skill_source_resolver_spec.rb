@@ -482,7 +482,7 @@ RSpec.describe RailsAiBridge::Registry::SkillSourceResolver do
         resolver.resolve(source)
 
         # Simulate TTL expiry by backdating the recorded pull time
-        past_time = Time.zone.now - 90_000
+        past_time = Process.clock_gettime(Process::CLOCK_MONOTONIC) - 90_000
         resolver.instance_variable_get(:@last_pulled)[cache_path] = past_time
 
         # Assert — second resolve after TTL should pull again

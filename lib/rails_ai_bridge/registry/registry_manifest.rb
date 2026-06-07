@@ -44,6 +44,8 @@ module RailsAiBridge
         from_json(JSON.parse(File.read(path)))
       rescue JSON::ParserError => error
         raise ArgumentError, "Registry manifest at '#{path}' contains invalid JSON: #{error.message}"
+      rescue SystemCallError => error
+        raise ArgumentError, "Registry manifest at '#{path}' could not be read: #{error.message}"
       end
     end
   end
