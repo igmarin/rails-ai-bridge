@@ -64,7 +64,7 @@ RSpec.describe RailsAiBridge::Serializers::Formatters::Sections::MigrationsForma
       result = described_class.new({ migrations: { total: 1, recent: recent } }).call
       expect(result).to include('### Recent Migrations')
       expect(result).to include('`20240101000000` CreateUsers')
-      expect(result).not_to include('CreateUsers (')
+      expect(result).not_to match(/CreateUsers \(/)
     end
 
     it 'renders Recent Migrations with actions when present' do

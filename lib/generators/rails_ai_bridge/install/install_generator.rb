@@ -241,20 +241,13 @@ module RailsAiBridge
         say ' rails-ai-bridge installed!', :cyan
         say '=' * 50, :cyan
         say ''
-        say 'Bridge commands:', :yellow
-        say '  rails ai:bridge                              # Generate all bridge files (compact mode)'
-        say '  rails ai:bridge:full                         # Full dump (good for small apps)'
-        say '  rails ai:bridge:FORMAT                       # One format: claude, cursor, codex, gemini, copilot, windsurf'
-        say '  rails ai:watch                               # Watch for changes and auto-regenerate'
-        say '  rails ai:serve                               # Start MCP server (stdio)'
-        say '  rails ai:serve_http                          # Start MCP server (HTTP)'
-        say '  rails ai:inspect                             # Print introspection summary'
-        say '  rails ai:doctor                              # Diagnostics and AI readiness score (0-100)'
-        say ''
-        say 'Skill registry commands:', :yellow
-        say '  rails ai:skills:list                         # List all skills from loaded skill packs'
-        say '  rails "ai:skills:resolve[pack,skill]"        # Print a skill\'s full content'
-        say '  rails ai:skills:clear_cache                  # Remove locally cached pack repositories'
+        say 'Commands:', :yellow
+        say '  rails ai:bridge          # Generate all bridge files (compact mode)'
+        say '  rails ai:bridge:full     # Full dump (good for small apps)'
+        say '  rails ai:bridge:FORMAT   # Generate one format (claude, cursor, codex, gemini, copilot, windsurf)'
+        say '  rails ai:watch           # Watch for changes and auto-regenerate'
+        say '  rails ai:serve           # Start MCP server (stdio)'
+        say '  rails ai:inspect         # Print introspection summary'
         say ''
         say 'Bridge files per tool:', :yellow
         say '  Claude Code    → CLAUDE.md + .claude/rules/*.md'

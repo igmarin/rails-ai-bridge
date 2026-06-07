@@ -77,12 +77,7 @@ module RailsAiBridge
           file_path = File.join(pack.base_path, entry.path)
           next unless descendant?(pack.base_path, file_path)
 
-          begin
-            content = File.read(file_path)
-          rescue SystemCallError
-            next
-          end
-
+          content = File.read(file_path)
           return ResolvedSkill.new(
             name: target_name,
             pack: pack.name,
@@ -106,12 +101,7 @@ module RailsAiBridge
           file_path = File.join(pack.base_path, entry.path)
           next unless descendant?(pack.base_path, file_path)
 
-          begin
-            content = File.read(file_path)
-          rescue SystemCallError
-            next
-          end
-
+          content = File.read(file_path)
           return ResolvedSkill.new(
             name: name,
             pack: pack.name,

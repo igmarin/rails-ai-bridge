@@ -31,16 +31,6 @@ module RailsAiBridge
       end
     end
 
-    # Invalidate the registry resolver cache on each code reload in development.
-    #
-    # +to_prepare+ fires once in production (after eager load) and on every
-    # Zeitwerk reload in development. Discarding the cached resolver ensures
-    # the next MCP tool call rebuilds it with the current configuration,
-    # preventing stale config after an initializer change.
-    config.to_prepare do
-      RailsAiBridge::Registry.invalidate_resolver_cache!
-    end
-
     # Auto-mount MCP HTTP middleware when configured
     initializer 'rails_ai_bridge.middleware' do |app|
       RailsAiBridge.validate_auto_mount_configuration!
