@@ -10,7 +10,7 @@ module RailsAiBridge
           claude: ->(ctx) { Providers::ClaudeSerializer.new(ctx) },
           codex: ->(ctx) { Providers::CodexSerializer.new(ctx) },
           cursor: ->(ctx) { Providers::RulesSerializer.new(ctx) },
-          windsurf: ->(ctx) { Providers::WindsurfSerializer.new(ctx) },
+          devin: ->(ctx) { Providers::DevinSerializer.new(ctx) },
           gemini: ->(ctx) { Providers::GeminiSerializer.new(ctx) },
           copilot: ->(ctx) { Providers::CopilotSerializer.new(ctx) }
         }.freeze
@@ -19,7 +19,7 @@ module RailsAiBridge
           claude: ->(ctx) { Providers::ClaudeRulesSerializer.new(ctx) },
           codex: ->(ctx) { Providers::CodexSupportSerializer.new(ctx) },
           cursor: ->(ctx) { Providers::CursorRulesSerializer.new(ctx) },
-          windsurf: ->(ctx) { Providers::WindsurfRulesSerializer.new(ctx) },
+          devin: ->(ctx) { Providers::DevinRulesSerializer.new(ctx) },
           copilot: ->(ctx) { Providers::CopilotInstructionsSerializer.new(ctx) }
         }.freeze
 

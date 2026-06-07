@@ -13,8 +13,8 @@ module RailsAiBridge
           split_rules: true
         },
         'minimal' => {
-          description: 'Thin Cursor/Windsurf/Claude/Copilot/Gemini shims, no split rule directories.',
-          formats: %i[claude cursor windsurf copilot gemini],
+          description: 'Thin Cursor/Devin/Claude/Copilot/Gemini shims, no split rule directories.',
+          formats: %i[claude cursor devin copilot gemini],
           split_rules: false
         },
         'full' => {

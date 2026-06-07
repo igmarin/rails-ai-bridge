@@ -3,9 +3,9 @@
 module RailsAiBridge
   module Serializers
     module Providers
-      # Generates `.windsurf/rules/*.md` files for Windsurf rule discovery.
-      # Each file is hard-capped at {MAX_CHARS_PER_FILE} characters (under Windsurf's 6K limit).
-      class WindsurfRulesSerializer
+      # Generates `.devin/rules/*.md` files for Devin rule discovery.
+      # Each file is hard-capped at {MAX_CHARS_PER_FILE} characters (under Devin's 6K limit).
+      class DevinRulesSerializer
         # Per-file character cap before truncation.
         MAX_CHARS_PER_FILE = 5_800
 
@@ -17,12 +17,12 @@ module RailsAiBridge
           @context = context
         end
 
-        # Writes rule markdown files under `.windsurf/rules/` when content changes.
+        # Writes rule markdown files under `.devin/rules/` when content changes.
         #
-        # @param output_dir [String] Root directory (typically the Rails app root) where `.windsurf/rules` is created.
+        # @param output_dir [String] Root directory (typically the Rails app root) where `.devin/rules` is created.
         # @return [Hash<Symbol, Array<String>>] +:written+ and +:skipped+ arrays of absolute file paths.
         def call(output_dir)
-          rules_dir = File.join(output_dir, '.windsurf', 'rules')
+          rules_dir = File.join(output_dir, '.devin', 'rules')
           FileUtils.mkdir_p(rules_dir)
 
           written = []
@@ -36,7 +36,7 @@ module RailsAiBridge
           files.each do |filename, content|
             next unless content
 
-            # Enforce Windsurf's 6K limit
+            # Enforce Devin's 6K limit
             content = content[0...MAX_CHARS_PER_FILE] if content.length > MAX_CHARS_PER_FILE
 
             filepath = File.join(rules_dir, filename)
@@ -53,12 +53,12 @@ module RailsAiBridge
 
         private
 
-        # @return [String] Context overview from {WindsurfSerializer}.
+        # @return [String] Context overview from {DevinSerializer}.
         def render_context_rule
-          WindsurfSerializer.new(context).call
+          DevinSerializer.new(context).call
         end
 
-        # @return [String] Standalone MCP tool cheat sheet for Windsurf.
+        # @return [String] Standalone MCP tool cheat sheet for Devin.
         def render_mcp_tools_rule
           lines = [
             '# MCP Tool Reference',

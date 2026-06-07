@@ -80,7 +80,7 @@ rails ai:bridge
 ```
 
 - CLAUDE.md ≤150 lines
-- .windsurfrules ≤5,800 characters
+- .devinrules ≤5,800 characters
 - copilot-instructions.md ≤500 lines
 - Files contain a project overview + MCP tool reference
 - AI uses MCP tools for detailed data on-demand
@@ -107,8 +107,8 @@ CONTEXT_MODE=full rails ai:bridge:claude
 # Full dump for Cursor only
 CONTEXT_MODE=full rails ai:bridge:cursor
 
-# Full dump for Windsurf only (still respects 6K char limit)
-CONTEXT_MODE=full rails ai:bridge:windsurf
+# Full dump for Devin only (still respects 6K char limit)
+CONTEXT_MODE=full rails ai:bridge:devin
 
 # Full dump for Copilot only
 CONTEXT_MODE=full rails ai:bridge:copilot
@@ -150,13 +150,13 @@ end
 | `.cursor/rules/rails-controllers.mdc` | Controller reference | `globs: app/controllers/**/*.rb` — auto-attaches when editing controllers. |
 | `.cursor/rules/rails-mcp-tools.mdc` | MCP tool reference | `alwaysApply: true` — always available. |
 
-### Windsurf (3 files)
+### Devin (3 files)
 
 | File | Purpose | Notes |
 |------|---------|-------|
-| `.windsurfrules` | Main context file | Hard-capped at 5,800 chars (Windsurf's 6K limit). Truncated silently if exceeded. |
-| `.windsurf/rules/rails-context.md` | Project overview | New Windsurf rules format. |
-| `.windsurf/rules/rails-mcp-tools.md` | MCP tool reference | Compact — respects 6K per-file limit. |
+| `.devinrules` | Main context file | Hard-capped at 5,800 chars (Devin's 6K limit). Truncated silently if exceeded. |
+| `.devin/rules/rails-context.md` | Project overview | New Devin rules format. |
+| `.devin/rules/rails-mcp-tools.md` | MCP tool reference | Compact — respects 6K per-file limit. |
 
 ### GitHub Copilot (4 files)
 
@@ -200,12 +200,12 @@ The same engineering baseline intentionally appears in Copilot, Codex, and Curso
 | `rails ai:bridge:claude` | compact | Claude | CLAUDE.md + .claude/rules/ |
 | `rails ai:bridge:codex` | compact | Codex | AGENTS.md + .codex/README.md |
 | `rails ai:bridge:cursor` | compact | Cursor | .cursorrules + .cursor/rules/ |
-| `rails ai:bridge:windsurf` | compact | Windsurf | .windsurfrules + .windsurf/rules/ |
+| `rails ai:bridge:devin` | compact | Devin | .devinrules + .devin/rules/ |
 | `rails ai:bridge:copilot` | compact | Copilot | copilot-instructions.md + .github/instructions/ |
 | `rails ai:bridge:json` | — | JSON | .ai-context.json |
 | `CONTEXT_MODE=full rails ai:bridge:claude` | full | Claude | Full dump for Claude only |
 | `CONTEXT_MODE=full rails ai:bridge:cursor` | full | Cursor | Full dump for Cursor only |
-| `CONTEXT_MODE=full rails ai:bridge:windsurf` | full | Windsurf | Full dump for Windsurf only |
+| `CONTEXT_MODE=full rails ai:bridge:devin` | full | Devin | Full dump for Devin only |
 | `CONTEXT_MODE=full rails ai:bridge:copilot` | full | Copilot | Full dump for Copilot only |
 | `CONFIRM=1 rails ai:bridge` | compact | all | Prompt before overwriting any changed file |
 
@@ -573,7 +573,7 @@ In addition to tools, the gem registers static MCP resources that AI clients can
 
 ### 1. HTTP/SSE Server (Highly Recommended for IDEs)
 
-If you use a Ruby version manager like `rbenv` or `rvm`, IDEs (like **Antigravity**, **Cursor**, or **Windsurf**) often fail to load the correct Ruby environment when launching sub-processes. The most bulletproof approach is to mount the MCP server directly into your running Rails application over HTTP/SSE. 
+If you use a Ruby version manager like `rbenv` or `rvm`, IDEs (like **Antigravity**, **Cursor**, or **Devin**) often fail to load the correct Ruby environment when launching sub-processes. The most bulletproof approach is to mount the MCP server directly into your running Rails application over HTTP/SSE. 
 
 1. Enable the HTTP server in your initializer (`config/initializers/rails_ai_bridge.rb`):
 
@@ -914,11 +914,11 @@ config.introspectors = %i[schema models routes gems auth api]
 | `globs: ["app/models/**/*.rb"]` | When editing files matching the glob pattern |
 | `alwaysApply: false` + `description` | When the AI decides it's relevant based on description |
 
-### Windsurf
+### Devin
 
 **Context files loaded:**
-- `.windsurfrules` — read at conversation start (≤6,000 chars, silently truncated if exceeded)
-- `.windsurf/rules/*.md` — new rules format
+- `.devinrules` — read at conversation start (≤6,000 chars, silently truncated if exceeded)
+- `.devin/rules/*.md` — new rules format
 
 **Limits:**
 - 6,000 characters per rule file

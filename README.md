@@ -21,7 +21,7 @@ rails-ai-bridge turns a Rails app into an AI-readable project map:
 
 - **Static context files** give assistants an immediate overview of your app, conventions, schema shape, routes, and important models.
 - **A read-only MCP server** lets assistants ask for exact details only when needed, such as one model, one table, one controller, or one route group.
-- **Assistant-specific output** keeps Claude Code, Cursor, Codex, Copilot, Windsurf, Gemini, and JSON consumers aligned without making you hand-write context files.
+- **Assistant-specific output** keeps Claude Code, Cursor, Codex, Copilot, Devin, Gemini, and JSON consumers aligned without making you hand-write context files.
 
 The goal is simple: help AI assistants produce code that fits your Rails app instead of generic Rails code.
 
@@ -123,7 +123,7 @@ The generator prompts you to pick a profile (or pass `--profile` to skip the pro
 | Profile | What it generates | Split rule dirs |
 |---------|-------------------|-----------------|
 | `custom` *(default)* | Per-format prompts — pick exactly what you need | Yes |
-| `minimal` | Claude, Cursor, Windsurf, Copilot, Gemini shims | No |
+| `minimal` | Claude, Cursor, Devin, Copilot, Gemini shims | No |
 | `full` | Every format | Yes |
 | `mcp` | Only `.mcp.json` — generate files later with `rails ai:bridge` | — |
 
@@ -191,9 +191,9 @@ your-rails-app/
 │       ├── rails-controllers.mdc                         globs: app/controllers/**
 │       └── rails-mcp-tools.mdc                           alwaysApply: true
 │
-├── 🔵 Windsurf
-│   ├── .windsurfrules                                    ≤5,800 chars (6K limit)
-│   └── .windsurf/rules/
+├── 🔵 Devin
+│   ├── .devinrules                                       ≤5,800 chars (6K limit)
+│   └── .devin/rules/
 │       ├── rails-context.md                              project overview
 │       └── rails-mcp-tools.md                            tool reference
 │
@@ -304,7 +304,7 @@ This is expected: compact assistant-specific files and the summary-first MCP wor
 
 Observed benefits so far:
 - Less exploratory reading before the assistant reaches the relevant files
-- Faster first useful response in Cursor and Windsurf trials
+- Faster first useful response in Cursor and Devin trials
 - Similar or slightly better answer quality with clearer project grounding
 - More predictable drill-down via `detail:"summary"` first, then focused lookups
 
@@ -631,7 +631,7 @@ Frontend introspectors (views, Turbo, Stimulus, assets) degrade gracefully — t
 | `rails ai:bridge:claude` | Generate Claude Code files only |
 | `rails ai:bridge:codex` | Generate Codex files only (`AGENTS.md` + `.codex/README.md`) |
 | `rails ai:bridge:cursor` | Generate Cursor files only |
-| `rails ai:bridge:windsurf` | Generate Windsurf files only |
+| `rails ai:bridge:devin` | Generate Devin files only |
 | `rails ai:bridge:copilot` | Generate Copilot files only |
 | `rails ai:bridge:gemini` | Generate Gemini files only |
 | `rails ai:serve` | Start MCP server (stdio) |

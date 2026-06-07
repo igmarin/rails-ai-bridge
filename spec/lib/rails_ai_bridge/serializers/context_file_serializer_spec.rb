@@ -59,13 +59,13 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
       end
     end
 
-    it 'generates .windsurf/rules/ when writing windsurf format' do
+    it 'generates .devin/rules/ when writing devin format' do
       Dir.mktmpdir do |dir|
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
-        serializer = described_class.new(context, format: :windsurf)
+        serializer = described_class.new(context, format: :devin)
         result = serializer.call
-        windsurf_rules = result[:written].select { |f| f.include?('.windsurf/rules/') }
-        expect(windsurf_rules).not_to be_empty
+        devin_rules = result[:written].select { |f| f.include?('.devin/rules/') }
+        expect(devin_rules).not_to be_empty
       end
     end
 

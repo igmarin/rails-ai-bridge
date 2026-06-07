@@ -3,10 +3,10 @@
 module RailsAiBridge
   module Serializers
     module Providers
-      # Generates `.windsurfrules` within Windsurf's hard 6,000 character limit.
+      # Generates `.devinrules` within Devin's hard 6,000 character limit.
       # Always produces compact output regardless of +context_mode+.
-      class WindsurfSerializer < BaseProviderSerializer
-        # Maximum body length before truncation (buffer under Windsurf's 6K cap).
+      class DevinSerializer < BaseProviderSerializer
+        # Maximum body length before truncation (buffer under Devin's 6K cap).
         MAX_CHARS = 5_800
 
         # @param context [Hash] Introspection hash from {Introspector#call}.
@@ -15,10 +15,10 @@ module RailsAiBridge
           super
         end
 
-        # @return [String] Windsurf rules file body, capped at +MAX_CHARS+ when over the limit.
+        # @return [String] Devin rules file body, capped at +MAX_CHARS+ when over the limit.
         def call
           content = render
-          # HARD enforce character limit — Windsurf silently truncates
+          # HARD enforce character limit — Devin silently truncates
           if content.length > MAX_CHARS
             content = content[0...MAX_CHARS]
             content += "\n\n# Use MCP tools for full details."
@@ -28,7 +28,7 @@ module RailsAiBridge
 
         private
 
-        # Renders the compact version of the Windsurf rules file.
+        # Renders the compact version of the Devin rules file.
         # @return [String] The generated content.
         def render
           lines = []

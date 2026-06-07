@@ -20,7 +20,7 @@ RSpec.describe RailsAiBridge::Serializers::Providers::Factory do
   end
 
   describe '.split_rules_for' do
-    %i[claude codex cursor windsurf copilot].each do |fmt|
+    %i[claude codex cursor devin copilot].each do |fmt|
       it "returns an object that responds to #call for :#{fmt}" do
         obj = described_class.split_rules_for(fmt, context)
         expect(obj).to respond_to(:call)

@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-RSpec.describe RailsAiBridge::Serializers::Providers::WindsurfRulesSerializer do
+RSpec.describe RailsAiBridge::Serializers::Providers::DevinRulesSerializer do
   let(:context) do
     {
       app_name: 'App', rails_version: '8.0', ruby_version: '3.4',
@@ -13,16 +13,16 @@ RSpec.describe RailsAiBridge::Serializers::Providers::WindsurfRulesSerializer do
     }
   end
 
-  it 'generates .windsurf/rules/*.md files' do
+  it 'generates .devin/rules/*.md files' do
     Dir.mktmpdir do |dir|
       result = described_class.new(context).call(dir)
       expect(result[:written].size).to eq(2)
 
-      content = File.read(File.join(dir, '.windsurf', 'rules', 'rails-context.md'))
+      content = File.read(File.join(dir, '.devin', 'rules', 'rails-context.md'))
       expect(content).to include('App')
       expect(content.length).to be <= 5800
 
-      tools_content = File.read(File.join(dir, '.windsurf', 'rules', 'rails-mcp-tools.md'))
+      tools_content = File.read(File.join(dir, '.devin', 'rules', 'rails-mcp-tools.md'))
       expect(tools_content).to include('MCP Tool Reference')
       expect(tools_content).to include('rails_get_schema')
       expect(tools_content.length).to be <= 5800

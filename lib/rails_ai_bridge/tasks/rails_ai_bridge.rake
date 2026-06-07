@@ -9,7 +9,7 @@ unless defined?(ASSISTANT_TABLE)
     Claude Code        CLAUDE.md + .claude/rules/            rails ai:bridge:claude
     OpenAI Codex       AGENTS.md + .codex/README.md          rails ai:bridge:codex
     Cursor             .cursorrules + .cursor/rules/         rails ai:bridge:cursor
-    Windsurf           .windsurfrules + .windsurf/rules/     rails ai:bridge:windsurf
+    Devin              .devinrules + .devin/rules/            rails ai:bridge:devin
     GitHub Copilot     .github/copilot-instructions.md       rails ai:bridge:copilot
     JSON (generic)     .ai-context.json                      rails ai:bridge:json
     Gemini             GEMINI.md                             rails ai:bridge:gemini
@@ -76,7 +76,7 @@ module RailsAiBridge
 end
 
 namespace :ai do
-  desc 'Generate AI bridge files (CLAUDE.md, .cursorrules, .windsurfrules, .github/copilot-instructions.md)'
+  desc 'Generate AI bridge files (CLAUDE.md, .cursorrules, .devinrules, .github/copilot-instructions.md)'
   task bridge: :environment do
     require 'rails_ai_bridge'
 
@@ -99,7 +99,7 @@ namespace :ai do
     puts ASSISTANT_TABLE
   end
 
-  desc 'Generate AI bridge output in a specific format (claude, codex, cursor, windsurf, copilot, json)'
+  desc 'Generate AI bridge output in a specific format (claude, codex, cursor, devin, copilot, json)'
   task :bridge_for, [:format] => :environment do |_t, args|
     require 'rails_ai_bridge'
 
@@ -121,7 +121,7 @@ end
 
 namespace :ai do
   namespace :bridge do
-    { claude: 'CLAUDE.md', codex: 'AGENTS.md', cursor: '.cursorrules', windsurf: '.windsurfrules',
+    { claude: 'CLAUDE.md', codex: 'AGENTS.md', cursor: '.cursorrules', devin: '.devinrules',
       copilot: '.github/copilot-instructions.md', json: '.ai-context.json', gemini: 'GEMINI.md' }.each do |fmt, file|
       desc "Generate #{file} bridge file"
       task fmt => :environment do

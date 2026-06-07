@@ -3,7 +3,7 @@
 module RailsAiBridge
   module Serializers
     # Orchestrates writing context files to disk in various formats.
-    # Supports: CLAUDE.md, .cursorrules, .windsurfrules, .github/copilot-instructions.md, JSON
+    # Supports: CLAUDE.md, .cursorrules, .devinrules, .github/copilot-instructions.md, JSON
     # Also generates split rule files for AI tools that support them.
     class ContextFileSerializer
       attr_reader :context, :format, :split_rules
@@ -12,7 +12,7 @@ module RailsAiBridge
         claude: 'CLAUDE.md',
         codex: 'AGENTS.md',
         cursor: '.cursorrules',
-        windsurf: '.windsurfrules',
+        devin: '.devinrules',
         copilot: '.github/copilot-instructions.md',
         json: '.ai-context.json',
         gemini: 'GEMINI.md'

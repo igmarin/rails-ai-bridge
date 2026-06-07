@@ -276,7 +276,7 @@ module RailsAiBridge
         format_prompts = {
           claude: 'Generate CLAUDE.md?',
           cursor: 'Generate .cursorrules?',
-          windsurf: 'Generate .windsurfrules?',
+          devin: 'Generate .devinrules?',
           copilot: 'Generate .github/copilot-instructions.md?',
           gemini: 'Generate GEMINI.md?',
           codex: 'Generate AGENTS.md?'

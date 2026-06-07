@@ -47,7 +47,7 @@ RSpec.describe RailsAiBridge::Generators::ProfileResolver do
 
   describe '.formats_for' do
     it 'returns the format list for minimal' do
-      expect(described_class.formats_for('minimal')).to eq(%i[claude cursor windsurf copilot gemini])
+      expect(described_class.formats_for('minimal')).to eq(%i[claude cursor devin copilot gemini])
     end
 
     it 'returns an empty array for mcp' do

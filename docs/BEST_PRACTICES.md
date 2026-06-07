@@ -3,7 +3,7 @@
 > For installation and a quick overview, see the [README](../README.md).
 > For the full command and configuration reference, see the [Guide](GUIDE.md).
 
-This document consolidates the patterns that consistently produce the best results when using rails-ai-bridge across Cursor, Windsurf, Copilot, Codex, and Claude Code — informed by real-world usage and feedback from multiple AI assistants evaluating the gem.
+This document consolidates the patterns that consistently produce the best results when using rails-ai-bridge across Cursor, Devin, Copilot, Codex, and Claude Code — informed by real-world usage and feedback from multiple AI assistants evaluating the gem.
 
 ---
 
@@ -51,7 +51,7 @@ Each AI client reads different files. Knowing which files matter for your tool h
 |--------|---------------------------------|----------|-------|
 | **Claude Code** | `CLAUDE.md`, `.claude/rules/*.md` | `.mcp.json` auto-detected | Rules injected per-session; MCP auto-wired via `.mcp.json` |
 | **Cursor** | `.cursorrules`, `.cursor/rules/*.mdc` | `.mcp.json` auto-detected | `alwaysApply: true` rules loaded every turn; glob-scoped rules loaded per file |
-| **Windsurf / Cascade** | `.windsurfrules`, `.windsurf/rules/*.md` | Manual MCP config required | 6K char limit on `.windsurfrules`; rules directory for overflow |
+| **Devin** | `.devinrules`, `.devin/rules/*.md` | Manual MCP config required | 6K char limit on `.devinrules`; rules directory for overflow |
 | **GitHub Copilot (VS Code)** | `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md` | Not supported natively | `applyTo` glob patterns control which instructions file is injected |
 | **OpenAI Codex** | `AGENTS.md`, `.codex/README.md` | `.mcp.json` (when configured) | `AGENTS.md` at repo root is the primary context source |
 | **Gemini (AI Studio / Code Assist)** | `GEMINI.md` | MCP via Gemini CLI | `GEMINI.md` provides the project briefing; MCP for live data |
@@ -59,7 +59,7 @@ Each AI client reads different files. Knowing which files matter for your tool h
 ### How MCP wiring works per client
 
 - **Claude Code & Cursor**: `.mcp.json` at the project root is auto-detected. Run `rails ai:serve` or let the client spawn it.
-- **Windsurf**: MCP servers must be configured manually in Windsurf settings. Add `bundle exec rails ai:serve` as a stdio MCP server.
+- **Devin**: MCP servers must be configured manually in Devin settings. Add `bundle exec rails ai:serve` as a stdio MCP server.
 - **Codex**: Configure in `.codex/mcp_servers.json` or equivalent. The generated `.codex/README.md` includes setup instructions.
 - **Copilot**: MCP is not natively supported via `.mcp.json` as of this writing. The `rails_*` tools are documented in `.github/instructions/rails-mcp-tools.instructions.md` but cannot be invoked automatically.
 
@@ -198,7 +198,7 @@ If `overrides.md` still has the omit-merge guard after initial setup, the gem in
 | Team-wide conventions (all clients) | `config/rails_ai_bridge/overrides.md` |
 | Claude Code-specific guidance | Append to `CLAUDE.md` after regeneration |
 | Cursor-specific rules | Add a `.cursor/rules/my-rules.mdc` that won't be overwritten |
-| Windsurf-specific | Add a `.windsurf/rules/my-rules.md` that won't be overwritten |
+| Devin-specific | Add a `.devin/rules/my-rules.md` that won't be overwritten |
 
 The gem only overwrites files it generated. Files you create with different names are safe.
 
@@ -221,11 +221,11 @@ The gem only overwrites files it generated. Files you create with different name
 4. `.cursorrules` is generated for legacy compatibility only. Cursor 0.45+ uses `.cursor/rules/` exclusively. Both can coexist safely.
 5. MCP is auto-wired via `.mcp.json`. Run `rails ai:serve` once; Cursor keeps it alive.
 
-### Windsurf / Cascade
+### Devin
 
-1. `.windsurfrules` is capped at ~5,800 characters (Windsurf's 6K limit). The gem respects this — overflow goes into `.windsurf/rules/`.
-2. MCP must be configured manually in Windsurf's MCP settings. Add: command `bundle exec rails ai:serve`, cwd: your project path.
-3. Cascade is good at following the "summary first, drill down" pattern — the generated `.windsurf/rules/rails-mcp-tools.md` teaches it this workflow.
+1. `.devinrules` is capped at ~5,800 characters (Devin's 6K limit). The gem respects this — overflow goes into `.devin/rules/`.
+2. MCP must be configured manually in Devin's MCP settings. Add: command `bundle exec rails ai:serve`, cwd: your project path.
+3. Devin is good at following the "summary first, drill down" pattern — the generated `.devin/rules/rails-mcp-tools.md` teaches it this workflow.
 
 ### GitHub Copilot
 
@@ -336,8 +336,8 @@ AGENTS.md
 GEMINI.md
 .cursorrules
 .cursor/rules/
-.windsurfrules
-.windsurf/rules/
+.devinrules
+.devin/rules/
 .github/copilot-instructions.md
 .github/instructions/
 .codex/README.md

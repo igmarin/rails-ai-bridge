@@ -80,7 +80,7 @@ RSpec.describe RailsAiBridge::Generators::InstallGenerator do
   end
 
   describe '#generate_context_files profiles' do
-    let(:minimal_formats) { %i[claude cursor windsurf copilot gemini] }
+    let(:minimal_formats) { %i[claude cursor devin copilot gemini] }
 
     it 'skips context generation when profile is mcp' do
       generator = build_generator([], profile: 'mcp')
@@ -108,7 +108,7 @@ RSpec.describe RailsAiBridge::Generators::InstallGenerator do
       allow(generator).to receive_messages(yes?: true, ask: 'custom') # Select custom to go to per-format prompts
       allow(generator).to receive(:yes?).with('Generate CLAUDE.md? (y/n)').and_return(true)
       allow(generator).to receive(:yes?).with('Generate .cursorrules? (y/n)').and_return(true)
-      allow(generator).to receive(:yes?).with('Generate .windsurfrules? (y/n)').and_return(true)
+      allow(generator).to receive(:yes?).with('Generate .devinrules? (y/n)').and_return(true)
       allow(generator).to receive(:yes?).with('Generate .github/copilot-instructions.md? (y/n)').and_return(true)
       allow(generator).to receive(:yes?).with('Generate GEMINI.md? (y/n)').and_return(true)
       allow(generator).to receive(:yes?).with('Generate AGENTS.md? (y/n)').and_return(false)
@@ -173,15 +173,15 @@ RSpec.describe RailsAiBridge::Generators::InstallGenerator do
     it 'calls generate_context with full format list when Rails.application is available (characterization test)' do
       allow(Rails).to receive(:application).and_return(double('App'))
       allow(generator).to receive(:yes?).and_return(true)
-      allow(RailsAiBridge).to receive(:generate_context).with(format: %i[claude cursor windsurf copilot gemini codex], split_rules: true).and_return({
-                                                                                                                                                       written: [],
-                                                                                                                                                       skipped: []
-                                                                                                                                                     })
+      allow(RailsAiBridge).to receive(:generate_context).with(format: %i[claude cursor devin copilot gemini codex], split_rules: true).and_return({
+                                                                                                                                                    written: [],
+                                                                                                                                                    skipped: []
+                                                                                                                                                  })
       allow(generator).to receive(:say)
 
       generator.generate_context_files
 
-      expect(RailsAiBridge).to have_received(:generate_context).with(format: %i[claude cursor windsurf copilot gemini codex], split_rules: true)
+      expect(RailsAiBridge).to have_received(:generate_context).with(format: %i[claude cursor devin copilot gemini codex], split_rules: true)
     end
   end
 
@@ -371,7 +371,7 @@ RSpec.describe RailsAiBridge::Generators::InstallGenerator do
       allow(generator).to receive(:yes?).with('Generate AI assistant context files? (y/n)').and_return(true)
       allow(generator).to receive(:yes?).with('Generate CLAUDE.md? (y/n)').and_return(false)
       allow(generator).to receive(:yes?).with('Generate .cursorrules? (y/n)').and_return(false)
-      allow(generator).to receive(:yes?).with('Generate .windsurfrules? (y/n)').and_return(false)
+      allow(generator).to receive(:yes?).with('Generate .devinrules? (y/n)').and_return(false)
       allow(generator).to receive(:yes?).with('Generate .github/copilot-instructions.md? (y/n)').and_return(false)
       allow(generator).to receive(:yes?).with('Generate GEMINI.md? (y/n)').and_return(false)
       allow(generator).to receive(:yes?).with('Generate AGENTS.md? (y/n)').and_return(false)
@@ -383,7 +383,7 @@ RSpec.describe RailsAiBridge::Generators::InstallGenerator do
       expect(generator).to have_received(:yes?).with('Generate AI assistant context files? (y/n)')
       expect(generator).to have_received(:yes?).with('Generate CLAUDE.md? (y/n)')
       expect(generator).to have_received(:yes?).with('Generate .cursorrules? (y/n)')
-      expect(generator).to have_received(:yes?).with('Generate .windsurfrules? (y/n)')
+      expect(generator).to have_received(:yes?).with('Generate .devinrules? (y/n)')
       expect(generator).to have_received(:yes?).with('Generate .github/copilot-instructions.md? (y/n)')
       expect(generator).to have_received(:yes?).with('Generate GEMINI.md? (y/n)')
       expect(generator).to have_received(:yes?).with('Generate AGENTS.md? (y/n)')
@@ -395,7 +395,7 @@ RSpec.describe RailsAiBridge::Generators::InstallGenerator do
       allow(generator).to receive(:yes?).with('Generate AI assistant context files? (y/n)').and_return(true)
       allow(generator).to receive(:yes?).with('Generate CLAUDE.md? (y/n)').and_return(true)
       allow(generator).to receive(:yes?).with('Generate .cursorrules? (y/n)').and_return(true)
-      allow(generator).to receive(:yes?).with('Generate .windsurfrules? (y/n)').and_return(false)
+      allow(generator).to receive(:yes?).with('Generate .devinrules? (y/n)').and_return(false)
       allow(generator).to receive(:yes?).with('Generate .github/copilot-instructions.md? (y/n)').and_return(false)
       allow(generator).to receive(:yes?).with('Generate GEMINI.md? (y/n)').and_return(false)
       allow(generator).to receive(:yes?).with('Generate AGENTS.md? (y/n)').and_return(false)
@@ -413,7 +413,7 @@ RSpec.describe RailsAiBridge::Generators::InstallGenerator do
       allow(generator).to receive(:yes?).with('Generate AI assistant context files? (y/n)').and_return(true)
       allow(generator).to receive(:yes?).with('Generate CLAUDE.md? (y/n)').and_return(false)
       allow(generator).to receive(:yes?).with('Generate .cursorrules? (y/n)').and_return(false)
-      allow(generator).to receive(:yes?).with('Generate .windsurfrules? (y/n)').and_return(false)
+      allow(generator).to receive(:yes?).with('Generate .devinrules? (y/n)').and_return(false)
       allow(generator).to receive(:yes?).with('Generate .github/copilot-instructions.md? (y/n)').and_return(false)
       allow(generator).to receive(:yes?).with('Generate GEMINI.md? (y/n)').and_return(false)
       allow(generator).to receive(:yes?).with('Generate AGENTS.md? (y/n)').and_return(false)
