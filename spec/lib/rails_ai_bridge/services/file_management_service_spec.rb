@@ -50,7 +50,7 @@ RSpec.describe RailsAiBridge::Services::FileManagementService do
       result = described_class.call(:read, path: missing)
 
       expect(result.failure?).to be(true)
-      expect(result.errors.first).to match(/No such file or directory/)
+      expect(result.errors.first).to include('No such file or directory')
     end
 
     it 'handles permission errors gracefully' do
@@ -60,7 +60,7 @@ RSpec.describe RailsAiBridge::Services::FileManagementService do
       result = described_class.call(:write, path: probe, content: 'content')
 
       expect(result.failure?).to be(true)
-      expect(result.errors.first).to match(/Permission denied/)
+      expect(result.errors.first).to include('Permission denied')
     end
 
     it 'returns failure when operation is nil' do
@@ -146,7 +146,7 @@ RSpec.describe RailsAiBridge::Services::FileManagementService do
       result = described_class.call(:write, path: nested, content: 'content')
 
       expect(result.failure?).to be(true)
-      expect(result.errors.first).to match(/Permission denied/)
+      expect(result.errors.first).to include('Permission denied')
     end
   end
 
@@ -155,14 +155,14 @@ RSpec.describe RailsAiBridge::Services::FileManagementService do
       result = described_class.call(:read, path: '/etc/passwd')
 
       expect(result.failure?).to be(true)
-      expect(result.errors.first).to match(/Path not allowed/)
+      expect(result.errors.first).to include('Path not allowed')
     end
 
     it 'rejects relative paths that resolve outside the allowed base' do
       result = described_class.call(:read, path: '../../../config/database.yml')
 
       expect(result.failure?).to be(true)
-      expect(result.errors.first).to match(/Path not allowed/)
+      expect(result.errors.first).to include('Path not allowed')
     end
 
     it 'rejects symlinks pointing outside the allowed base' do
@@ -175,7 +175,7 @@ RSpec.describe RailsAiBridge::Services::FileManagementService do
       begin
         result = described_class.call(:read, path: symlink_path)
         expect(result.failure?).to be(true)
-        expect(result.errors.first).to match(/Path not allowed/)
+        expect(result.errors.first).to include('Path not allowed')
       ensure
         FileUtils.rm_f(outside_file)
         FileUtils.rm_f(symlink_path)
@@ -194,7 +194,7 @@ RSpec.describe RailsAiBridge::Services::FileManagementService do
       begin
         result = described_class.call(:write, path: nested_path, content: 'should fail')
         expect(result.failure?).to be(true)
-        expect(result.errors.first).to match(/Path not allowed/)
+        expect(result.errors.first).to include('Path not allowed')
       ensure
         FileUtils.rm_rf(outside_dir)
         FileUtils.rm_f(symlink_dir)
@@ -205,7 +205,7 @@ RSpec.describe RailsAiBridge::Services::FileManagementService do
       result = described_class.call(:read, path: '')
 
       expect(result.failure?).to be(true)
-      expect(result.errors.first).to match(/path must be non-empty/)
+      expect(result.errors.first).to include('path must be non-empty')
     end
 
     it 'allows paths relative to Rails.root' do
