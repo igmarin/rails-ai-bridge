@@ -73,11 +73,15 @@ module RailsAiBridge
       #
       # @param path [String] path to the tile JSON file
       # @return [TileManifest]
-      # @raise [ArgumentError] if the file does not exist
+      # @raise [ArgumentError] if the file does not exist or contains malformed JSON
       def self.from_file(path)
         raise ArgumentError, "Tile manifest not found at: #{path}" unless File.exist?(path)
 
         from_json(JSON.parse(File.read(path)))
+      rescue JSON::ParserError => error
+        raise ArgumentError, "Tile manifest at '#{path}' contains invalid JSON: #{error.message}"
+      rescue SystemCallError => error
+        raise ArgumentError, "Tile manifest at '#{path}' could not be read: #{error.message}"
       end
 
       # @api private

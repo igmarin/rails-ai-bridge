@@ -155,7 +155,7 @@ Optional: `gem install rails-ai-bridge` installs the gem into your Ruby environm
 | Zero config | Yes — Railtie + install generator | No — per-project `projects.yml` | No |
 | Token optimization | Yes — compact files + `detail:"summary"` workflow | Varies | No |
 | Codex-oriented repo files | Yes — `AGENTS.md`, `.codex/README.md` | No | DIY |
-| Live MCP tools | Yes — 11 read-only `rails_*` tools (extensible) | Yes | No |
+| Live MCP tools | Yes — 13 read-only `rails_*` tools (extensible) | Yes | No |
 | Auto-introspection | Yes — up to **27** domains (`:full`) | No — server points at projects you configure | DIY |
 
 *Comparison reflects typical documented setups; verify against each project before treating any row as absolute.*
@@ -247,7 +247,7 @@ This keeps context focused and avoids unnecessary token usage while still allowi
 
 ## MCP Tools
 
-The gem exposes **12 built-in tools** via MCP that AI clients call on-demand (hosts can append more via `config.additional_tools`):
+The gem exposes **13 built-in tools** via MCP that AI clients call on-demand (hosts can append more via `config.additional_tools`):
 
 | Tool | What it returns |
 |------|----------------|
@@ -263,6 +263,7 @@ The gem exposes **12 built-in tools** via MCP that AI clients call on-demand (ho
 | `rails_get_view` | View layouts, templates, partials; optional per-file detail under the configured `app/views` path |
 | `rails_search_semantic` | Semantic code search using rubydex — find declarations by name with types, locations, and relationships |
 | `rails_get_stimulus` | Stimulus controllers: targets, values, actions, outlets (requires `:stimulus` introspector) |
+| `rails_list_registry` | Skill pack catalog — list skills, agents, or active packs; requires `config/rails_ai_bridge_registry.json` |
 
 All tools are **read-only** — they never modify your application or database.
 
@@ -491,7 +492,10 @@ end
 | `registry.registry_manifest_path` | `"config/rails_ai_bridge_registry.json"` | Path to the registry manifest JSON file for skill pack resolution |
 | `registry.skill_cache_dir` | `"~/.rails-ai-bridge/cache"` | Directory for caching git repositories containing skill packs |
 | `registry.skill_packs` | `nil` | Explicit pack names to load, or `nil` for auto-detection based on framework |
-| `registry.local_registry_paths` | `[]` | Local registry directory paths for skill pack overrides |
+| `registry.local_registry_paths` | `[]` | Local directory paths (must contain `directory.json`) loaded at priority 0 |
+| `registry.resolver_ttl` | `1800` | Seconds to cache the wired resolver in memory; `0` disables caching |
+| `registry.git_pull_ttl` | `86400` | Seconds between `git pull` refreshes per cached pack (24 h default). Set to `0` to pull on every resolver rebuild |
+| `registry.git_timeout` | `30` | Seconds before a git operation (clone, pull, checkout) is forcibly interrupted |
 
 Other HTTP MCP knobs live only on the nested object, for example `RailsAiBridge.configuration.mcp.authorize`, `mcp.mode`, `mcp.security_profile`, and `mcp.require_auth_in_production` — see [docs/GUIDE.md](docs/GUIDE.md) and [docs/mcp-security.md](docs/mcp-security.md).
 </details>
@@ -573,6 +577,35 @@ To customize it in your initializer (`config/initializers/rails_ai_bridge.rb`):
 
 ---
 
+### Skill Packs
+
+rails-ai-bridge can load **skill packs** — shared collections of agent instructions — from versioned git repositories and surface them through `rails_list_registry` and rake tasks.
+
+```ruby
+config.registry.registry_manifest_path = "config/rails_ai_bridge_registry.json"
+```
+
+Quick example manifest (`config/rails_ai_bridge_registry.json`):
+
+```json
+{
+  "version": "1.0.0",
+  "packs": {
+    "rails": { "source": "igmarin/rails-agent-skills" },
+    "core":  { "source": "igmarin/ruby-core-skills", "always_loaded": true }
+  },
+  "default_stack": ["core"]
+}
+```
+
+Pack sources accept local paths, HTTPS URLs (`https://`), SSH URLs (`git@`), or `owner/repo` GitHub shorthands. Plain `http://` URLs are rejected. Packs can be pinned to a specific version with `"ref": "v1.2.0"`.
+
+To prevent network timeouts from blocking your server, set `config.registry.git_timeout` (default: 30 s). To control how often cached packs are refreshed, set `config.registry.git_pull_ttl` (default: 24 h; `0` to always pull).
+
+See [docs/skill-registry-guide.md](docs/skill-registry-guide.md) for the full setup guide.
+
+---
+
 ## Stack Compatibility
 
 Works with every Rails architecture — auto-detects what's relevant:
@@ -606,6 +639,9 @@ Frontend introspectors (views, Turbo, Stimulus, assets) degrade gracefully — t
 | `rails ai:doctor` | Run diagnostics and AI readiness score (0-100) |
 | `rails ai:watch` | Auto-regenerate bridge files on code changes |
 | `rails ai:inspect` | Print introspection summary to stdout |
+| `rails ai:skills:list` | Print skill catalog from loaded skill packs |
+| `rails "ai:skills:resolve[pack,name]"` | Resolve and print a skill's full content |
+| `rails ai:skills:clear_cache` | Remove locally cached pack repositories |
 
 > **Bridge modes:**
 > ```bash
@@ -660,6 +696,10 @@ The docs are layered so new users do not need to read everything at once.
 | How to get better AI output day to day | [docs/BEST_PRACTICES.md](docs/BEST_PRACTICES.md) |
 | Every command, config option, generated file, and MCP parameter | [docs/GUIDE.md](docs/GUIDE.md) |
 | HTTP MCP hardening and production safety | [docs/mcp-security.md](docs/mcp-security.md) and [SECURITY.md](SECURITY.md) |
+| Skill packs: setup, sources, pinning, cache, troubleshooting | [docs/skill-registry-guide.md](docs/skill-registry-guide.md) |
+| Skill registry technical reference | [docs/registry-resolution.md](docs/registry-resolution.md) |
+| Offline mode design plan | [docs/offline-mode.md](docs/offline-mode.md) |
+| Gem improvement roadmap | [docs/gem-general-improvements.md](docs/gem-general-improvements.md) |
 | Upgrade notes between major versions | [UPGRADING.md](UPGRADING.md) |
 | Release history | [CHANGELOG.md](CHANGELOG.md) |
 | Development and contribution workflow | [CONTRIBUTING.md](CONTRIBUTING.md) |

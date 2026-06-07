@@ -19,9 +19,10 @@ module RailsAiBridge
         packs = (hash['packs'] || {}).transform_values do |pack_hash|
           PackDefinition.new(
             source: pack_hash.fetch('source'),
-            tile: pack_hash.fetch('tile'),
+            tile: pack_hash.fetch('tile', 'directory.json'),
             always_loaded: pack_hash.fetch('always_loaded', false),
-            depends_on: pack_hash.fetch('depends_on', [])
+            depends_on: pack_hash.fetch('depends_on', []),
+            ref: pack_hash.fetch('ref', nil)
           )
         end
 
@@ -36,11 +37,15 @@ module RailsAiBridge
       #
       # @param path [String] absolute or relative path to the registry JSON file
       # @return [RegistryManifest]
-      # @raise [ArgumentError] if the file does not exist
+      # @raise [ArgumentError] if the file does not exist or contains malformed JSON
       def self.from_file(path)
         raise ArgumentError, "Registry manifest not found at: #{path}" unless File.exist?(path)
 
         from_json(JSON.parse(File.read(path)))
+      rescue JSON::ParserError => error
+        raise ArgumentError, "Registry manifest at '#{path}' contains invalid JSON: #{error.message}"
+      rescue SystemCallError => error
+        raise ArgumentError, "Registry manifest at '#{path}' could not be read: #{error.message}"
       end
     end
   end

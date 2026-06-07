@@ -1,6 +1,6 @@
 # Port Registry Resolution from Rust Runtime to rails-ai-bridge
 
-**Status:** In progress — PR 1 completed ✅, PR 2 completed ✅, PR 3 completed ✅, PR 4 next
+**Status:** Complete — PR 1 ✅, PR 2 ✅, PR 3 ✅, PR 4 ✅, PR 5 ✅
 **Reference source:** `../agent-mcp-runtime/src/registry/` (Rust)
 **Delivery model:** Sequential PRs, each reviewed by Qodo + CodeRabbit before proceeding
 
@@ -18,7 +18,7 @@ necessary for the future skill compiler feature.
 | `ContextProviderDefinition` / `ContextToolSpec` | **Deferred** (YAGNI — not in registry.json, no integration milestone) |
 | Git operations | Use `Open3` (stdlib) — no new gem dependency |
 | `ruby-skill-bench` `PackResolver` | Stays independent — no cross-repo dependency |
-| MCP tools | `rails_list_skills`, `rails_list_agents`, `rails_list_packs` included; `rails_use_skill` / `rails_use_agent` **deferred** |
+| MCP tools | `rails_list_registry` (unified — replaces the originally-planned split `rails_list_skills` / `rails_list_agents` / `rails_list_packs` tools); `rails_use_skill` / `rails_use_agent` **deferred** |
 | Configuration access | New `Config::Registry` sub-object; accessed as `configuration.registry.*` — no top-level delegators |
 | Priorities | Hardcoded matching Rust (`local=0`, `rails/hanami=10`, `core=20`, `other=30`) |
 | Frontmatter parser | Include as internal utility (`Registry::FrontmatterParser`) — used when `tile.json` `SkillEntry` has no `description` |
@@ -133,12 +133,9 @@ necessary for the future skill compiler feature.
 - Append to `lib/rails_ai_bridge/tasks/rails_ai_bridge.rake`:
   - `rails_ai_bridge:list_skills` — prints skill catalog from registry
   - `rails_ai_bridge:resolve_skill[pack,name]` — resolves and prints skill content
-- `lib/rails_ai_bridge/tools/rails_list_skills_tool.rb`
-- `lib/rails_ai_bridge/tools/rails_list_agents_tool.rb`
-- `lib/rails_ai_bridge/tools/rails_list_packs_tool.rb`
-- `spec/lib/rails_ai_bridge/tools/rails_list_skills_tool_spec.rb`
-- `spec/lib/rails_ai_bridge/tools/rails_list_agents_tool_spec.rb`
-- `spec/lib/rails_ai_bridge/tools/rails_list_packs_tool_spec.rb`
+- `lib/rails_ai_bridge/tools/list_registry.rb` — unified `rails_list_registry` tool (replaces
+  the originally-planned split `rails_list_skills`, `rails_list_agents`, `rails_list_packs`)
+- `spec/lib/rails_ai_bridge/tools/list_registry_spec.rb`
 - `docs/registry-resolution.md` — user-facing docs (priority rules, example registry.json, config options)
 
 ## Deferred (follow-up)
@@ -161,15 +158,15 @@ necessary for the future skill compiler feature.
 
 ## Success Criteria
 
-- [ ] All registry modules created with passing specs (PR 1–3)
-- [ ] `Config::Registry` wired and documented (PR 4)
-- [ ] `rails_ai_bridge:list_skills` and `rails_ai_bridge:resolve_skill[pack,name]` Rake tasks work (PR 5)
-- [ ] `rails_list_skills`, `rails_list_agents`, `rails_list_packs` MCP tools exposed (PR 5)
-- [ ] `docs/registry-resolution.md` written (PR 5)
-- [ ] Priority-based resolution handles core/rails/hanami/planning correctly
-- [ ] Deprecation redirects work (old skill name → new location)
-- [ ] Path traversal guard enforced in resolver
-- [ ] `CHANGELOG.md` updated in every PR
-- [ ] `README.md` updated in PR 4 and PR 5
-- [ ] `UPGRADING.md` updated if breaking changes are introduced
+- [x] All registry modules created with passing specs (PR 1–3)
+- [x] `Config::Registry` wired and documented (PR 4)
+- [x] `rails ai:skills:list` and `rails "ai:skills:resolve[pack,name]"` Rake tasks work (PR 5)
+- [x] `rails_list_registry` MCP tool exposed (PR 5 — unified, replaces split tools)
+- [x] `docs/registry-resolution.md` written (PR 5)
+- [x] Priority-based resolution handles core/rails/hanami/planning correctly
+- [x] Deprecation redirects work (old skill name → new location)
+- [x] Path traversal guard enforced in resolver
+- [x] `CHANGELOG.md` updated in every PR
+- [x] `README.md` updated in PR 4 and PR 5
+- [ ] `UPGRADING.md` updated if breaking changes are introduced (no breaking changes introduced)
 - [ ] All PRs pass Qodo + CodeRabbit review gates

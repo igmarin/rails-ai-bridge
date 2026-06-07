@@ -13,7 +13,7 @@ group :development, :test do
   gem 'rubocop', '~> 1.65'
   gem 'rubocop-rails', '~> 2.35'
   gem 'rubocop-rails-omakase', '~> 1.0'
-  gem 'rubocop-rspec', '~> 3.0'
+  gem 'rubocop-rspec', '~> 3.10'
   gem 'simplecov', '~> 0.22'
   gem 'skunk', '~> 0.5'
   gem 'sqlite3', '~> 1.4'

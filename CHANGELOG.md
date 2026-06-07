@@ -9,6 +9,85 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`git_timeout` for git operations** — `Config::Registry#git_timeout` (default `30` seconds) is
+  now passed to `DefaultGitRunner`, which wraps every git subprocess (`clone`, `pull`, `checkout`)
+  in `Timeout.timeout`. A slow or unreachable remote can no longer block the calling thread
+  indefinitely; a descriptive `RuntimeError` (e.g. `"git clone timed out after 30s"`) is raised
+  instead. `DefaultGitRunner#timeout` exposes the configured value for introspection.
+- **`git_pull_ttl` — per-pack pull freshness window** — `Config::Registry#git_pull_ttl` (default
+  `86400` seconds = 24 h) controls how often `SkillSourceResolver` issues a `git pull` for an
+  already-cached pack. Successive `resolve` calls within the TTL window skip the pull entirely,
+  removing the previous behaviour of pulling on every resolver rebuild. Set to `0` to restore
+  pull-on-every-resolve. Pull timestamps are tracked in a thread-safe, in-memory `Mutex`-guarded
+  hash; they reset when the process restarts.
+- **`checkout_ref` timeout** — `git checkout <ref>` is now also subject to `git_timeout`.
+  A `SkillSourceResolver::ResolutionError` is raised on timeout with the ref name and pack source
+  in the message.
+- **`Registry::Truncatable` shared module** (`lib/rails_ai_bridge/registry/truncatable.rb`) —
+  extracts the `truncate(text, max)` helper that was duplicated between `RakePresenter` and
+  `RegistryCatalogFormatter`. Both classes now `include Truncatable` and the private duplicates
+  are removed.
+- **`Engine.to_prepare` hook** — the Rails Engine now registers a `config.to_prepare` block that
+  calls `Registry.invalidate_resolver_cache!`. This discards the cached resolver on every
+  Zeitwerk code reload in development, preventing stale config after an initializer change.
+  In production it fires once after eager load and is effectively a no-op.
+- **`depends_on` missing-dependency warning** — `PackResolver` now emits a clear `[rails-ai-bridge]`
+  warning to stderr when an active pack declares `depends_on` entries that are not in the active
+  pack set. The warning names each missing dependency and tells the user which manifest field to
+  update. Packs still load; this is an advisory warning, not an abort. Transitive dependency
+  loading remains unimplemented (see `docs/gem-general-improvements.md`).
+- **Stable local pack names** — local registry packs previously received names like `local_0`,
+  `local_1` based on array index, so reordering `local_registry_paths` silently shifted pack
+  identities. Names are now derived from a SHA256 digest of the path
+  (`local_<first 8 hex chars>`), making them stable regardless of ordering.
+- **`docs/offline-mode.md`** — design plan for a future `offline:` config flag that prevents
+  all git operations and serves the local cache as-is; includes rake pull task design, vendored
+  snapshot pattern, and CI caching guidance.
+- **`docs/gem-general-improvements.md`** — roadmap of eight broader improvements: manifest
+  schema validation, pack version lock file, agent-facing JSON output from rake tasks, full
+  SHA-256 cache keys, transitive `depends_on` loading, structured logging, and more.
+
+### Changed
+
+- **`PackResolver` errors raised as `ResolutionError`** — the two bare `raise "..."` calls in
+  `PackResolver` (unknown pack name, missing tile manifest) and the one in `load_local_registries`
+  now raise `SkillSourceResolver::ResolutionError` instead of a plain `RuntimeError`. Callers
+  that rescue `ResolutionError` from `SkillSourceResolver` will now also catch pack-level failures
+  without needing a separate `rescue RuntimeError`.
+- **`SourceParser` rejects `http://` URLs** — plain HTTP was previously accepted as a git source.
+  It is now rejected because cloning over unencrypted HTTP exposes credentials and pack content in
+  transit. Use `https://` or `git@` (SSH) instead. The error message and module docstring are
+  updated to explain the reason and list the supported formats.
+- **`ListRegistry` type-guard comment** — the `unless %w[skills agents packs].include?(type)`
+  guard is retained as a defence-in-depth fallback (the MCP SDK enum constraint catches invalid
+  values first) and now carries an explanatory comment to prevent future confusion.
+- **`Registry.build_resolver_uncached`** — wires `git_timeout` and `git_pull_ttl` from
+  `Config::Registry` into `DefaultGitRunner` and `SkillSourceResolver` respectively, so
+  configuration changes take effect on the next resolver rebuild.
+
+### Fixed
+
+- **`validate_cache_dir` documentation clarified** — the YARD docstring now explains why the
+  lexical `Pathname#cleanpath` check (rather than `File.realpath`) is used: the cache directory
+  may not exist yet at validation time. The security guarantee is stated explicitly: cache keys
+  are SHA256-derived and not attacker-controlled, so even an unexpected symlink target is safe.
+
+### Tests
+
+- **`checkout_ref` — 8 new examples** covering: successful checkout returns the cache path;
+  git checkout called with the correct ref; non-zero exit raises `ResolutionError`; error message
+  includes ref name, source pack name, and stderr text; timeout raises `ResolutionError` with
+  `"timed out"` and ref name in message; nil ref skips `git checkout` entirely.
+- **Pull freshness — 3 new examples**: TTL=0 always pulls on every resolve; large TTL skips
+  the second pull within the window; second resolve after TTL expiry re-pulls (verified by
+  backdating `@last_pulled` via instance variable access).
+- **`DefaultGitRunner` timeout — 4 new examples**: `#timeout` defaults to 30; configurable
+  via constructor; clone timeout raises `RuntimeError` with duration; pull timeout same.
+- **`ResolverCache` TTL spec** — replaced `sleep(0.01)` (wall-clock dependency) with an
+  injectable `monotonic_clock:` lambda that returns `0` on the first call and `99_999` thereafter,
+  making the TTL-expiry test deterministic and instant.
+- **Total: 2043 examples, 0 failures, 94.67% line coverage** (up from 94.53%)
+
 - **Registry data structures (PR 1)** — new `RailsAiBridge::Registry` module with immutable value objects
   porting the Rust `agent-mcp-runtime` registry types to Ruby:
   - `Registry::RegistryManifest` — root manifest (version, packs, default\_stack); `from_json` / `from_file`
@@ -47,6 +126,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `registry.skill_packs` — explicit pack names to load, or `nil` for auto-detection based on framework
   - `registry.local_registry_paths` — local registry directory paths for skill pack overrides
   - Registry module required in main `rails_ai_bridge.rb` for configuration availability
+- **Registry tools, cache, source formats, and docs (PR 5 → PR 6)** — user-visible entry points
+  plus three production-quality refinements:
+  - `Tools::ListRegistry` (`rails_list_registry`) — single MCP tool replacing the previous
+    `rails_list_skills`, `rails_list_agents`, and `rails_list_packs`; required `type:` param
+    (`"skills"` | `"agents"` | `"packs"`); optional `pack:` filter for skills/agents;
+    inner `RegistryCatalogFormatter` class owns all markdown rendering (SRP)
+  - `Registry::ResolverCache` — thread-safe in-memory cache for the wired `Resolver`;
+    configurable TTL via `config.registry.resolver_ttl` (default 1800 s = 30 min);
+    nil results never cached so manifest-missing setup retries on next call;
+    `Registry.invalidate_resolver_cache!` for explicit invalidation
+  - `Config::Registry#resolver_ttl` — new accessor with 1800 s default
+  - `Registry::SourceParser` — new single-responsibility parser that classifies source strings
+    into `:local_path`, `:git_url`, or `:github_shorthand` and resolves canonical URLs;
+    raises `ResolutionError` naming all three valid formats for invalid inputs;
+    `SkillSourceResolver#resolve` now delegates to `SourceParser` and returns local paths
+    directly without git operations
+  - `PackDefinition#ref` — new optional field for git version pinning (branch, tag, or SHA);
+    `SkillSourceResolver` runs `git checkout ref` after clone/pull when set
+  - `PackResolver` — default pack catalog filename changed from `tile.json` to `directory.json`;
+    priority matching is now case-insensitive
+  - `Registry::RakePresenter` — extracted from inline rake task logic; owns all CLI formatting
+    for skill tables and resolve output
+  - `rails ai:skills:list` — delegates to `RakePresenter`
+  - `rails "ai:skills:resolve[pack,skill_name]"` — delegates to `RakePresenter`
+  - `rails ai:skills:clear_cache` — new rake task; removes cached pack repositories and
+    invalidates the in-memory resolver cache
+  - `docs/skill-registry-guide.md` — new user guide covering concepts, quick start, source
+    formats, priority rules, version pinning, `directory.json` format, MCP tool reference,
+    rake task reference, resolver cache, troubleshooting, and security model
+  - `docs/registry-resolution.md` — updated to "Registry Resolution Reference"; all
+    `tile.json` references updated to `directory.json`; new source formats table; new
+    `ref` field; `resolver_ttl` config option; cache management section; security section
+    updated for `SourceParser`
 
 ## [3.4.0] - 2026-05-21
 
