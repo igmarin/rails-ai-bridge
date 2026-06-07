@@ -37,11 +37,13 @@ module RailsAiBridge
       #
       # @param path [String] absolute or relative path to the registry JSON file
       # @return [RegistryManifest]
-      # @raise [ArgumentError] if the file does not exist
+      # @raise [ArgumentError] if the file does not exist or contains malformed JSON
       def self.from_file(path)
         raise ArgumentError, "Registry manifest not found at: #{path}" unless File.exist?(path)
 
         from_json(JSON.parse(File.read(path)))
+      rescue JSON::ParserError => error
+        raise ArgumentError, "Registry manifest at '#{path}' contains invalid JSON: #{error.message}"
       end
     end
   end

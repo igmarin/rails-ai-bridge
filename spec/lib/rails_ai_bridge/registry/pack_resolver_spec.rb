@@ -398,7 +398,7 @@ RSpec.describe RailsAiBridge::Registry::PackResolver do
         service = described_class.new(source_resolver)
 
         expect { service.resolve(manifest, ['core'], nil) }
-          .to raise_error(JSON::ParserError)
+          .to raise_error(ArgumentError, /invalid JSON/)
       end
 
       it 'handles local registry JSON parse errors' do
@@ -417,7 +417,7 @@ RSpec.describe RailsAiBridge::Registry::PackResolver do
         service = described_class.new(source_resolver)
 
         expect { service.resolve(manifest, nil, [local_dir]) }
-          .to raise_error(JSON::ParserError)
+          .to raise_error(ArgumentError, /invalid JSON/)
 
         FileUtils.rm_rf(local_dir)
       end

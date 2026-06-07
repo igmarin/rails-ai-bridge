@@ -114,7 +114,7 @@ module RailsAiBridge
       # @raise [RuntimeError] always
       def fail_with_sanitized_error!(label, stderr)
         sanitized = stderr.to_s.gsub(%r{(?<=://)([^@/]+@)}, '[REDACTED]@').strip.truncate(200)
-        Rails.logger.debug { "[rails-ai-bridge] #{label} failed — #{sanitized}" }
+        Rails.logger&.debug { "[rails-ai-bridge] #{label} failed — #{sanitized}" }
         raise "#{label} failed"
       end
     end

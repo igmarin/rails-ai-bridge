@@ -108,7 +108,7 @@ module RailsAiBridge
           tile_path = File.join(base_path, pack_def.tile)
 
           unless File.exist?(tile_path)
-            Rails.logger.debug { "[rails-ai-bridge] tile manifest missing for pack '#{name}' at #{tile_path}" }
+            Rails.logger&.debug { "[rails-ai-bridge] tile manifest missing for pack '#{name}' at #{tile_path}" }
             raise SkillSourceResolver::ResolutionError, "Failed to read tile manifest for pack '#{name}'"
           end
 
