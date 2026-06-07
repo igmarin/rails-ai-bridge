@@ -90,7 +90,9 @@ module RailsAiBridge
       # Loads defined packs from the manifest.
       #
       # Resolves each pack via the source resolver, loads its tile manifest,
-      # and assigns priority based on pack name.
+      # and assigns priority based on pack name. Emits a warning when a pack
+      # lists a +depends_on+ entry that is not in the active set — transitive
+      # dependency loading is not yet implemented.
       #
       # @param manifest [RegistryManifest] the registry manifest
       # @param active_pack_names [Set<String>] set of pack names to load
@@ -100,15 +102,16 @@ module RailsAiBridge
 
         active_pack_names.each do |name|
           pack_def = manifest.packs[name]
-          raise "Pack '#{name}' not defined in registry manifest" unless pack_def
+          raise SkillSourceResolver::ResolutionError, "Pack '#{name}' not defined in registry manifest" unless pack_def
 
           base_path = @source_resolver.resolve(pack_def.source, ref: pack_def.ref)
           tile_path = File.join(base_path, pack_def.tile)
 
-          raise "Failed to read tile manifest for pack '#{name}' at #{tile_path}" unless File.exist?(tile_path)
+          raise SkillSourceResolver::ResolutionError, "Failed to read tile manifest for pack '#{name}' at #{tile_path}" unless File.exist?(tile_path)
 
           tile = TileManifest.from_file(tile_path)
           priority = compute_priority(name)
+          warn_missing_dependencies(name, pack_def.depends_on, active_pack_names)
 
           loaded_packs << LoadedPack.new(
             name: name,
@@ -131,15 +134,18 @@ module RailsAiBridge
       def load_local_registries(loaded_packs, local_registries)
         return loaded_packs unless local_registries
 
-        local_registries.each_with_index do |path, i|
+        local_registries.each do |path|
           tile_path = File.join(path, 'directory.json')
 
-          raise "Failed to read local registry tile manifest at #{tile_path}" unless File.exist?(tile_path)
+          raise SkillSourceResolver::ResolutionError, "Failed to read local registry tile manifest at #{tile_path}" unless File.exist?(tile_path)
 
           tile = TileManifest.from_file(tile_path)
+          # Derive a stable name from the path so renaming or reordering entries in
+          # local_registry_paths does not silently shift pack identities.
+          name = "local_#{Digest::SHA256.hexdigest(path)[0..7]}"
 
           loaded_packs << LoadedPack.new(
-            name: "local_#{i}",
+            name: name,
             tile: tile,
             base_path: path,
             priority: 0 # Highest priority
@@ -147,6 +153,26 @@ module RailsAiBridge
         end
 
         loaded_packs
+      end
+
+      # Warns when a pack declares dependencies that are not in the active set.
+      #
+      # Transitive dependency loading is not yet implemented. Packs that declare
+      # +depends_on+ will still load, but their dependencies must be explicitly
+      # included in the active set for skills to be available.
+      #
+      # @param name [String] the loading pack's name
+      # @param deps [Array<String>] dependency names declared by the pack
+      # @param active_names [Set<String>] currently active pack names
+      # @return [void]
+      def warn_missing_dependencies(name, deps, active_names)
+        missing = deps.reject { |dep| active_names.include?(dep) }
+        return if missing.empty?
+
+        warn "[rails-ai-bridge] Pack '#{name}' depends on #{missing.map { |d| "'#{d}'" }.join(', ')} " \
+             "which #{missing.one? ? 'is' : 'are'} not in the active pack set. " \
+             "Add #{missing.one? ? 'it' : 'them'} to skill_packs or always_loaded in your registry manifest. " \
+             '(Transitive dependency loading is not yet implemented.)'
       end
 
       # Computes priority for a pack based on its name.

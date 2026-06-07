@@ -69,7 +69,8 @@ module RailsAiBridge
       return nil unless File.exist?(manifest_path)
 
       manifest = RegistryManifest.from_file(manifest_path)
-      source_resolver = SkillSourceResolver.new(config.skill_cache_dir)
+      git_runner = Registry::DefaultGitRunner.new(timeout: config.git_timeout)
+      source_resolver = SkillSourceResolver.new(config.skill_cache_dir, git_runner, pull_ttl: config.git_pull_ttl)
       pack_resolver = PackResolver.new(source_resolver)
 
       pack_resolver.resolve(

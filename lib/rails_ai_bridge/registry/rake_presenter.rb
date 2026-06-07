@@ -13,6 +13,8 @@ module RailsAiBridge
     #   puts presenter.skills_table
     #   puts presenter.resolve_skill_output('code-review', requested_pack: 'rails')
     class RakePresenter
+      include Truncatable
+
       SKILL_NAME_COL  = 30
       PACK_NAME_COL   = 15
       DESC_MAX_LENGTH = 50
@@ -23,8 +25,11 @@ module RailsAiBridge
         Create the file and configure skill packs. See docs/skill-registry-guide.md for details.
       MSG
 
-      # @param resolver [Registry::Resolver, nil] a resolved registry (nil = not configured)
+      # @param resolver [Registry::Resolver] resolved registry
+      # @raise [ArgumentError] if resolver is nil
       def initialize(resolver)
+        raise ArgumentError, 'RakePresenter requires a resolver; got nil — check registry configuration' if resolver.nil?
+
         @resolver = resolver
       end
 
@@ -67,14 +72,6 @@ module RailsAiBridge
       # @return [String]
       def self.no_manifest_message(path)
         format(NO_MANIFEST_MESSAGE, path: path)
-      end
-
-      private
-
-      def truncate(text, max)
-        return text if text.length <= max
-
-        "#{text[0, max - 1]}…"
       end
     end
   end

@@ -74,8 +74,9 @@ The `source` field in a pack definition accepts three formats:
 | Format | Example | When to use |
 |--------|---------|-------------|
 | Local path | `/Users/alice/my-skills` or `./local-pack` | Pack development, monorepo |
-| Full git URL | `https://github.com/org/skills.git` | Non-GitHub remotes, SSH |
-| GitHub shorthand | `igmarin/rails-agent-skills` | Most common — expanded automatically |
+| HTTPS URL | `https://github.com/org/skills.git` | Non-GitHub remotes; most common for public repos |
+| SSH URL | `git@github.com:org/skills.git` | Private repos or when SSH keys are configured |
+| GitHub shorthand | `igmarin/rails-agent-skills` | Shortest form — expanded to HTTPS automatically |
 
 ```json
 {
@@ -83,8 +84,11 @@ The `source` field in a pack definition accepts three formats:
     "local-override": {
       "source": "/Users/alice/dev/my-skills"
     },
-    "via-url": {
+    "via-https": {
       "source": "https://gitlab.com/myorg/skills.git"
+    },
+    "via-ssh": {
+      "source": "git@gitlab.com:myorg/skills.git"
     },
     "via-shorthand": {
       "source": "igmarin/ruby-core-skills"
@@ -94,6 +98,8 @@ The `source` field in a pack definition accepts three formats:
 ```
 
 Local paths are never cloned — the directory is used directly. Git URL and shorthand sources are cloned to the skill cache directory.
+
+> **`http://` is not accepted.** Plain HTTP URLs are rejected to prevent credentials and pack content from being transmitted unencrypted. Use `https://` or SSH (`git@`) instead.
 
 ---
 
@@ -204,7 +210,7 @@ Once a registry manifest is configured, use `rails_list_registry` to query the c
 
 ### List all skills
 
-```
+```bash
 rails_list_registry type=skills
 ```
 
@@ -212,7 +218,7 @@ Returns a markdown table of all skills across all loaded packs with name, pack, 
 
 ### Filter by pack
 
-```
+```bash
 rails_list_registry type=skills pack=rails
 rails_list_registry type=agents pack=core
 ```
@@ -221,7 +227,7 @@ Narrows results to one pack.
 
 ### List active packs
 
-```
+```bash
 rails_list_registry type=packs
 ```
 
@@ -266,9 +272,39 @@ Removes all locally cached pack repositories from the skill cache directory and 
 
 ---
 
+## Git operation settings
+
+### Pull freshness window (`git_pull_ttl`)
+
+By default, a cached pack is refreshed via `git pull` at most once every 24 hours. This avoids
+redundant network calls — skill pack files are documentation and rarely change between releases.
+
+```ruby
+config.registry.git_pull_ttl = 3600  # refresh every hour
+config.registry.git_pull_ttl = 0     # always pull on every resolver rebuild (old behaviour)
+```
+
+Pull timestamps are tracked in memory per pack and reset when the process restarts. To force an
+immediate re-pull without restarting, run `rails ai:skills:clear_cache` — this removes cached
+clones entirely so the next build does a fresh `git clone`.
+
+### Git operation timeout (`git_timeout`)
+
+All git operations (clone, pull, checkout) have a 30-second timeout by default. If the limit is
+exceeded, a `ResolutionError` is raised — the server stays responsive even when a remote is slow
+or unreachable.
+
+```ruby
+config.registry.git_timeout = 10  # faster fail on fast networks
+config.registry.git_timeout = 60  # more time for large repos or slow remotes
+```
+
+---
+
 ## Resolver cache
 
-rails-ai-bridge caches the wired `Resolver` object in memory to avoid re-reading the manifest and re-running git operations on every MCP tool call.
+rails-ai-bridge caches the wired `Resolver` object in memory to avoid re-reading the manifest
+and re-running git operations on every MCP tool call.
 
 **Default TTL:** 30 minutes (1800 seconds).
 
@@ -284,11 +320,15 @@ Set to `0` to disable caching (rebuilds on every call — only useful in develop
 config.registry.resolver_ttl = 0
 ```
 
-The cache is invalidated automatically by `rails ai:skills:clear_cache`. You can also invalidate it programmatically:
+The cache is invalidated automatically by `rails ai:skills:clear_cache`. You can also invalidate
+it programmatically:
 
 ```ruby
 RailsAiBridge::Registry.invalidate_resolver_cache!
 ```
+
+In development, the cache is also invalidated automatically on every Zeitwerk code reload so that
+initializer changes take effect immediately.
 
 ---
 
@@ -298,17 +338,24 @@ RailsAiBridge::Registry.invalidate_resolver_cache!
 |---------|-------------|-----|
 | `rails ai:skills:list` shows "No registry manifest found" | Manifest file does not exist or path is wrong | Create `config/rails_ai_bridge_registry.json` or check `config.registry.registry_manifest_path` |
 | Git clone fails with "not found" | Pack source URL is wrong or repo is private | Check the `source` field; for private repos use a full SSH URL `git@github.com:org/repo.git` |
+| `Invalid source format` error mentioning `http://` | Pack source uses plain HTTP | Change `source` to `https://` or `git@` — plain HTTP is not accepted |
 | Pack loads but shows 0 skills | `directory.json` is missing or has wrong path | Check the root of the cloned pack for `directory.json`; set `tile:` field if the file is elsewhere |
 | Skill resolves from wrong pack | Priority mismatch | Use `rails_list_registry type=packs` to see priorities; use local registry or explicit `skill_packs` to override |
-| Stale skills after pack update | Resolver cache is warm | Run `rails ai:skills:clear_cache` |
+| Stale skills after pack update | Resolver cache is warm or pull TTL has not elapsed | Run `rails ai:skills:clear_cache` to force a re-clone on the next build |
+| Pack is not re-fetched even after `resolver_ttl` expired | Pack was cloned recently — `git_pull_ttl` (24 h) is still fresh | Run `rails ai:skills:clear_cache` or set `git_pull_ttl: 0` temporarily |
 | `git checkout <ref>` failed | Invalid ref or detached HEAD issue | Verify the `ref` value matches a branch, tag, or SHA in the remote repo |
+| Git operation hangs / server request times out | Slow or unreachable remote | Reduce `git_timeout` to fail faster; check network connectivity to the remote |
+| Warning: "Pack '…' depends on '…' which is not in the active pack set" | A loaded pack has an unsatisfied `depends_on` entry | Add the missing pack name to `always_loaded` or `skill_packs` in your manifest |
 
 ---
 
 ## Security model
 
 - **Path traversal guard**: skill file paths in `directory.json` are validated against the pack's base directory. A path like `../../etc/passwd` is silently skipped.
-- **Source validation**: all three source formats are validated by `SourceParser` before any git operation. Strings that do not match a known format raise `ResolutionError` before any subprocess is spawned.
+- **Source validation**: all source formats are validated by `SourceParser` before any git operation. Strings that do not match a known format raise `ResolutionError` before any subprocess is spawned.
+- **HTTPS/SSH only**: plain `http://` URLs are rejected at parse time to prevent unencrypted transmission of credentials and pack content.
 - **Subprocess isolation**: git operations use Open3 with array arguments — no shell interpolation.
-- **Cache key sanitization**: local cache directory names are derived from a sanitized source string plus a SHA256 hash suffix.
+- **Timeout protection**: all git operations are bounded by `git_timeout` (default 30 s) so a slow remote cannot block the calling thread indefinitely.
+- **Cache key sanitization**: local cache directory names are derived from a sanitized source string plus a SHA256 hash suffix to prevent filesystem collisions.
+- **Stable local pack names**: local registry pack names use a SHA256 digest of the directory path, so reordering `local_registry_paths` cannot silently shift pack identities.
 - **Local path trust**: local paths are used directly without git operations. The path traversal guard in the Resolver still applies to file reads within a local pack.

@@ -494,6 +494,8 @@ end
 | `registry.skill_packs` | `nil` | Explicit pack names to load, or `nil` for auto-detection based on framework |
 | `registry.local_registry_paths` | `[]` | Local directory paths (must contain `directory.json`) loaded at priority 0 |
 | `registry.resolver_ttl` | `1800` | Seconds to cache the wired resolver in memory; `0` disables caching |
+| `registry.git_pull_ttl` | `86400` | Seconds between `git pull` refreshes per cached pack (24 h default). Set to `0` to pull on every resolver rebuild |
+| `registry.git_timeout` | `30` | Seconds before a git operation (clone, pull, checkout) is forcibly interrupted |
 
 Other HTTP MCP knobs live only on the nested object, for example `RailsAiBridge.configuration.mcp.authorize`, `mcp.mode`, `mcp.security_profile`, and `mcp.require_auth_in_production` — see [docs/GUIDE.md](docs/GUIDE.md) and [docs/mcp-security.md](docs/mcp-security.md).
 </details>
@@ -596,7 +598,9 @@ Quick example manifest (`config/rails_ai_bridge_registry.json`):
 }
 ```
 
-Pack sources accept local paths, full git URLs, or `owner/repo` GitHub shorthands. Packs can be pinned to a specific version with `"ref": "v1.2.0"`.
+Pack sources accept local paths, HTTPS URLs (`https://`), SSH URLs (`git@`), or `owner/repo` GitHub shorthands. Plain `http://` URLs are rejected. Packs can be pinned to a specific version with `"ref": "v1.2.0"`.
+
+To prevent network timeouts from blocking your server, set `config.registry.git_timeout` (default: 30 s). To control how often cached packs are refreshed, set `config.registry.git_pull_ttl` (default: 24 h; `0` to always pull).
 
 See [docs/skill-registry-guide.md](docs/skill-registry-guide.md) for the full setup guide.
 
@@ -694,6 +698,8 @@ The docs are layered so new users do not need to read everything at once.
 | HTTP MCP hardening and production safety | [docs/mcp-security.md](docs/mcp-security.md) and [SECURITY.md](SECURITY.md) |
 | Skill packs: setup, sources, pinning, cache, troubleshooting | [docs/skill-registry-guide.md](docs/skill-registry-guide.md) |
 | Skill registry technical reference | [docs/registry-resolution.md](docs/registry-resolution.md) |
+| Offline mode design plan | [docs/offline-mode.md](docs/offline-mode.md) |
+| Gem improvement roadmap | [docs/gem-general-improvements.md](docs/gem-general-improvements.md) |
 | Upgrade notes between major versions | [UPGRADING.md](UPGRADING.md) |
 | Release history | [CHANGELOG.md](CHANGELOG.md) |
 | Development and contribution workflow | [CONTRIBUTING.md](CONTRIBUTING.md) |

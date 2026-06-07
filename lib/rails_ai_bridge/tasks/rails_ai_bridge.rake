@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'fileutils'
+
 unless defined?(ASSISTANT_TABLE)
   ASSISTANT_TABLE = <<~TABLE
     AI Assistant       Bridge File                           Command
@@ -323,7 +325,18 @@ namespace :ai do
     task clear_cache: :environment do
       require 'rails_ai_bridge'
 
-      cache_dir = RailsAiBridge.configuration.registry.skill_cache_dir
+      cache_dir = File.expand_path(RailsAiBridge.configuration.registry.skill_cache_dir.to_s)
+
+      abort 'Refusing to clear cache: skill_cache_dir is empty' if cache_dir.empty?
+
+      # Guard against misconfigured paths that could delete unrelated directories.
+      dangerous_roots = [
+        File.expand_path('/'),
+        File.expand_path('.'),
+        File.expand_path(Dir.home)
+      ].map { |p| p.chomp('/') }
+
+      abort "Refusing to clear cache from unsafe path: #{cache_dir}" if dangerous_roots.include?(cache_dir.chomp('/'))
 
       unless Dir.exist?(cache_dir)
         puts "Cache directory does not exist: #{cache_dir}"

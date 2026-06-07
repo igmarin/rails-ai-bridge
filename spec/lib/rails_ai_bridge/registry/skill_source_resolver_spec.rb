@@ -325,6 +325,172 @@ RSpec.describe RailsAiBridge::Registry::SkillSourceResolver do
       end
     end
   end
+
+  describe '#resolve with ref:' do
+    let(:source) { 'igmarin/test-pack' }
+    let(:resolver) { described_class.new(cache_dir, mock_runner) }
+
+    # Helper: pre-seed a ref-specific cache dir so resolve() skips clone.
+    def seed_cache_for_ref(ref)
+      key  = described_class.compute_cache_key(source, ref)
+      path = File.join(cache_dir, key)
+      FileUtils.mkdir_p(path)
+      path
+    end
+
+    context 'when checkout succeeds' do
+      let(:ref) { 'v1.2.3' }
+      let(:cache_path) { seed_cache_for_ref(ref) }
+
+      before do
+        cache_path # ensure dir is created
+        allow(mock_runner).to receive(:checkout_ref)
+      end
+
+      it 'returns the cache path without raising' do
+        expect(resolver.resolve(source, ref: ref)).to eq(cache_path)
+      end
+
+      it 'delegates checkout to the git_runner with the correct ref' do
+        expect(mock_runner).to receive(:checkout_ref).with(cache_path, ref)
+
+        resolver.resolve(source, ref: ref)
+      end
+
+      it 'does not call pull_repo when ref is pinned (detached HEAD protection)' do
+        expect(mock_runner).not_to receive(:pull_repo)
+
+        resolver.resolve(source, ref: ref)
+      end
+    end
+
+    context 'when checkout fails (non-zero exit)' do
+      let(:ref) { 'nonexistent-branch' }
+      let(:cache_path) { seed_cache_for_ref(ref) }
+
+      before do
+        cache_path # ensure dir is created
+        allow(mock_runner).to receive(:checkout_ref)
+          .with(cache_path, ref)
+          .and_raise(StandardError, "error: pathspec 'nonexistent-branch' did not match any file(s)")
+      end
+
+      it 'raises ResolutionError' do
+        expect { resolver.resolve(source, ref: ref) }
+          .to raise_error(RailsAiBridge::Registry::SkillSourceResolver::ResolutionError)
+      end
+
+      it 'includes the ref name in the error message' do
+        expect { resolver.resolve(source, ref: ref) }
+          .to raise_error(RailsAiBridge::Registry::SkillSourceResolver::ResolutionError, /nonexistent-branch/)
+      end
+
+      it 'includes the source pack name in the error message' do
+        expect { resolver.resolve(source, ref: ref) }
+          .to raise_error(RailsAiBridge::Registry::SkillSourceResolver::ResolutionError, %r{igmarin/test-pack})
+      end
+
+      it 'includes the error output in the error message' do
+        expect { resolver.resolve(source, ref: ref) }
+          .to raise_error(RailsAiBridge::Registry::SkillSourceResolver::ResolutionError, /pathspec.*did not match/)
+      end
+    end
+
+    context 'when checkout times out' do
+      let(:ref) { 'slow-branch' }
+      let(:cache_path) { seed_cache_for_ref(ref) }
+
+      before do
+        cache_path # ensure dir is created
+        allow(mock_runner).to receive(:checkout_ref)
+          .and_raise(StandardError, 'git checkout timed out after 30s')
+      end
+
+      it 'raises ResolutionError with a timeout message' do
+        expect { resolver.resolve(source, ref: ref) }
+          .to raise_error(RailsAiBridge::Registry::SkillSourceResolver::ResolutionError, /timed out/)
+      end
+
+      it 'names the ref in the timeout error' do
+        expect { resolver.resolve(source, ref: ref) }
+          .to raise_error(RailsAiBridge::Registry::SkillSourceResolver::ResolutionError, /slow-branch/)
+      end
+    end
+
+    context 'when ref is nil' do
+      it 'does not call git checkout at all' do
+        # Arrange — cache exists so no clone either
+        FileUtils.mkdir_p(File.join(cache_dir, described_class.compute_cache_key(source, nil)))
+        allow(mock_runner).to receive(:pull_repo)
+        expect(mock_runner).not_to receive(:checkout_ref)
+
+        resolver.resolve(source, ref: nil)
+      end
+    end
+
+    context 'when two different refs for the same source are resolved' do
+      it 'uses distinct cache directories for each ref' do
+        key_v1 = described_class.compute_cache_key(source, 'v1.0.0')
+        key_v2 = described_class.compute_cache_key(source, 'v2.0.0')
+
+        expect(key_v1).not_to eq(key_v2)
+      end
+    end
+  end
+
+  describe '#resolve pull freshness (git_pull_ttl)' do
+    let(:source) { 'igmarin/test-pack' }
+    let(:cache_key) { described_class.compute_cache_key(source) }
+    let(:cache_path) { File.join(cache_dir, cache_key) }
+
+    before { FileUtils.mkdir_p(cache_path) }
+
+    context 'when pull_ttl is 0 (always pull)' do
+      let(:resolver) { described_class.new(cache_dir, mock_runner, pull_ttl: 0) }
+
+      it 'always calls pull_repo on every resolve' do
+        # Arrange
+        expect(mock_runner).to receive(:pull_repo).twice
+
+        # Act
+        resolver.resolve(source)
+        resolver.resolve(source)
+      end
+    end
+
+    context 'when pull_ttl is large (e.g. 86400)' do
+      let(:resolver) { described_class.new(cache_dir, mock_runner, pull_ttl: 86_400) }
+
+      it 'calls pull_repo only once across two back-to-back resolves' do
+        # Arrange
+        expect(mock_runner).to receive(:pull_repo).once
+
+        # Act — second call happens within the TTL window, so no pull
+        resolver.resolve(source)
+        resolver.resolve(source)
+      end
+    end
+
+    context 'when pull_ttl has elapsed between resolves' do
+      let(:resolver) { described_class.new(cache_dir, mock_runner, pull_ttl: 86_400) }
+
+      it 'calls pull_repo again after the TTL window expires' do
+        # Arrange
+        allow(mock_runner).to receive(:pull_repo)
+
+        # Act — first resolve populates @last_pulled
+        resolver.resolve(source)
+
+        # Simulate TTL expiry by backdating the recorded pull time
+        past_time = Time.zone.now - 90_000
+        resolver.instance_variable_get(:@last_pulled)[cache_path] = past_time
+
+        # Assert — second resolve after TTL should pull again
+        expect(mock_runner).to receive(:pull_repo).once
+        resolver.resolve(source)
+      end
+    end
+  end
 end
 
 RSpec.describe RailsAiBridge::Registry::GitRunner do
@@ -350,8 +516,76 @@ RSpec.describe RailsAiBridge::Registry::DefaultGitRunner do
   # and fail silently in headless CI environments.
   subject(:runner) { described_class.new }
 
-  let(:failing_status) { instance_double(Process::Status, success?: false) }
   let(:succeeding_status) { instance_double(Process::Status, success?: true) }
+  let(:failing_status) { instance_double(Process::Status, success?: false) }
+
+  describe '#timeout' do
+    it 'defaults to 30 seconds' do
+      # Assert
+      expect(runner.timeout).to eq(30)
+    end
+
+    it 'is configurable via constructor' do
+      # Arrange + Act
+      fast_runner = described_class.new(timeout: 5)
+
+      # Assert
+      expect(fast_runner.timeout).to eq(5)
+    end
+  end
+
+  describe 'timeout enforcement' do
+    subject(:runner) { described_class.new(timeout: 1) }
+
+    context 'when git clone times out' do
+      before { allow(Open3).to receive(:capture3) { sleep(5) } }
+
+      it 'raises RuntimeError mentioning the timeout duration' do
+        # Act + Assert
+        expect { runner.clone_repo('https://example.com/repo.git', '/tmp/dest') }
+          .to raise_error(RuntimeError, /timed out after 1s/)
+      end
+    end
+
+    context 'when git pull times out' do
+      before { allow(Open3).to receive(:capture3) { sleep(5) } }
+
+      it 'raises RuntimeError mentioning the timeout duration' do
+        # Act + Assert
+        expect { runner.pull_repo('/tmp/local-pack') }
+          .to raise_error(RuntimeError, /timed out after 1s/)
+      end
+    end
+
+    context 'when git checkout times out' do
+      before { allow(Open3).to receive(:capture3) { sleep(5) } }
+
+      it 'raises RuntimeError mentioning the timeout duration' do
+        # Act + Assert
+        expect { runner.checkout_ref('/tmp/local-pack', 'v1.0.0') }
+          .to raise_error(RuntimeError, /timed out after 1s/)
+      end
+    end
+  end
+
+  describe '#checkout_ref' do
+    it 'calls git checkout with the ref and chdir option' do
+      allow(Open3).to receive(:capture3)
+        .with('git', 'checkout', 'v1.2.3', chdir: '/tmp/pack')
+        .and_return(['', '', succeeding_status])
+
+      expect { runner.checkout_ref('/tmp/pack', 'v1.2.3') }.not_to raise_error
+    end
+
+    it 'raises RuntimeError when git checkout exits non-zero' do
+      allow(Open3).to receive(:capture3)
+        .with('git', 'checkout', 'bad-ref', chdir: '/tmp/pack')
+        .and_return(['', 'error: pathspec did not match', failing_status])
+
+      expect { runner.checkout_ref('/tmp/pack', 'bad-ref') }
+        .to raise_error(RuntimeError, /git checkout failed/)
+    end
+  end
 
   describe '#clone_repo' do
     it 'calls git clone with the url and destination' do

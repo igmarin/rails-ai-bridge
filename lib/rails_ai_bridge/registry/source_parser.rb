@@ -11,7 +11,8 @@ module RailsAiBridge
     # Supported formats:
     #
     # * **Local path** — starts with +/+, +./+, or +../+. Returned as-is; no git needed.
-    # * **Full git URL** — starts with +https://+ or +git@+. Used directly as the clone URL.
+    # * **Full git URL** — starts with +https://+ or +git@+ (SSH). Plain +http://+ is rejected
+    #   to prevent unencrypted transmission of credentials and pack content. Used directly as the clone URL.
     # * **GitHub shorthand** — exactly +owner/repo+. Expanded to +https://github.com/owner/repo.git+.
     #
     # @example Local absolute path
@@ -34,8 +35,11 @@ module RailsAiBridge
 
         Valid formats:
           Local path    /absolute/path  OR  ./relative  OR  ../relative
-          HTTPS/SSH URL https://github.com/owner/repo.git  OR  git@github.com:owner/repo.git
+          HTTPS URL     https://github.com/owner/repo.git
+          SSH URL       git@github.com:owner/repo.git
           GitHub short  owner/repo  (expanded to https://github.com/owner/repo.git)
+
+        Note: plain http:// URLs are not supported — use https:// or git@ (SSH) instead.
       MSG
 
       # @param source [String] raw source string from the registry manifest
@@ -56,8 +60,10 @@ module RailsAiBridge
       private_class_method :local_path?
 
       # @api private
+      # Only HTTPS and SSH (git@) URLs are accepted. Plain HTTP is rejected because
+      # cloning over unencrypted HTTP exposes credentials and pack content in transit.
       def self.git_url?(source)
-        source.start_with?('https://', 'http://', 'git@')
+        source.start_with?('https://', 'git@')
       end
       private_class_method :git_url?
 

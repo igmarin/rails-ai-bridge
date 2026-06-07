@@ -38,14 +38,30 @@ RSpec.describe RailsAiBridge::Registry::ResolverCache do
     end
 
     context 'when TTL has expired' do
-      let(:config) { instance_double(RailsAiBridge::Config::Registry, resolver_ttl: 0) }
+      # Use the injectable monotonic_clock to control time without sleeping.
+      # The clock returns fixed values: 0 the first call (records @built_at),
+      # then 99999 on any subsequent call (making age = 99999 >> TTL).
+      let(:calls)  { [0] }
+      let(:clock)  do
+        lambda {
+          if calls[0] == 0
+            (calls[0] += 1
+             0)
+          else
+            99_999
+          end
+        }
+      end
+      let(:cache)  { described_class.new(monotonic_clock: clock) }
+      let(:config) { instance_double(RailsAiBridge::Config::Registry, resolver_ttl: 1800) }
 
       before { cache.fetch(config) { resolver_a } }
 
       it 'rebuilds and returns a fresh resolver' do
-        sleep(0.01) # ensure monotonic clock advances past 0-second TTL
+        # Act — clock returns 99_999 so age (99_999 - 0) >= 1800, cache is stale
         result = cache.fetch(config) { resolver_b }
 
+        # Assert
         expect(result).to eq(resolver_b)
       end
     end

@@ -74,8 +74,12 @@ Three formats are accepted for the `source` field:
 | Format | Example |
 |--------|---------|
 | Local path | `/abs/path`, `./relative`, `../sibling` |
-| Full git URL | `https://github.com/org/repo.git` |
+| HTTPS URL | `https://github.com/org/repo.git` |
+| SSH URL | `git@github.com:org/repo.git` |
 | GitHub shorthand | `owner/repo` (expanded to `https://github.com/owner/repo.git`) |
+
+> **Note:** plain `http://` URLs are rejected to prevent unencrypted transmission of credentials
+> and pack content. Use `https://` or `git@` (SSH) instead.
 
 ## Priority rules
 
@@ -103,6 +107,8 @@ All options live under `config.registry.*`:
 | `skill_packs` | `nil` | Explicit list of pack names to load, or `nil` for auto-detection |
 | `local_registry_paths` | `[]` | Local directory paths containing a `directory.json` (loaded at priority 0) |
 | `resolver_ttl` | `1800` | Seconds to keep the wired `Resolver` in memory before rebuilding (default: 30 min) |
+| `git_pull_ttl` | `86400` | Seconds between `git pull` refreshes per cached pack (default: 24 h). Set to `0` to pull on every resolver rebuild |
+| `git_timeout` | `30` | Seconds before a git operation (clone, pull, checkout) is forcibly interrupted and a `ResolutionError` raised |
 
 ### Auto-detection
 
@@ -130,11 +136,41 @@ The directory must contain a `directory.json` at its root. Local packs get prior
 
 ### Cache directory
 
-Remote packs are cloned to `skill_cache_dir` on first use and updated via `git pull` on subsequent loads. Override with the `RAILS_AI_BRIDGE_CACHE_DIR` environment variable or the config option.
+Remote packs are cloned to `skill_cache_dir` on first use. Subsequent loads update the clone via
+`git pull` only when the pack's pull freshness window has expired (see `git_pull_ttl` below).
+Override the directory with the `RAILS_AI_BRIDGE_CACHE_DIR` environment variable or the config
+option.
+
+### Git pull freshness
+
+`git_pull_ttl` (default 86400 s = 24 h) controls how often a cached pack is refreshed via `git
+pull`. The timestamp of the last successful pull is tracked in memory per pack. If the TTL window
+has not elapsed, the existing clone is used as-is.
+
+```ruby
+config.registry.git_pull_ttl = 3600  # refresh packs every hour
+config.registry.git_pull_ttl = 0     # always pull on every resolver rebuild
+```
+
+Pull timestamps reset when the process restarts. To force a pull on the next rebuild, run
+`rails ai:skills:clear_cache` — this removes the cached clones entirely so the next build
+triggers a fresh `git clone`.
+
+### Git operation timeout
+
+`git_timeout` (default 30 s) limits how long any single git operation (clone, pull, checkout)
+may run before it is interrupted. A `ResolutionError` is raised if the limit is exceeded,
+naming the operation and pack in the message.
+
+```ruby
+config.registry.git_timeout = 10  # tighter limit for fast networks
+config.registry.git_timeout = 60  # more time for slow remotes
+```
 
 ### Resolver cache TTL
 
-The wired `Resolver` object is cached in memory to avoid re-reading the manifest and re-running git operations on every MCP call. The default TTL is 30 minutes.
+The wired `Resolver` object is cached in memory to avoid re-reading the manifest and re-running
+git operations on every MCP call. The default TTL is 30 minutes.
 
 ```ruby
 config.registry.resolver_ttl = 300  # rebuild every 5 minutes
@@ -146,6 +182,9 @@ Invalidate manually:
 ```ruby
 RailsAiBridge::Registry.invalidate_resolver_cache!
 ```
+
+In development, the resolver cache is invalidated automatically on every Zeitwerk code reload
+via the Engine's `to_prepare` hook, so initializer changes take effect without a server restart.
 
 ## Available MCP tools
 
@@ -202,7 +241,14 @@ Example `directory.json` deprecation entry:
 
 ## Dependency validation
 
-Packs can declare dependencies on other packs via `depends_on`. The bridge validates these at load time and emits warnings for unsatisfied dependencies, but does not abort — partial loads are allowed.
+Packs can declare dependencies on other packs via `depends_on`. The bridge validates these at load
+time. When an active pack lists a dependency that is not in the active set, a `[rails-ai-bridge]`
+warning is emitted to stderr naming each missing dependency and pointing to the manifest field that
+should be updated. The pack itself still loads — this is an advisory warning, not an abort.
+
+> Transitive dependency loading (automatically pulling in a pack's `depends_on` entries) is not
+> yet implemented. All required packs must be listed explicitly in `always_loaded` or the
+> `skill_packs` config option.
 
 ## Cache management
 
@@ -220,6 +266,9 @@ Removes all cloned pack repositories from the `skill_cache_dir` and invalidates 
 
 - **Path traversal guard**: skill file paths in `directory.json` are validated against the pack's base directory using canonical path comparison. Paths that escape the pack root are silently skipped.
 - **Source validation**: `SourceParser` classifies each source string into one of three valid formats before any git operation. Strings that do not match are rejected with a `ResolutionError` that names the valid formats.
+- **HTTPS/SSH only**: plain `http://` URLs are rejected. Only `https://` and `git@` (SSH) sources are accepted for remote packs, preventing unencrypted transmission of credentials and pack content.
 - **Open3 subprocess isolation**: git operations use Open3 with array arguments — no shell interpolation.
 - **Cache key sanitization**: cache directory names are derived from a sanitized source string + SHA256 hash to prevent filesystem collisions.
+- **Stable local pack names**: local registry packs use a SHA256 digest of the directory path as their name suffix, so reordering `local_registry_paths` cannot silently shift pack identities.
+- **Timeout protection**: all git operations are bounded by `git_timeout` (default 30 s), preventing a slow remote from blocking the calling thread indefinitely.
 - **Local path security**: local paths are used as-is without git operations. The path traversal guard in the `Resolver` still applies to all file reads within the pack, regardless of source type.

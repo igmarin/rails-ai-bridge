@@ -81,6 +81,10 @@ module RailsAiBridge
       # @param _server_context [Object, nil] reserved for MCP transport metadata (unused)
       # @return [MCP::Tool::Response] formatted catalog or a setup/error message
       def self.call(type:, pack: nil, _server_context: nil)
+        # The input_schema enum constraint above rejects unknown types before this
+        # method is called. The guard below is retained as a defence-in-depth
+        # fallback for callers that bypass the MCP SDK (e.g. direct Ruby tests or
+        # future transport layers that skip schema validation).
         return text_response(format(UNKNOWN_TYPE_MESSAGE, type: type)) unless %w[skills agents packs].include?(type)
 
         resolver = Registry.build_resolver
@@ -102,6 +106,8 @@ module RailsAiBridge
       #
       # @api private
       class RegistryCatalogFormatter
+        include Registry::Truncatable
+
         # @param resolver [Registry::Resolver]
         # @param type [String] "skills", "agents", or "packs"
         # @param pack_filter [String, nil]
@@ -130,7 +136,7 @@ module RailsAiBridge
           lines << "| #{noun} | Pack | Description |"
           lines << '|--------|------|-------------|'
           items.each do |item|
-            lines << "| `#{item.name}` | #{item.pack} | #{truncate(item.description)} |"
+            lines << "| `#{item.name}` | #{item.pack} | #{truncate(item.description, DESCRIPTION_MAX_LENGTH)} |"
           end
           lines.join("\n")
         end
@@ -142,7 +148,7 @@ module RailsAiBridge
           lines << '| Pack | Version | Priority | Summary |'
           lines << '|------|---------|----------|---------|'
           packs.each do |pack|
-            summary = truncate(pack.tile.summary || 'No summary.')
+            summary = truncate(pack.tile.summary || 'No summary.', DESCRIPTION_MAX_LENGTH)
             lines << "| **#{pack.name}** | #{pack.tile.version} | #{pack.priority} | #{summary} |"
           end
           lines << ''
@@ -157,12 +163,6 @@ module RailsAiBridge
           else
             "No #{noun.downcase}s are loaded. Check your registry manifest configuration."
           end
-        end
-
-        def truncate(text)
-          return text if text.length <= DESCRIPTION_MAX_LENGTH
-
-          "#{text[0, DESCRIPTION_MAX_LENGTH - 1]}…"
         end
       end
     end

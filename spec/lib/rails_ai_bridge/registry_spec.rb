@@ -2,6 +2,7 @@
 
 require 'spec_helper'
 require 'tmpdir'
+require 'json'
 
 RSpec.describe RailsAiBridge::Registry do
   describe '.build_resolver' do
@@ -119,13 +120,34 @@ RSpec.describe RailsAiBridge::Registry do
       end
     end
 
-    context 'when called with default config' do
-      it 'uses RailsAiBridge.configuration.registry by default' do
-        default_path = RailsAiBridge.configuration.registry.registry_manifest_path
-        # Default manifest does not exist in test env — should return nil gracefully
+    context 'when called with default config and no manifest file present' do
+      it 'returns nil gracefully' do
+        allow(RailsAiBridge.configuration.registry).to receive(:registry_manifest_path)
+          .and_return('/nonexistent/path/registry.json')
+
         result = described_class.build_resolver
 
-        expect(result).to be_nil unless File.exist?(default_path)
+        expect(result).to be_nil
+      end
+    end
+
+    context 'when called with default config and manifest file present' do
+      it 'returns a non-nil resolver' do
+        Dir.mktmpdir do |dir|
+          manifest_path = File.join(dir, 'registry.json')
+          File.write(manifest_path, JSON.generate(
+                                      version: '1.0.0',
+                                      packs: {},
+                                      default_stack: []
+                                    ))
+
+          config = RailsAiBridge.configuration.registry.dup
+          allow(config).to receive_messages(registry_manifest_path: manifest_path, local_registry_paths: [], skill_packs: [])
+
+          result = described_class.build_resolver(config)
+
+          expect(result).not_to be_nil
+        end
       end
     end
   end
