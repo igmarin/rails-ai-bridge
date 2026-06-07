@@ -417,7 +417,7 @@ RSpec.describe RailsAiBridge::Registry::PackResolver do
         service = described_class.new(source_resolver)
 
         expect { service.resolve(manifest, nil, [local_dir]) }
-          .to raise_error(ArgumentError, /invalid JSON/)
+          .to raise_error(RailsAiBridge::Registry::SkillSourceResolver::ResolutionError, /invalid JSON/)
 
         FileUtils.rm_rf(local_dir)
       end

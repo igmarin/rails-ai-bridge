@@ -160,7 +160,65 @@ RSpec.describe RailsAiBridge::Registry::TileManifest do
 
     it 'raises ArgumentError for a non-existent path' do
       expect { described_class.from_file('/nonexistent/tile.json') }
-        .to raise_error(ArgumentError, /not found/)
+        .to raise_error(ArgumentError, /could not be read/)
+    end
+
+    it 'raises ArgumentError for invalid JSON' do
+      file = Tempfile.new(['tile', '.json'])
+      file.write('{ not valid json }')
+      file.close
+
+      expect { described_class.from_file(file.path) }
+        .to raise_error(ArgumentError, /invalid JSON/)
+    ensure
+      file&.unlink
+    end
+  end
+
+  describe '.from_json (missing required fields)' do
+    context 'when name key is missing' do
+      it 'raises ArgumentError naming the missing field' do
+        json = full_json.except('name')
+
+        expect { described_class.from_json(json) }
+          .to raise_error(ArgumentError, /name/)
+      end
+    end
+
+    context 'when version key is missing' do
+      it 'raises ArgumentError naming the missing field' do
+        json = full_json.except('version')
+
+        expect { described_class.from_json(json) }
+          .to raise_error(ArgumentError, /version/)
+      end
+    end
+
+    context 'when a skill entry is missing its path key' do
+      it 'raises ArgumentError naming the missing field' do
+        json = full_json.merge('skills' => { 'bad-skill' => { 'description' => 'oops' } })
+
+        expect { described_class.from_json(json) }
+          .to raise_error(ArgumentError, /path/)
+      end
+    end
+
+    context 'when an agent entry is missing its path key' do
+      it 'raises ArgumentError naming the missing field' do
+        json = full_json.merge('agents' => { 'bad-agent' => { 'description' => 'oops' } })
+
+        expect { described_class.from_json(json) }
+          .to raise_error(ArgumentError, /path/)
+      end
+    end
+
+    context 'when a deprecated entry is missing its moved_to key' do
+      it 'raises ArgumentError naming the missing field' do
+        json = full_json.merge('deprecated_skills' => { 'old' => { 'message' => 'gone' } })
+
+        expect { described_class.from_json(json) }
+          .to raise_error(ArgumentError, /moved_to/)
+      end
     end
   end
 end

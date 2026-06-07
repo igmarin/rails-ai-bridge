@@ -85,6 +85,34 @@ RSpec.describe RailsAiBridge::Registry::SourceParser do
       end
     end
 
+    context 'with nil' do
+      let(:source) { nil }
+
+      it 'raises ResolutionError (not NoMethodError)' do
+        expect { parsed }.to raise_error(RailsAiBridge::Registry::SkillSourceResolver::ResolutionError)
+      end
+
+      it 'includes the nil value in the error message' do
+        expect { parsed }.to raise_error(RailsAiBridge::Registry::SkillSourceResolver::ResolutionError, /nil/)
+      end
+    end
+
+    context 'with a whitespace-only string' do
+      let(:source) { '   ' }
+
+      it 'raises ResolutionError' do
+        expect { parsed }.to raise_error(RailsAiBridge::Registry::SkillSourceResolver::ResolutionError)
+      end
+    end
+
+    context 'with a plain http:// URL (unsupported)' do
+      let(:source) { 'http://github.com/myorg/skills.git' }
+
+      it 'raises ResolutionError' do
+        expect { parsed }.to raise_error(RailsAiBridge::Registry::SkillSourceResolver::ResolutionError)
+      end
+    end
+
     context 'with too many path segments' do
       let(:source) { 'org/repo/extra' }
 

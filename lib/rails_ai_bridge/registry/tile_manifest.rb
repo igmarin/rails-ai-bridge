@@ -67,16 +67,16 @@ module RailsAiBridge
           agents: parse_agents(hash['agents'] || {}),
           deprecated_skills: parse_deprecated(hash['deprecated_skills'] || {})
         )
+      rescue KeyError => error
+        raise ArgumentError, "Tile manifest missing required field: #{error.key}"
       end
 
       # Loads and parses a tile manifest from a JSON file on disk.
       #
       # @param path [String] path to the tile JSON file
       # @return [TileManifest]
-      # @raise [ArgumentError] if the file does not exist or contains malformed JSON
+      # @raise [ArgumentError] if the file does not exist, cannot be read, or contains malformed JSON
       def self.from_file(path)
-        raise ArgumentError, "Tile manifest not found at: #{path}" unless File.exist?(path)
-
         from_json(JSON.parse(File.read(path)))
       rescue JSON::ParserError => error
         raise ArgumentError, "Tile manifest at '#{path}' contains invalid JSON: #{error.message}"
@@ -92,6 +92,8 @@ module RailsAiBridge
             description: skill_data['description'],
             tags: skill_data.fetch('tags', [])
           )
+        rescue KeyError => error
+          raise ArgumentError, "Skill entry missing required field: #{error.key}"
         end
       end
 
@@ -103,6 +105,8 @@ module RailsAiBridge
             description: agent_data['description'],
             depends_on: agent_data.fetch('depends_on', [])
           )
+        rescue KeyError => error
+          raise ArgumentError, "Agent entry missing required field: #{error.key}"
         end
       end
 
@@ -114,6 +118,8 @@ module RailsAiBridge
             message: entry_data.fetch('message'),
             removed_in: entry_data['removed_in']
           )
+        rescue KeyError => error
+          raise ArgumentError, "Deprecated skill entry missing required field: #{error.key}"
         end
       end
 

@@ -96,6 +96,9 @@ module RailsAiBridge
         config.skill_packs,
         config.local_registry_paths.empty? ? nil : config.local_registry_paths
       )
+    rescue SkillSourceResolver::ResolutionError, ArgumentError => error
+      Rails.logger&.error { "[rails-ai-bridge] Registry build failed: #{error.message}" }
+      nil
     end
     private_class_method :build_resolver_uncached
   end

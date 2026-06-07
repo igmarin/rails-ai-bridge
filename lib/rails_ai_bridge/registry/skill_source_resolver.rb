@@ -85,9 +85,12 @@ module RailsAiBridge
       #
       # @param path [String] path to the local repository
       # @param ref [String] branch, tag, or commit SHA to check out
+      # @raise [ArgumentError] if ref starts with a dash (option injection guard)
       # @raise [RuntimeError] if git checkout command fails, returns non-zero, or times out
       # @return [void]
       def checkout_ref(path, ref)
+        raise ArgumentError, "Invalid ref #{ref.inspect}: refs must not start with '-'" if ref.start_with?('-')
+
         with_timeout('git checkout') do
           _stdout, stderr, status = Open3.capture3('git', 'checkout', ref, chdir: path)
           fail_with_sanitized_error!('git checkout', stderr) unless status.success?
@@ -113,7 +116,11 @@ module RailsAiBridge
       # @param stderr [String] raw stderr output from the git subprocess
       # @raise [RuntimeError] always
       def fail_with_sanitized_error!(label, stderr)
-        sanitized = stderr.to_s.gsub(%r{(?<=://)([^@/]+@)}, '[REDACTED]@').strip.truncate(200)
+        sanitized = stderr.to_s
+                          .gsub(%r{(?<=://)([^@/\s]+@)}, '[REDACTED]@') # HTTPS credentials (https://token@host)
+                          .gsub(/\b[\w.+-]+@[\w.-]+/, '[REDACTED]') # SSH/email user@host patterns
+                          .strip
+                          .truncate(200)
         Rails.logger&.debug { "[rails-ai-bridge] #{label} failed — #{sanitized}" }
         raise "#{label} failed"
       end
@@ -234,13 +241,23 @@ module RailsAiBridge
       end
 
       # Validates +cache_dir+ by checking that the path does not contain traversal
-      # sequences. Uses lexical normalisation only — symlinks are not resolved here
-      # because the directory may not exist yet. The security guarantee is that the
-      # cache key appended to this dir is SHA-256-derived and not attacker-controlled,
-      # so even if cache_dir itself resolves unexpectedly, written paths remain safe.
+      # sequences. Uses lexical normalisation for paths that do not yet exist.
+      # When the directory already exists, also checks for external symlinks by
+      # comparing the realpath of the directory against the realpath of its parent.
+      # A genuine external symlink is one whose realpath lies outside the parent's
+      # real directory (e.g. ln -s /etc /tmp/link). Platform aliases such as
+      # macOS's /var → /private/var are permitted because the parent and child
+      # resolve consistently into the same canonical subtree.
       def validate_cache_dir(cache_dir)
         clean_path = Pathname.new(cache_dir).cleanpath.to_s
         raise ArgumentError, "Cache directory contains path traversal components: #{cache_dir}" if clean_path != cache_dir
+
+        if Dir.exist?(cache_dir)
+          real        = File.realpath(cache_dir)
+          parent_real = File.realpath(File.dirname(cache_dir))
+
+          raise ArgumentError, "Cache directory is a symlink to a different path: #{cache_dir} → #{real}" unless real.start_with?(parent_real)
+        end
 
         cache_dir
       end

@@ -116,13 +116,16 @@ module RailsAiBridge
 
       # @api private
       def self.format_response(resolved, requested_pack:)
+        safe_name = sanitize_md(resolved.name)
+        safe_pack = sanitize_md(resolved.pack)
+
         header = []
-        header << "# #{resolved.name}"
-        header << "_Pack: **#{resolved.pack}**_"
+        header << "# #{safe_name}"
+        header << "_Pack: **#{safe_pack}**_"
 
         if requested_pack && resolved.pack != requested_pack
           header << ''
-          header << format(PACK_MISMATCH_MESSAGE, name: resolved.name, actual: resolved.pack, requested: requested_pack)
+          header << format(PACK_MISMATCH_MESSAGE, name: safe_name, actual: safe_pack, requested: sanitize_md(requested_pack))
         end
 
         header << ''
@@ -131,6 +134,14 @@ module RailsAiBridge
         header.join("\n")
       end
       private_class_method :format_response
+
+      # Strips newlines and escapes pipe characters from text sourced from
+      # third-party manifests before embedding in markdown output.
+      # @api private
+      def self.sanitize_md(text)
+        text.to_s.gsub(/[\r\n]+/, ' ').gsub('|', '\\|')
+      end
+      private_class_method :sanitize_md
     end
   end
 end

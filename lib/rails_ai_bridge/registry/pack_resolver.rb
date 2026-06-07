@@ -140,9 +140,11 @@ module RailsAiBridge
         local_registries.each do |path|
           tile_path = File.join(path, 'directory.json')
 
-          raise SkillSourceResolver::ResolutionError, "Failed to read local registry tile manifest at #{tile_path}" unless File.exist?(tile_path)
-
-          tile = TileManifest.from_file(tile_path)
+          begin
+            tile = TileManifest.from_file(tile_path)
+          rescue ArgumentError => error
+            raise SkillSourceResolver::ResolutionError, "Failed to read local registry tile manifest at #{tile_path}: #{error.message}"
+          end
           # Derive a stable name from the path so renaming or reordering entries in
           # local_registry_paths does not silently shift pack identities.
           name = "local_#{Digest::SHA256.hexdigest(path)[0..7]}"

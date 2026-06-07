@@ -127,6 +127,21 @@ RSpec.describe RailsAiBridge::Registry::SkillSourceResolver do
       resolver = described_class.new(cache_dir, mock_runner)
       expect(resolver.instance_variable_get(:@cache_dir)).to eq(cache_dir)
     end
+
+    # ── R3: symlink guard ─────────────────────────────────────────────────────
+
+    context 'when cache_dir is a symlink to a different real path' do
+      let(:real_dir)    { Dir.mktmpdir }
+      let(:symlink_dir) { File.join(Dir.mktmpdir, 'link') }
+
+      before  { FileUtils.ln_s(real_dir, symlink_dir) }
+      after   { FileUtils.rm_rf([real_dir, File.dirname(symlink_dir)]) }
+
+      it 'raises ArgumentError identifying the symlink' do
+        expect { described_class.new(symlink_dir, mock_runner) }
+          .to raise_error(ArgumentError, /symlink/)
+      end
+    end
   end
 
   describe '#resolve' do
@@ -599,6 +614,40 @@ RSpec.describe RailsAiBridge::Registry::DefaultGitRunner do
 
       expect { runner.checkout_ref('/tmp/pack', 'bad-ref') }
         .to raise_error(RuntimeError) { |e| expect(e.message).not_to include('pathspec') }
+    end
+
+    # ── S1: ref option injection guard ────────────────────────────────────────
+
+    context 'when ref starts with a dash (potential git option injection)' do
+      it 'raises ArgumentError before invoking git' do
+        expect(Open3).not_to receive(:capture3)
+
+        expect { runner.checkout_ref('/tmp/pack', '--orphan') }
+          .to raise_error(ArgumentError, /Invalid ref/)
+      end
+
+      it 'also blocks single-dash flags' do
+        expect(Open3).not_to receive(:capture3)
+
+        expect { runner.checkout_ref('/tmp/pack', '-b') }
+          .to raise_error(ArgumentError, /Invalid ref/)
+      end
+
+      it 'allows valid branch names that do not start with a dash' do
+        allow(Open3).to receive(:capture3)
+          .with('git', 'checkout', 'main', chdir: '/tmp/pack')
+          .and_return(['', '', succeeding_status])
+
+        expect { runner.checkout_ref('/tmp/pack', 'main') }.not_to raise_error
+      end
+
+      it 'allows valid SHA refs' do
+        allow(Open3).to receive(:capture3)
+          .with('git', 'checkout', 'abc1234def5678', chdir: '/tmp/pack')
+          .and_return(['', '', succeeding_status])
+
+        expect { runner.checkout_ref('/tmp/pack', 'abc1234def5678') }.not_to raise_error
+      end
     end
   end
 

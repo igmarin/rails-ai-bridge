@@ -97,7 +97,38 @@ RSpec.describe RailsAiBridge::Registry::RegistryManifest do
 
     it 'raises ArgumentError for a non-existent path' do
       expect { described_class.from_file('/nonexistent/registry.json') }
-        .to raise_error(ArgumentError, /not found/)
+        .to raise_error(ArgumentError, /could not be read/)
+    end
+
+    it 'raises ArgumentError for invalid JSON' do
+      file = Tempfile.new(['registry', '.json'])
+      file.write('{ not valid json }')
+      file.close
+
+      expect { described_class.from_file(file.path) }
+        .to raise_error(ArgumentError, /invalid JSON/)
+    ensure
+      file&.unlink
+    end
+  end
+
+  describe '.from_json (missing required fields)' do
+    context 'when version key is missing' do
+      it 'raises ArgumentError naming the missing field' do
+        json = minimal_json.except('version')
+
+        expect { described_class.from_json(json) }
+          .to raise_error(ArgumentError, /version/)
+      end
+    end
+
+    context 'when a pack is missing its source key' do
+      it 'raises ArgumentError naming the missing field' do
+        json = minimal_json.merge('packs' => { 'core' => { 'tile' => 'tile.json' } })
+
+        expect { described_class.from_json(json) }
+          .to raise_error(ArgumentError, /source/)
+      end
     end
   end
 end

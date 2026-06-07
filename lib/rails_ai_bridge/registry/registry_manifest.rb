@@ -31,16 +31,16 @@ module RailsAiBridge
           packs: packs,
           default_stack: hash.fetch('default_stack', [])
         )
+      rescue KeyError => error
+        raise ArgumentError, "Registry manifest missing required field: #{error.key}"
       end
 
       # Loads and parses a registry manifest from a JSON file on disk.
       #
       # @param path [String] absolute or relative path to the registry JSON file
       # @return [RegistryManifest]
-      # @raise [ArgumentError] if the file does not exist or contains malformed JSON
+      # @raise [ArgumentError] if the file does not exist, cannot be read, or contains malformed JSON
       def self.from_file(path)
-        raise ArgumentError, "Registry manifest not found at: #{path}" unless File.exist?(path)
-
         from_json(JSON.parse(File.read(path)))
       rescue JSON::ParserError => error
         raise ArgumentError, "Registry manifest at '#{path}' contains invalid JSON: #{error.message}"

@@ -131,6 +131,27 @@ RSpec.describe RailsAiBridge::Registry do
       end
     end
 
+    # ── R2: ResolutionError returns nil instead of raising ────────────────────
+
+    context 'when the manifest is malformed (missing required field)' do
+      let(:bad_manifest_path) { File.join(Dir.mktmpdir, 'registry.json') }
+
+      before do
+        File.write(bad_manifest_path, JSON.generate({ 'packs' => {} })) # missing 'version'
+        config.registry_manifest_path = bad_manifest_path
+        config.skill_packs = nil
+        config.local_registry_paths = []
+        allow(RailsAiBridge::Registry::PackDetector).to receive(:detect).and_return([])
+      end
+
+      after { FileUtils.rm_rf(File.dirname(bad_manifest_path)) }
+
+      it 'returns nil rather than raising' do
+        expect { described_class.build_resolver(config) }.not_to raise_error
+        expect(described_class.build_resolver(config)).to be_nil
+      end
+    end
+
     context 'when called with default config and manifest file present' do
       it 'returns a non-nil resolver' do
         Dir.mktmpdir do |dir|

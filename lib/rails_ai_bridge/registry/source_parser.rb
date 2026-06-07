@@ -44,8 +44,13 @@ module RailsAiBridge
 
       # @param source [String] raw source string from the registry manifest
       # @return [ParsedSource]
-      # @raise [SkillSourceResolver::ResolutionError] for unrecognized formats
+      # @raise [SkillSourceResolver::ResolutionError] for nil, blank, or unrecognized formats
       def self.parse(source)
+        if source.nil? || source.strip.empty?
+          raise SkillSourceResolver::ResolutionError,
+                format(INVALID_SOURCE_MESSAGE, source: source.inspect)
+        end
+
         return parse_local(source)     if local_path?(source)
         return parse_git_url(source)   if git_url?(source)
         return parse_shorthand(source) if github_shorthand?(source)

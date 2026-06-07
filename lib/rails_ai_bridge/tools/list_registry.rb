@@ -136,7 +136,7 @@ module RailsAiBridge
           lines << "| #{noun} | Pack | Description |"
           lines << '|--------|------|-------------|'
           items.each do |item|
-            lines << "| `#{item.name}` | #{item.pack} | #{truncate(item.description, DESCRIPTION_MAX_LENGTH)} |"
+            lines << "| `#{sanitize_markdown(item.name)}` | #{sanitize_markdown(item.pack)} | #{truncate(sanitize_markdown(item.description), DESCRIPTION_MAX_LENGTH)} |"
           end
           lines.join("\n")
         end
@@ -148,8 +148,8 @@ module RailsAiBridge
           lines << '| Pack | Version | Priority | Summary |'
           lines << '|------|---------|----------|---------|'
           packs.each do |pack|
-            summary = truncate(pack.tile.summary || 'No summary.', DESCRIPTION_MAX_LENGTH)
-            lines << "| **#{pack.name}** | #{pack.tile.version} | #{pack.priority} | #{summary} |"
+            summary = truncate(sanitize_markdown(pack.tile.summary || 'No summary.'), DESCRIPTION_MAX_LENGTH)
+            lines << "| **#{sanitize_markdown(pack.name)}** | #{sanitize_markdown(pack.tile.version)} | #{pack.priority} | #{summary} |"
           end
           lines << ''
           lines << '_Priority: 0 = local (highest), 10 = rails/hanami, 20 = core, 30 = other (lowest)._'
@@ -158,7 +158,7 @@ module RailsAiBridge
 
         def empty_catalog_message(noun)
           if @pack_filter
-            "No #{noun.downcase}s found for pack `#{@pack_filter}`. " \
+            "No #{noun.downcase}s found for pack `#{sanitize_markdown(@pack_filter)}`. " \
               'Use `rails_list_registry type=packs` to see loaded packs.'
           else
             "No #{noun.downcase}s are loaded. Check your registry manifest configuration."
