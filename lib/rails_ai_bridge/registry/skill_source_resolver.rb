@@ -139,6 +139,11 @@ module RailsAiBridge
       # Custom error class for resolution failures.
       class ResolutionError < StandardError; end
 
+      # Maximum number of distinct cache paths tracked in @last_pulled.
+      # Oldest entries are evicted once this limit is exceeded, preventing
+      # unbounded growth in long-running MCP server processes.
+      PULL_TRACKER_MAX = 500
+
       # Creates a new SkillSourceResolver with the given cache directory and git runner.
       #
       # @param cache_dir [String] path to the cache directory
@@ -236,8 +241,13 @@ module RailsAiBridge
       end
 
       # Records the time of a successful pull for +cache_path+. Thread-safe.
+      # Evicts the oldest entry when the tracker exceeds PULL_TRACKER_MAX to
+      # prevent unbounded memory growth in long-running MCP server processes.
       def record_pull(cache_path)
-        @pull_mutex.synchronize { @last_pulled[cache_path] = Process.clock_gettime(Process::CLOCK_MONOTONIC) }
+        @pull_mutex.synchronize do
+          @last_pulled.shift if @last_pulled.size >= PULL_TRACKER_MAX && !@last_pulled.key?(cache_path)
+          @last_pulled[cache_path] = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        end
       end
 
       # Validates +cache_dir+ by checking that the path does not contain traversal

@@ -104,6 +104,25 @@ RSpec.describe RailsAiBridge::Registry::SkillSourceResolver do
       key2 = described_class.compute_cache_key('user/repo ')
       expect(key1).not_to eq(key2)
     end
+
+    it 'never contains a forward slash' do
+      samples = [
+        'owner/repo',
+        'https://github.com/org/pack.git',
+        'git@github.com:org/pack.git',
+        '/absolute/local/path'
+      ]
+      samples.each do |source|
+        expect(described_class.compute_cache_key(source)).not_to include('/')
+      end
+    end
+
+    it 'never contains dot-dot sequences' do
+      samples = ['../evil', 'owner/../repo', 'owner/repo/../../../etc']
+      samples.each do |source|
+        expect(described_class.compute_cache_key(source)).not_to include('..')
+      end
+    end
   end
 
   describe '#initialize' do
@@ -503,6 +522,38 @@ RSpec.describe RailsAiBridge::Registry::SkillSourceResolver do
         # Assert — second resolve after TTL should pull again
         expect(mock_runner).to receive(:pull_repo).once
         resolver.resolve(source)
+      end
+    end
+
+    # ── R6: @last_pulled bounded growth ───────────────────────────────────────
+
+    context 'when more than PULL_TRACKER_MAX distinct paths are recorded' do
+      let(:resolver) { described_class.new(cache_dir, mock_runner, pull_ttl: 86_400) }
+
+      it 'keeps the tracker at or below PULL_TRACKER_MAX entries' do
+        max = described_class::PULL_TRACKER_MAX
+        last_pulled = resolver.instance_variable_get(:@last_pulled)
+
+        # Pre-fill the tracker to its limit with fake paths
+        max.times { |i| last_pulled["#{cache_dir}/fake_path_#{i}"] = 1.0 }
+        expect(last_pulled.size).to eq(max)
+
+        # Recording one more entry should evict the oldest to stay bounded
+        resolver.send(:record_pull, "#{cache_dir}/new_path")
+        expect(last_pulled.size).to eq(max)
+      end
+
+      it 'does not evict when updating an existing entry' do
+        max = described_class::PULL_TRACKER_MAX
+        last_pulled = resolver.instance_variable_get(:@last_pulled)
+
+        (max - 1).times { |i| last_pulled["#{cache_dir}/fake_path_#{i}"] = 1.0 }
+        last_pulled[cache_path] = 1.0
+        expect(last_pulled.size).to eq(max)
+
+        # Updating an existing key must not evict anything
+        resolver.send(:record_pull, cache_path)
+        expect(last_pulled.size).to eq(max)
       end
     end
   end

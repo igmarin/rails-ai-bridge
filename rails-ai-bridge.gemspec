@@ -51,7 +51,7 @@ Gem::Specification.new do |spec|
 
   # Core dependencies
   spec.add_dependency 'mcp', '>= 0.10', '< 1.0' # Official MCP Ruby SDK
-  spec.add_dependency 'railties', '>= 7.1', '< 9.0'
+  spec.add_dependency 'railties', '>= 7.1', '< 10.0'
   spec.add_dependency 'thor', '>= 1.0', '< 3.0'
   spec.add_dependency 'zeitwerk', '~> 2.6' # Autoloading
 

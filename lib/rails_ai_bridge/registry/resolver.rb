@@ -54,6 +54,10 @@ module RailsAiBridge
         # Sort active packs by priority ascending (highest priority first)
         @active_packs = loaded_packs.sort_by(&:priority)
 
+        # Pre-compute the reverse order once; used by list_skills, list_agents,
+        # and build_deprecated_index so they don't each sort independently.
+        @active_packs_reverse = @active_packs.reverse
+
         # Gather deprecated skills in reverse order so higher priority overwrites
         @deprecated_index = build_deprecated_index
       end
@@ -64,34 +68,8 @@ module RailsAiBridge
       # @return [ResolvedSkill, nil] resolved skill or nil if not found
       def resolve_skill(name)
         # Handle deprecation redirects transparently
-        target_name = if (dep = @deprecated_index[name])
-                        dep.moved_to
-                      else
-                        name
-                      end
-
-        @active_packs.each do |pack|
-          entry = pack.tile.skills[target_name]
-          next unless entry
-
-          file_path = File.join(pack.base_path, entry.path)
-          next unless descendant?(pack.base_path, file_path)
-
-          begin
-            content = File.read(file_path)
-          rescue SystemCallError
-            next
-          end
-
-          return ResolvedSkill.new(
-            name: target_name,
-            pack: pack.name,
-            path: file_path,
-            content: content
-          )
-        end
-
-        nil
+        target_name = (dep = @deprecated_index[name]) ? dep.moved_to : name
+        resolve_entry(target_name, collection: :skills)
       end
 
       # Resolves an agent by name, handling priority tiers.
@@ -99,28 +77,7 @@ module RailsAiBridge
       # @param name [String] name of the agent to resolve
       # @return [ResolvedSkill, nil] resolved agent or nil if not found
       def resolve_agent(name)
-        @active_packs.each do |pack|
-          entry = pack.tile.agents[name]
-          next unless entry
-
-          file_path = File.join(pack.base_path, entry.path)
-          next unless descendant?(pack.base_path, file_path)
-
-          begin
-            content = File.read(file_path)
-          rescue SystemCallError
-            next
-          end
-
-          return ResolvedSkill.new(
-            name: name,
-            pack: pack.name,
-            path: file_path,
-            content: content
-          )
-        end
-
-        nil
+        resolve_entry(name, collection: :agents)
       end
 
       # Returns a list of all unique skills across active packs, deduplicated by priority.
@@ -130,24 +87,7 @@ module RailsAiBridge
       #
       # @return [Array<SkillSummary>] list of skill summaries
       def list_skills
-        skill_map = {}
-
-        # Iterate in reverse priority order (lowest priority first)
-        # so higher priority overwrites them in the map
-        sorted_reverse = @active_packs.sort_by { |p| -p.priority }
-
-        sorted_reverse.each do |pack|
-          pack.tile.skills.each do |skill_name, entry|
-            description = entry.description || 'No description provided.'
-            skill_map[skill_name] = SkillSummary.new(
-              name: skill_name,
-              pack: pack.name,
-              description: description
-            )
-          end
-        end
-
-        skill_map.values.sort_by(&:name)
+        build_summary_map(:skills).values.sort_by(&:name)
       end
 
       # Returns a list of all unique agents across active packs, deduplicated by priority.
@@ -157,22 +97,7 @@ module RailsAiBridge
       #
       # @return [Array<SkillSummary>] list of agent summaries
       def list_agents
-        agent_map = {}
-
-        sorted_reverse = @active_packs.sort_by { |p| -p.priority }
-
-        sorted_reverse.each do |pack|
-          pack.tile.agents.each do |agent_name, entry|
-            description = entry.description || 'No description provided.'
-            agent_map[agent_name] = SkillSummary.new(
-              name: agent_name,
-              pack: pack.name,
-              description: description
-            )
-          end
-        end
-
-        agent_map.values.sort_by(&:name)
+        build_summary_map(:agents).values.sort_by(&:name)
       end
 
       # Validates that all pack dependencies are satisfied among active packs.
@@ -226,23 +151,69 @@ module RailsAiBridge
 
       private
 
+      # Resolves a named entry (skill or agent) from active packs in priority order.
+      #
+      # Iterates @active_packs (already sorted by ascending priority) and returns
+      # the first entry whose file passes the descendant guard and can be read.
+      #
+      # @param name [String] entry name
+      # @param collection [Symbol] :skills or :agents
+      # @return [ResolvedSkill, nil]
+      def resolve_entry(name, collection:)
+        @active_packs.each do |pack|
+          entry = pack.tile.public_send(collection)[name]
+          next unless entry
+
+          file_path = File.join(pack.base_path, entry.path)
+          next unless descendant?(pack.base_path, file_path)
+
+          begin
+            content = File.read(file_path)
+          rescue SystemCallError
+            next
+          end
+
+          return ResolvedSkill.new(name: name, pack: pack.name, path: file_path, content: content)
+        end
+
+        nil
+      end
+
+      # Builds a name → SkillSummary map for skills or agents, deduplicated by
+      # priority (higher priority packs overwrite lower priority ones).
+      #
+      # Uses @active_packs_reverse so low-priority entries are written first and
+      # high-priority entries overwrite them — no repeated sort needed.
+      #
+      # @param collection [Symbol] :skills or :agents
+      # @return [Hash{String => SkillSummary}]
+      def build_summary_map(collection)
+        map = {}
+        @active_packs_reverse.each do |pack|
+          pack.tile.public_send(collection).each do |entry_name, entry|
+            map[entry_name] = SkillSummary.new(
+              name: entry_name,
+              pack: pack.name,
+              description: entry.description || 'No description provided.'
+            )
+          end
+        end
+        map
+      end
+
       # Builds the deprecated skills index from all packs.
       #
-      # Packs are processed in reverse priority order so higher priority
-      # deprecations overwrite lower priority ones.
+      # Uses @active_packs_reverse so higher priority deprecations overwrite
+      # lower priority ones without an additional sort.
       #
       # @return [Hash{String => DeprecatedEntry}] deprecated skills index
       def build_deprecated_index
         index = {}
-
-        sorted_reverse = @active_packs.sort_by { |p| -p.priority }
-
-        sorted_reverse.each do |pack|
+        @active_packs_reverse.each do |pack|
           pack.tile.deprecated_skills.each do |old_name, entry|
             index[old_name] = entry
           end
         end
-
         index
       end
 
@@ -258,6 +229,11 @@ module RailsAiBridge
         base_canon = Pathname.new(base).realpath
         path_canon = Pathname.new(path).realpath
       rescue Errno::ENOENT, Errno::EACCES, Errno::ENOTDIR
+        # ENOENT  — file was deleted between resolution and the descendant check; skip it.
+        # EACCES  — permission denied; treat as outside the base to fail closed.
+        # ENOTDIR — a path component is not a directory (e.g. a symlink loop); fail closed.
+        # All three are benign from a security perspective: returning false causes the
+        # caller to skip the entry, which is the safest outcome in every case.
         false
       else
         # Ensure path_canon starts with base_canon followed by a separator or is exactly equal

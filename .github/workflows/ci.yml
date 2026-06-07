@@ -20,10 +20,12 @@ jobs:
       fail-fast: false
       matrix:
         ruby: ["3.2", "3.3", "3.4"]
-        rails: ["7.1", "7.2", "8.0"]
+        rails: ["7.1", "7.2", "8.0", "8.1"]
         exclude:
           - ruby: "3.2"
             rails: "8.0"
+          - ruby: "3.2"
+            rails: "8.1"
 
     name: Ruby ${{ matrix.ruby }} / Rails ${{ matrix.rails }}
 
@@ -69,7 +71,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      RAILS_VERSION: "8.0"
+      RAILS_VERSION: "8.1"
       PERF: "true"
     steps:
       - uses: actions/checkout@v6

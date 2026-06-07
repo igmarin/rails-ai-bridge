@@ -73,6 +73,21 @@ module RailsAiBridge
       def self.no_manifest_message(path)
         format(NO_MANIFEST_MESSAGE, path: path)
       end
+
+      # Builds a resolver or exits with an error message if none is available.
+      #
+      # Encapsulates the repeated pattern across rake tasks: build the resolver,
+      # warn with the no-manifest message, and exit 1 if it is nil.
+      #
+      # @return [Registry::Resolver] a non-nil resolver
+      def self.require_resolver!
+        resolver = RailsAiBridge::Registry.build_resolver
+        return resolver if resolver
+
+        path = RailsAiBridge.configuration.registry.registry_manifest_path
+        warn no_manifest_message(path)
+        exit 1 # rubocop:disable Rails/Exit
+      end
     end
   end
 end

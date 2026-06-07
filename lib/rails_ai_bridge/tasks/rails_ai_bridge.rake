@@ -285,13 +285,7 @@ namespace :ai do
     task list: :environment do
       require 'rails_ai_bridge'
 
-      resolver = RailsAiBridge::Registry.build_resolver
-      unless resolver
-        path = RailsAiBridge.configuration.registry.registry_manifest_path
-        warn RailsAiBridge::Registry::RakePresenter.no_manifest_message(path)
-        exit 1
-      end
-
+      resolver = RailsAiBridge::Registry::RakePresenter.require_resolver!
       puts RailsAiBridge::Registry::RakePresenter.new(resolver).skills_table
     end
 
@@ -308,13 +302,7 @@ namespace :ai do
         exit 1
       end
 
-      resolver = RailsAiBridge::Registry.build_resolver
-      unless resolver
-        path = RailsAiBridge.configuration.registry.registry_manifest_path
-        warn RailsAiBridge::Registry::RakePresenter.no_manifest_message(path)
-        exit 1
-      end
-
+      resolver = RailsAiBridge::Registry::RakePresenter.require_resolver!
       output = RailsAiBridge::Registry::RakePresenter.new(resolver)
                                                      .resolve_skill_output(name_arg, requested_pack: pack_arg)
       puts output
