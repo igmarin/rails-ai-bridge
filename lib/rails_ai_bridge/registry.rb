@@ -2,7 +2,24 @@
 
 require 'json'
 require 'yaml'
+
+# Load registry sub-files in dependency order.
+# Zeitwerk manages the lib/ tree lazily, but these files reference sibling
+# constants at method-invocation time (not just at parse time), so Zeitwerk
+# cannot intercept them before the first NameError fires. Explicit requires
+# here guarantee the full dependency graph is loaded when Registry is first used.
+require_relative 'registry/truncatable'
+require_relative 'registry/frontmatter_parser'
+require_relative 'registry/pack_definition'
+require_relative 'registry/pack_detector'
+require_relative 'registry/registry_manifest'
+require_relative 'registry/tile_manifest'
+require_relative 'registry/resolver'
+require_relative 'registry/source_parser'
 require_relative 'registry/skill_source_resolver'
+require_relative 'registry/pack_resolver'
+require_relative 'registry/resolver_cache'
+require_relative 'registry/rake_presenter'
 
 module RailsAiBridge
   # Registry resolution system for skill packs.
