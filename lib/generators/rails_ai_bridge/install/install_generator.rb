@@ -53,57 +53,125 @@ module RailsAiBridge
         create_file 'config/initializers/rails_ai_bridge.rb', <<~RUBY
           # frozen_string_literal: true
 
+          # rails-ai-bridge configuration
+          # All settings are commented out — uncomment only what you need to change.
+          # Defaults are production-safe: read-only introspection, no HTTP exposure.
+          # Run `rails ai:doctor` after changes to verify your setup.
+
           RailsAiBridge.configure do |config|
-            # --- Introspector preset ---
-            #   :standard  — #{standard_count} core introspectors (schema, models, routes, jobs, gems, conventions, controllers, tests, migrations)
-            #   :full      — all #{full_count} introspectors (adds views, turbo, auth, API, config, assets, devops, etc.)
-            #   :regulated — #{regulated_count} introspectors — no schema/models/migrations (for apps with strict data governance)
-            # config.preset = :standard
+            # ---------------------------------------------------------------------------
+            # Introspector preset
+            # ---------------------------------------------------------------------------
+            # Controls how much of your app is introspected when generating context files
+            # and answering MCP tool requests.
+            #
+            # :standard (default) — #{standard_count} core introspectors covering the essentials:
+            #   schema, models, routes, controllers, jobs, gems, conventions, tests, migrations
+            #   Best for most apps. Fast and focused.
+            #
+            # :full — all #{full_count} introspectors (everything in :standard plus):
+            #   views, Turbo/Stimulus, auth, API serializers, config, assets, DevOps
+            #   Use for full-stack Hotwire apps or when AI needs frontend/auth/API context.
+            #
+            # :regulated — #{regulated_count} introspectors — omits schema, models, and migrations.
+            #   Use for apps with strict data governance where schema must not be exposed.
+            #
+            # config.preset = :standard   # already the default — uncomment only to switch
 
-            # Or cherry-pick individual introspectors:
-            # config.introspectors += %i[non_ar_models views turbo auth api]
+            # Add individual introspectors on top of the preset (does not change the preset):
+            # Effect: each listed symbol enables one additional introspector.
+            # config.introspectors += %i[non_ar_models views turbo auth api database_stats]
+            #
+            # database_stats: adds small/medium/large/hot hints to table context using
+            # PostgreSQL table statistics. Opt-in because it queries the DB at introspection time.
 
-            # Disable whole product categories at runtime (schema + models + migrations, optional :non_ar_models, api, views/turbo/i18n):
+            # Disable a whole category at runtime (overrides preset and individual additions):
+            # :domain_metadata disables schema + models + migrations + non_ar_models
             # config.disabled_introspection_categories << :domain_metadata
 
-            # --- Security exclusions ---
-            # Tables to hide from schema + model introspection (exact name or glob, e.g. "pii_*"):
+            # ---------------------------------------------------------------------------
+            # Security exclusions
+            # ---------------------------------------------------------------------------
+            # These settings control what gets included in generated context files and
+            # MCP tool responses. Excluded items are silently omitted — not replaced.
+
+            # Tables to hide from schema introspection and model output.
+            # Accepts exact table names or globs ("pii_*" matches pii_users, pii_logs, etc.)
+            # Effect: excluded tables disappear from rails_get_schema and model details.
             # config.excluded_tables += %w[secrets audit_logs pii_*]
 
-            # Models to exclude from introspection:
-            # config.excluded_models += %w[AdminUser InternalThing]
+            # ActiveRecord models to exclude from introspection.
+            # Effect: excluded models are not listed in any generated context file or MCP response.
+            # config.excluded_models += %w[AdminUser InternalAuditLog]
 
-            # Primary domain models (semantic tier: core_entity in introspection & Claude rules):
+            # Paths excluded from rails_search_code results.
+            # Effect: files under these paths are skipped in code search results.
+            # config.excluded_paths += %w[vendor/bundle node_modules]
+
+            # ---------------------------------------------------------------------------
+            # Domain model hints
+            # ---------------------------------------------------------------------------
+            # Mark your primary business models as core_entity. This affects:
+            #   - Ordering in generated context files (core models listed first)
+            #   - Semantic tier in rails_get_model_details responses ("core_entity")
+            #   - .claude/rules/rails-models.md (tagged for Claude Code)
+            # Effect: these models get promoted in AI context. Use your 3-7 most central models.
             # config.core_models += %w[User Order Project]
 
-            # Paths excluded from rails_search_code:
-            # config.excluded_paths += %w[vendor/bundle]
+            # ---------------------------------------------------------------------------
+            # Context output
+            # ---------------------------------------------------------------------------
+            # Controls how much detail goes into generated static files (CLAUDE.md, AGENTS.md, etc.)
+            #
+            # :compact (default) — ≤150 lines per file. Key models and routes are listed;
+            #   everything else is referenced via MCP tools. Suitable for large apps.
+            #   The AI asks MCP for details on demand — no context bloat.
+            #
+            # :full — dumps everything into the static files. No MCP needed for orientation,
+            #   but files can be large. Best for small apps with fewer than ~30 models.
+            #
+            # config.context_mode = :compact   # already the default
 
-            # --- Context output ---
-            # :compact — ≤150 lines, references MCP tools for details (default)
-            # :full    — full dump (good for small apps)
-            # config.context_mode = :compact
+            # Max lines for CLAUDE.md in compact mode (default: 150):
             # config.claude_max_lines = 150
+
+            # Safety cap for MCP tool responses in characters (default: 120_000):
+            # Oversized responses are truncated with a hint to use filters or pagination.
             # config.max_tool_response_chars = 120_000
 
-            # Team rules merged into compact Copilot/Codex output (remove omit-merge line when ready):
+            # Team-specific rules merged into Copilot and Codex output.
+            # Effect: content of overrides.md is appended to .github/copilot-instructions.md
+            # and AGENTS.md on each `rails ai:bridge` run.
+            # IMPORTANT: Remove the first-line "<!-- rails-ai-bridge:omit-merge -->" guard
+            # from config/rails_ai_bridge/overrides.md before this has any effect.
             # config.assistant_overrides_path = "config/rails_ai_bridge/overrides.md"
 
-            # Compact model list caps (0 = MCP pointer only, no names listed):
-            # config.copilot_compact_model_list_limit = 5
-            # config.codex_compact_model_list_limit = 3
+            # Model list size caps for compact output (0 = show no names, only MCP pointer):
+            # Reduce these for apps with large model counts to keep files within size limits.
+            # config.copilot_compact_model_list_limit = 15   # default
+            # config.codex_compact_model_list_limit   = 15   # default
 
             # ==========================================================================
             # HTTP MCP / auto_mount — SECURITY CRITICAL
             # ==========================================================================
-            # Exposes read-only MCP tools over HTTP. Still reveals routes, schema, and
-            # code layout — treat as sensitive. Prefer stdio (`rails ai:serve`) for local
-            # AI clients.
+            # By default, MCP runs only via stdio (`rails ai:serve`), which is local-only
+            # and safe. The HTTP transport is an opt-in alternative for clients that cannot
+            # spawn sub-processes (e.g. browser-based AI tools, remote agents).
             #
-            # In production you MUST configure one auth mechanism AND set
-            # allow_auto_mount_in_production = true. Options (highest priority first):
+            # Even though tools are read-only, the HTTP endpoint exposes routes, schema,
+            # and code structure. Treat it as an internal service — keep it on localhost
+            # unless you add authentication AND network controls.
             #
-            #   1. JWT decoder (no JWT gem required — supply your own lambda):
+            # To enable HTTP MCP locally (development only):
+            #   config.auto_mount = true
+            #   config.http_path  = "/mcp"        # endpoint path
+            #   config.http_bind  = "127.0.0.1"   # localhost only
+            # Then start your Rails server and point your AI client to http://localhost:3000/mcp
+            #
+            # For production, you MUST also set allow_auto_mount_in_production = true AND
+            # configure one of these auth mechanisms (highest priority first):
+            #
+            #   1. JWT decoder (bring your own JWT gem):
             #      config.mcp_jwt_decoder = ->(token) {
             #        JWT.decode(token, credentials.jwt_secret, true, algorithm: "HS256").first
             #      rescue JWT::DecodeError, JWT::ExpiredSignature, JWT::ImmatureSignature
@@ -113,13 +181,12 @@ module RailsAiBridge
             #   2. Token resolver (Devise, database lookup, etc.):
             #      config.mcp_token_resolver = ->(token) { User.find_by(mcp_api_token: token) }
             #
-            #   3. Static shared secret:
+            #   3. Static shared secret (simplest — fine for internal tools):
             #      config.http_mcp_token = "generate-a-long-random-secret"
-            #      # ENV["RAILS_AI_BRIDGE_MCP_TOKEN"] overrides this when set
+            #      # ENV["RAILS_AI_BRIDGE_MCP_TOKEN"] takes precedence when set
             #
-            # IMPORTANT: Token comparison is timing-safe but does NOT prevent
-            # brute-force guessing. Add rate limiting on the MCP endpoint in
-            # production (e.g. Rack::Attack throttle on config.http_path).
+            # Timing-safe token comparison is built in, but add rate limiting too
+            # (e.g. Rack::Attack throttle on config.http_path) to prevent brute-force.
             #
             # config.auto_mount = false
             # config.allow_auto_mount_in_production = false

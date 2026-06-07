@@ -33,9 +33,12 @@ Use the README as the shortest path to understanding and setup. Jump to deeper d
 |---|---|
 | Understand the idea in 3 minutes | [How it works](#how-it-works) |
 | Install and generate files | [Quick start](#quick-start) |
+| Connect Claude Code or Cursor | [Connect your AI client — Claude Code](#claude-code) |
+| Connect Devin | [Connect your AI client — Devin](#devin) and [docs/devin-setup.md](docs/devin-setup.md) |
+| Connect Copilot / Codex / Gemini | [Connect your AI client](#connect-your-ai-client) |
 | Check what the AI learns | [What Your AI Learns](#what-your-ai-learns) |
 | Choose `:standard`, `:full`, or opt-ins | [Pick the right preset for your app](#pick-the-right-preset-for-your-app) |
-| Use MCP safely | [MCP Server Setup](#mcp-server-setup) and [mcp-security.md](docs/mcp-security.md) |
+| Use MCP safely | [HTTP transport](#http-transport-alternative-for-all-clients) and [mcp-security.md](docs/mcp-security.md) |
 | Improve day-to-day AI results | [Best Practices](docs/BEST_PRACTICES.md) |
 
 ## When this helps
@@ -312,16 +315,100 @@ Results will vary by client, model, project size, and task type. More formal ben
 
 ---
 
-## MCP Server Setup
+## Connect your AI client
 
-The install generator creates `.mcp.json` for MCP-capable clients. Claude Code and Cursor can auto-detect it, while Codex can use the generated `AGENTS.md` plus your local Codex configuration.
+rails-ai-bridge gives every client two things: **static context files** loaded at session start (snapshots of your app), and **live MCP tools** called on-demand (always current). Both matter — files orient the assistant, tools answer specific questions without bloating context.
 
-This project keeps [`server.json`](server.json) aligned with GitHub metadata for MCP registry packaging when you choose to publish a release artifact.
+| Client | Static files loaded automatically | MCP wiring |
+|--------|----------------------------------|------------|
+| **Claude Code** | `CLAUDE.md`, `.claude/rules/*.md` | Auto — reads `.mcp.json` |
+| **Cursor** | `.cursorrules`, `.cursor/rules/*.mdc` | Auto — reads `.mcp.json` |
+| **Devin** | `.devinrules`, `.devin/rules/*.md`, `AGENTS.md` | Manual — create `.devin/mcp.json` |
+| **Copilot** | `.github/copilot-instructions.md`, `.github/instructions/` | Not supported natively |
+| **Codex** | `AGENTS.md`, `.codex/README.md` | Via `.codex/mcp_servers.json` |
+| **Gemini** | `GEMINI.md` | Via Gemini CLI config |
 
-To start manually: `rails ai:serve`
+### Claude Code
 
-<details>
-<summary><strong>Claude Desktop setup</strong></summary>
+No MCP setup needed. Claude Code auto-detects `.mcp.json` at the project root and spawns `bundle exec rails ai:serve` automatically. Ask Claude "What rails_* MCP tools do you have?" to confirm — it should list `rails_get_schema`, `rails_get_routes`, and the rest.
+
+If the connection fails: verify `.mcp.json` exists and that `bundle exec rails ai:serve` runs cleanly in your terminal.
+
+### Cursor
+
+No MCP setup needed. Cursor auto-detects `.mcp.json`. If it does not pick it up, open **Settings > MCP** and add the server manually with `BUNDLE_GEMFILE: "${workspaceFolder}/Gemfile"` in the `env` block.
+
+**Ruby version manager issue (rbenv/rvm):** Cursor may not inherit your shell environment when launching sub-processes. Fix: enable the HTTP transport instead.
+
+```ruby
+# config/initializers/rails_ai_bridge.rb
+RailsAiBridge.configure do |config|
+  config.auto_mount = true
+  config.http_path  = "/mcp"
+  config.http_bind  = "127.0.0.1"
+end
+```
+
+Start your Rails server and point Cursor to `http://localhost:3000/mcp` (type: SSE) in Settings > MCP.
+
+### Devin
+
+Devin reads `.devinrules`, `.devin/rules/*.md`, and `AGENTS.md` automatically. MCP requires one manual step.
+
+**Step 1 — generate files:**
+```bash
+rails ai:bridge    # all formats, including .devinrules and AGENTS.md
+```
+
+**Step 2 — create `.devin/mcp.json`:**
+```json
+{
+  "mcpServers": {
+    "rails-ai-bridge": {
+      "command": "bundle",
+      "args": ["exec", "rails", "ai:serve"],
+      "cwd": "/absolute/path/to/your/rails/app"
+    }
+  }
+}
+```
+
+Use the absolute path in `cwd` — Devin does not inherit your terminal's working directory. Commit this file so your team gets the same setup.
+
+**Step 3 — verify:** In a Devin session ask "What MCP tools do you have available?" — it should list the `rails-ai-bridge` server and all `rails_*` tools.
+
+**Ruby version manager issue:** If `bundle` is not on `PATH`, use the absolute shim path (e.g. `/Users/you/.rbenv/shims/bundle`) or switch to the HTTP transport. See [docs/devin-setup.md](docs/devin-setup.md) for the full guide including HTTP transport, skills, and troubleshooting.
+
+### GitHub Copilot
+
+MCP is not natively supported in the Copilot VS Code extension. The static files (`CLAUDE.md`, `.github/copilot-instructions.md`, path-scoped `.github/instructions/`) give Copilot project grounding, and the MCP tools are documented in the generated files so Copilot knows what to ask — but it cannot call them automatically. For tasks that need live schema or route lookups, use Claude Code or Cursor.
+
+### Codex
+
+Codex reads `AGENTS.md` at the repository root. MCP can be configured in `.codex/mcp_servers.json`. Run `rails ai:bridge:codex` to regenerate `AGENTS.md` and `.codex/README.md` (which includes Codex-specific setup notes).
+
+### HTTP transport (alternative for all clients)
+
+If stdio MCP fails (usually a Ruby version manager PATH issue), start the HTTP server instead:
+
+```bash
+rails ai:serve_http   # http://127.0.0.1:6029/mcp
+```
+
+Or auto-mount inside your running Rails app:
+
+```ruby
+RailsAiBridge.configure do |config|
+  config.auto_mount = true
+  config.http_mcp_token = ENV["RAILS_AI_BRIDGE_MCP_TOKEN"]   # required in production
+  config.http_path  = "/mcp"
+  config.http_bind  = "127.0.0.1"
+end
+```
+
+Point your AI client to `http://localhost:3000/mcp` (or whichever port your Rails server uses) using transport type `SSE`. Keep the endpoint bound to localhost unless you add authentication. See [docs/mcp-security.md](docs/mcp-security.md) for production hardening.
+
+### Claude Desktop (standalone app)
 
 Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS):
 
@@ -331,49 +418,11 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
     "rails-ai-bridge": {
       "command": "bundle",
       "args": ["exec", "rails", "ai:serve"],
-      "cwd": "/path/to/your/rails/app"
+      "env": { "BUNDLE_GEMFILE": "/absolute/path/to/your/rails/app/Gemfile" }
     }
   }
 }
 ```
-</details>
-
-<details>
-<summary><strong>HTTP transport (for remote clients)</strong></summary>
-
-```bash
-rails ai:serve_http  # Starts at http://127.0.0.1:6029/mcp
-```
-
-Or auto-mount inside your Rails app:
-
-```ruby
-RailsAiBridge.configure do |config|
-  config.auto_mount = true
-  config.http_mcp_token = "generate-a-long-random-secret" # or ENV["RAILS_AI_BRIDGE_MCP_TOKEN"]
-  # Production only: explicit opt-in + token required (see SECURITY.md)
-  # config.allow_auto_mount_in_production = true
-  config.http_path  = "/mcp"
-  # Optional: reject HTTP requests when no Bearer/JWT/static auth is configured (safer beyond localhost)
-  # config.mcp.require_http_auth = true
-end
-```
-
-Clients must send `Authorization: Bearer <token>` when a token is configured.
-
-Security note: keep the HTTP transport bound to `127.0.0.1` unless you add your own network and authentication controls. The tools are read-only, but they can still expose sensitive application structure. Generated context and the built-in conventions resource filter secret-bearing config paths, but MCP access should still be treated as internal. In **production**, `rails ai:serve_http` and `auto_mount` require a configured MCP token; `auto_mount` also requires `allow_auto_mount_in_production = true`. For operational hardening (tokens, proxies, `require_http_auth`, stdio threat model), see **[docs/mcp-security.md](docs/mcp-security.md)** and **[SECURITY.md](SECURITY.md)**.
-</details>
-
----
-
-## Codex Setup
-
-Codex support is centered on **`AGENTS.md`** at the repository root.
-
-- Run `rails ai:bridge:codex` to regenerate `AGENTS.md` and `.codex/README.md`.
-- Keep `AGENTS.md` committed so Codex sees project-specific instructions.
-- Keep personal preferences in `~/.codex/AGENTS.md`; use the repository `AGENTS.md` for shared guidance.
-- When Codex is connected to the generated MCP server, prefer the `rails_*` tools and start with `detail:"summary"`.
 
 ---
 
@@ -695,6 +744,7 @@ The docs are layered so new users do not need to read everything at once.
 | A quick install and mental model | This README |
 | How to get better AI output day to day | [docs/BEST_PRACTICES.md](docs/BEST_PRACTICES.md) |
 | Every command, config option, generated file, and MCP parameter | [docs/GUIDE.md](docs/GUIDE.md) |
+| Complete Devin setup — MCP wiring, skills, troubleshooting | [docs/devin-setup.md](docs/devin-setup.md) |
 | HTTP MCP hardening and production safety | [docs/mcp-security.md](docs/mcp-security.md) and [SECURITY.md](SECURITY.md) |
 | Skill packs: setup, sources, pinning, cache, troubleshooting | [docs/skill-registry-guide.md](docs/skill-registry-guide.md) |
 | Skill registry technical reference | [docs/registry-resolution.md](docs/registry-resolution.md) |

@@ -58,10 +58,10 @@ Each AI client reads different files. Knowing which files matter for your tool h
 
 ### How MCP wiring works per client
 
-- **Claude Code & Cursor**: `.mcp.json` at the project root is auto-detected. Run `rails ai:serve` or let the client spawn it.
-- **Devin**: MCP servers must be configured manually in Devin settings. Add `bundle exec rails ai:serve` as a stdio MCP server.
+- **Claude Code & Cursor**: `.mcp.json` at the project root is auto-detected. No manual setup — the client spawns `rails ai:serve` automatically.
+- **Devin**: MCP is not auto-detected. Create `.devin/mcp.json` manually (see [docs/devin-setup.md](devin-setup.md) for the exact JSON and full walkthrough).
 - **Codex**: Configure in `.codex/mcp_servers.json` or equivalent. The generated `.codex/README.md` includes setup instructions.
-- **Copilot**: MCP is not natively supported via `.mcp.json` as of this writing. The `rails_*` tools are documented in `.github/instructions/rails-mcp-tools.instructions.md` but cannot be invoked automatically.
+- **Copilot**: MCP is not natively supported via `.mcp.json`. The `rails_*` tools are documented in `.github/instructions/rails-mcp-tools.instructions.md` so Copilot knows about them, but cannot call them automatically.
 
 ### What "always loaded" means for token budgets
 
@@ -73,7 +73,7 @@ Files marked as `alwaysApply: true` (Cursor) or loaded at session start are incl
 
 ### Built-in tools and HTTP MCP
 
-There are **11** read-only built-in `rails_*` tools (hosts can add more via configuration). For Hotwire-heavy work, include `:views` and `:stimulus` in your introspectors so `rails_get_view` and `rails_get_stimulus` return live data. If MCP is served over HTTP beyond a locked-down localhost setup, configure authentication and read [mcp-security.md](mcp-security.md) and the repository [SECURITY.md](../SECURITY.md).
+There are **14** read-only built-in `rails_*` tools (hosts can add more via configuration). For Hotwire-heavy work, include `:views` and `:stimulus` in your introspectors so `rails_get_view` and `rails_get_stimulus` return live data. If MCP is served over HTTP beyond a locked-down localhost setup, configure authentication and read [mcp-security.md](mcp-security.md) and the repository [SECURITY.md](../SECURITY.md).
 
 ---
 
@@ -224,8 +224,10 @@ The gem only overwrites files it generated. Files you create with different name
 ### Devin
 
 1. `.devinrules` is capped at ~5,800 characters (Devin's 6K limit). The gem respects this — overflow goes into `.devin/rules/`.
-2. MCP must be configured manually in Devin's MCP settings. Add: command `bundle exec rails ai:serve`, cwd: your project path.
-3. Devin is good at following the "summary first, drill down" pattern — the generated `.devin/rules/rails-mcp-tools.md` teaches it this workflow.
+2. Devin also reads `AGENTS.md` — run `rails ai:bridge` (not just `rails ai:bridge:devin`) to keep both files current.
+3. MCP requires a manual one-time step: create `.devin/mcp.json` with an absolute `cwd` path. See [docs/devin-setup.md](devin-setup.md) for the exact JSON.
+4. If `bundle` is not on `PATH` (common with rbenv/rvm in Devin's environment), use the absolute shim path or switch to the HTTP transport (`rails ai:serve_http`).
+5. Devin follows the "summary first, drill down" pattern well — the generated `.devin/rules/rails-mcp-tools.md` teaches it this workflow automatically.
 
 ### GitHub Copilot
 

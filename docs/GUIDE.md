@@ -889,53 +889,196 @@ config.introspectors = %i[schema models routes gems auth api]
 
 ## AI Assistant Setup
 
+This section explains how to connect each AI client to rails-ai-bridge. Every client gets two things: **passive context files** loaded at session start, and **live MCP tools** for on-demand introspection. The combination is what makes the gem useful — the static files orient the assistant, and MCP tools answer specific questions without bloating context.
+
 ### Claude Code
 
-**Auto-discovery:** Opens `.mcp.json` automatically. No setup needed.
+**Passive context (loaded automatically at session start):**
+- `CLAUDE.md` — project overview and conventions
+- `.claude/rules/*.md` — semantic layers, schema summary, model list, MCP tool reference
 
-**Context files loaded:**
-- `CLAUDE.md` — read at conversation start
-- `.claude/rules/*.md` — auto-loaded alongside CLAUDE.md
+**MCP tools:** Auto-discovered via `.mcp.json` at the project root. No manual setup needed.
 
-**MCP tools:** Available immediately via `.mcp.json`.
+**How to verify:**
+```bash
+# In your project directory, Claude Code reads .mcp.json automatically.
+# Ask Claude: "What rails_* MCP tools do you have available?"
+# It should list: rails_get_schema, rails_get_routes, rails_get_model_details, etc.
+```
+
+**If MCP is not connecting:** Claude Code inherits your terminal's shell environment, so `rbenv`/`rvm` work automatically. If the connection still fails, check that `.mcp.json` exists at the project root and `bundle exec rails ai:serve` runs cleanly from a terminal in the same directory.
+
+**Regenerate context:**
+```bash
+rails ai:bridge:claude   # CLAUDE.md + .claude/rules/
+rails ai:bridge          # all formats at once
+```
+
+---
 
 ### Cursor
 
-**Auto-discovery:** Opens `.mcp.json` automatically. No setup needed.
+**Passive context (loaded automatically):**
+- `.cursorrules` — legacy compat file, loaded at session start
+- `.cursor/rules/*.mdc` — MDC rules with activation modes:
 
-**Context files loaded:**
-- `.cursorrules` — read at conversation start
-- `.cursor/rules/*.mdc` — loaded based on `alwaysApply` and `globs` settings
+| Rule file | Activation |
+|-----------|-----------|
+| `rails-engineering.mdc` | `alwaysApply: true` — every conversation |
+| `rails-project.mdc` | `alwaysApply: true` — every conversation |
+| `rails-models.mdc` | `globs: app/models/**` — only when editing models |
+| `rails-controllers.mdc` | `globs: app/controllers/**` — only when editing controllers |
+| `rails-mcp-tools.mdc` | `alwaysApply: true` — tool reference always visible |
 
-**MDC rule activation modes:**
-| Mode | When it activates |
-|------|-------------------|
-| `alwaysApply: true` | Every conversation (project overview, MCP tools) |
-| `globs: ["app/models/**/*.rb"]` | When editing files matching the glob pattern |
-| `alwaysApply: false` + `description` | When the AI decides it's relevant based on description |
+**MCP tools:** Auto-discovered via `.mcp.json`. No manual setup needed.
+
+**If Cursor does not pick up `.mcp.json` automatically:**
+Open **Settings > MCP** in Cursor and add the server manually:
+```json
+{
+  "mcpServers": {
+    "rails-ai-bridge": {
+      "command": "bundle",
+      "args": ["exec", "rails", "ai:serve"],
+      "env": {
+        "BUNDLE_GEMFILE": "${workspaceFolder}/Gemfile"
+      }
+    }
+  }
+}
+```
+
+**Ruby version manager note:** If Cursor launches sub-processes without your shell environment (common with `rbenv` or `rvm`), MCP may fail to start. The fix is to use the HTTP transport instead:
+
+```ruby
+# config/initializers/rails_ai_bridge.rb
+RailsAiBridge.configure do |config|
+  config.auto_mount = true
+  config.http_path  = "/mcp"
+  config.http_bind  = "127.0.0.1"
+end
+```
+
+Then start your Rails server (`bin/rails server`) and point Cursor to `http://localhost:3000/mcp` using type `SSE`.
+
+**Regenerate context:**
+```bash
+rails ai:bridge:cursor   # .cursorrules + .cursor/rules/
+```
+
+---
 
 ### Devin
 
-**Context files loaded:**
-- `.devinrules` — read at conversation start (≤6,000 chars, silently truncated if exceeded)
-- `.devin/rules/*.md` — new rules format
+**Passive context (loaded automatically):**
+- `.devinrules` — compact project overview, hard-capped at 5,800 chars (Devin's 6K limit)
+- `.devin/rules/rails-context.md` — project overview (full version, also capped at 5,800 chars)
+- `.devin/rules/rails-mcp-tools.md` — MCP tool reference
+- `AGENTS.md` — Devin also reads AGENTS.md as repo-level instructions
 
-**Limits:**
-- 6,000 characters per rule file
-- 12,000 characters total (global + workspace combined)
+**MCP tools:** Must be configured manually. Devin CLI reads MCP server config from `.devin/mcp.json` in the project root.
+
+**Step 1 — Generate the Devin context files:**
+```bash
+rails ai:bridge:devin   # .devinrules + .devin/rules/
+rails ai:bridge:codex   # AGENTS.md (Devin also reads this)
+# or generate everything at once:
+rails ai:bridge
+```
+
+**Step 2 — Create `.devin/mcp.json`:**
+```json
+{
+  "mcpServers": {
+    "rails-ai-bridge": {
+      "command": "bundle",
+      "args": ["exec", "rails", "ai:serve"],
+      "cwd": "/absolute/path/to/your/rails/app"
+    }
+  }
+}
+```
+
+Replace `/absolute/path/to/your/rails/app` with the actual absolute path. The `cwd` field is required — Devin does not inherit your terminal's working directory.
+
+**Step 3 — Verify:**
+In a Devin session, ask: "What MCP tools do you have available?" Devin should report the `rails-ai-bridge` server and list tools including `rails_get_schema`, `rails_get_routes`, `rails_get_model_details`, and others.
+
+**Ruby version manager note:** If `bundle` is not found (common with `rbenv`/`rvm`), use the absolute path:
+```json
+{
+  "mcpServers": {
+    "rails-ai-bridge": {
+      "command": "/Users/yourname/.rbenv/shims/bundle",
+      "args": ["exec", "rails", "ai:serve"],
+      "cwd": "/absolute/path/to/your/rails/app"
+    }
+  }
+}
+```
+
+Or switch to the HTTP transport (see `docs/devin-setup.md` for the full Devin guide).
+
+**Commit `.devin/mcp.json`** so the MCP server configuration is shared with your team.
+
+**Regenerate context:**
+```bash
+rails ai:bridge:devin
+```
+
+See [docs/devin-setup.md](devin-setup.md) for the complete Devin guide including HTTP transport, skills integration, and troubleshooting.
+
+---
 
 ### GitHub Copilot
 
-**Context files loaded:**
-- `.github/copilot-instructions.md` — repo-wide instructions
-- `.github/instructions/*.instructions.md` — path-specific, activated by `applyTo` glob
+**Passive context (loaded automatically):**
+- `.github/copilot-instructions.md` — repo-wide instructions, loaded on every turn
+- `.github/instructions/*.instructions.md` — path-scoped instructions:
 
-**applyTo patterns:**
-| Pattern | When it activates |
-|---------|-------------------|
-| `app/models/**/*.rb` | Editing model files |
-| `app/controllers/**/*.rb` | Editing controller files |
-| `**/*` | All files (MCP tool reference) |
+| File | `applyTo` pattern | When it activates |
+|------|------------------|-------------------|
+| `rails-models.instructions.md` | `app/models/**/*.rb` | Editing model files |
+| `rails-controllers.instructions.md` | `app/controllers/**/*.rb` | Editing controller files |
+| `rails-mcp-tools.instructions.md` | `**/*` | All files |
+
+**MCP tools:** Not natively supported via `.mcp.json` in Copilot (VS Code extension). The `rails_*` tools are documented in the generated `.github/instructions/rails-mcp-tools.instructions.md` so Copilot knows about them, but cannot call them automatically.
+
+**Workaround:** Use GitHub Copilot Chat with the GitHub Copilot MCP extension if available, or switch to an MCP-capable client (Claude Code, Cursor, Devin) for work that benefits from live schema/route lookups.
+
+**Regenerate context:**
+```bash
+rails ai:bridge:copilot   # .github/copilot-instructions.md + .github/instructions/
+```
+
+---
+
+### OpenAI Codex
+
+**Passive context:**
+- `AGENTS.md` — primary context file, read by Codex at session start
+- `.codex/README.md` — local Codex setup notes generated by the install generator
+
+**MCP tools:** Configurable via `.codex/mcp_servers.json` or equivalent Codex MCP config. The generated `.codex/README.md` includes setup instructions.
+
+**Regenerate context:**
+```bash
+rails ai:bridge:codex   # AGENTS.md + .codex/README.md
+```
+
+---
+
+### Gemini
+
+**Passive context:**
+- `GEMINI.md` — project briefing and MCP tool reference
+
+**MCP tools:** Available via Gemini CLI when configured. See the [Gemini CLI documentation](https://github.com/google-gemini/gemini-cli) for MCP server setup.
+
+**Regenerate context:**
+```bash
+rails ai:bridge:gemini   # GEMINI.md
+```
 
 ---
 
