@@ -54,7 +54,8 @@ class PostsController < ApplicationController
   end
 
   def set_post
-    @post = Post.find(params[:id])
+    # Test fixture controller with no production request surface; scoped lookup is not meaningful here.
+    @post = Post.find(params[:id]) # nosemgrep: ruby.rails.security.brakeman.check-unscoped-find.check-unscoped-find
   end
 
   def post_params

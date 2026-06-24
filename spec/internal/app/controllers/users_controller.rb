@@ -54,7 +54,8 @@ class UsersController < ApplicationController
   end
 
   def set_user
-    @user = User.find(params[:id])
+    # Test fixture controller with no production request surface; scoped lookup is not meaningful here.
+    @user = User.find(params[:id]) # nosemgrep: ruby.rails.security.brakeman.check-unscoped-find.check-unscoped-find
   end
 
   def user_params
