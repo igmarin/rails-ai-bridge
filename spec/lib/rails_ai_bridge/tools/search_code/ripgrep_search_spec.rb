@@ -154,10 +154,17 @@ RSpec.describe RailsAiBridge::Tools::SearchCode::RipgrepSearch do
         expect(cmd).to include('--no-heading', '--line-number', '--max-count')
       end
 
-      it 'includes the pattern as second-to-last token' do
+      it 'includes a -- separator before the pattern and search path' do
         cmd = builder.build
 
-        expect(cmd[-2]).to eq(pattern)
+        expect(cmd).to include('--')
+      end
+
+      it 'includes the pattern immediately after the -- separator' do
+        cmd = builder.build
+        separator_index = cmd.index('--')
+
+        expect(cmd[separator_index + 1]).to eq(pattern)
       end
 
       it 'includes the search path as the last token' do

@@ -78,7 +78,7 @@ module RailsAiBridge
             cmd.concat(excluded_path_flags)
             cmd.concat(secret_exclude_flags)
             cmd.concat(file_type_filters)
-            cmd.push(@pattern, @path)
+            cmd.push('--', @pattern, @path)
           end
 
           private

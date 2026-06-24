@@ -109,11 +109,12 @@ RSpec.describe RailsAiBridge::Tools::SearchCode do
 
     it 'memoizes a missing ripgrep executable' do
       described_class.remove_instance_variable(:@ripgrep_available) if described_class.instance_variable_defined?(:@ripgrep_available)
-      allow(described_class).to receive(:system).and_return(false)
+      status = instance_double(Process::Status, success?: false)
+      allow(Open3).to receive(:capture2).with('rg', '--version').and_return(['', status])
 
       2.times { described_class.send(:ripgrep_available?) }
 
-      expect(described_class).to have_received(:system).once
+      expect(Open3).to have_received(:capture2).once
     ensure
       described_class.remove_instance_variable(:@ripgrep_available) if described_class.instance_variable_defined?(:@ripgrep_available)
     end
