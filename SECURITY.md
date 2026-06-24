@@ -39,7 +39,7 @@ please report it responsibly:
   credentials are omitted from introspection and the `rails://config` resource by
   default; set `config.expose_credentials_key_names = true` only if you accept
   that metadata exposure.
-- The gem does not make any outbound network requests.
+- The gem does not make outbound network requests except when the skill-pack registry is configured with a git source, in which case `git clone` / `git pull` fetches remote pack repositories.
 - The main risk is **information exposure**, not mutation: schema names, routes,
   controller structure, and code excerpts may still be sensitive in some environments.
 

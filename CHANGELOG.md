@@ -5,7 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.5.1]
+
+### Security
+
+- Harden `DefaultGitRunner` git commands against option injection by validating clone URL/destination and using `--` separators for `git clone`; add `nosemgrep` suppressions for documented false positives in `git pull` and `git checkout`.
+- Add `protect_from_forgery` to all test/fixture `ApplicationController` classes.
+- Replace `content_tag` with `tag.h1` in the internal test `ApplicationHelper` and rename the misleading `raw` variable in `Config::Mcp`.
+- Add `nosemgrep` comments with explanatory notes for unscoped-find false positives in internal test controllers.
+- Harden `rails_search_code` ripgrep command with a `--` separator and replace shell-based `which rg` detection with direct `rg --version` checks.
 
 ### Added
 
