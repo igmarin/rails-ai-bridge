@@ -98,8 +98,8 @@ module RailsAiBridge
 
         with_timeout('git checkout') do
           # nosemgrep: ruby.lang.security.dangerous-exec.dangerous-exec
-          # The ref is validated above and passed as a positional argument after `--`.
-          _stdout, stderr, status = Open3.capture3('git', 'checkout', '--', ref, chdir: path)
+          # The ref is validated above before being passed to git.
+          _stdout, stderr, status = Open3.capture3('git', 'checkout', ref, chdir: path)
           fail_with_sanitized_error!('git checkout', stderr) unless status.success?
         end
       end

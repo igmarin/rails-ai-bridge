@@ -641,9 +641,9 @@ RSpec.describe RailsAiBridge::Registry::DefaultGitRunner do
   end
 
   describe '#checkout_ref' do
-    it 'calls git checkout with -- separator, the ref and chdir option' do
+    it 'calls git checkout with the ref and chdir option' do
       allow(Open3).to receive(:capture3)
-        .with('git', 'checkout', '--', 'v1.2.3', chdir: '/tmp/pack')
+        .with('git', 'checkout', 'v1.2.3', chdir: '/tmp/pack')
         .and_return(['', '', succeeding_status])
 
       expect { runner.checkout_ref('/tmp/pack', 'v1.2.3') }.not_to raise_error
@@ -651,7 +651,7 @@ RSpec.describe RailsAiBridge::Registry::DefaultGitRunner do
 
     it 'raises RuntimeError when git checkout exits non-zero' do
       allow(Open3).to receive(:capture3)
-        .with('git', 'checkout', '--', 'bad-ref', chdir: '/tmp/pack')
+        .with('git', 'checkout', 'bad-ref', chdir: '/tmp/pack')
         .and_return(['', 'error: pathspec did not match', failing_status])
 
       expect { runner.checkout_ref('/tmp/pack', 'bad-ref') }
@@ -660,7 +660,7 @@ RSpec.describe RailsAiBridge::Registry::DefaultGitRunner do
 
     it 'does not embed raw stderr in the error message' do
       allow(Open3).to receive(:capture3)
-        .with('git', 'checkout', '--', 'bad-ref', chdir: '/tmp/pack')
+        .with('git', 'checkout', 'bad-ref', chdir: '/tmp/pack')
         .and_return(['', 'error: pathspec did not match', failing_status])
 
       expect { runner.checkout_ref('/tmp/pack', 'bad-ref') }
@@ -686,7 +686,7 @@ RSpec.describe RailsAiBridge::Registry::DefaultGitRunner do
 
       it 'allows valid branch names that do not start with a dash' do
         allow(Open3).to receive(:capture3)
-          .with('git', 'checkout', '--', 'main', chdir: '/tmp/pack')
+          .with('git', 'checkout', 'main', chdir: '/tmp/pack')
           .and_return(['', '', succeeding_status])
 
         expect { runner.checkout_ref('/tmp/pack', 'main') }.not_to raise_error
@@ -694,7 +694,7 @@ RSpec.describe RailsAiBridge::Registry::DefaultGitRunner do
 
       it 'allows valid SHA refs' do
         allow(Open3).to receive(:capture3)
-          .with('git', 'checkout', '--', 'abc1234def5678', chdir: '/tmp/pack')
+          .with('git', 'checkout', 'abc1234def5678', chdir: '/tmp/pack')
           .and_return(['', '', succeeding_status])
 
         expect { runner.checkout_ref('/tmp/pack', 'abc1234def5678') }.not_to raise_error
