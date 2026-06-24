@@ -63,8 +63,11 @@ module RailsAiBridge
       # @raise [RuntimeError] if git clone command fails, returns non-zero, or times out
       # @return [void]
       def clone_repo(url, dest)
+        raise ArgumentError, "Invalid git URL #{url.inspect}: URLs must not start with '-'" if url.start_with?('-')
+        raise ArgumentError, "Invalid destination #{dest.inspect}: paths must not start with '-'" if dest.to_s.start_with?('-')
+
         with_timeout('git clone') do
-          _stdout, stderr, status = Open3.capture3('git', 'clone', url, dest)
+          _stdout, stderr, status = Open3.capture3('git', 'clone', '--', url, dest)
           fail_with_sanitized_error!('git clone', stderr) unless status.success?
         end
       end
@@ -76,6 +79,8 @@ module RailsAiBridge
       # @return [void]
       def pull_repo(path)
         with_timeout('git pull') do
+          # nosemgrep: ruby.lang.security.dangerous-exec.dangerous-exec
+          # Command is fully static; only the chdir option is a validated directory path.
           _stdout, stderr, status = Open3.capture3('git', 'pull', chdir: path)
           fail_with_sanitized_error!('git pull', stderr) unless status.success?
         end
@@ -92,7 +97,9 @@ module RailsAiBridge
         raise ArgumentError, "Invalid ref #{ref.inspect}: refs must not start with '-'" if ref.start_with?('-')
 
         with_timeout('git checkout') do
-          _stdout, stderr, status = Open3.capture3('git', 'checkout', ref, chdir: path)
+          # nosemgrep: ruby.lang.security.dangerous-exec.dangerous-exec
+          # The ref is validated above and passed as a positional argument after `--`.
+          _stdout, stderr, status = Open3.capture3('git', 'checkout', '--', ref, chdir: path)
           fail_with_sanitized_error!('git checkout', stderr) unless status.success?
         end
       end
