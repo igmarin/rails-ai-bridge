@@ -74,6 +74,8 @@ module RailsAiBridge
         return @ripgrep_available if instance_variable_defined?(:@ripgrep_available)
 
         @ripgrep_available = Open3.capture2('rg', '--version').last.success?
+      rescue Errno::ENOENT
+        @ripgrep_available = false
       end
 
       def self.with_search_timeout(&)

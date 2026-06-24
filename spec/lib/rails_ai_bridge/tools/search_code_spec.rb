@@ -118,5 +118,14 @@ RSpec.describe RailsAiBridge::Tools::SearchCode do
     ensure
       described_class.remove_instance_variable(:@ripgrep_available) if described_class.instance_variable_defined?(:@ripgrep_available)
     end
+
+    it 'returns false when rg is not on PATH' do
+      described_class.remove_instance_variable(:@ripgrep_available) if described_class.instance_variable_defined?(:@ripgrep_available)
+      allow(Open3).to receive(:capture2).with('rg', '--version').and_raise(Errno::ENOENT)
+
+      expect(described_class.send(:ripgrep_available?)).to be false
+    ensure
+      described_class.remove_instance_variable(:@ripgrep_available) if described_class.instance_variable_defined?(:@ripgrep_available)
+    end
   end
 end
