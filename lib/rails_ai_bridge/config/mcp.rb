@@ -87,19 +87,19 @@ module RailsAiBridge
       #
       # @return [Integer]
       def effective_http_rate_limit_max_requests
-        raw = @rate_limit_max_requests
+        configured_value = @rate_limit_max_requests
 
-        case raw
+        case configured_value
         when Integer
-          return 0 if raw <= 0
+          return 0 if configured_value <= 0
 
-          raw
+          configured_value
         when nil
           return 0 if http_rate_limit_implicitly_suppressed?
 
           security_profile_rate_limit_max
         else
-          n = raw.to_i
+          n = configured_value.to_i
           return 0 if n <= 0
 
           n
