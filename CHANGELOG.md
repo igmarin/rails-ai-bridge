@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `nosemgrep` comments with explanatory notes for unscoped-find false positives in internal test controllers.
 - Harden `rails_search_code` ripgrep command with a `--` separator and replace shell-based `which rg` detection with direct `rg --version` checks.
 
+## [3.5.0]
+
 ### Added
 
 - **`git_timeout` for git operations** — `Config::Registry#git_timeout` (default `30` seconds) is
