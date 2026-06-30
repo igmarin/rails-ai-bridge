@@ -16,11 +16,15 @@ module RailsAiBridge
                        Mcp::HttpRateLimiter.new(max_requests: max_reqs,
                                                 window_seconds: window_sec)
                      end
+        cors_origins = Array(mcp_cfg.cors_origins).reject(&:empty?)
 
         lambda do |env|
           return [404, { 'Content-Type' => 'application/json' }, ['{"error":"Not found"}']] unless [path, "#{path}/"].include?(env['PATH_INFO'])
 
           request = Rack::Request.new(env)
+          cors_headers = build_cors_headers(request.get_header('HTTP_ORIGIN'), cors_origins)
+
+          return [204, cors_headers, ['']] if request.request_method == 'OPTIONS' && cors_headers
 
           if mcp_cfg.require_http_auth && !Mcp::Authenticator.any_configured?
             Mcp::HttpStructuredLog.emit(request: request, event: :unauthorized, http_status: 401)
@@ -58,8 +62,28 @@ module RailsAiBridge
 
           response = transport.handle_request(request)
           Mcp::HttpStructuredLog.emit(request: request, event: :handled, http_status: response.first)
+          response[1].merge!(cors_headers) if cors_headers
           response
         end
+      end
+
+      private
+
+      # Builds CORS response headers when the request origin is allowed.
+      #
+      # @param origin [String, nil] value of the Origin header
+      # @param cors_origins [Array<String>] configured allowed origins
+      # @return [Hash{String => String}, nil] headers to add, or +nil+ when CORS is disabled/unmatched
+      def build_cors_headers(origin, cors_origins)
+        return nil if cors_origins.empty?
+        return nil if origin.blank?
+        return nil unless cors_origins.include?('*') || cors_origins.include?(origin)
+
+        {
+          'Access-Control-Allow-Origin' => origin,
+          'Access-Control-Allow-Methods' => 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers' => 'Authorization, Content-Type'
+        }
       end
     end
   end

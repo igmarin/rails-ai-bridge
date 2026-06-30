@@ -188,6 +188,11 @@ module RailsAiBridge
             # Timing-safe token comparison is built in, but add rate limiting too
             # (e.g. Rack::Attack throttle on config.http_path) to prevent brute-force.
             #
+            # CORS for browser-based AI clients connecting over SSE.
+            # Default is nil (no CORS headers). Set to ['*'] to allow any origin,
+            # or to a list of exact origins such as ['https://app.example.com'].
+            # config.mcp.cors_origins = ['https://app.example.com']
+            #
             # config.auto_mount = false
             # config.allow_auto_mount_in_production = false
             # config.http_path = "/mcp"

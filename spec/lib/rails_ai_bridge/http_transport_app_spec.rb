@@ -12,6 +12,7 @@ RSpec.describe RailsAiBridge::HttpTransportApp do
     saved_log      = RailsAiBridge.configuration.mcp.http_log_json
     saved_authorize = RailsAiBridge.configuration.mcp.authorize
     saved_require_http_auth = RailsAiBridge.configuration.mcp.require_http_auth
+    saved_cors_origins = RailsAiBridge.configuration.mcp.cors_origins
     example.run
   ensure
     RailsAiBridge.configuration.http_mcp_token = saved_token
@@ -19,6 +20,7 @@ RSpec.describe RailsAiBridge::HttpTransportApp do
     RailsAiBridge.configuration.mcp.http_log_json = saved_log
     RailsAiBridge.configuration.mcp.authorize = saved_authorize
     RailsAiBridge.configuration.mcp.require_http_auth = saved_require_http_auth
+    RailsAiBridge.configuration.mcp.cors_origins = saved_cors_origins
   end
 
   describe '.build' do
@@ -159,6 +161,79 @@ RSpec.describe RailsAiBridge::HttpTransportApp do
 
       allow(Rails.logger).to receive(:info).at_least(:once)
       app.call(env)
+    end
+
+    it 'returns no CORS headers by default' do
+      RailsAiBridge.configuration.http_mcp_token = 'secret'
+      allow(transport).to receive(:handle_request).and_return([200, {}, ['OK']])
+      app = described_class.build(transport: transport, path: '/mcp')
+
+      env = Rack::MockRequest.env_for(
+        '/mcp',
+        method: 'POST',
+        'HTTP_AUTHORIZATION' => 'Bearer secret',
+        'HTTP_ORIGIN' => 'https://example.com'
+      )
+
+      _status, headers, = app.call(env)
+
+      expect(headers).not_to have_key('Access-Control-Allow-Origin')
+    end
+
+    it 'adds CORS headers for allowed origins' do
+      RailsAiBridge.configuration.http_mcp_token = 'secret'
+      RailsAiBridge.configuration.mcp.cors_origins = ['https://example.com']
+      allow(transport).to receive(:handle_request).and_return([200, {}, ['OK']])
+      app = described_class.build(transport: transport, path: '/mcp')
+
+      env = Rack::MockRequest.env_for(
+        '/mcp',
+        method: 'POST',
+        'HTTP_AUTHORIZATION' => 'Bearer secret',
+        'HTTP_ORIGIN' => 'https://example.com'
+      )
+
+      _status, headers, = app.call(env)
+
+      expect(headers['Access-Control-Allow-Origin']).to eq('https://example.com')
+      expect(headers['Access-Control-Allow-Methods']).to eq('GET, POST, OPTIONS')
+    end
+
+    it 'handles CORS preflight requests without auth' do
+      RailsAiBridge.configuration.mcp.cors_origins = ['https://example.com']
+      allow(transport).to receive(:handle_request)
+      app = described_class.build(transport: transport, path: '/mcp')
+
+      env = Rack::MockRequest.env_for(
+        '/mcp',
+        method: 'OPTIONS',
+        'HTTP_ORIGIN' => 'https://example.com'
+      )
+
+      status, headers, body = app.call(env)
+
+      expect(status).to eq(204)
+      expect(headers['Access-Control-Allow-Origin']).to eq('https://example.com')
+      expect(body.first).to be_empty
+      expect(transport).not_to have_received(:handle_request)
+    end
+
+    it 'rejects CORS requests from disallowed origins' do
+      RailsAiBridge.configuration.http_mcp_token = 'secret'
+      RailsAiBridge.configuration.mcp.cors_origins = ['https://allowed.com']
+      allow(transport).to receive(:handle_request).and_return([200, {}, ['OK']])
+      app = described_class.build(transport: transport, path: '/mcp')
+
+      env = Rack::MockRequest.env_for(
+        '/mcp',
+        method: 'POST',
+        'HTTP_AUTHORIZATION' => 'Bearer secret',
+        'HTTP_ORIGIN' => 'https://denied.com'
+      )
+
+      _status, headers, = app.call(env)
+
+      expect(headers).not_to have_key('Access-Control-Allow-Origin')
     end
   end
 end
