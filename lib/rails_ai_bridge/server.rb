@@ -50,9 +50,14 @@ module RailsAiBridge
     end
 
     # Returns all available tool classes including additional configured tools.
-    # @return [Array<Class>] list of tool classes
+    # When tool result caching is enabled, built-in and additional tools are wrapped
+    # so identical argument fingerprints reuse cached +MCP::Tool::Response+ objects.
+    #
+    # @return [Array<Class, ToolResultCache::CachedTool>] list of tool classes
     def tool_classes
-      TOOLS + RailsAiBridge.configuration.additional_tools
+      (TOOLS + RailsAiBridge.configuration.additional_tools).map do |tool_class|
+        ToolResultCache.maybe_wrap(tool_class)
+      end
     end
 
     # Build and return the configured MCP::Server instance.

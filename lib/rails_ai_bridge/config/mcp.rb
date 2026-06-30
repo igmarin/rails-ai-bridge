@@ -74,6 +74,11 @@ module RailsAiBridge
       # @return [Array<String>, nil]
       attr_accessor :cors_origins
 
+      # TTL in seconds for MCP tool result caching by argument fingerprint.
+      # +0+ or negative disables caching. Default +0+ to keep existing behavior.
+      # @return [Integer]
+      attr_accessor :tool_result_cache_ttl
+
       def initialize
         @mode                     = :hybrid
         @security_profile         = :balanced
@@ -83,7 +88,13 @@ module RailsAiBridge
         @authorize                = nil
         @require_auth_in_production = false
         @require_http_auth          = false
-        @cors_origins = nil
+        @cors_origins             = nil
+        @tool_result_cache_ttl    = 0
+      end
+
+      # @return [Boolean] whether tool call results should be cached
+      def tool_result_cache_enabled?
+        tool_result_cache_ttl.to_i.positive?
       end
 
       # Effective rate-limit ceiling for {HttpTransportApp} (+0+ means disabled).
