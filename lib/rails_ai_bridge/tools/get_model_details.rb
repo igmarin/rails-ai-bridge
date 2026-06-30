@@ -21,6 +21,11 @@ module RailsAiBridge
             enum: %w[summary standard full],
             description: 'Detail level for model listing. summary: names only. standard: names + association/validation counts (default). full: names + full association list.
             Ignored when specific model is given (always returns full).'
+          },
+          format: {
+            type: 'string',
+            enum: %w[json markdown],
+            description: 'Output format. Default: markdown.'
           }
         }
       )
@@ -37,13 +42,13 @@ module RailsAiBridge
       # @param detail [String] +summary+, +standard+, or +full+ when listing (ignored when +model+ is set)
       # @param _server_context [Object, nil] reserved for MCP transport metadata (unused)
       # @return [MCP::Tool::Response] Markdown body or an error string wrapped for the MCP client
-      def self.call(model: nil, detail: 'standard', _server_context: nil)
+      def self.call(model: nil, detail: 'standard', format: 'markdown', _server_context: nil)
         models = cached_section(:models)
         return text_response('Model introspection not available. Add :models to introspectors.') unless models
         return text_response("Model introspection failed: #{models[:error]}") if models[:error]
 
         non_ar = cached_section(:non_ar_models)
-        formatter = ResponseFormatter.new(models, model: model, detail: detail, non_ar_models: non_ar)
+        formatter = ResponseFormatter.new(models, model: model, detail: detail, format: format, non_ar_models: non_ar)
         return text_response(formatter.model_not_found_message) if formatter.model_not_found?
         return text_response(formatter.model_error_message) if formatter.model_error?
 
@@ -57,10 +62,11 @@ module RailsAiBridge
         # @param model [String, nil] requested single-model name
         # @param detail [String] list detail level when +model+ is +nil+
         # @param non_ar_models [Hash, nil] +:non_ar_models+ introspection section (may be +nil+ if disabled)
-        def initialize(models, model:, detail:, non_ar_models: nil)
+        def initialize(models, model:, detail:, format:, non_ar_models: nil)
           @models = models
           @model = model
           @detail = detail
+          @format = format
           @non_ar_models = non_ar_models
         end
 
@@ -89,8 +95,10 @@ module RailsAiBridge
           "Error inspecting #{model_key}: #{model_data[:error]}"
         end
 
-        # @return [String] Markdown for one model, POJO stub, or full listing
+        # @return [String] Markdown/JSON for one model, POJO stub, or full listing
         def format
+          return json_payload if @format == 'json'
+
           if @model
             return pojo_detail_markdown if pojo_entry && !model_data
 
@@ -106,6 +114,16 @@ module RailsAiBridge
         end
 
         private
+
+        def json_payload
+          if @model
+            return pojo_entry.to_h.to_json if pojo_entry && !model_data
+
+            model_data.to_json
+          else
+            @models.to_json
+          end
+        end
 
         def pojo_entry
           return @pojo_entry if defined?(@pojo_entry)

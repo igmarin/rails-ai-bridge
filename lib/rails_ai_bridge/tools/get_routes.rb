@@ -26,6 +26,11 @@ module RailsAiBridge
           offset: {
             type: 'integer',
             description: 'Skip routes for pagination. Default: 0.'
+          },
+          format: {
+            type: 'string',
+            enum: %w[json markdown],
+            description: 'Output format. Default: markdown.'
           }
         }
       )
@@ -38,12 +43,13 @@ module RailsAiBridge
       # @param offset [Integer] pagination offset
       # @param _server_context [Object, nil] reserved for MCP transport metadata (unused)
       # @return [MCP::Tool::Response] markdown routes output or an error message
-      def self.call(controller: nil, detail: 'standard', limit: nil, offset: 0, _server_context: nil)
+      def self.call(controller: nil, detail: 'standard', limit: nil, offset: 0, format: 'markdown', _server_context: nil)
         routes = cached_section(:routes)
         return text_response('Route introspection not available. Add :routes to introspectors.') unless routes
         return text_response("Route introspection failed: #{routes[:error]}") if routes[:error]
 
-        formatter = ResponseFormatter.new(routes, controller: controller, detail: detail, limit: limit, offset: offset)
+        formatter = ResponseFormatter.new(routes, controller: controller, detail: detail, limit: limit, offset: offset,
+                                                  format: format)
         return text_response(formatter.filter_error_message) if formatter.filter_error?
 
         text_response(formatter.format)
@@ -52,12 +58,13 @@ module RailsAiBridge
       # @private
       # Formats +:routes+ introspection for {GetRoutes}.
       class ResponseFormatter
-        def initialize(routes, controller:, detail:, limit:, offset:)
+        def initialize(routes, controller:, detail:, limit:, offset:, format:)
           @routes = routes
           @controller = controller
           @detail = detail
           @limit = limit
           @offset = [offset.to_i, 0].max
+          @format = format
           @by_controller = filter_by_controller
         end
 
@@ -70,6 +77,8 @@ module RailsAiBridge
         end
 
         def format
+          return json_payload if @format == 'json'
+
           case @detail
           when 'summary' then format_summary
           when 'standard' then format_standard
@@ -79,6 +88,14 @@ module RailsAiBridge
         end
 
         private
+
+        def json_payload
+          {
+            total: route_count,
+            offset: @offset,
+            controllers: @by_controller.sort.to_h
+          }.to_json
+        end
 
         def filter_by_controller
           return @routes[:by_controller] || {} unless @controller

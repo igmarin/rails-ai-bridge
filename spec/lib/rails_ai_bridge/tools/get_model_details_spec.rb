@@ -121,5 +121,42 @@ RSpec.describe RailsAiBridge::Tools::GetModelDetails do
         expect(content).to include('[POJO/Service]')
       end
     end
+
+    context "with format: 'json'" do
+      let(:params) { { format: 'json' } }
+
+      it 'returns all models as JSON' do
+        parsed = JSON.parse(content)
+        expect(parsed.keys).to contain_exactly('User', 'Post')
+        expect(parsed['User']['table_name']).to eq('users')
+      end
+    end
+
+    context "with format: 'json' for a specific model" do
+      let(:params) { { model: 'User', format: 'json' } }
+
+      it 'returns the model data as JSON' do
+        parsed = JSON.parse(content)
+        expect(parsed['table_name']).to eq('users')
+        expect(parsed['associations'].first['name']).to eq('posts')
+      end
+    end
+
+    context "with format: 'json' for a non-AR model" do
+      let(:non_ar_empty) do
+        {
+          non_ar_models: [
+            { name: 'OrderCalculator', relative_path: 'app/models/order_calculator.rb', tag: 'POJO/Service' }
+          ]
+        }
+      end
+      let(:params) { { model: 'OrderCalculator', format: 'json' } }
+
+      it 'returns the POJO entry as JSON' do
+        parsed = JSON.parse(content)
+        expect(parsed['name']).to eq('OrderCalculator')
+        expect(parsed['tag']).to eq('POJO/Service')
+      end
+    end
   end
 end
