@@ -321,6 +321,133 @@ RSpec.describe RailsAiBridge::Registry::PackResolver do
       end
     end
 
+    context 'lockfile verification' do
+      around do |example|
+        saved_mode = RailsAiBridge.configuration.registry.lockfile_verification
+        example.run
+      ensure
+        RailsAiBridge.configuration.registry.lockfile_verification = saved_mode
+      end
+
+      it 'raises when the resolved commit does not match the lockfile in strict mode' do
+        packs = {
+          'core' => RailsAiBridge::Registry::PackDefinition.new(
+            source: 'dummy/core',
+            tile: 'directory.json',
+            always_loaded: false,
+            depends_on: [],
+            ref: nil
+          )
+        }
+
+        manifest = RailsAiBridge::Registry::RegistryManifest.new(
+          version: '1.0.0',
+          packs: packs,
+          default_stack: []
+        )
+
+        allow(mock_git_runner).to receive(:clone_repo) do |_url, dest|
+          FileUtils.mkdir_p(dest)
+          create_mock_tile(dest, name: 'core')
+        end
+        allow(mock_git_runner).to receive(:pull_repo)
+        allow(source_resolver).to receive(:current_commit).and_return('mismatch-sha')
+
+        lockfile = RailsAiBridge::Registry::Lockfile.new(
+          'core' => RailsAiBridge::Registry::Lockfile::Entry.new(
+            pack_name: 'core',
+            source: 'dummy/core',
+            ref: nil,
+            commit_sha: 'expected-sha'
+          )
+        )
+
+        RailsAiBridge.configuration.registry.lockfile_verification = :strict
+        service = described_class.new(source_resolver, RailsAiBridge::Registry::PackDetector, lockfile)
+
+        expect { service.resolve(manifest, ['core'], nil) }
+          .to raise_error(/Lockfile mismatch for pack 'core'/)
+      end
+
+      it 'warns and continues in warn mode' do
+        packs = {
+          'core' => RailsAiBridge::Registry::PackDefinition.new(
+            source: 'dummy/core',
+            tile: 'directory.json',
+            always_loaded: false,
+            depends_on: [],
+            ref: nil
+          )
+        }
+
+        manifest = RailsAiBridge::Registry::RegistryManifest.new(
+          version: '1.0.0',
+          packs: packs,
+          default_stack: []
+        )
+
+        allow(mock_git_runner).to receive(:clone_repo) do |_url, dest|
+          FileUtils.mkdir_p(dest)
+          create_mock_tile(dest, name: 'core')
+        end
+        allow(mock_git_runner).to receive(:pull_repo)
+        allow(source_resolver).to receive(:current_commit).and_return('mismatch-sha')
+
+        lockfile = RailsAiBridge::Registry::Lockfile.new(
+          'core' => RailsAiBridge::Registry::Lockfile::Entry.new(
+            pack_name: 'core',
+            source: 'dummy/core',
+            ref: nil,
+            commit_sha: 'expected-sha'
+          )
+        )
+
+        RailsAiBridge.configuration.registry.lockfile_verification = :warn
+        service = described_class.new(source_resolver, RailsAiBridge::Registry::PackDetector, lockfile)
+
+        expect { service.resolve(manifest, ['core'], nil) }.to output(/Lockfile mismatch for pack 'core'/).to_stderr
+      end
+
+      it 'skips verification when disabled' do
+        packs = {
+          'core' => RailsAiBridge::Registry::PackDefinition.new(
+            source: 'dummy/core',
+            tile: 'directory.json',
+            always_loaded: false,
+            depends_on: [],
+            ref: nil
+          )
+        }
+
+        manifest = RailsAiBridge::Registry::RegistryManifest.new(
+          version: '1.0.0',
+          packs: packs,
+          default_stack: []
+        )
+
+        allow(mock_git_runner).to receive(:clone_repo) do |_url, dest|
+          FileUtils.mkdir_p(dest)
+          create_mock_tile(dest, name: 'core')
+        end
+        allow(mock_git_runner).to receive(:pull_repo)
+        allow(source_resolver).to receive(:current_commit).and_return('mismatch-sha')
+
+        lockfile = RailsAiBridge::Registry::Lockfile.new(
+          'core' => RailsAiBridge::Registry::Lockfile::Entry.new(
+            pack_name: 'core',
+            source: 'dummy/core',
+            ref: nil,
+            commit_sha: 'expected-sha'
+          )
+        )
+
+        RailsAiBridge.configuration.registry.lockfile_verification = :disabled
+        service = described_class.new(source_resolver, RailsAiBridge::Registry::PackDetector, lockfile)
+
+        expect { service.resolve(manifest, ['core'], nil) }.not_to output.to_stderr
+      end
+    end
+
     context 'error handling' do
       it 'handles tile file read errors' do
         packs = {

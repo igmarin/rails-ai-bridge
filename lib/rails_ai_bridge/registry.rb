@@ -18,6 +18,7 @@ require_relative 'registry/resolver'
 require_relative 'registry/source_parser'
 require_relative 'registry/skill_source_resolver'
 require_relative 'registry/pack_resolver'
+require_relative 'registry/lockfile'
 require_relative 'registry/resolver_cache'
 require_relative 'registry/rake_presenter'
 
@@ -79,6 +80,23 @@ module RailsAiBridge
     # @return [Resolver, nil] wired resolver, or nil if manifest file is missing
     def self.build_resolver(config = RailsAiBridge.configuration.registry)
       resolver_cache.fetch(config) { build_resolver_uncached(config) }
+    end
+
+    # Writes a lockfile containing the current HEAD commit SHA for every pack in
+    # the registry manifest.
+    #
+    # @param config [RailsAiBridge::Config::Registry] registry configuration
+    # @return [void]
+    # @raise [ArgumentError] when the manifest file does not exist
+    def self.write_lockfile(config = RailsAiBridge.configuration.registry)
+      manifest_path = config.registry_manifest_path
+      raise ArgumentError, "Registry manifest not found at #{manifest_path}" unless File.exist?(manifest_path)
+
+      manifest = RegistryManifest.from_file(manifest_path)
+      git_runner = DefaultGitRunner.new(timeout: config.git_timeout)
+      source_resolver = SkillSourceResolver.new(config.skill_cache_dir, git_runner, pull_ttl: config.git_pull_ttl)
+
+      Lockfile.write(config.lockfile_path, manifest, source_resolver)
     end
 
     # @api private

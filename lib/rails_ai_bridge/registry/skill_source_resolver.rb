@@ -39,6 +39,15 @@ module RailsAiBridge
       def checkout_ref(_path, _ref)
         raise NotImplementedError
       end
+
+      # Returns the current HEAD commit SHA for the repository at +_path+.
+      #
+      # @param _path [String] path to the local repository
+      # @raise [StandardError] if the commit cannot be determined
+      # @return [String] 40-character hex commit SHA
+      def current_commit(_path)
+        raise NotImplementedError
+      end
     end
 
     # Default implementation of {GitRunner} using Open3 to spawn git subprocesses.
@@ -82,6 +91,20 @@ module RailsAiBridge
           # Command is fully static; only the chdir option is a validated directory path.
           _stdout, stderr, status = Open3.capture3('git', 'pull', chdir: path) # nosemgrep: ruby.lang.security.dangerous-exec.dangerous-exec
           fail_with_sanitized_error!('git pull', stderr) unless status.success?
+        end
+      end
+
+      # Returns the current HEAD commit SHA for the repository at +path+.
+      #
+      # @param path [String] path to the local repository
+      # @raise [RuntimeError] if the git command fails or returns non-zero
+      # @return [String] 40-character hex commit SHA
+      def current_commit(path)
+        with_timeout('git rev-parse') do
+          stdout, stderr, status = Open3.capture3('git', 'rev-parse', 'HEAD', chdir: path) # nosemgrep: ruby.lang.security.dangerous-exec.dangerous-exec
+          fail_with_sanitized_error!('git rev-parse', stderr) unless status.success?
+
+          stdout.strip
         end
       end
 
@@ -230,6 +253,17 @@ module RailsAiBridge
 
         perform_checkout_ref(source, cache_path, ref) if ref
         cache_path
+      end
+
+      # Returns the current HEAD commit SHA for the repository at +path+.
+      #
+      # @param path [String] path to the local repository
+      # @return [String] 40-character hex commit SHA
+      # @raise [ResolutionError] if the commit cannot be read
+      def current_commit(path)
+        @git_runner.current_commit(path)
+      rescue StandardError => error
+        raise ResolutionError, "failed to read current commit for pack at #{path}: #{error.message}"
       end
 
       private

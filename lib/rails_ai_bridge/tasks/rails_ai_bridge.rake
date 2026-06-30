@@ -280,6 +280,19 @@ namespace :ai do
 end
 
 namespace :ai do
+  namespace :registry do
+    desc 'Generate or update the skill pack lockfile (config/rails_ai_bridge/directory.lock)'
+    task lockfile: :environment do
+      require 'rails_ai_bridge'
+
+      config = RailsAiBridge.configuration.registry
+      RailsAiBridge::Registry.write_lockfile(config)
+      puts "📝 Wrote skill pack lockfile to #{config.lockfile_path}"
+    end
+  end
+end
+
+namespace :ai do
   namespace :skills do
     desc 'List all available skills from configured skill packs'
     task list: :environment do
