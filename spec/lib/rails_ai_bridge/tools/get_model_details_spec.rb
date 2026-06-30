@@ -37,6 +37,16 @@ RSpec.describe RailsAiBridge::Tools::GetModelDetails do
       end
     end
 
+    context 'by default' do
+      let(:params) { {} }
+
+      it 'uses summary detail' do
+        expect(content).to include('# Available models (2)')
+        expect(content).to include('- Post')
+        expect(content).to include('- User')
+      end
+    end
+
     context "with detail: 'summary'" do
       let(:params) { { detail: 'summary' } }
 
@@ -123,7 +133,7 @@ RSpec.describe RailsAiBridge::Tools::GetModelDetails do
     end
 
     context "with format: 'json'" do
-      let(:params) { { format: 'json' } }
+      let(:params) { { format: 'json', detail: 'standard' } }
 
       it 'returns all models as JSON' do
         parsed = JSON.parse(content)

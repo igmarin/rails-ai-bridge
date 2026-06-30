@@ -61,6 +61,15 @@ RSpec.describe RailsAiBridge::Tools::GetSchema do
       end
     end
 
+    context 'by default' do
+      let(:params) { {} }
+
+      it 'uses summary detail' do
+        expect(content).to include('# Schema Summary (2 tables)')
+        expect(content).to include('- **users** — 1 columns, 0 indexes')
+      end
+    end
+
     context 'when schema is not available' do
       let(:schema_data) { nil }
       let(:params) { {} }

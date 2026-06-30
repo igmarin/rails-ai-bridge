@@ -17,7 +17,7 @@ module RailsAiBridge
           detail: {
             type: 'string',
             enum: %w[summary standard full],
-            description: 'Detail level. summary: table names + column counts. standard: table names + column names/types (default). ' \
+            description: 'Detail level. summary: table names + column counts (default). standard: table names + column names/types. ' \
                          'full: everything including indexes, FKs, comments.'
           },
           limit: {
@@ -50,7 +50,7 @@ module RailsAiBridge
       # @param format [String] +markdown+ or +json+
       # @param _server_context [Object, nil] reserved for MCP transport metadata (unused)
       # @return [MCP::Tool::Response] schema markdown/JSON or an error message
-      def self.call(table: nil, detail: 'standard', limit: nil, offset: 0, format: 'markdown', _server_context: nil)
+      def self.call(table: nil, detail: 'summary', limit: nil, offset: 0, format: 'markdown', _server_context: nil)
         schema = cached_section(:schema)
         return text_response('Schema introspection not available. Add :schema to introspectors.') unless schema
         return text_response("Schema introspection not available: #{schema[:error]}") if schema[:error]

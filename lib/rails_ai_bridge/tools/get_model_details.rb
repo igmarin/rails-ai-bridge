@@ -19,7 +19,7 @@ module RailsAiBridge
           detail: {
             type: 'string',
             enum: %w[summary standard full],
-            description: 'Detail level for model listing. summary: names only. standard: names + association/validation counts (default). full: names + full association list.
+            description: 'Detail level for model listing. summary: names only (default). standard: names + association/validation counts. full: names + full association list.
             Ignored when specific model is given (always returns full).'
           },
           format: {
@@ -42,7 +42,7 @@ module RailsAiBridge
       # @param detail [String] +summary+, +standard+, or +full+ when listing (ignored when +model+ is set)
       # @param _server_context [Object, nil] reserved for MCP transport metadata (unused)
       # @return [MCP::Tool::Response] Markdown body or an error string wrapped for the MCP client
-      def self.call(model: nil, detail: 'standard', format: 'markdown', _server_context: nil)
+      def self.call(model: nil, detail: 'summary', format: 'markdown', _server_context: nil)
         models = cached_section(:models)
         return text_response('Model introspection not available. Add :models to introspectors.') unless models
         return text_response("Model introspection failed: #{models[:error]}") if models[:error]
