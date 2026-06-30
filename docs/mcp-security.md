@@ -14,6 +14,35 @@ By default, HTTP MCP allows anonymous access when no auth strategy is configured
 
 Built-in rate limiting keys off the Rack request IP. Behind reverse proxies, configure Rails `trusted_proxies` so `request.ip` reflects the real client; otherwise limits may apply to the wrong address or be bypassed.
 
+### Single-process deployments
+
+The default in-memory limiter works for one Puma worker or a single-process server. Configure the ceiling and window via `config.mcp.rate_limit_max_requests` and `config.mcp.rate_limit_window_seconds`.
+
+### Multi-process or multi-host deployments
+
+The default in-memory limiter is not shared across Puma workers or hosts. For distributed deployments, plug in `RailsAiBridge::Mcp::CacheRateLimiter`, which uses `Rails.cache` (Redis, Memcached, etc.) as the shared counter backend:
+
+```ruby
+RailsAiBridge.configure do |config|
+  config.mcp.rate_limiter = RailsAiBridge::Mcp::CacheRateLimiter.new(
+    max_requests: 300,
+    window_seconds: 60,
+    cache: Rails.cache,
+    key_prefix: "rab:rl"
+  )
+end
+```
+
+Alternatively, use `Rack::Attack` in front of the MCP endpoint for centralized, proxy-aware throttling:
+
+```ruby
+class Rack::Attack
+  throttle("mcp/ip", limit: 300, period: 60) do |request|
+    request.ip if request.path == "/mcp"
+  end
+end
+```
+
 ## Optional authorization after auth
 
 `config.mcp.authorize` can return false to issue `403` for otherwise valid tokens (e.g. tenant or role checks).
