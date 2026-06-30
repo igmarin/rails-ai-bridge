@@ -122,14 +122,18 @@ RSpec.describe RailsAiBridge::Introspectors::AuthIntrospector do
       before do
         FileUtils.mkdir_p(models_dir)
         FileUtils.mkdir_p(policies_dir)
+        FileUtils.mkdir_p(app_root.join('app/controllers/concerns'))
         File.write(models_dir.join('current.rb'), 'class Current < ActiveSupport::CurrentAttributes; end')
         File.write(models_dir.join('session.rb'), 'class Session < ApplicationRecord; end')
         File.write(models_dir.join('user.rb'), <<~RUBY)
           class User < ApplicationRecord
             devise :database_authenticatable
             has_secure_password
+            generates_token_for :password_reset
+            normalizes :email
           end
         RUBY
+        File.write(app_root.join('app/controllers/concerns/authentication.rb'), 'module Authentication; end')
         File.write(models_dir.join('ability.rb'), 'class Ability; end')
         File.write(policies_dir.join('order_policy.rb'), 'class OrderPolicy; end')
       end
@@ -137,7 +141,11 @@ RSpec.describe RailsAiBridge::Introspectors::AuthIntrospector do
       it 'detects authentication and authorization outside conventional app paths' do
         custom_result = described_class.new(custom_app).call
 
-        expect(custom_result[:authentication][:rails_auth]).to be true
+        expect(custom_result[:authentication][:rails_auth]).to include(
+          authentication_concern: true,
+          token_for: [{ model: 'User', tokens: ['password_reset'] }],
+          normalized_attributes: [{ model: 'User', attrs: ['email'] }]
+        )
         expect(custom_result[:authentication][:has_secure_password]).to include('User')
         expect(custom_result[:authentication][:devise].first[:model]).to eq('User')
         expect(custom_result[:authorization]).to include(

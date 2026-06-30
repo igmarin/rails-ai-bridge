@@ -53,6 +53,14 @@ RSpec.describe RailsAiBridge::Introspectors::ConfigIntrospector do
       expect(result[:credentials_keys]).to be_an(Array)
     end
 
+    it 'returns queue adapter as a string' do
+      expect(result[:queue_adapter]).to be_a(String)
+    end
+
+    it 'returns cable adapter as a string' do
+      expect(result[:cable_adapter]).to be_a(String)
+    end
+
     it 'returns current attributes as array' do
       expect(result[:current_attributes]).to be_an(Array)
     end

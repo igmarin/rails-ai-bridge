@@ -39,14 +39,28 @@ module RailsAiBridge
         devise_models = scan_models_for(/devise\s+(.+)$/)
         auth[:devise] = devise_models if devise_models.any?
 
-        # Rails 8 built-in auth
-        auth[:rails_auth] = true if model_file_exists?('session.rb') && model_file_exists?('current.rb')
+        # Rails 8 built-in auth generator patterns
+        auth[:rails_auth] = detect_rails_auth_details if model_file_exists?('session.rb') && model_file_exists?('current.rb')
 
         # has_secure_password
         secure_pw = scan_models_for(/has_secure_password/)
         auth[:has_secure_password] = secure_pw.pluck(:model) if secure_pw.any?
 
         auth
+      end
+
+      def detect_rails_auth_details
+        details = {
+          authentication_concern: file_exists?('app/controllers/concerns/authentication.rb')
+        }
+
+        token_for = scan_models_for(/generates_token_for\s+:(\w+)/)
+        details[:token_for] = token_for.map { |entry| { model: entry[:model], tokens: entry[:matches] } } if token_for.any?
+
+        normalized = scan_models_for(/normalizes\s+:(\w+)/)
+        details[:normalized_attributes] = normalized.map { |entry| { model: entry[:model], attrs: entry[:matches] } } if normalized.any?
+
+        details
       end
 
       def detect_authorization
