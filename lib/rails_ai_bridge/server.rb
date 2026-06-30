@@ -22,6 +22,11 @@ module RailsAiBridge
     # Error message template for unknown transport types
     UNKNOWN_TRANSPORT_ERROR = 'Unknown transport: %s. Use :stdio, :http, or :streamable_http'
 
+    # Warning printed when HTTP MCP starts without authentication in non-production environments.
+    HTTP_AUTH_WARNING = '[rails-ai-bridge] WARNING: HTTP MCP is running without authentication. ' \
+                        'Set config.mcp.require_http_auth = true or configure http_mcp_token, ' \
+                        'mcp_token_resolver, or mcp_jwt_decoder before exposing this endpoint.'
+
     # Built-in MCP tools that are always available
     # These tools provide Rails application introspection capabilities
     TOOLS = [
@@ -119,6 +124,7 @@ module RailsAiBridge
       transport = create_http_transport(server)
       rack_app = build_rack_app(transport, config.http_path)
 
+      warn_if_http_mcp_unauthenticated
       log_http_startup(config)
       run_rack_server(rack_app, config)
     end
@@ -156,6 +162,18 @@ module RailsAiBridge
     def log_http_startup(config)
       warn format(HTTP_STARTUP_MESSAGE, config.http_bind, config.http_port, config.http_path)
       warn TOOLS_LIST_MESSAGE % tool_classes.map(&:tool_name).join(', ')
+    end
+
+    # Emits a one-time stderr warning when HTTP MCP starts without authentication
+    # in non-production environments. Production deployments either raise during
+    # validation or are assumed to be deliberately configured.
+    #
+    # @return [void]
+    def warn_if_http_mcp_unauthenticated
+      return if defined?(Rails) && Rails.env.production?
+      return if Mcp::Authenticator.any_configured?
+
+      warn HTTP_AUTH_WARNING
     end
 
     # Runs the Rack server with fallback for older Rack versions.
