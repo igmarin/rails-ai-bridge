@@ -109,6 +109,36 @@ RSpec.describe RailsAiBridge::ToolResultCache do
 
       expect(calls).to eq(2)
     end
+
+    it 'emits a cache hit event for cached responses' do
+      RailsAiBridge.configuration.mcp.tool_result_cache_ttl = 30
+      events = []
+      callback = ->(name, _started, _finished, _unique_id, payload) { events << [name, payload] }
+
+      ActiveSupport::Notifications.subscribed(callback, 'rails_ai_bridge.tool.result_cache_hit') do
+        described_class.fetch_response('rails_test', { key: 'value' }) { response }
+        described_class.fetch_response('rails_test', { key: 'value' }) { response }
+      end
+
+      expect(events.size).to eq(1)
+      expect(events.first.first).to eq('rails_ai_bridge.tool.result_cache_hit')
+      expect(events.first.last[:tool_name]).to eq('rails_test')
+      expect(events.first.last[:fingerprint]).to be_a(String)
+    end
+
+    it 'emits a cache miss event for fresh responses' do
+      RailsAiBridge.configuration.mcp.tool_result_cache_ttl = 30
+      events = []
+      callback = ->(name, _started, _finished, _unique_id, payload) { events << [name, payload] }
+
+      ActiveSupport::Notifications.subscribed(callback, 'rails_ai_bridge.tool.result_cache_miss') do
+        described_class.fetch_response('rails_test', { key: 'value' }) { response }
+      end
+
+      expect(events.size).to eq(1)
+      expect(events.first.first).to eq('rails_ai_bridge.tool.result_cache_miss')
+      expect(events.first.last[:tool_name]).to eq('rails_test')
+    end
   end
 
   describe '.maybe_wrap' do

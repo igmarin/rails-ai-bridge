@@ -87,6 +87,54 @@ RSpec.describe RailsAiBridge::Mcp::Authenticator do
         expect(described_class.call(build_request(token: 'bad'))).to be_failure
       end
     end
+
+    context 'instrumentation' do
+      before do
+        RailsAiBridge.configuration.http_mcp_token     = nil
+        RailsAiBridge.configuration.mcp_token_resolver = nil
+        RailsAiBridge.configuration.mcp_jwt_decoder    = nil
+      end
+
+      it 'emits auth.success for a valid static token' do
+        RailsAiBridge.configuration.http_mcp_token = 's3cr3t'
+        events = []
+        callback = ->(name, _started, _finished, _unique_id, payload) { events << [name, payload] }
+
+        ActiveSupport::Notifications.subscribed(callback, 'rails_ai_bridge.auth.success') do
+          described_class.call(build_request(token: 's3cr3t'))
+        end
+
+        expect(events.size).to eq(1)
+        expect(events.first.first).to eq('rails_ai_bridge.auth.success')
+        expect(events.first.last[:strategy]).to eq('BearerToken')
+      end
+
+      it 'emits auth.failure for an invalid token' do
+        RailsAiBridge.configuration.http_mcp_token = 's3cr3t'
+        events = []
+        callback = ->(name, _started, _finished, _unique_id, payload) { events << [name, payload] }
+
+        ActiveSupport::Notifications.subscribed(callback, 'rails_ai_bridge.auth.failure') do
+          described_class.call(build_request(token: 'wrong'))
+        end
+
+        expect(events.size).to eq(1)
+        expect(events.first.first).to eq('rails_ai_bridge.auth.failure')
+        expect(events.first.last[:strategy]).to eq('BearerToken')
+        expect(events.first.last[:error]).to eq(:wrong_token)
+      end
+
+      it 'does not emit auth events when no strategy is configured' do
+        events = []
+        callback = ->(name, _started, _finished, _unique_id, _payload) { events << name }
+
+        ActiveSupport::Notifications.subscribed(callback, /rails_ai_bridge\.auth/) do
+          described_class.call(build_request)
+        end
+
+        expect(events).to be_empty
+      end
+    end
   end
 
   describe 'strategy priority' do

@@ -51,7 +51,13 @@ module RailsAiBridge
           strategy = resolve_strategy
           return AuthResult.ok(nil) if strategy.nil?
 
-          strategy.authenticate(request)
+          strategy.authenticate(request).tap do |result|
+            if result.success?
+              Instrumentation.instrument('auth.success', strategy: strategy_name(strategy), ip: request.ip)
+            else
+              Instrumentation.instrument('auth.failure', strategy: strategy_name(strategy), ip: request.ip, error: result.error)
+            end
+          end
         end
 
         # Returns +true+ when any auth mechanism is configured — static token,
@@ -78,6 +84,14 @@ module RailsAiBridge
             },
             ['{"error":"Unauthorized"}']
           ]
+        end
+
+        # Human-readable strategy name for observability payloads.
+        #
+        # @param strategy [Auth::BaseStrategy]
+        # @return [String]
+        def strategy_name(strategy)
+          strategy.class.name&.split('::')&.last || 'unknown'
         end
 
         private
