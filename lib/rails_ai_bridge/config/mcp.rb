@@ -79,6 +79,19 @@ module RailsAiBridge
       # @return [Integer]
       attr_accessor :tool_result_cache_ttl
 
+      # Optional custom rate limiter for MCP HTTP requests.
+      #
+      # When set, it takes precedence over the in-memory {Mcp::HttpRateLimiter}.
+      # The object must respond to +allow?(ip)+ (preferred) or +call(ip)+ and return a truthy/falsey value.
+      # This enables distributed backends such as Redis, Rails.cache, or an external service.
+      #
+      # @return [#allow?, #call, nil]
+      attr_accessor :rate_limiter
+
+      # Key prefix used by the optional {Mcp::CacheRateLimiter} distributed rate limiter.
+      # @return [String]
+      attr_accessor :rate_limiter_key_prefix
+
       def initialize
         @mode                     = :hybrid
         @security_profile         = :balanced
@@ -90,6 +103,8 @@ module RailsAiBridge
         @require_http_auth          = false
         @cors_origins             = nil
         @tool_result_cache_ttl    = 0
+        @rate_limiter             = nil
+        @rate_limiter_key_prefix  = 'rab:rl'
       end
 
       # @return [Boolean] whether tool call results should be cached
