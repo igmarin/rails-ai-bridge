@@ -84,15 +84,21 @@ module RailsAiBridge
         return yield unless enabled?
 
         key = cache_key(tool_name, arguments)
+        fingerprint = key.split(':', 2).last
 
         mutex.synchronize do
           entry = cache[key]
-          return entry[:response] if entry && ttl_valid?(entry)
+          if entry && ttl_valid?(entry)
+            Instrumentation.instrument('tool.result_cache_hit', tool_name: tool_name, fingerprint: fingerprint)
+            return entry[:response]
+          end
         end
 
-        response = yield
-        mutex.synchronize { cache[key] = { response: response, fetched_at: monotonic_now } }
-        response
+        Instrumentation.instrument('tool.result_cache_miss', tool_name: tool_name, fingerprint: fingerprint) do
+          response = yield
+          mutex.synchronize { cache[key] = { response: response, fetched_at: monotonic_now } }
+          response
+        end
       end
 
       # Clears all cached tool results.

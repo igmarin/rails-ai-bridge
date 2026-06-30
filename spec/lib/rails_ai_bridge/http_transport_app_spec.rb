@@ -177,6 +177,31 @@ RSpec.describe RailsAiBridge::HttpTransportApp do
       expect(app.call(env).first).to eq(429)
     end
 
+    it 'emits a rate_limit.hit event when a request is throttled' do
+      RailsAiBridge.configuration.http_mcp_token = 'secret'
+      RailsAiBridge.configuration.mcp.rate_limiter = ->(_ip) { false }
+      RailsAiBridge.configuration.mcp.rate_limit_max_requests = 0
+      app = described_class.build(transport: transport, path: '/mcp')
+
+      env = Rack::MockRequest.env_for(
+        '/mcp',
+        method: 'POST',
+        'HTTP_AUTHORIZATION' => 'Bearer secret',
+        'REMOTE_ADDR' => '1.2.3.4'
+      )
+
+      events = []
+      callback = ->(name, _started, _finished, _unique_id, payload) { events << [name, payload] }
+
+      ActiveSupport::Notifications.subscribed(callback, 'rails_ai_bridge.rate_limit.hit') do
+        app.call(env)
+      end
+
+      expect(events.size).to eq(1)
+      expect(events.first.first).to eq('rails_ai_bridge.rate_limit.hit')
+      expect(events.first.last[:ip]).to eq('1.2.3.4')
+    end
+
     it 'returns 403 when authorize lambda returns falsey' do
       RailsAiBridge.configuration.http_mcp_token = 'secret'
       RailsAiBridge.configuration.mcp.authorize = ->(_ctx, _req) { false }

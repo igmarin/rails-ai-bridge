@@ -53,6 +53,7 @@ module RailsAiBridge
           end
 
           if limiter && !rate_limiter_allow?(limiter, request)
+            Instrumentation.instrument('rate_limit.hit', ip: request.ip, path: request.path)
             Mcp::HttpStructuredLog.emit(request: request, event: :rate_limited, http_status: 429)
             return [429, { 'Content-Type' => 'application/json', 'Retry-After' => window_sec.to_s },
                     ['{"error":"Too many requests"}']]

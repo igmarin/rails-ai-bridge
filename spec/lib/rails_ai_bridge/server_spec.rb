@@ -62,13 +62,13 @@ RSpec.describe RailsAiBridge::Server do
 
       server.build
 
-      expect(MCP::Server).to have_received(:new).with(
-        name: 'Test Server',
-        version: '1.0.0',
-        tools: server.tool_classes,
-        resources: [],
-        resource_templates: []
-      )
+      expect(MCP::Server).to have_received(:new) do |**kwargs|
+        expect(kwargs[:name]).to eq('Test Server')
+        expect(kwargs[:version]).to eq('1.0.0')
+        expect(kwargs[:tools].map(&:tool_name)).to eq(server.tool_classes.map(&:tool_name))
+        expect(kwargs[:resources]).to eq([])
+        expect(kwargs[:resource_templates]).to eq([])
+      end
     end
 
     it 'registers resources with the server' do

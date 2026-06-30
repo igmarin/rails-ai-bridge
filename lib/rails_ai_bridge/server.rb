@@ -61,7 +61,7 @@ module RailsAiBridge
     # @return [Array<Class, ToolResultCache::CachedTool>] list of tool classes
     def tool_classes
       (TOOLS + RailsAiBridge.configuration.additional_tools).map do |tool_class|
-        ToolResultCache.maybe_wrap(tool_class)
+        Instrumentation::InstrumentedTool.new(ToolResultCache.maybe_wrap(tool_class))
       end
     end
 
