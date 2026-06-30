@@ -6,6 +6,7 @@ source 'https://rubygems.org'
 gemspec
 
 group :development, :test do
+  gem 'bundler-audit', '~> 0.9'
   gem 'combustion', '~> 1.3'
   gem 'rails', '~> 8.1'
   gem 'reek', '~> 6.1'
