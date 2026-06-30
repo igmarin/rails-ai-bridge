@@ -15,6 +15,7 @@ RSpec.describe RailsAiBridge::Config::Mcp do
       expect(config.authorize).to be_nil
       expect(config.require_auth_in_production).to be(false)
       expect(config.require_http_auth).to be(false)
+      expect(config.cors_origins).to be_nil
     end
   end
 

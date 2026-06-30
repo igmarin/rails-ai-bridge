@@ -68,6 +68,12 @@ module RailsAiBridge
       # @return [Boolean]
       attr_accessor :require_http_auth
 
+      # Allowed origins for CORS on the HTTP MCP endpoint.
+      # +nil+ or empty array disables CORS headers (default). Pass +['*']+ to allow any origin,
+      # or a list of exact origins such as +['https://app.example.com']+.
+      # @return [Array<String>, nil]
+      attr_accessor :cors_origins
+
       def initialize
         @mode                     = :hybrid
         @security_profile         = :balanced
@@ -77,6 +83,7 @@ module RailsAiBridge
         @authorize                = nil
         @require_auth_in_production = false
         @require_http_auth          = false
+        @cors_origins = nil
       end
 
       # Effective rate-limit ceiling for {HttpTransportApp} (+0+ means disabled).
