@@ -114,7 +114,9 @@ module RailsAiBridge
                    :rate_limit_max_requests, :rate_limit_max_requests=,
                    :rate_limit_window_seconds, :rate_limit_window_seconds=,
                    :http_log_json, :http_log_json=,
-                   :require_http_auth, :require_http_auth=
+                   :require_http_auth, :require_http_auth=,
+                   :tool_result_cache_ttl, :tool_result_cache_ttl=,
+                   :tool_result_cache_enabled?
 
     # -- Config::Rubydex --------------------------------------------------------
     def_delegators :@rubydex,

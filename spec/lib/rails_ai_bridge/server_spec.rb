@@ -15,7 +15,8 @@ RSpec.describe RailsAiBridge::Server do
         additional_tools: [],
         http_bind: 'localhost',
         http_port: 3000,
-        http_path: '/mcp'
+        http_path: '/mcp',
+        mcp: double(tool_result_cache_ttl: 0)
       )
     )
     allow(RailsAiBridge::Resources).to receive_messages(build_resources: [], build_templates: [])
