@@ -35,6 +35,13 @@ module RailsAiBridge
       #   Prevents a slow or unreachable remote from blocking the calling thread indefinitely.
       attr_reader :git_timeout
 
+      # @return [String, nil] path to the skill pack lockfile. nil disables lockfile verification.
+      attr_accessor :lockfile_path
+
+      # @return [Symbol] how to behave when the lockfile differs from the resolved pack:
+      #   :strict (default) raises, :warn logs but proceeds, :disabled skips verification.
+      attr_accessor :lockfile_verification
+
       # Sets the git pull TTL.
       #
       # Coerces the value to a non-negative integer; raises +ArgumentError+ for
@@ -93,6 +100,8 @@ module RailsAiBridge
         @resolver_ttl = 1800
         @git_pull_ttl = 86_400
         @git_timeout = 30
+        @lockfile_path = 'config/rails_ai_bridge/directory.lock'
+        @lockfile_verification = :strict
       end
     end
   end

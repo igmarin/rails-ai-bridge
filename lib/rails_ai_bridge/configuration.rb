@@ -120,6 +120,11 @@ module RailsAiBridge
                    :rate_limiter, :rate_limiter=,
                    :rate_limiter_key_prefix, :rate_limiter_key_prefix=
 
+    # -- Config::Registry -------------------------------------------------------
+    def_delegators :@registry,
+                   :lockfile_path, :lockfile_path=,
+                   :lockfile_verification, :lockfile_verification=
+
     # -- Config::Rubydex --------------------------------------------------------
     def_delegators :@rubydex,
                    :rubydex_enabled, :rubydex_enabled=,

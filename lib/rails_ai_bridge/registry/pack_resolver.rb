@@ -22,15 +22,18 @@ module RailsAiBridge
       #
       # @param source_resolver [SkillSourceResolver] resolver for remote git sources
       # @param pack_detector [Object] optional pack detector for testing (defaults to PackDetector)
-      def initialize(source_resolver, pack_detector = PackDetector)
+      # @param lockfile [Lockfile, nil] optional lockfile for pack verification
+      def initialize(source_resolver, pack_detector = PackDetector, lockfile = nil)
         @source_resolver = source_resolver
         @pack_detector = pack_detector
+        @lockfile = lockfile || default_lockfile
       end
 
       # Resolves active packs from the manifest and custom configuration.
       #
       # This will automatically resolve remote repositories if needed, load the tile
-      # manifest configurations, and merge local directory overrides.
+      # manifest configurations, merge local directory overrides, and verify pack
+      # commit SHAs against the configured lockfile.
       #
       # @param manifest [RegistryManifest] the registry manifest containing pack definitions
       # @param explicit_packs [Array<String>, nil] optional list of pack names to load
@@ -46,6 +49,38 @@ module RailsAiBridge
       end
 
       private
+
+      def default_lockfile
+        Lockfile.load(RailsAiBridge.configuration.registry.lockfile_path)
+      end
+
+      # Verifies the resolved pack commit SHA against the lockfile when one exists.
+      #
+      # Behavior is controlled by +config.registry.lockfile_verification+:
+      #   :strict  — raise on mismatch (default)
+      #   :warn    — log a warning and continue
+      #   :disabled — skip verification entirely
+      #
+      # @param name [String] pack name
+      # @param base_path [String] local path to the resolved pack
+      # @return [void]
+      def verify_pack!(name, base_path)
+        return unless @lockfile&.any?
+
+        mode = RailsAiBridge.configuration.registry.lockfile_verification
+        return if mode == :disabled
+
+        entry = @lockfile.entry(name)
+        return unless entry
+
+        actual = @source_resolver.current_commit(base_path)
+        return if actual == entry.commit_sha
+
+        message = "Lockfile mismatch for pack '#{name}': expected #{entry.commit_sha}, got #{actual}"
+        return warn "[rails-ai-bridge] #{message}" if mode == :warn
+
+        raise SkillSourceResolver::ResolutionError, "#{message}. Run `rails ai:registry:lockfile` to update the lockfile."
+      end
 
       # Gathers the set of pack names that should be loaded.
       #
@@ -105,6 +140,8 @@ module RailsAiBridge
           raise SkillSourceResolver::ResolutionError, "Pack '#{name}' not defined in registry manifest" unless pack_def
 
           base_path = @source_resolver.resolve(pack_def.source, ref: pack_def.ref)
+          verify_pack!(name, base_path)
+
           tile_path = File.join(base_path, pack_def.tile)
 
           unless File.exist?(tile_path)

@@ -154,6 +154,41 @@ When `ref` is set, rails-ai-bridge runs `git checkout <ref>` after cloning or pu
 
 ---
 
+## Lockfile verification
+
+A lockfile records the exact git commit SHA of every remote pack that was resolved the last time the registry was built. On subsequent loads, rails-ai-bridge compares the locked SHA against the actual HEAD of the cloned repository and fails closed on mismatch.
+
+This protects against:
+
+- A compromised pack repository pushing unexpected content
+- Accidental drift between environments (development vs. production)
+- Force-pushes or tag rewrites changing the content under a stable ref name
+
+### Generate the lockfile
+
+```bash
+rails ai:registry:lockfile
+```
+
+The file is written to `config/rails_ai_bridge/directory.lock` by default. Commit it alongside your manifest.
+
+### Configuration
+
+```ruby
+RailsAiBridge.configure do |config|
+  config.registry.lockfile_path = "config/rails_ai_bridge/directory.lock"
+  config.registry.lockfile_verification = :strict  # :strict (default), :warn, or :disabled
+end
+```
+
+- `:strict` — raise `ResolutionError` when the resolved commit does not match the lockfile.
+- `:warn` — log a stderr warning and continue loading.
+- `:disabled` — skip verification entirely.
+
+When no lockfile exists, verification is silently skipped so existing apps keep working.
+
+---
+
 ## The `directory.json` format
 
 Each skill pack repository should have a `directory.json` at its root. Here is an annotated example:
@@ -344,6 +379,7 @@ initializer changes take effect immediately.
 | Stale skills after pack update | Resolver cache is warm or pull TTL has not elapsed | Run `rails ai:skills:clear_cache` to force a re-clone on the next build |
 | Pack is not re-fetched even after `resolver_ttl` expired | Pack was cloned recently — `git_pull_ttl` (24 h) is still fresh | Run `rails ai:skills:clear_cache` or set `git_pull_ttl: 0` temporarily |
 | `git checkout <ref>` failed | Invalid ref or detached HEAD issue | Verify the `ref` value matches a branch, tag, or SHA in the remote repo |
+| `Lockfile mismatch for pack '…'` | Resolved pack commit differs from `directory.lock` | Run `rails ai:registry:lockfile` to update the lockfile after reviewing the pack changes |
 | Git operation hangs / server request times out | Slow or unreachable remote | Reduce `git_timeout` to fail faster; check network connectivity to the remote |
 | Warning: "Pack '…' depends on '…' which is not in the active pack set" | A loaded pack has an unsatisfied `depends_on` entry | Add the missing pack name to `always_loaded` or `skill_packs` in your manifest |
 
@@ -358,4 +394,5 @@ initializer changes take effect immediately.
 - **Timeout protection**: all git operations are bounded by `git_timeout` (default 30 s) so a slow remote cannot block the calling thread indefinitely.
 - **Cache key sanitization**: local cache directory names are derived from a sanitized source string plus a SHA256 hash suffix to prevent filesystem collisions.
 - **Stable local pack names**: local registry pack names use a SHA256 digest of the directory path, so reordering `local_registry_paths` cannot silently shift pack identities.
+- **Lockfile verification**: a `directory.lock` records the expected commit SHA for each remote pack. The resolver fails closed when the cloned commit does not match, preventing a compromised or unexpectedly modified pack from injecting instructions.
 - **Local path trust**: local paths are used directly without git operations. The path traversal guard in the Resolver still applies to file reads within a local pack.
