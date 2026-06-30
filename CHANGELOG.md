@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.2]
+
+### Security
+
+- **HTTP MCP unauthenticated boot warning** (#60/#81) — the standalone HTTP MCP server now prints a one-time stderr warning when it boots in a non-production environment without an authentication strategy, making the default open behavior visible.
+- **Pluggable / distributed rate limiting** (#69/#80) — `config.mcp.rate_limiter` accepts any object implementing `allow?(ip)` or `call(ip)`, enabling shared backends such as Redis or `Rails.cache`. A built-in `Mcp::CacheRateLimiter` is provided for multi-process Puma deployments.
+- **Skill pack lockfile verification** (#65/#84) — `config/rails_ai_bridge/directory.lock` records the expected git commit SHA for every remote skill pack. `PackResolver` compares the cloned HEAD against the lockfile and fails closed on mismatch. Generate or update the lockfile with `rails ai:registry:lockfile`. Verification mode is configurable via `config.registry.lockfile_verification` (`:strict`, `:warn`, `:disabled`).
+- **Security documentation** (#61/#62/#82/#83) — added distributed rate-limiting guidance, a stdio transport threat model, and operational hardening recommendations.
+
+### Added
+
+- **CORS support for HTTP MCP** (#63/#76) — `config.mcp.cors_origins` controls `Access-Control-Allow-Origin` headers for the MCP HTTP endpoint; `['*']` or a list of exact origins is supported.
+- **JSON output for MCP tools** (#68/#77) — `rails_get_routes` and `rails_get_model_details` now accept `format: 'json'` for programmatic clients.
+- **`authorize` lambda logging** (#64/#75) — explicit denies and lambda exceptions on the HTTP MCP path are now logged and emitted through `Mcp::HttpStructuredLog`.
+- **`bundler-audit` CI job** (#74/#78) — the GitHub Actions workflow now runs `bundle-audit update && bundle-audit check` to catch known vulnerable dependencies.
+- **MCP tool result caching** (#71/#79) — opt-in TTL-based cache keyed by tool name + SHA256 fingerprint of arguments. Enable with `config.mcp.tool_result_cache_ttl` (default `0`).
+- **ActiveSupport::Notifications hooks** (#72/#85) — emits `rails_ai_bridge.tool.call`, `rails_ai_bridge.tool.result_cache_hit/miss`, `rails_ai_bridge.auth.success/failure`, and `rails_ai_bridge.rate_limit.hit` events.
+- **Rails 8.1+ introspection signals** (#73/#86) — `GemRegistry` now recognizes `mission_control-jobs`; `ConfigIntrospector` reports `queue_adapter` and `cable_adapter`; `AuthIntrospector` surfaces Rails 8 generator patterns (`authentication_concern`, `generates_token_for`, `normalizes`).
+
+### Changed
+
+- **Summary-first defaults** (#70/#87) — `rails_get_schema` and `rails_get_model_details` now default to `detail: 'summary'` when listing, reducing the chance of oversized tool responses. Callers can still opt into `standard` or `full` and use filters for specific tables/models.
+
+### Tests
+
+- **Total: 2157 examples, 0 failures, 94.34% line coverage**.
+
 ## [3.5.1]
 
 ### Security
