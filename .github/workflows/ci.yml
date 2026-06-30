@@ -86,3 +86,22 @@ jobs:
 
       - name: Run perf specs
         run: bundle exec rspec --tag perf
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Update bundler-audit advisory database
+        run: bundle exec bundle-audit update
+
+      - name: Run bundler-audit
+        run: bundle exec bundle-audit check
