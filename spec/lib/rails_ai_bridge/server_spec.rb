@@ -167,6 +167,7 @@ RSpec.describe RailsAiBridge::Server do
         allow(http_server).to receive_messages(create_http_transport: double, build_rack_app: double)
         allow(http_server).to receive(:log_http_startup)
         allow(http_server).to receive(:run_rack_server)
+        allow(RailsAiBridge::Mcp::Authenticator).to receive(:any_configured?).and_return(true)
       end
 
       it 'validates HTTP server in production' do
@@ -207,6 +208,30 @@ RSpec.describe RailsAiBridge::Server do
         http_server.send(:start_http, mcp_server)
 
         expect(http_server).to have_received(:run_rack_server).with(rack_app, RailsAiBridge.configuration)
+      end
+
+      it 'warns when HTTP MCP starts without authentication in non-production' do
+        mcp_server = double
+        allow(Rails.env).to receive(:production?).and_return(false)
+        allow(RailsAiBridge::Mcp::Authenticator).to receive(:any_configured?).and_return(false)
+
+        expect { http_server.send(:start_http, mcp_server) }.to output(/WARNING: HTTP MCP is running without authentication/).to_stderr
+      end
+
+      it 'does not warn when an auth strategy is configured' do
+        mcp_server = double
+        allow(Rails.env).to receive(:production?).and_return(false)
+        allow(RailsAiBridge::Mcp::Authenticator).to receive(:any_configured?).and_return(true)
+
+        expect { http_server.send(:start_http, mcp_server) }.not_to output.to_stderr
+      end
+
+      it 'does not warn in production' do
+        mcp_server = double
+        allow(Rails.env).to receive(:production?).and_return(true)
+        allow(RailsAiBridge::Mcp::Authenticator).to receive(:any_configured?).and_return(false)
+
+        expect { http_server.send(:start_http, mcp_server) }.not_to output.to_stderr
       end
     end
 

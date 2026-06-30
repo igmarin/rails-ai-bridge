@@ -185,6 +185,11 @@ module RailsAiBridge
             #      config.http_mcp_token = "generate-a-long-random-secret"
             #      # ENV["RAILS_AI_BRIDGE_MCP_TOKEN"] takes precedence when set
             #
+            # Require authentication on every HTTP MCP request. When true, requests
+            # return 401 unless one of the auth mechanisms above is configured.
+            # Default is false for backward compatibility with local development.
+            # config.mcp.require_http_auth = true
+            #
             # Timing-safe token comparison is built in, but add rate limiting too
             # (e.g. Rack::Attack throttle on config.http_path) to prevent brute-force.
             #
