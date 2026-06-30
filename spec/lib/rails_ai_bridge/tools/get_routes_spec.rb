@@ -106,5 +106,25 @@ RSpec.describe RailsAiBridge::Tools::GetRoutes do
         expect(content).to include('Route introspection failed: Something went wrong')
       end
     end
+
+    context "with format: 'json'" do
+      let(:params) { { format: 'json' } }
+
+      it 'returns the routes payload as JSON' do
+        parsed = JSON.parse(content)
+        expect(parsed['total']).to eq(4)
+        expect(parsed['controllers']).to include('posts', 'api/v1/users')
+      end
+    end
+
+    context "with format: 'json' and controller filter" do
+      let(:params) { { controller: 'posts', format: 'json' } }
+
+      it 'returns only the filtered routes as JSON' do
+        parsed = JSON.parse(content)
+        expect(parsed['controllers'].keys).to eq(['posts'])
+        expect(parsed['controllers']['posts'].size).to eq(2)
+      end
+    end
   end
 end
