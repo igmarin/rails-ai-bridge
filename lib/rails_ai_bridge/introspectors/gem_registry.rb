@@ -20,6 +20,7 @@ module RailsAiBridge
         'sidekiq' => { category: :jobs, note: 'Background jobs via Sidekiq. Check config/sidekiq.yml.' },
         'good_job' => { category: :jobs, note: 'Background jobs via GoodJob (Postgres-backed).' },
         'solid_queue' => { category: :jobs, note: 'Background jobs via SolidQueue (Rails 8 default).' },
+        'mission_control-jobs' => { category: :jobs, note: 'Web UI for SolidQueue / Active Job monitoring.' },
         'delayed_job' => { category: :jobs, note: 'Background jobs via DelayedJob.' },
         'resque' => { category: :jobs, note: 'Background jobs via Resque (Redis-backed).' },
         'sneakers' => { category: :jobs, note: 'Background jobs via Sneakers (RabbitMQ).' },

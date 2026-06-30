@@ -20,6 +20,8 @@ module RailsAiBridge
         result = {
           cache_store: detect_cache_store,
           session_store: detect_session_store,
+          queue_adapter: detect_queue_adapter,
+          cable_adapter: detect_cable_adapter,
           timezone: app.config.time_zone.to_s,
           middleware_stack: extract_middleware,
           initializers: extract_initializers,
@@ -50,6 +52,24 @@ module RailsAiBridge
 
       def detect_session_store
         app.config.session_store&.name
+      rescue StandardError
+        'unknown'
+      end
+
+      def detect_queue_adapter
+        return 'unknown' unless app.config.respond_to?(:active_job)
+
+        adapter = app.config.active_job&.queue_adapter
+        adapter.is_a?(Symbol) ? adapter.to_s : adapter.class.name
+      rescue StandardError
+        'unknown'
+      end
+
+      def detect_cable_adapter
+        return 'unknown' unless app.config.respond_to?(:action_cable)
+
+        adapter = app.config.action_cable&.adapter
+        adapter.is_a?(Symbol) ? adapter.to_s : adapter.class.name
       rescue StandardError
         'unknown'
       end
