@@ -53,6 +53,21 @@ end
 
 The stdio MCP server has no Bearer layer; anyone who can run the process can use the tools. Use isolated users or containers if multiple tenants share a host.
 
+### Threat model
+
+| Assumption | Implication |
+|------------|-------------|
+| The host operating system controls who can execute `rails ai:serve`. | Anyone with shell access to the Rails app can invoke every `rails_*` MCP tool and read the returned context. |
+| The stdio transport is local to the process. | Network attackers cannot reach stdio directly, but a compromised local account or shared development container bypasses this boundary. |
+| AI clients run with the same privileges as the user who launched them. | A malicious or misconfigured client can exfiltrate schema, routes, source code, and any file the user can read. |
+
+### Recommendations
+
+- Run MCP-enabled Rails processes under dedicated, least-privilege OS accounts.
+- In shared development containers or CI runners, avoid mixing users who should not see each other's application context.
+- Do not mount sensitive credentials files or SSH keys into containers that run the MCP server unless those tools genuinely need them.
+- Prefer HTTP MCP with authentication when multiple users or services share a host and need access controls beyond the OS.
+
 ## See also
 
 - [SECURITY.md](../SECURITY.md) — reporting vulnerabilities and design summary

@@ -85,6 +85,7 @@ see **[docs/mcp-security.md](docs/mcp-security.md)**.
 ## Operational Security Guidance
 
 - Prefer **stdio** transport for local development and AI-assisted editing.
+  See [docs/mcp-security.md](docs/mcp-security.md) for the stdio threat model.
 - If you enable HTTP transport, keep it bound to `127.0.0.1` unless you add your
   own network isolation and authentication controls.
 - Do **not** expose `auto_mount` on public or shared production surfaces without an explicit threat model review.
