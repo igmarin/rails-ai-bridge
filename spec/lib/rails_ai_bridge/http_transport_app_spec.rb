@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+require 'mcp'
 
 RSpec.describe RailsAiBridge::HttpTransportApp do
   let(:transport) { instance_double(MCP::Server::Transports::StreamableHTTPTransport) }
@@ -111,13 +112,16 @@ RSpec.describe RailsAiBridge::HttpTransportApp do
       env = Rack::MockRequest.env_for(
         '/mcp',
         method: 'POST',
-        'HTTP_AUTHORIZATION' => 'Bearer secret'
+        'HTTP_AUTHORIZATION' => 'Bearer secret',
+        'REMOTE_ADDR' => '10.0.0.5'
       )
 
+      allow(Rails.logger).to receive(:warn)
       status, _headers, body = app.call(env)
 
       expect(status).to eq(403)
       expect(body.first).to include('Forbidden')
+      expect(Rails.logger).to have_received(:warn).with(%r{authorize lambda denied access for 10\.0\.0\.5 at /mcp})
     end
 
     it 'returns 403 when authorize lambda raises' do
@@ -132,11 +136,13 @@ RSpec.describe RailsAiBridge::HttpTransportApp do
       )
 
       allow(Rails.logger).to receive(:error)
+      allow(Rails.logger).to receive(:warn)
       status, _headers, body = app.call(env)
 
       expect(status).to eq(403)
       expect(body.first).to include('Forbidden')
       expect(Rails.logger).to have_received(:error).with(/authorize lambda raised/)
+      expect(Rails.logger).not_to have_received(:warn)
     end
 
     it 'emits a structured log when http_log_json is enabled' do

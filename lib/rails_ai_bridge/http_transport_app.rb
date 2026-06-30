@@ -35,13 +35,16 @@ module RailsAiBridge
 
           authorize = RailsAiBridge.configuration.mcp.authorize
           if authorize
-            authorized = begin
-              authorize.call(auth_result.context, request)
+            begin
+              authorized = authorize.call(auth_result.context, request)
             rescue StandardError => error
-              Rails.logger.error("rails_ai_bridge: authorize lambda raised #{error.class}: #{error.message}") if defined?(Rails)
-              false
+              Rails.logger.error("rails_ai_bridge: authorize lambda raised #{error.class}: #{error.message}") if defined?(Rails) && Rails.logger
+              Mcp::HttpStructuredLog.emit(request: request, event: :forbidden, http_status: 403)
+              return [403, { 'Content-Type' => 'application/json' }, ['{"error":"Forbidden"}']]
             end
+
             unless authorized
+              Rails.logger.warn("rails_ai_bridge: authorize lambda denied access for #{request.ip} at #{request.path}") if defined?(Rails) && Rails.logger
               Mcp::HttpStructuredLog.emit(request: request, event: :forbidden, http_status: 403)
               return [403, { 'Content-Type' => 'application/json' }, ['{"error":"Forbidden"}']]
             end
