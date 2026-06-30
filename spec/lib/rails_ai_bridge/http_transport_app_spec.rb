@@ -13,6 +13,7 @@ RSpec.describe RailsAiBridge::HttpTransportApp do
     saved_authorize = RailsAiBridge.configuration.mcp.authorize
     saved_require_http_auth = RailsAiBridge.configuration.mcp.require_http_auth
     saved_cors_origins = RailsAiBridge.configuration.mcp.cors_origins
+    saved_rate_limiter = RailsAiBridge.configuration.mcp.rate_limiter
     example.run
   ensure
     RailsAiBridge.configuration.http_mcp_token = saved_token
@@ -21,6 +22,7 @@ RSpec.describe RailsAiBridge::HttpTransportApp do
     RailsAiBridge.configuration.mcp.authorize = saved_authorize
     RailsAiBridge.configuration.mcp.require_http_auth = saved_require_http_auth
     RailsAiBridge.configuration.mcp.cors_origins = saved_cors_origins
+    RailsAiBridge.configuration.mcp.rate_limiter = saved_rate_limiter
   end
 
   describe '.build' do
@@ -104,6 +106,75 @@ RSpec.describe RailsAiBridge::HttpTransportApp do
       expect(status).to eq(429)
       expect(headers['Retry-After']).to eq('60')
       expect(body.first).to include('Too many requests')
+    end
+
+    it 'uses a configured rate_limiter object' do
+      custom = double('limiter')
+      RailsAiBridge.configuration.http_mcp_token = 'secret'
+      RailsAiBridge.configuration.mcp.rate_limiter = custom
+      RailsAiBridge.configuration.mcp.rate_limit_max_requests = 0
+      app = described_class.build(transport: transport, path: '/mcp')
+
+      env = Rack::MockRequest.env_for(
+        '/mcp',
+        method: 'POST',
+        'HTTP_AUTHORIZATION' => 'Bearer secret',
+        'REMOTE_ADDR' => '1.2.3.4'
+      )
+
+      allow(transport).to receive(:handle_request).and_return([200, {}, ['OK']])
+      expect(custom).to receive(:allow?).with('1.2.3.4').and_return(true, false)
+
+      expect(app.call(env).first).to eq(200)
+
+      status, headers, body = app.call(env)
+      expect(status).to eq(429)
+      expect(headers['Retry-After']).to eq('60')
+      expect(body.first).to include('Too many requests')
+    end
+
+    it 'uses a configured rate_limiter proc' do
+      allowed = { '1.2.3.4' => true }
+      RailsAiBridge.configuration.http_mcp_token = 'secret'
+      RailsAiBridge.configuration.mcp.rate_limiter = ->(ip) { allowed[ip] }
+      RailsAiBridge.configuration.mcp.rate_limit_max_requests = 0
+      app = described_class.build(transport: transport, path: '/mcp')
+
+      env = Rack::MockRequest.env_for(
+        '/mcp',
+        method: 'POST',
+        'HTTP_AUTHORIZATION' => 'Bearer secret',
+        'REMOTE_ADDR' => '1.2.3.4'
+      )
+
+      allow(transport).to receive(:handle_request).and_return([200, {}, ['OK']])
+      expect(app.call(env).first).to eq(200)
+
+      allowed['1.2.3.4'] = false
+      expect(app.call(env).first).to eq(429)
+    end
+
+    it 'uses CacheRateLimiter when configured' do
+      cache = ActiveSupport::Cache::MemoryStore.new
+      RailsAiBridge.configuration.http_mcp_token = 'secret'
+      RailsAiBridge.configuration.mcp.rate_limiter = RailsAiBridge::Mcp::CacheRateLimiter.new(
+        max_requests: 1,
+        window_seconds: 60,
+        cache: cache
+      )
+      RailsAiBridge.configuration.mcp.rate_limit_max_requests = 0
+      app = described_class.build(transport: transport, path: '/mcp')
+
+      env = Rack::MockRequest.env_for(
+        '/mcp',
+        method: 'POST',
+        'HTTP_AUTHORIZATION' => 'Bearer secret',
+        'REMOTE_ADDR' => '1.2.3.4'
+      )
+
+      allow(transport).to receive(:handle_request).and_return([200, {}, ['OK']])
+      expect(app.call(env).first).to eq(200)
+      expect(app.call(env).first).to eq(429)
     end
 
     it 'returns 403 when authorize lambda returns falsey' do

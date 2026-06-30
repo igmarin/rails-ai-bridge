@@ -12,10 +12,8 @@ module RailsAiBridge
         mcp_cfg    = RailsAiBridge.configuration.mcp
         max_reqs   = mcp_cfg.effective_http_rate_limit_max_requests
         window_sec = mcp_cfg.effective_http_rate_limit_window_seconds
-        limiter    = if max_reqs.positive?
-                       Mcp::HttpRateLimiter.new(max_requests: max_reqs,
-                                                window_seconds: window_sec)
-                     end
+        limiter    = mcp_cfg.rate_limiter || build_default_rate_limiter(max_requests: max_reqs,
+                                                                        window_seconds: window_sec)
         cors_origins = Array(mcp_cfg.cors_origins).reject(&:empty?)
 
         lambda do |env|
@@ -54,7 +52,7 @@ module RailsAiBridge
             end
           end
 
-          if limiter && !limiter.allow?(request.ip)
+          if limiter && !rate_limiter_allow?(limiter, request)
             Mcp::HttpStructuredLog.emit(request: request, event: :rate_limited, http_status: 429)
             return [429, { 'Content-Type' => 'application/json', 'Retry-After' => window_sec.to_s },
                     ['{"error":"Too many requests"}']]
@@ -68,6 +66,28 @@ module RailsAiBridge
       end
 
       private
+
+      def build_default_rate_limiter(max_requests:, window_seconds:)
+        return nil unless max_requests.positive?
+
+        Mcp::HttpRateLimiter.new(max_requests: max_requests, window_seconds: window_seconds)
+      end
+
+      # Asks a configured rate limiter whether a request may proceed.
+      # Supports objects that expose +allow?(ip)+ (preferred) or +call(ip)+.
+      #
+      # @param limiter [#allow?, #call]
+      # @param request [Rack::Request]
+      # @return [Boolean]
+      def rate_limiter_allow?(limiter, request)
+        if limiter.respond_to?(:allow?)
+          limiter.allow?(request.ip)
+        elsif limiter.respond_to?(:call)
+          limiter.call(request.ip)
+        else
+          true
+        end
+      end
 
       # Builds CORS response headers when the request origin is allowed.
       #
