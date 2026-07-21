@@ -459,7 +459,7 @@ module RailsAiBridge
       private_class_method :sensitive_config_basename?
 
       def sensitive_config_path_segment?(path)
-        path.split('/').any? { |segment| SENSITIVE_CONFIG_SEGMENTS.include?(segment) }
+        path.split('/').intersect?(SENSITIVE_CONFIG_SEGMENTS)
       end
       module_function :sensitive_config_path_segment?
       private_class_method :sensitive_config_path_segment?
