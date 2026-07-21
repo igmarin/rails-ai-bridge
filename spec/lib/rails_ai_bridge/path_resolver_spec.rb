@@ -90,4 +90,46 @@ RSpec.describe RailsAiBridge::PathResolver do
       expect(Rails.logger).to have_received(:error).with(%r{failed to read path "app/models"})
     end
   end
+
+  # Edge-case tests for the private helper classes. These are accessed via
+  # Ruby's constant lookup since they are private_constant — the specs document
+  # their behavior and guard against regressions in the path-safety surface.
+  describe 'SafeRelativePath (private helper)' do
+    let(:safe_relative_path) { described_class.const_get(:SafeRelativePath) }
+
+    it 'normalizes backslashes to forward slashes' do
+      expect(safe_relative_path.new('sub\\dir\\file.rb', argument_name: 'x').to_s).to eq('sub/dir/file.rb')
+    end
+
+    it 'rejects Windows-style absolute paths' do
+      expect { safe_relative_path.new('C:/secrets.yml', argument_name: 'x').to_s }.to raise_error(ArgumentError)
+    end
+
+    it 'rejects empty paths' do
+      expect { safe_relative_path.new('', argument_name: 'x').to_s }.to raise_error(ArgumentError)
+    end
+
+    it 'accepts a plain relative path' do
+      expect(safe_relative_path.new('billing/account.rb', argument_name: 'x').to_s).to eq('billing/account.rb')
+    end
+  end
+
+  describe 'SafeJoin (private helper)' do
+    let(:safe_join) { described_class.const_get(:SafeJoin) }
+    let(:base) { Dir.mktmpdir('safe-join') }
+
+    after { FileUtils.rm_rf(base) }
+
+    it 'joins a base directory and a relative file into an absolute path' do
+      joined = safe_join.new(base, 'nested/file.rb').to_s
+      expect(joined).to eq(File.expand_path(File.join(base, 'nested/file.rb')))
+    end
+
+    it 'raises when the joined path escapes the base directory via traversal' do
+      expect { safe_join.new(base, '../../etc/passwd').to_s }.to raise_error(
+        ArgumentError,
+        /relative_file must stay within the resolved directory/
+      )
+    end
+  end
 end

@@ -3,6 +3,27 @@
 module RailsAiBridge
   # Resolves configured Rails logical paths to filesystem paths without leaking
   # machine-specific absolute paths into generated assistant context.
+  #
+  # == Architectural role: intentional shared utility
+  #
+  # PathResolver is deliberately used by every introspector that needs to
+  # locate files on disk (controller, model, view, stimulus, turbo, auth,
+  # api, config, action_text, activeStorage, nonArModels — 11 callers as of
+  # v3.5.2). It is NOT a god class despite high betweenness centrality in
+  # graph analyses: a foundational path-resolution utility is expected to
+  # sit at the centre of the introspector graph. Splitting it would spread
+  # path-safety logic (traversal guards, safe joins) across multiple files
+  # and weaken the single responsibility it currently holds.
+  #
+  # The three private helper classes — SafeRelativePath, SafeJoin, and
+  # ConfiguredPathsError — are kept nested and private_constant so they
+  # cannot leak into the public API or be referenced by callers. This
+  # keeps the safety surface area small and auditable in one file.
+  #
+  # If a future graph analysis flags this class again, check the
+  # betweenness centrality against the caller count before proposing a
+  # split: a utility with many callers and a single responsibility is
+  # healthy, not smelly.
   class PathResolver
     # Validates user-provided relative paths before filesystem operations.
     class SafeRelativePath
