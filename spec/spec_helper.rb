@@ -2,7 +2,7 @@
 
 require 'simplecov'
 SimpleCov.start do
-  add_filter '/spec/'
+  skip 'spec'
 end
 
 require_relative 'reek_helper'
