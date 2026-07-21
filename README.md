@@ -780,7 +780,7 @@ Bug reports and pull requests: [github.com/igmarin/rails-ai-bridge/issues](https
 
 ## Acknowledgments & Origins
 
-This gem ships as **rails-ai-bridge** (Ruby **`RailsAiBridge`**, version **3.1.0**). Earlier iterations of the same codebase were distributed as `rails-ai-context`.
+This gem ships as **rails-ai-bridge** (Ruby **`RailsAiBridge`**, version **3.6.0**). Earlier iterations of the same codebase were distributed as `rails-ai-context`.
 
 RailsMCP evolved from 
 [crisnahine/rails-ai-context](https://github.com/crisnahine/rails-ai-context),
