@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.0]
+
+### Changed
+
+- **`mcp` minimum version raised to 0.25** (#92) — the gemspec lower bound is now `>= 0.25` (was `>= 0.10`), matching the minimum version the codebase actually requires. The upper bound remains `< 1.0`.
+- **`rubydex` constraint tightened to `~> 0.2.9`** (#92) — was `~> 0.2.4`. This is a **minor breaking change** for users pinned to rubydex 0.2.4–0.2.8; update your lockfile with `bundle update rubydex`.
+- **`simplecov` bumped to 1.0** (#92) — development dependency only; does not affect gem consumers. The test suite filter was migrated from `add_filter '/spec/'` to `skip 'spec'` per the simplecov 1.0 migration guide (`SourceFile#project_filename` no longer includes a leading separator).
+
+### Fixed
+
+- **`Style/ArrayIntersect` lint offense** (#91/#92) — pre-existing rubocop offense in `context_summary.rb` autocorrected to use `Array#intersect?`. No behavior change.
+
+### Added
+
+- **PathResolver architectural documentation** (#90/#91) — class-level docblock documents PathResolver's intentional role as a shared utility (11 introspector callers, high betweenness centrality). Prevents false "god class" flags from future graph analyses.
+- **PathResolver edge-case tests** (#90/#91) — 6 new specs covering the private `SafeRelativePath` (backslash normalization, Windows path rejection, empty path rejection) and `SafeJoin` (valid joins, traversal escape prevention) helper classes.
+
 ## [3.5.2]
 
 ### Security

@@ -1,5 +1,22 @@
 # Upgrading rails-ai-bridge
 
+## Upgrading from 3.5.x to 3.6.0
+
+**One action required if you are pinned to an older `rubydex`:**
+
+The `rubydex` gem constraint was tightened from `~> 0.2.4` to `~> 0.2.9`. If your
+lockfile resolves to rubydex 0.2.4–0.2.8, update it after upgrading:
+
+```bash
+bundle update rubydex
+```
+
+No other configuration or code changes are required. The `mcp` lower bound also
+moved from `>= 0.10` to `>= 0.25`, but if you were already on a recent version
+(no earlier than 0.25) this is a no-op.
+
+---
+
 ## Upgrading from 1.x to 2.x
 
 **No configuration changes required.** Every `config.*` attribute from 1.x is still available — `Configuration` now delegates to focused sub-objects but exposes the same flat DSL. See `CHANGELOG.md` for the full list of internal changes.

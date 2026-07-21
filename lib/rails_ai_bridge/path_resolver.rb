@@ -9,7 +9,7 @@ module RailsAiBridge
   # PathResolver is deliberately used by every introspector that needs to
   # locate files on disk (controller, model, view, stimulus, turbo, auth,
   # api, config, action_text, activeStorage, nonArModels — 11 callers as of
-  # v3.5.2). It is NOT a god class despite high betweenness centrality in
+  # v3.6.0). It is NOT a god class despite high betweenness centrality in
   # graph analyses: a foundational path-resolution utility is expected to
   # sit at the centre of the introspector graph. Splitting it would spread
   # path-safety logic (traversal guards, safe joins) across multiple files
