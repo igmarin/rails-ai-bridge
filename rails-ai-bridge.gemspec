@@ -50,7 +50,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
 
   # Core dependencies
-  spec.add_dependency 'mcp', '>= 0.25', '< 1.0' # Official MCP Ruby SDK
+  spec.add_dependency 'mcp', '>= 0.25', '< 2.0' # Official MCP Ruby SDK
   spec.add_dependency 'railties', '>= 7.1', '< 10.0'
   spec.add_dependency 'thor', '>= 1.0', '< 3.0'
   spec.add_dependency 'zeitwerk', '~> 2.6' # Autoloading
