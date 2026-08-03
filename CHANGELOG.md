@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`ai:doctor` schema check for `schema_format = :sql`** (#96/#97) — Schema check passes when `db/structure.sql` is present; fix hint points at `rails db:migrate` (or `rails db:schema:dump`).
 
 ## [3.6.1] - 2026-08-07
+ - 2026-08-07
 
 ### Security
 
@@ -27,7 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`rubydex` bumped to `~> 0.3.0`** (#103/#111) — was `~> 0.2.9`. Run `bundle update rubydex` in host apps.
 - **Dependency audit (2026-08)** (#99) — `bundle-audit` clean; official `mcp` remains on **0.25.x** (`< 1.0`). Migration to `mcp` 1.x remains open in #104.
-
 
 ## [3.6.0]
 

@@ -146,6 +146,10 @@ module RailsAiBridge
         else
           { error: "No db/schema.rb or db/structure.sql found in #{File.join(app.root, 'db')}" }
         end
+      rescue StandardError => error
+        # Guards the exist?/read race (file removed between check and read) and
+        # any other read failure, honouring the introspector never-raise contract.
+        { error: "Failed to read schema file: #{error.message}" }
       end
     end
   end

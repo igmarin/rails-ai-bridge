@@ -23,10 +23,16 @@ module RailsAiBridge
       #   +PRIMARY KEY+, +FOREIGN KEY+, …) are skipped.
       # * +);+ — closes the current table context
       # * +CREATE [UNIQUE] INDEX name ON [schema.]table USING method (cols)+ —
-      #   adds an index entry (first column only) to the named table
+      #   adds an index entry (first simple column) to the named table.
+      #   Functional/expression indexes (e.g. +lower(email)+) are skipped.
+      # * +ALTER TABLE [ONLY] table ADD CONSTRAINT ... FOREIGN KEY (col)
+      #   REFERENCES ref_table (pk)+ — adds a foreign-key entry to +table+
+      #   (pg_dump emits these in a separate constraints section).
       #
-      # Foreign keys are intentionally left empty to match {StaticSchemaParser};
-      # the live {SchemaIntrospector} path reports them in full.
+      # Unlike {StaticSchemaParser} (whose +schema.rb+ static form leaves foreign
+      # keys empty), +structure.sql+ spells foreign keys out as parseable DDL, so
+      # this parser populates them offline — matching what the live
+      # {SchemaIntrospector} path reports.
       #
       # Internal Rails tables (+ar_internal_metadata+, +schema_migrations+) and
       # any table matching {Config::Introspection#excluded_tables} are silently
@@ -56,6 +62,21 @@ module RailsAiBridge
         # (parity with {StaticSchemaParser}).
         INDEX_LINE = /\ACREATE\s+(?:UNIQUE\s+)?INDEX\s+.+?\s+ON\s+(?:[\w"]+\.)?"?([A-Za-z_]\w*)"?\s+(?:USING\s+\w+\s+)?\(([^)]+)\)/
 
+        # Regex matching an +ALTER TABLE [ONLY] [schema.]table+ statement, which
+        # in pg_dump precedes an +ADD CONSTRAINT+ line. Captures the target table.
+        ALTER_TABLE_LINE = /\AALTER TABLE (?:ONLY\s+)?(?:[\w"]+\.)?"?([A-Za-z_]\w*)"?/
+
+        # Regex matching an +ADD CONSTRAINT ... FOREIGN KEY (cols) REFERENCES
+        # [schema.]ref_table (pk)+ clause. Captures local columns, referenced
+        # table, and referenced columns.
+        FOREIGN_KEY_LINE = /FOREIGN KEY\s*\(([^)]+)\)\s*REFERENCES\s+(?:[\w"]+\.)?"?([A-Za-z_]\w*)"?\s*\(([^)]+)\)/
+
+        # Regex matching an +ON DELETE <action>+ clause on a foreign-key line.
+        ON_DELETE = /ON DELETE ([A-Z ]+?)(?=\s+ON UPDATE|\s+(?:NOT\s+)?(?:DEFERRABLE|VALID)|[,;)]|\z)/i
+
+        # Regex matching an +ON UPDATE <action>+ clause on a foreign-key line.
+        ON_UPDATE = /ON UPDATE ([A-Z ]+?)(?=\s+(?:NOT\s+)?(?:DEFERRABLE|VALID)|[,;)]|\z)/i
+
         # Rails-managed tables that must never appear in introspection output.
         INTERNAL_TABLES = %w[ar_internal_metadata schema_migrations].freeze
 
@@ -72,22 +93,17 @@ module RailsAiBridge
           @tables        = {}
           @current_table = nil
           @in_table      = false
+          @alter_target  = nil
         end
 
-        # Parse the structure.sql content and return the tables hash.
+        # Parse the structure.sql content and return the tables hash. Never
+        # raises — malformed or non-UTF-8 input is caught and reported as an
+        # error hash, per the introspector contract.
         #
         # @return [Hash{Symbol => Object}] with keys +:adapter+, +:tables+,
-        #   +:total_tables+, and +:note+
+        #   +:total_tables+, and +:note+; or +{ error: }+ on failure
         def call
-          @content.each_line do |line|
-            if @in_table
-              parse_body_line(line)
-            else
-              next if parse_table_line?(line)
-
-              parse_index_line?(line)
-            end
-          end
+          @content.each_line { |line| parse_line(line) }
 
           {
             adapter: 'static_parse',
@@ -95,9 +111,25 @@ module RailsAiBridge
             total_tables: @tables.size,
             note: 'Parsed from db/structure.sql (no DB connection)'
           }
+        rescue StandardError => error
+          { error: "Failed to parse db/structure.sql: #{error.message}" }
         end
 
         private
+
+        # Dispatches a single line to the table-body handler or the top-level
+        # (create/index/alter/foreign-key) handlers.
+        #
+        # @param line [String]
+        # @return [void]
+        def parse_line(line)
+          return parse_body_line(line) if @in_table
+          return if parse_table_line?(line)
+          return if parse_index_line?(line)
+          return if parse_alter_table_line?(line)
+
+          parse_foreign_key_line?(line)
+        end
 
         # Opens a table context on a +CREATE TABLE+ line. Sets +@current_table+
         # to +nil+ for skipped tables while still tracking that we are inside a
@@ -158,6 +190,43 @@ module RailsAiBridge
           true
         end
 
+        # Records the target table of an +ALTER TABLE+ statement so a following
+        # +ADD CONSTRAINT ... FOREIGN KEY+ line can attach to it. Sets
+        # +@alter_target+ to +nil+ for skipped/unknown tables.
+        #
+        # @param line [String]
+        # @return [Boolean] +true+ if the line matched
+        def parse_alter_table_line?(line)
+          match = ALTER_TABLE_LINE.match(line)
+          return false unless match
+
+          @alter_target = @tables.key?(match[1]) ? match[1] : nil
+          true
+        end
+
+        # Appends a foreign-key entry to the current +@alter_target+ table. Mirrors
+        # the live introspector's shape (+from_table+, +to_table+, +column+,
+        # +primary_key+, +on_delete+, +on_update+), keeping the first column of a
+        # composite key for parity with index handling. No-ops without a target.
+        #
+        # @param line [String]
+        # @return [Boolean] +true+ if the line matched
+        def parse_foreign_key_line?(line)
+          match = FOREIGN_KEY_LINE.match(line)
+          return false unless match
+          return true unless @alter_target
+
+          @tables[@alter_target][:foreign_keys] << {
+            from_table: @alter_target,
+            to_table: match[2],
+            column: first_identifier(match[1]),
+            primary_key: first_identifier(match[3]),
+            on_delete: fk_action(line, ON_DELETE),
+            on_update: fk_action(line, ON_UPDATE)
+          }.compact
+          true
+        end
+
         # Strips a trailing comma and the +DEFAULT ...+ / +NOT NULL+ / +NULL+
         # modifiers to leave the bare SQL type.
         #
@@ -173,13 +242,37 @@ module RailsAiBridge
         end
 
         # Extracts the first column identifier from an index's parenthesised
-        # column list, dropping opclasses (+col varchar_pattern_ops+) and
-        # expression noise.
+        # column list. Keeps plain and opclass-qualified columns
+        # (+col varchar_pattern_ops+ → +col+) but returns +nil+ for functional
+        # or expression indexes (+lower(email)+) so they are skipped rather than
+        # mis-attributed to the function name.
         #
         # @param columns [String] raw text between the index parentheses
         # @return [String, nil]
         def first_index_column(columns)
+          first = columns.split(',').first&.strip
+          return nil if first.nil? || first.include?('(')
+
+          first.slice(/[A-Za-z_]\w*/)
+        end
+
+        # Returns the first identifier from a (possibly composite) column list.
+        #
+        # @param columns [String] comma-separated column list
+        # @return [String, nil]
+        def first_identifier(columns)
           columns.split(',').first&.slice(/[A-Za-z_]\w*/)
+        end
+
+        # Extracts a normalized foreign-key referential action (e.g. +CASCADE+,
+        # +SET NULL+) from a line, or +nil+ when the clause is absent.
+        #
+        # @param line [String]
+        # @param pattern [Regexp] {ON_DELETE} or {ON_UPDATE}
+        # @return [String, nil]
+        def fk_action(line, pattern)
+          match = pattern.match(line)
+          match && match[1].strip.squeeze(' ').upcase
         end
 
         # @param name [String]

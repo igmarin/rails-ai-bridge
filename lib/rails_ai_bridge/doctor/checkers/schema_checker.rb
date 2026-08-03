@@ -9,14 +9,15 @@ module RailsAiBridge
       class SchemaChecker < BaseChecker
         # @return [Doctor::Check] +:pass+ when a schema file exists; +:warn+ otherwise
         def call
+          schema_file = present_schema_file
           check(
             'Schema',
-            present_schema_file,
-            pass: { message: "#{present_schema_file} found" },
+            schema_file,
+            pass: { message: "#{schema_file} found" },
             fail: {
               status: :warn,
               message: 'db/schema.rb or db/structure.sql not found',
-              fix: 'Run `rails db:migrate` (or `db:schema:dump`) to generate one'
+              fix: 'Run `rails db:migrate` (or `rails db:schema:dump`) to generate one'
             }
           )
         end

@@ -151,6 +151,27 @@ RSpec.describe RailsAiBridge::Introspectors::Schema::StaticStructureSqlParser do
       content = "CREATE INDEX idx ON public.unknown USING btree (col);\n"
       expect(parse(content)[:tables]).to be_empty
     end
+
+    it 'keeps an opclass-qualified column (drops the opclass)' do
+      content = <<~DDL
+        CREATE TABLE public.users (
+            email character varying
+        );
+        CREATE INDEX index_users_on_email ON public.users USING btree (email varchar_pattern_ops);
+      DDL
+      indexes = parse(content)[:tables]['users'][:indexes]
+      expect(indexes.pluck(:columns)).to contain_exactly('email')
+    end
+
+    it 'skips a functional/expression index instead of mis-attributing the function name' do
+      content = <<~DDL
+        CREATE TABLE public.users (
+            email character varying
+        );
+        CREATE INDEX index_users_on_lower_email ON public.users USING btree (lower((email)::text));
+      DDL
+      expect(parse(content)[:tables]['users'][:indexes]).to be_empty
+    end
   end
 
   # ---------------------------------------------------------------------------
@@ -221,6 +242,78 @@ RSpec.describe RailsAiBridge::Introspectors::Schema::StaticStructureSqlParser do
     it 'supports glob patterns in excluded_tables' do
       config.excluded_tables << 'audit_*'
       expect(parse(content)[:tables]).not_to have_key('audit_logs')
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Foreign key parsing (ALTER TABLE ... ADD CONSTRAINT ... FOREIGN KEY)
+  # ---------------------------------------------------------------------------
+  describe 'foreign key parsing' do
+    let(:content) do
+      <<~DDL
+        CREATE TABLE public.posts (
+            id bigint NOT NULL,
+            user_id bigint
+        );
+        CREATE TABLE public.users (
+            id bigint NOT NULL
+        );
+        ALTER TABLE ONLY public.posts
+            ADD CONSTRAINT fk_rails_abc123 FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+      DDL
+    end
+
+    it 'attaches the foreign key to the altered table' do
+      fks = parse(content)[:tables]['posts'][:foreign_keys]
+      expect(fks.size).to eq(1)
+    end
+
+    it 'captures from_table, to_table, column and primary_key' do
+      fk = parse(content)[:tables]['posts'][:foreign_keys].first
+      expect(fk).to include(from_table: 'posts', to_table: 'users', column: 'user_id', primary_key: 'id')
+    end
+
+    it 'captures the ON DELETE referential action' do
+      fk = parse(content)[:tables]['posts'][:foreign_keys].first
+      expect(fk[:on_delete]).to eq('CASCADE')
+    end
+
+    it 'omits absent on_update rather than storing nil' do
+      fk = parse(content)[:tables]['posts'][:foreign_keys].first
+      expect(fk).not_to have_key(:on_update)
+    end
+
+    it 'ignores a FOREIGN KEY whose ALTER TABLE target is not a parsed table' do
+      content = <<~DDL
+        ALTER TABLE ONLY public.unknown
+            ADD CONSTRAINT fk FOREIGN KEY (x_id) REFERENCES public.users(id);
+      DDL
+      expect(parse(content)[:tables]).to be_empty
+    end
+
+    it 'does not treat a non-foreign-key ADD CONSTRAINT as a foreign key' do
+      content = <<~DDL
+        CREATE TABLE public.users (
+            id bigint NOT NULL
+        );
+        ALTER TABLE ONLY public.users
+            ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+      DDL
+      expect(parse(content)[:tables]['users'][:foreign_keys]).to be_empty
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Error handling (introspector contract: never raise)
+  # ---------------------------------------------------------------------------
+  describe 'error handling' do
+    it 'returns an error hash instead of raising on invalid-encoding input' do
+      invalid = +"CREATE TABLE public.users (\n    email \xC3\x28 NOT NULL\n);\n"
+      invalid.force_encoding('UTF-8')
+
+      result = nil
+      expect { result = parse(invalid) }.not_to raise_error
+      expect(result[:error]).to include('db/structure.sql')
     end
   end
 end
