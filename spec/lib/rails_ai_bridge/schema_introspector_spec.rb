@@ -8,14 +8,15 @@ RSpec.describe RailsAiBridge::Introspectors::SchemaIntrospector do
   let(:introspector) { described_class.new(app) }
 
   describe '#call' do
-    context 'when ActiveRecord is not connected and no schema.rb' do
+    context 'when ActiveRecord is not connected and no schema file exists' do
       before do
         allow(introspector).to receive(:active_record_connected?).and_return(false)
       end
 
-      it 'returns an error' do
+      it 'returns an error mentioning both schema files' do
         result = introspector.call
-        expect(result[:error]).to include('No schema.rb')
+        expect(result[:error]).to include('db/schema.rb')
+        expect(result[:error]).to include('structure.sql')
       end
     end
 

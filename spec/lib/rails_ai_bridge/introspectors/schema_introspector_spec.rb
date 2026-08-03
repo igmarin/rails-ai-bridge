@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+require 'tempfile'
 
 RSpec.describe RailsAiBridge::Introspectors::SchemaIntrospector do
   let(:introspector) { described_class.new(Rails.application) }
@@ -86,14 +87,57 @@ RSpec.describe RailsAiBridge::Introspectors::SchemaIntrospector do
       end
     end
 
-    context 'when schema.rb is absent' do
-      before do
-        allow(introspector).to receive_messages(active_record_connected?: false,
-                                                schema_file_path: '/nonexistent/schema.rb')
+    context 'when schema.rb is absent but structure.sql exists (schema_format = :sql)' do
+      let(:structure_sql) do
+        Tempfile.new(['structure', '.sql']).tap do |f|
+          f.write(<<~DDL)
+            CREATE TABLE public.users (
+                id bigint NOT NULL,
+                email character varying NOT NULL
+            );
+            CREATE TABLE public.posts (
+                id bigint NOT NULL,
+                title character varying
+            );
+          DDL
+          f.flush
+        end
       end
 
-      it 'returns an error hash' do
-        expect(introspector.call[:error]).to include('schema.rb')
+      before do
+        allow(introspector).to receive_messages(active_record_connected?: false,
+                                                schema_file_path: '/nonexistent/schema.rb',
+                                                structure_sql_path: structure_sql.path)
+      end
+
+      after { structure_sql.close! }
+
+      it 'falls back to the structure.sql parser' do
+        expect(introspector.call[:adapter]).to eq('static_parse')
+      end
+
+      it 'notes structure.sql as the parse source' do
+        expect(introspector.call[:note]).to include('structure.sql')
+      end
+
+      it 'includes tables from structure.sql' do
+        tables = introspector.call[:tables]
+        expect(tables).to have_key('users')
+        expect(tables).to have_key('posts')
+      end
+    end
+
+    context 'when neither schema.rb nor structure.sql is present' do
+      before do
+        allow(introspector).to receive_messages(active_record_connected?: false,
+                                                schema_file_path: '/nonexistent/schema.rb',
+                                                structure_sql_path: '/nonexistent/structure.sql')
+      end
+
+      it 'returns an error hash mentioning both files' do
+        error = introspector.call[:error]
+        expect(error).to include('schema.rb')
+        expect(error).to include('structure.sql')
       end
     end
   end

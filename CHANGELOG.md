@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`structure.sql` support in offline/static schema introspection** (#96/#97) — apps using `config.active_record.schema_format = :sql` (no `db/schema.rb`) now get table, column, index, and foreign-key context offline via `Introspectors::Schema::StaticStructureSqlParser`. The live-connection path was already format-agnostic. Output shape matches the live introspector so formatters work unchanged. Partition-child tables (`CREATE TABLE … PARTITION OF …`) are not expanded (follow-up).
+
+### Fixed
+
+- **`ai:doctor` schema check for `schema_format = :sql`** (#96/#97) — Schema check passes when `db/structure.sql` is present; fix hint points at `rails db:migrate` (or `rails db:schema:dump`).
+
 ## [3.6.1] - 2026-08-07
 
 ### Security
@@ -19,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`rubydex` bumped to `~> 0.3.0`** (#103/#111) — was `~> 0.2.9`. Run `bundle update rubydex` in host apps.
 - **Dependency audit (2026-08)** (#99) — `bundle-audit` clean; official `mcp` remains on **0.25.x** (`< 1.0`). Migration to `mcp` 1.x remains open in #104.
+
 
 ## [3.6.0]
 
