@@ -764,6 +764,16 @@ RSpec.describe RailsAiBridge::Registry::DefaultGitRunner do
         expect { runner.clone_repo('', '/tmp/dest') }
           .to raise_error(ArgumentError, /Invalid git URL|scheme|allowlisted/i)
       end
+
+      it 'does not embed credentials from a rejected URL in the error message' do
+        expect(Open3).not_to receive(:capture3)
+
+        expect { runner.clone_repo('http://super-secret-token@github.com/org/repo.git', '/tmp/dest') }
+          .to raise_error(ArgumentError) { |e|
+            expect(e.message).not_to include('super-secret-token')
+            expect(e.message).to match(/scheme is not allowlisted/i)
+          }
+      end
     end
 
     context 'when URL scheme is allowlisted' do
