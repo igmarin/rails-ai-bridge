@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.6.1] - 2026-08-07
+
 ### Security
 
 - **Skill-pack git URL scheme allowlist** (#105/#110) — `DefaultGitRunner#clone_repo` accepts only `https://`, SCP-style `git@host:path`, and `ssh://`. Rejects `file://`, plain `http://`, and empty URLs. Validation `ArgumentError`s do not interpolate the raw URL, so credentials in userinfo cannot leak via exception messages.
