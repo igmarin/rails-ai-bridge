@@ -151,6 +151,7 @@ module RailsAiBridge
                    :copilot_compact_model_list_limit, :copilot_compact_model_list_limit=,
                    :codex_compact_model_list_limit, :codex_compact_model_list_limit=,
                    :watcher_formats, :watcher_formats=,
+                   :managed_region, :managed_region=,
                    :output_dir_for
   end
 end

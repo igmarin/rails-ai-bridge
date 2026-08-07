@@ -20,18 +20,24 @@ module RailsAiBridge
 
       VALID_ON_CONFLICT_SYMBOLS = %i[overwrite skip prompt].freeze
 
+      # Managed regions are markdown-comment delimited, so JSON output never participates.
+      UNMANAGEABLE_FORMATS = %i[json].freeze
+
       # @param context [Hash] introspection context from {RailsAiBridge.introspect}
       # @param format [Symbol, Array<Symbol>] format(s) to generate
       # @param split_rules [Boolean] whether to generate per-assistant rule directories
       # @param on_conflict [:overwrite, :skip, :prompt, #call] conflict resolution strategy;
       #   any object responding to +:call+ is invoked with the filepath and must return a
       #   truthy value to allow overwriting
+      # @param managed_region [Boolean, nil] confine generated output to a marked region so
+      #   hand-authored content in the file survives; +nil+ inherits +config.output.managed_region+
       # @raise [ArgumentError] when +on_conflict+ is not a recognised symbol or callable
-      def initialize(context, format: :all, split_rules: true, on_conflict: :overwrite)
+      def initialize(context, format: :all, split_rules: true, on_conflict: :overwrite, managed_region: nil)
         @context     = context
         @format      = format
         @split_rules = split_rules
         @conflict_policy = ConflictPolicy.build(on_conflict)
+        @managed_region = managed_region.nil? ? RailsAiBridge.configuration.managed_region : managed_region
       end
 
       # Write context files to the configured output directory, skipping unchanged ones.
@@ -70,8 +76,20 @@ module RailsAiBridge
         filepath = File.join(output_dir, filename)
         FileUtils.mkdir_p(File.dirname(filepath))
 
-        writer = FreshnessWriter.new(fmt, serialize(fmt), fingerprint, timestamp_now)
+        writer = FreshnessWriter.new(fmt, serialize(fmt), fingerprint, timestamp_now, layout: layout_for(fmt))
         writer.write_to(filepath, @conflict_policy, written, skipped)
+      end
+
+      # @param fmt [Symbol] format key
+      # @return [WholeFileLayout, ManagedRegionLayout] how the payload occupies the file
+      def layout_for(fmt)
+        managed_region?(fmt) ? ManagedRegionLayout.new : WholeFileLayout.new
+      end
+
+      # @param fmt [Symbol] format key
+      # @return [Boolean] +true+ when this format should write into a marked region
+      def managed_region?(fmt)
+        @managed_region && UNMANAGEABLE_FORMATS.exclude?(fmt)
       end
 
       # @param filepath [String] candidate output path
@@ -99,6 +117,32 @@ module RailsAiBridge
         end
       end
 
+      # Default layout: the generated payload is the entire file.
+      class WholeFileLayout
+        # @param existing [String, nil] current file content
+        # @return [String, nil] previously generated payload
+        def previous_payload(existing) = existing
+
+        # @param _existing [String, nil] current file content (discarded)
+        # @param payload [String] freshly generated content
+        # @return [String] content to write
+        def compose(_existing, payload) = payload
+      end
+
+      # Managed-region layout: only the marked block belongs to the gem; anything the
+      # user wrote above or below it is carried through untouched.
+      class ManagedRegionLayout
+        # @param existing [String, nil] current file content
+        # @return [String, nil] payload inside the markers, or +nil+ when unmarked
+        def previous_payload(existing) = ManagedRegion.extract(existing)
+
+        # @param existing [String, nil] current file content
+        # @param payload [String] freshly generated content
+        # @return [String] content to write
+        def compose(existing, payload) = ManagedRegion.merge(existing, payload)
+      end
+      private_constant :WholeFileLayout, :ManagedRegionLayout
+
       # Encapsulates format-specific freshness metadata embedding and file write logic.
       # Separating this from ContextFileSerializer removes ControlParameter and UtilityFunction
       # reek warnings from the serializer (the fmt-branching now lives in the right class).
@@ -107,11 +151,13 @@ module RailsAiBridge
         # @param raw_content [String] serialized content before freshness embedding
         # @param fingerprint [String] 12-char source fingerprint
         # @param timestamp_now [String] ISO 8601 UTC timestamp
-        def initialize(fmt, raw_content, fingerprint, timestamp_now)
+        # @param layout [#previous_payload, #compose] how the payload occupies the file
+        def initialize(fmt, raw_content, fingerprint, timestamp_now, layout: WholeFileLayout.new)
           @fmt         = fmt
           @raw_content = raw_content
           @fingerprint = fingerprint
           @timestamp_now = timestamp_now
+          @layout = layout
         end
 
         # Writes the file to disk, skipping if unchanged or blocked by the conflict policy.
@@ -124,13 +170,13 @@ module RailsAiBridge
         # :reek:LongParameterList
         def write_to(filepath, conflict_policy, written, skipped)
           existing_content = read_existing(filepath)
-          timestamp_to_use = resolve_timestamp(existing_content)
-          candidate = build_candidate_content(timestamp_to_use)
+          timestamp_to_use = resolve_timestamp(@layout.previous_payload(existing_content))
+          candidate = compose(existing_content, timestamp_to_use)
 
           if skip?(filepath, existing_content, candidate, conflict_policy)
             skipped << filepath
           else
-            write_file(filepath, candidate, timestamp_to_use)
+            write_file(filepath, existing_content, candidate, timestamp_to_use)
             written << filepath
           end
         end
@@ -141,10 +187,11 @@ module RailsAiBridge
           File.exist?(filepath) ? File.read(filepath) : nil
         end
 
-        def resolve_timestamp(existing_content)
-          return @timestamp_now unless existing_content
+        # @param previous_payload [String, nil] the gem-owned portion of the existing file
+        def resolve_timestamp(previous_payload)
+          return @timestamp_now unless previous_payload
 
-          embedded_fp, embedded_ts = FreshnessHeader.extract_metadata_for(@fmt, existing_content)
+          embedded_fp, embedded_ts = FreshnessHeader.extract_metadata_for(@fmt, previous_payload)
           embedded_fp == @fingerprint && embedded_ts ? embedded_ts : @timestamp_now
         end
 
@@ -152,12 +199,19 @@ module RailsAiBridge
           FreshnessHeader.embed_for(@fmt, @raw_content, timestamp, @fingerprint)
         end
 
+        # Full file content for the given timestamp, including any hand-authored
+        # content the layout preserves.
+        def compose(existing_content, timestamp)
+          @layout.compose(existing_content, build_candidate_content(timestamp))
+        end
+
         def skip?(filepath, existing_content, candidate, conflict_policy)
           existing_content && (existing_content == candidate || !conflict_policy.overwrite?(filepath))
         end
 
-        def write_file(filepath, candidate, timestamp_to_use)
-          final_content = timestamp_to_use == @timestamp_now ? candidate : build_candidate_content(@timestamp_now)
+        # :reek:LongParameterList
+        def write_file(filepath, existing_content, candidate, timestamp_to_use)
+          final_content = timestamp_to_use == @timestamp_now ? candidate : compose(existing_content, @timestamp_now)
           File.write(filepath, final_content)
         end
       end

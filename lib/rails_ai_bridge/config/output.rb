@@ -29,6 +29,11 @@ module RailsAiBridge
       #   Defaults to +:all+. Set to e.g. +%i[claude cursor]+ to limit churn.
       attr_accessor :watcher_formats
 
+      # @return [Boolean] when +true+, generated output is confined to a marked region
+      #   in each markdown provider file so hand-authored content around it survives
+      #   regeneration. Never applies to +.ai-context.json+. Defaults to +false+.
+      attr_accessor :managed_region
+
       def initialize
         @output_dir                     = nil
         @context_mode                   = :compact
@@ -38,6 +43,7 @@ module RailsAiBridge
         @copilot_compact_model_list_limit = 5
         @codex_compact_model_list_limit   = 3
         @watcher_formats                  = :all
+        @managed_region                   = false
       end
 
       # Resolve the effective output directory.

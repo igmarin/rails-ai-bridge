@@ -55,6 +55,8 @@ module RailsAiBridge
     # @option options [:overwrite, :skip, :prompt, #call] :on_conflict behaviour when a file exists with
     #   different content. +:overwrite+ (default) silently replaces; +:skip+ keeps the existing file;
     #   +:prompt+ asks via stdin; any callable receives the filepath and returns truthy to overwrite.
+    # @option options [Boolean] :managed_region confine generated output to a marked region in each
+    #   markdown provider file so hand-authored content survives; defaults to +config.output.managed_region+
     # @return [Hash{Symbol => Array<String>}] files grouped under +:written+ and +:skipped+
     # @raise [ArgumentError] when an unknown option key is passed
     def generate_context(app = nil, **options)
@@ -99,7 +101,7 @@ module RailsAiBridge
     private
 
     def validate_generate_context_options!(options)
-      allowed = %i[format split_rules on_conflict].to_set
+      allowed = %i[format split_rules on_conflict managed_region].to_set
       unknown = options.keys.to_set - allowed
       return if unknown.empty?
 
@@ -110,7 +112,8 @@ module RailsAiBridge
       Serializers::ContextFileSerializer.new(context,
                                              format: options.fetch(:format, :all),
                                              split_rules: options.fetch(:split_rules, true),
-                                             on_conflict: options.fetch(:on_conflict, :overwrite))
+                                             on_conflict: options.fetch(:on_conflict, :overwrite),
+                                             managed_region: options.fetch(:managed_region, nil))
     end
 
     public

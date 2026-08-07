@@ -41,6 +41,20 @@ module RailsAiBridge
       puts "📐 Context mode: #{mode}"
     end
 
+    # Overrides managed-region output from the +MERGE+ env var when it is set.
+    # +MERGE=1+ confines generated content to a marked block in each markdown provider
+    # file, preserving hand-authored prose around it. +MERGE=0+ forces whole-file writes
+    # even when the initializer turns managed regions on.
+    #
+    # @return [void]
+    def self.apply_managed_region_override
+      return unless ENV.key?('MERGE')
+
+      enabled = TRUTHY_ENV_VALUES.include?(ENV['MERGE'].to_s.downcase.strip)
+      RailsAiBridge.configuration.managed_region = enabled
+      puts enabled ? '🧩 Managed region: on (hand-authored content preserved)' : '🧩 Managed region: off (files rewritten in full)'
+    end
+
     # Returns :prompt when CONFIRM is one of "1", "true", "yes", "y" so rake tasks
     # ask before overwriting changed files. CONFIRM=0 or CONFIRM=false stays silent.
     # Resolves the conflict strategy from the +CONFIRM+ env var.
@@ -81,6 +95,7 @@ namespace :ai do
     require 'rails_ai_bridge'
 
     RailsAiBridge::RakeHelpers.apply_context_mode_override
+    RailsAiBridge::RakeHelpers.apply_managed_region_override
     RailsAiBridge::RakeHelpers.run_pre_generation_checks
 
     puts "🔍 Introspecting #{Rails.application.class.module_parent_name}..."
@@ -104,6 +119,7 @@ namespace :ai do
     require 'rails_ai_bridge'
 
     RailsAiBridge::RakeHelpers.apply_context_mode_override
+    RailsAiBridge::RakeHelpers.apply_managed_region_override
     RailsAiBridge::RakeHelpers.run_pre_generation_checks
 
     format = (args[:format] || ENV['FORMAT'] || 'claude').to_sym
@@ -128,6 +144,7 @@ namespace :ai do
         require 'rails_ai_bridge'
 
         RailsAiBridge::RakeHelpers.apply_context_mode_override
+        RailsAiBridge::RakeHelpers.apply_managed_region_override
         RailsAiBridge::RakeHelpers.run_pre_generation_checks
 
         puts "🔍 Introspecting #{Rails.application.class.module_parent_name}..."
@@ -148,6 +165,7 @@ namespace :ai do
       require 'rails_ai_bridge'
 
       RailsAiBridge::RakeHelpers.apply_context_mode_override
+      RailsAiBridge::RakeHelpers.apply_managed_region_override
       RailsAiBridge.configuration.context_mode = :full
       RailsAiBridge::RakeHelpers.run_pre_generation_checks
 

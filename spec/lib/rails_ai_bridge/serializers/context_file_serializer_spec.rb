@@ -220,6 +220,110 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
       end.to raise_error(ArgumentError, /on_conflict must be/)
     end
 
+    describe 'managed_region option' do
+      let(:hand_authored) { "# House rules\n\nAlways run `bin/rubocop` before committing.\n" }
+
+      def claude_path(dir) = File.join(dir, 'CLAUDE.md')
+
+      def generate(dir, **options)
+        allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
+        described_class.new(context, format: :claude, split_rules: false, **options).call
+      end
+
+      it 'is off by default, so an existing file is still rewritten in full' do
+        Dir.mktmpdir do |dir|
+          seed_file(dir, 'CLAUDE.md', hand_authored)
+          generate(dir)
+
+          content = File.read(claude_path(dir))
+          expect(content).not_to include('House rules')
+          expect(content).not_to include(RailsAiBridge::Serializers::ManagedRegion::BEGIN_MARKER)
+        end
+      end
+
+      it 'wraps generated output in markers when no file exists' do
+        Dir.mktmpdir do |dir|
+          generate(dir, managed_region: true)
+
+          content = File.read(claude_path(dir))
+          expect(content).to start_with(RailsAiBridge::Serializers::ManagedRegion::BEGIN_MARKER)
+          expect(content).to end_with("#{RailsAiBridge::Serializers::ManagedRegion::END_MARKER}\n")
+        end
+      end
+
+      it 'appends the block to a pre-existing unmarked file instead of clobbering it' do
+        Dir.mktmpdir do |dir|
+          seed_file(dir, 'CLAUDE.md', hand_authored)
+          generate(dir, managed_region: true)
+
+          content = File.read(claude_path(dir))
+          expect(content).to start_with(hand_authored)
+          expect(RailsAiBridge::Serializers::ManagedRegion.extract(content)).to include('Generated at:')
+        end
+      end
+
+      it 'preserves hand-authored content above and below across regeneration' do
+        Dir.mktmpdir do |dir|
+          generate(dir, managed_region: true)
+          File.write(claude_path(dir), "#{hand_authored}\n#{File.read(claude_path(dir))}\nTrailing note.\n")
+
+          allow(RailsAiBridge::Fingerprinter).to receive(:source_fingerprint).and_return('f6e5d4c3b2a1')
+          generate(dir, managed_region: true)
+
+          content = File.read(claude_path(dir))
+          expect(content).to start_with(hand_authored)
+          expect(content).to end_with("Trailing note.\n")
+          expect(RailsAiBridge::FreshnessHeader.extract_fingerprint(
+                   RailsAiBridge::Serializers::ManagedRegion.extract(content)
+                 )).to eq('f6e5d4c3b2a1')
+        end
+      end
+
+      it 'skips an unchanged managed file on the second run' do
+        Dir.mktmpdir do |dir|
+          generate(dir, managed_region: true)
+          before = File.read(claude_path(dir))
+
+          result = generate(dir, managed_region: true)
+
+          expect(result[:written]).to be_empty
+          expect(result[:skipped].any? { |f| f.end_with?('CLAUDE.md') }).to be true
+          expect(File.read(claude_path(dir))).to eq(before)
+        end
+      end
+
+      it 'never adds markers to JSON output' do
+        Dir.mktmpdir do |dir|
+          allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
+          described_class.new(context, format: :json, split_rules: false, managed_region: true).call
+
+          json_path = File.join(dir, '.ai-context.json')
+          expect(File.read(json_path)).not_to include('BEGIN rails-ai-bridge')
+          expect { JSON.parse(File.read(json_path)) }.not_to raise_error
+        end
+      end
+
+      it 'inherits config.output.managed_region when the option is omitted' do
+        Dir.mktmpdir do |dir|
+          allow(RailsAiBridge.configuration).to receive(:managed_region).and_return(true)
+          seed_file(dir, 'CLAUDE.md', hand_authored)
+          generate(dir)
+
+          expect(File.read(claude_path(dir))).to start_with(hand_authored)
+        end
+      end
+
+      it 'still honours :skip for a managed file' do
+        Dir.mktmpdir do |dir|
+          seed_file(dir, 'CLAUDE.md', hand_authored)
+          result = generate(dir, managed_region: true, on_conflict: :skip)
+
+          expect(result[:written]).to be_empty
+          expect(File.read(claude_path(dir))).to eq(hand_authored)
+        end
+      end
+    end
+
     describe 'freshness headers' do
       it 'injects markdown comments in CLAUDE.md' do
         Dir.mktmpdir do |dir|
