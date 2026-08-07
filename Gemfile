@@ -6,7 +6,6 @@ source 'https://rubygems.org'
 gemspec
 
 group :development, :test do
-  gem 'benchmark', '~> 0.4' # Ruby 4.0+ default gem extraction
   gem 'bundler-audit', '~> 0.9'
   gem 'combustion', '~> 1.3'
   gem 'rails', '~> 8.1'
