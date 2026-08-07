@@ -10,10 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 - **Skill-pack git URL scheme allowlist** (#105/#110) — `DefaultGitRunner#clone_repo` accepts only `https://`, SCP-style `git@host:path`, and `ssh://`. Rejects `file://`, plain `http://`, and empty URLs. Validation `ArgumentError`s do not interpolate the raw URL, so credentials in userinfo cannot leak via exception messages.
+- **SECURITY.md supported-versions table** (#106/#112) — documents 3.6.x / 3.5.x as supported, best-effort for older 3.x, and end-of-life for 1.x / 2.x.
+- **Residual MCP HTTP risk checklist** (#107/#113) — operator checklist in `docs/mcp-security.md` (open HTTP default, CORS `*`, in-memory rate limit) with an install-generator pointer.
 
 ### Changed
 
-- **Dependency audit (2026-08)** (#99) — `bundle-audit` clean on current constraints; official `mcp` remains on **0.25.x** (`< 1.0`). Migration to `mcp` 1.x tracked in #104. `rubydex` 0.3 tracked in #103 / PR #111.
+- **`rubydex` bumped to `~> 0.3.0`** (#103/#111) — was `~> 0.2.9`. Run `bundle update rubydex` in host apps.
+- **Dependency audit (2026-08)** (#99) — `bundle-audit` clean; official `mcp` remains on **0.25.x** (`< 1.0`). Migration to `mcp` 1.x remains open in #104.
 
 ## [3.6.0]
 
