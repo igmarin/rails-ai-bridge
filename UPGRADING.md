@@ -1,5 +1,23 @@
 # Upgrading rails-ai-bridge
 
+## Upgrading from 3.6.0 to 3.6.1
+
+**One action required if you are pinned to `rubydex` 0.2.x:**
+
+The `rubydex` gem constraint moved from `~> 0.2.9` to `~> 0.3.0`. After upgrading
+rails-ai-bridge:
+
+```bash
+bundle update rubydex
+```
+
+No configuration or application code changes are required for the security and
+documentation updates in 3.6.1. Skill-pack git sources must use `https://`,
+SCP-style `git@host:path`, or `ssh://` (plain `http://` and `file://` are rejected).
+
+---
+
+
 ## Upgrading from 3.5.x to 3.6.0
 
 **One action required if you are pinned to an older `rubydex`:**
