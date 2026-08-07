@@ -72,3 +72,16 @@ The stdio MCP server has no Bearer layer; anyone who can run the process can use
 
 - [SECURITY.md](../SECURITY.md) — reporting vulnerabilities and design summary
 - [docs/GUIDE.md](GUIDE.md) — full configuration and MCP tool reference
+
+## Residual risk checklist (operators)
+
+Use this before exposing HTTP MCP beyond a single-developer machine:
+
+| Risk | Default | Mitigation |
+|------|---------|------------|
+| Unauthenticated HTTP when no token/resolver/JWT is configured | Open access (local DX) | Set `RAILS_AI_BRIDGE_MCP_TOKEN` or `config.http_mcp_token`, and/or `config.require_http_auth = true` |
+| `cors_origins` includes `*` | CORS disabled unless configured | Prefer exact origins; never combine `*` with browsers on untrusted networks |
+| In-memory rate limit | Per-process only | Use `config.mcp.rate_limiter` / reverse proxy / WAF for multi-worker or multi-host |
+| Information disclosure via tools | Read-only tools still reveal schema/routes/code | Prefer stdio; bind HTTP to `127.0.0.1`; use exclusions/presets for regulated data |
+
+See also [SECURITY.md](../SECURITY.md) for production `auto_mount` requirements and private vulnerability reporting.

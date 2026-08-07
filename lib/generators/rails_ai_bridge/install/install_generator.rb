@@ -189,6 +189,7 @@ module RailsAiBridge
             # return 401 unless one of the auth mechanisms above is configured.
             # Default is false for backward compatibility with local development.
             # config.mcp.require_http_auth = true
+            # See docs/mcp-security.md — Residual risk checklist (operators).
             #
             # Timing-safe token comparison is built in, but add rate limiting too
             # (e.g. Rack::Attack throttle on config.http_path) to prevent brute-force.
