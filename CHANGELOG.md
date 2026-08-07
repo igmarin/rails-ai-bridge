@@ -5,7 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Dependency audit (2026-08)** (#99, #102, #104, #108) — `bundle-audit` clean; runtime lock remains on official `mcp` **0.25.0** (latest 0.x; gemspec still `< 1.0`). Migration to `mcp` 1.x tracked in #104 (no security urgency; known MCP CVEs patched at `>= 0.23`). `rubydex` 0.3 evaluation tracked in #103.
+
 ## [3.6.0]
+
 
 ### Changed
 
