@@ -1,5 +1,16 @@
 # Upgrading rails-ai-bridge
 
+## Upgrading from 3.6.1 to 3.6.2
+
+**No configuration changes required.**
+
+If your app uses `config.active_record.schema_format = :sql`, offline schema
+introspection and `rails ai:doctor` now use `db/structure.sql` automatically
+(no need for `db/schema.rb`). Live DB introspection was already format-agnostic.
+
+---
+
+
 ## Upgrading from 3.6.0 to 3.6.1
 
 **One action required if you are pinned to `rubydex` 0.2.x:**
