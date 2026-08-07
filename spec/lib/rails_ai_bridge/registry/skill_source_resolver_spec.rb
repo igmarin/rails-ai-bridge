@@ -740,6 +740,67 @@ RSpec.describe RailsAiBridge::Registry::DefaultGitRunner do
       expect { runner.clone_repo('https://github.com/org/repo.git', '-evil') }
         .to raise_error(ArgumentError, /Invalid destination/)
     end
+
+    # ── S2: URL scheme allowlist (https / git@ / ssh only) ───────────────────
+
+    context 'when URL scheme is not allowlisted' do
+      it 'rejects file:// URLs before invoking git' do
+        expect(Open3).not_to receive(:capture3)
+
+        expect { runner.clone_repo('file:///etc/passwd', '/tmp/dest') }
+          .to raise_error(ArgumentError, /Invalid git URL|scheme|allowlisted/i)
+      end
+
+      it 'rejects plain http:// URLs' do
+        expect(Open3).not_to receive(:capture3)
+
+        expect { runner.clone_repo('http://github.com/org/repo.git', '/tmp/dest') }
+          .to raise_error(ArgumentError, /Invalid git URL|scheme|allowlisted/i)
+      end
+
+      it 'rejects empty URLs' do
+        expect(Open3).not_to receive(:capture3)
+
+        expect { runner.clone_repo('', '/tmp/dest') }
+          .to raise_error(ArgumentError, /Invalid git URL|scheme|allowlisted/i)
+      end
+
+      it 'does not embed credentials from a rejected URL in the error message' do
+        expect(Open3).not_to receive(:capture3)
+
+        expect { runner.clone_repo('http://super-secret-token@github.com/org/repo.git', '/tmp/dest') }
+          .to raise_error(ArgumentError) { |e|
+            expect(e.message).not_to include('super-secret-token')
+            expect(e.message).to match(/scheme is not allowlisted/i)
+          }
+      end
+    end
+
+    context 'when URL scheme is allowlisted' do
+      it 'accepts https:// URLs' do
+        allow(Open3).to receive(:capture3)
+          .with('git', 'clone', '--', 'https://github.com/org/repo.git', '/tmp/dest')
+          .and_return(['', '', succeeding_status])
+
+        expect { runner.clone_repo('https://github.com/org/repo.git', '/tmp/dest') }.not_to raise_error
+      end
+
+      it 'accepts git@host:path SSH scp-style URLs' do
+        allow(Open3).to receive(:capture3)
+          .with('git', 'clone', '--', 'git@github.com:org/repo.git', '/tmp/dest')
+          .and_return(['', '', succeeding_status])
+
+        expect { runner.clone_repo('git@github.com:org/repo.git', '/tmp/dest') }.not_to raise_error
+      end
+
+      it 'accepts ssh:// URLs' do
+        allow(Open3).to receive(:capture3)
+          .with('git', 'clone', '--', 'ssh://git@github.com/org/repo.git', '/tmp/dest')
+          .and_return(['', '', succeeding_status])
+
+        expect { runner.clone_repo('ssh://git@github.com/org/repo.git', '/tmp/dest') }.not_to raise_error
+      end
+    end
   end
 
   describe '#pull_repo' do

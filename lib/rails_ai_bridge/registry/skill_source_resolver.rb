@@ -69,11 +69,22 @@ module RailsAiBridge
       #
       # @param url [String] git repository URL
       # @param dest [String] destination directory path
+      # @raise [ArgumentError] if the URL or destination is unsafe or not allowlisted
       # @raise [RuntimeError] if git clone command fails, returns non-zero, or times out
       # @return [void]
+      # @note Skill-pack clones accept only +https://+, SCP-style
+      #   +git@host:path+, and +ssh://+ remote URLs.
+      ALLOWED_GIT_URL_PATTERN = %r{\A(?:https://|ssh://|git@[A-Za-z0-9._-]+:)}
+
       def clone_repo(url, dest)
-        raise ArgumentError, "Invalid git URL #{url.inspect}: URLs must not start with '-'" if url.start_with?('-')
-        raise ArgumentError, "Invalid destination #{dest.inspect}: paths must not start with '-'" if dest.to_s.start_with?('-')
+        url = url.to_s
+        # Avoid interpolating +url+ into errors: userinfo may contain credentials.
+        raise ArgumentError, "Invalid git URL: URLs must not start with '-'" if url.start_with?('-')
+        raise ArgumentError, "Invalid destination: paths must not start with '-'" if dest.to_s.start_with?('-')
+        unless url.match?(ALLOWED_GIT_URL_PATTERN)
+          raise ArgumentError,
+                'Invalid git URL: scheme is not allowlisted (use https://, git@host:path, or ssh://)'
+        end
 
         with_timeout('git clone') do
           _stdout, stderr, status = Open3.capture3('git', 'clone', '--', url, dest)
