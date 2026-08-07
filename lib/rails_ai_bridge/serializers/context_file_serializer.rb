@@ -133,13 +133,33 @@ module RailsAiBridge
       # user wrote above or below it is carried through untouched.
       class ManagedRegionLayout
         # @param existing [String, nil] current file content
-        # @return [String, nil] payload inside the markers, or +nil+ when unmarked
-        def previous_payload(existing) = ManagedRegion.extract(existing)
+        # @return [String, nil] payload inside the markers, the whole file when it is
+        #   unmarked gem output, or +nil+ when the file is hand-authored
+        def previous_payload(existing)
+          ManagedRegion.extract(existing) || whole_file_output(existing)
+        end
 
         # @param existing [String, nil] current file content
         # @param payload [String] freshly generated content
         # @return [String] content to write
-        def compose(existing, payload) = ManagedRegion.merge(existing, payload)
+        def compose(existing, payload)
+          ManagedRegion.merge(whole_file_output(existing) ? nil : existing, payload)
+        end
+
+        private
+
+        # A file led by the freshness header is prior whole-file output from this gem, so
+        # none of it is hand-authored. Replacing it keeps the first run after opting in
+        # from appending a second copy of the context below the stale one — a duplicate
+        # that would then never refresh, because it now reads as user content.
+        #
+        # @param existing [String, nil] current file content
+        # @return [String, nil] +existing+ when it is unmarked gem output
+        def whole_file_output(existing)
+          return nil unless existing && !ManagedRegion.markers?(existing)
+
+          existing if FreshnessHeader::HEADER_PATTERN.match?(existing)
+        end
       end
       private_constant :WholeFileLayout, :ManagedRegionLayout
 

@@ -580,6 +580,10 @@ Always run `bin/rubocop` before committing.
 - **No file yet** → the marked block is written on its own.
 - **Markers present** → only the block is replaced; content above and below is untouched.
 - **Existing file, no markers** → the block is **appended**; your file is not clobbered.
+- **Existing file that this gem generated** (its first line is the `<!-- Generated at: … -->`
+  header) → replaced, not appended, so turning the flag on doesn't leave a stale second
+  copy of the context above the block. If you had appended prose to that generated file,
+  wrap the generated part in the markers by hand before your first run to keep it.
 
 Markdown provider files only (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`,
 `.github/copilot-instructions.md`, `.cursorrules`, `.devinrules`). `.ai-context.json` never

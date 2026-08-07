@@ -9,8 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Managed regions preserve hand-authored content in provider files** (#98) — opt in with `config.output.managed_region = true` (or `MERGE=1 rails ai:bridge`) and generated context is confined to a `<!-- BEGIN rails-ai-bridge: … -->` / `<!-- END rails-ai-bridge -->` block. Prose written above or below the block survives every regeneration. A pre-existing file without markers gets the block **appended** rather than clobbered. Markdown provider files only (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `.cursorrules`, `.devinrules`); `.ai-context.json` never receives markers. Default behavior is unchanged — files are still rewritten in full unless you opt in.
-- **`ai:doctor` reads freshness from inside the managed region** (#98) — files whose freshness header is preceded by hand-authored prose are no longer misreported as stale.
+- **Managed regions preserve hand-authored content in provider files** (#98) — opt in with `config.output.managed_region = true` (or `MERGE=1 rails ai:bridge`) and generated context is confined to a `<!-- BEGIN rails-ai-bridge: … -->` / `<!-- END rails-ai-bridge -->` block. Prose written above or below the block survives every regeneration. A pre-existing hand-authored file gets the block **appended** rather than clobbered; a file this gem previously generated (detected via its leading freshness header) is replaced, so opting in never leaves a stale second copy of the context above the block. Markdown provider files only (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `.cursorrules`, `.devinrules`); `.ai-context.json` never receives markers. Default behavior is unchanged — files are still rewritten in full unless you opt in.
+- **`ai:doctor` reads freshness from inside the managed region** (#98) — files whose freshness header is preceded by hand-authored prose are no longer misreported as stale. `.ai-context.json` is still read whole, since it never carries markers.
 
 ## [3.6.2] - 2026-08-07
 

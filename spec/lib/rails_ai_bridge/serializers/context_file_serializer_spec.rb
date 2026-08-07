@@ -262,6 +262,40 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
         end
       end
 
+      it 'replaces prior whole-file output instead of duplicating it into the region' do
+        Dir.mktmpdir do |dir|
+          generate(dir)                       # a legacy run, before opting in
+          generate(dir, managed_region: true) # user flips the flag on
+
+          content = File.read(claude_path(dir))
+          expect(content).to start_with(RailsAiBridge::Serializers::ManagedRegion::BEGIN_MARKER)
+          expect(content.scan('<!-- Generated at:').size).to eq(1)
+          expect(content.scan(RailsAiBridge::Serializers::ManagedRegion::BEGIN_MARKER).size).to eq(1)
+        end
+      end
+
+      it 'keeps the embedded timestamp when opting in with an unchanged fingerprint' do
+        Dir.mktmpdir do |dir|
+          allow(RailsAiBridge::Fingerprinter).to receive(:source_fingerprint).and_return('a1b2c3d4e5f6')
+          generate(dir)
+          embedded = RailsAiBridge::FreshnessHeader.extract_timestamp(File.read(claude_path(dir)))
+
+          generate(dir, managed_region: true)
+
+          region = RailsAiBridge::Serializers::ManagedRegion.extract(File.read(claude_path(dir)))
+          expect(RailsAiBridge::FreshnessHeader.extract_timestamp(region)).to eq(embedded)
+        end
+      end
+
+      it 'still appends to a hand-authored file that has no freshness header' do
+        Dir.mktmpdir do |dir|
+          seed_file(dir, 'CLAUDE.md', hand_authored)
+          generate(dir, managed_region: true)
+
+          expect(File.read(claude_path(dir))).to start_with(hand_authored)
+        end
+      end
+
       it 'preserves hand-authored content above and below across regeneration' do
         Dir.mktmpdir do |dir|
           generate(dir, managed_region: true)

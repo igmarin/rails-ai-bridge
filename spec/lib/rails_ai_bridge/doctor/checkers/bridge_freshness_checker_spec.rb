@@ -77,6 +77,15 @@ RSpec.describe RailsAiBridge::Doctor::Checkers::BridgeFreshnessChecker do
         expect(result.status).to eq(:warn)
         expect(result.message).to include('CLAUDE.md')
       end
+
+      it 'reads JSON whole, so a marker-shaped string value does not truncate it' do
+        json = { 'app_name' => "<!-- BEGIN rails-ai-bridge: spoof -->\n<!-- END rails-ai-bridge -->",
+                 '_meta' => { 'source_fingerprint' => 'a1b2c3d4e5f6' } }
+        File.write(File.join(output_dir, '.ai-context.json'), JSON.pretty_generate(json))
+
+        result = checker.call
+        expect(result.status).to eq(:pass)
+      end
     end
 
     context 'when one or more bridge files are stale' do
