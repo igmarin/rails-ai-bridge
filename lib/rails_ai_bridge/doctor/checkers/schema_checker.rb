@@ -3,17 +3,30 @@
 module RailsAiBridge
   class Doctor
     module Checkers
-      # Verifies +db/schema.rb+ exists for schema-driven AI context.
+      # Verifies a schema file exists for schema-driven AI context. Accepts
+      # either +db/schema.rb+ (+schema_format = :ruby+) or +db/structure.sql+
+      # (+schema_format = :sql+).
       class SchemaChecker < BaseChecker
-        # @return [Doctor::Check] +:pass+ when the schema file exists; +:warn+ otherwise
+        # @return [Doctor::Check] +:pass+ when a schema file exists; +:warn+ otherwise
         def call
-          schema_path = File.join(app.root, 'db/schema.rb')
+          schema_file = present_schema_file
           check(
             'Schema',
-            File.exist?(schema_path),
-            pass: { message: 'db/schema.rb found' },
-            fail: { status: :warn, message: 'db/schema.rb not found', fix: 'Run `rails db:schema:dump` to generate it' }
+            schema_file,
+            pass: { message: "#{schema_file} found" },
+            fail: {
+              status: :warn,
+              message: 'db/schema.rb or db/structure.sql not found',
+              fix: 'Run `rails db:migrate` (or `rails db:schema:dump`) to generate one'
+            }
           )
+        end
+
+        private
+
+        # @return [String, nil] the schema file that exists (schema.rb preferred), or +nil+
+        def present_schema_file
+          %w[db/schema.rb db/structure.sql].find { |rel| File.exist?(File.join(app.root, rel)) }
         end
       end
     end

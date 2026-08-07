@@ -8,14 +8,19 @@ RSpec.describe RailsAiBridge::Introspectors::SchemaIntrospector do
   let(:introspector) { described_class.new(app) }
 
   describe '#call' do
-    context 'when ActiveRecord is not connected and no schema.rb' do
+    context 'when ActiveRecord is not connected and no schema file exists' do
       before do
+        # Guard against stale fixtures: a sibling context writes db/schema.rb into
+        # this shared fixture dir and only cleans up in an `after` hook, so remove
+        # the dir up front to keep this assertion independent of hook ordering.
+        FileUtils.rm_rf(File.join(fixture_path, 'db'))
         allow(introspector).to receive(:active_record_connected?).and_return(false)
       end
 
-      it 'returns an error' do
+      it 'returns an error mentioning both schema files' do
         result = introspector.call
-        expect(result[:error]).to include('No schema.rb')
+        expect(result[:error]).to include('db/schema.rb')
+        expect(result[:error]).to include('structure.sql')
       end
     end
 

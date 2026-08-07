@@ -4,11 +4,13 @@ module RailsAiBridge
   module Introspectors
     # Extracts database schema information — tables, columns, indexes, and
     # foreign keys — from a live ActiveRecord connection when available, or by
-    # falling back to text-parsing +db/schema.rb+ via
-    # {Schema::StaticSchemaParser} when no connection is present (CI, Claude
-    # Code, offline environments).
+    # text-parsing the schema file when no connection is present (CI, Claude
+    # Code, offline environments). The static fallback prefers +db/schema.rb+
+    # ({Schema::StaticSchemaParser}) and falls back to +db/structure.sql+
+    # ({Schema::StaticStructureSqlParser}) for +schema_format = :sql+ apps.
     #
     # @see Schema::StaticSchemaParser
+    # @see Schema::StaticStructureSqlParser
     class SchemaIntrospector
       # @return [Rails::Application]
       attr_reader :app
@@ -127,15 +129,27 @@ module RailsAiBridge
         File.join(app.root, 'db', 'schema.rb')
       end
 
-      # Fallback: parse db/schema.rb as text when the DB is not connected.
-      # Delegates all parsing to {Schema::StaticSchemaParser}.
-      #
-      # @return [Hash] parsed schema result, or +{ error: }+ when the file is absent
-      def static_schema_parse
-        path = schema_file_path
-        return { error: "No schema.rb found at #{path}" } unless File.exist?(path)
+      def structure_sql_path
+        File.join(app.root, 'db', 'structure.sql')
+      end
 
-        Schema::StaticSchemaParser.new(content: File.read(path), config: config).call
+      # Fallback used when the DB is not connected. Prefers +db/schema.rb+
+      # (Ruby DSL) and falls back to +db/structure.sql+ (raw SQL) so
+      # +schema_format = :sql+ apps still get schema context offline.
+      #
+      # @return [Hash] parsed schema result, or +{ error: }+ when neither file exists
+      def static_schema_parse
+        if File.exist?(schema_file_path)
+          Schema::StaticSchemaParser.new(content: File.read(schema_file_path), config: config).call
+        elsif File.exist?(structure_sql_path)
+          Schema::StaticStructureSqlParser.new(content: File.read(structure_sql_path), config: config).call
+        else
+          { error: "No db/schema.rb or db/structure.sql found in #{File.join(app.root, 'db')}" }
+        end
+      rescue StandardError => error
+        # Guards the exist?/read race (file removed between check and read) and
+        # any other read failure, honouring the introspector never-raise contract.
+        { error: "Failed to read schema file: #{error.message}" }
       end
     end
   end
