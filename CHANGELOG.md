@@ -7,10 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-08-08 (planned)
+
+### Changed (breaking)
+
+- **`mcp` gem raised to 1.x** (#104/#118) — gemspec now requires `mcp >= 1.0, < 2.0` (was `>= 0.25, < 1.0`). Full suite green on **mcp 1.1.0** with no production code changes. Hosts must run `bundle update mcp` after upgrading. See [UPGRADING.md](UPGRADING.md) for details.
+
+### Fixed
+
+- **Ruby 4.0 test timing** (#104/#118) — ReDoS and perf specs use `Process.clock_gettime` instead of the `benchmark` gem (no longer a default gem on Ruby 4.0+).
+
+## [3.7.0] - 2026-08-08
+
 ### Added
 
-- **Managed regions preserve hand-authored content in provider files** (#98) — opt in with `config.output.managed_region = true` (or `MERGE=1 rails ai:bridge`) and generated context is confined to a `<!-- BEGIN rails-ai-bridge: … -->` / `<!-- END rails-ai-bridge -->` block. Prose written above or below the block survives every regeneration. A pre-existing hand-authored file gets the block **appended** rather than clobbered; a file this gem previously generated (detected via its leading freshness header) is replaced, so opting in never leaves a stale second copy of the context above the block. Markdown provider files only (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `.cursorrules`, `.devinrules`); `.ai-context.json` never receives markers. Default behavior is unchanged — files are still rewritten in full unless you opt in.
-- **`ai:doctor` reads freshness from inside the managed region** (#98) — files whose freshness header is preceded by hand-authored prose are no longer misreported as stale. `.ai-context.json` is still read whole, since it never carries markers.
+- **Managed regions preserve hand-authored content in provider files** (#98/#119) — opt in with `config.output.managed_region = true` (or `MERGE=1 rails ai:bridge`) and generated context is confined to a `<!-- BEGIN rails-ai-bridge: … -->` / `<!-- END rails-ai-bridge -->` block. Prose written above or below the block survives every regeneration. A pre-existing hand-authored file gets the block **appended** rather than clobbered; a file this gem previously generated (detected via its leading freshness header) is replaced, so opting in never leaves a stale second copy of the context above the block. Markdown provider files only (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `.cursorrules`, `.devinrules`); `.ai-context.json` never receives markers. Default behavior is unchanged — files are still rewritten in full unless you opt in.
+- **`ai:doctor` reads freshness from inside the managed region** (#98/#119) — files whose freshness header is preceded by hand-authored prose are no longer misreported as stale. `.ai-context.json` is still read whole, since it never carries markers.
+
+### Fixed
+
+- **Decoupled `ManagedRegionLayout` from `FreshnessHeader::HEADER_PATTERN`** (#120) — extracted a public `FreshnessHeader.gem_generated?` predicate so the layout doesn't reach into a private constant. Memoized `whole_file_output` to avoid duplicate header checks per write cycle.
+- **Trailing blank lines on append** (#120) — `ManagedRegion.merge` now uses `rstrip` instead of `chomp`, so appending to a file with multiple trailing newlines doesn't produce extra blank lines.
+- **Documented marker edge cases** (#120) — README now warns about marker-shaped lines in hand-authored prose and about deleting both markers.
 
 ## [3.6.2] - 2026-08-07
 
