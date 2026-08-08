@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Ruby 4.0 test timing** (#104/#118) — ReDoS and perf specs use `Process.clock_gettime` instead of the `benchmark` gem (no longer a default gem on Ruby 4.0+).
 
-## [3.7.0] - 2026-08-08 (planned)
+## [3.7.0] - 2026-08-08
 
 ### Added
 

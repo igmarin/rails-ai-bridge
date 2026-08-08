@@ -56,6 +56,38 @@ RSpec.describe RailsAiBridge::Doctor::Checkers::BridgeFreshnessChecker do
       end
     end
 
+    context 'when the file uses a managed region' do
+      def managed(fingerprint)
+        payload = "<!-- Generated at: 2026-04-03T14:22:00Z | Source fingerprint: #{fingerprint} -->\n# Title"
+        "# House rules\n\nHand-authored.\n\n#{RailsAiBridge::Serializers::ManagedRegion.wrap(payload)}\nTrailing note.\n"
+      end
+
+      it 'reads the fingerprint from inside the region rather than the top of the file' do
+        File.write(File.join(output_dir, 'CLAUDE.md'), managed('a1b2c3d4e5f6'))
+
+        result = checker.call
+        expect(result.status).to eq(:pass)
+        expect(result.message).to eq('All generated bridge files are fresh')
+      end
+
+      it 'still reports a stale region' do
+        File.write(File.join(output_dir, 'CLAUDE.md'), managed('oldfingerprt'))
+
+        result = checker.call
+        expect(result.status).to eq(:warn)
+        expect(result.message).to include('CLAUDE.md')
+      end
+
+      it 'reads JSON whole, so a marker-shaped string value does not truncate it' do
+        json = { 'app_name' => "<!-- BEGIN rails-ai-bridge: spoof -->\n<!-- END rails-ai-bridge -->",
+                 '_meta' => { 'source_fingerprint' => 'a1b2c3d4e5f6' } }
+        File.write(File.join(output_dir, '.ai-context.json'), JSON.pretty_generate(json))
+
+        result = checker.call
+        expect(result.status).to eq(:pass)
+      end
+    end
+
     context 'when one or more bridge files are stale' do
       before do
         # Fresh CLAUDE.md

@@ -95,16 +95,35 @@ module RailsAiBridge
 
         # Checks whether a single file's embedded fingerprint matches the current one.
         #
+        # Reads through the managed region when one is present, so files generated with
+        # +config.output.managed_region+ (where hand-authored prose precedes the freshness
+        # header) are not misreported as stale.
+        #
         # @param fmt [Symbol] format key
         # @param filepath [String] absolute file path
         # @param current_fp [String] current source fingerprint
         # @return [Boolean] +true+ if the file is stale or unreadable
         # :reek:UtilityFunction
         def stale?(fmt, filepath, current_fp)
-          content = File.read(filepath)
+          content = read_generated_payload(fmt, filepath)
           RailsAiBridge::FreshnessHeader.extract_fingerprint_for(fmt, content) != current_fp
         rescue StandardError
           true
+        end
+
+        # Reads a bridge file, narrowing to the managed region for formats that can carry
+        # one. JSON never gets markers, so it is read whole — narrowing it on a stray
+        # marker-shaped string value would truncate valid JSON.
+        #
+        # @param fmt [Symbol] format key
+        # @param filepath [String] absolute file path
+        # @return [String] content to read freshness metadata from
+        # :reek:UtilityFunction
+        def read_generated_payload(fmt, filepath)
+          content = File.read(filepath)
+          return content if RailsAiBridge::Serializers::ContextFileSerializer::UNMANAGEABLE_FORMATS.include?(fmt)
+
+          RailsAiBridge::Serializers::ManagedRegion.generated_payload(content)
         end
 
         # Builds the diagnostic outcome from a scan result.

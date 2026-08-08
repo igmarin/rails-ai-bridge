@@ -8,6 +8,7 @@ RSpec.describe 'rails_ai_bridge rake tasks' do
   let(:task_path) { File.expand_path('../../../../lib/rails_ai_bridge/tasks/rails_ai_bridge.rake', __dir__) }
   let(:result) { { written: [], skipped: [] } }
   let!(:original_context_mode) { RailsAiBridge.configuration.context_mode }
+  let!(:original_managed_region) { RailsAiBridge.configuration.managed_region }
   let!(:original_rake_application) { Rake.application }
 
   before do
@@ -16,6 +17,7 @@ RSpec.describe 'rails_ai_bridge rake tasks' do
     ENV.delete('CONFIRM')
     ENV.delete('CONTEXT_MODE')
     ENV.delete('CHECK')
+    ENV.delete('MERGE')
 
     # Setup new Rake application for each test to avoid state leakage
     Rake.application = Rake::Application.new
@@ -30,10 +32,45 @@ RSpec.describe 'rails_ai_bridge rake tasks' do
     # Restore original Rake application and clean up ENV mutations
     Rake.application = original_rake_application
     RailsAiBridge.configuration.context_mode = original_context_mode
+    RailsAiBridge.configuration.managed_region = original_managed_region
     ENV.delete('FORMAT')
     ENV.delete('CONFIRM')
     ENV.delete('CONTEXT_MODE')
     ENV.delete('CHECK')
+    ENV.delete('MERGE')
+  end
+
+  describe 'MERGE env var' do
+    it 'turns managed regions on for ai:bridge' do
+      ENV['MERGE'] = '1'
+      expect { rake['ai:bridge'].invoke }.to output(/Managed region: on/).to_stdout
+      expect(RailsAiBridge.configuration.managed_region).to be true
+    end
+
+    it 'turns managed regions off when explicitly disabled' do
+      RailsAiBridge.configuration.managed_region = true
+      ENV['MERGE'] = '0'
+      expect { rake['ai:bridge'].invoke }.to output(/Managed region: off/).to_stdout
+      expect(RailsAiBridge.configuration.managed_region).to be false
+    end
+
+    it 'leaves the configured value alone when unset' do
+      RailsAiBridge.configuration.managed_region = true
+      rake['ai:bridge'].invoke
+      expect(RailsAiBridge.configuration.managed_region).to be true
+    end
+
+    it 'applies to per-format tasks' do
+      ENV['MERGE'] = 'true'
+      rake['ai:bridge:claude'].invoke
+      expect(RailsAiBridge.configuration.managed_region).to be true
+    end
+
+    it 'stays off when MERGE=0 and config is already false' do
+      ENV['MERGE'] = '0'
+      expect { rake['ai:bridge'].invoke }.to output(/Managed region: off/).to_stdout
+      expect(RailsAiBridge.configuration.managed_region).to be false
+    end
   end
 
   describe 'ai:bridge' do

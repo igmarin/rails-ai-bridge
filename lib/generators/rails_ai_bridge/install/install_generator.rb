@@ -146,6 +146,14 @@ module RailsAiBridge
             # from config/rails_ai_bridge/overrides.md before this has any effect.
             # config.assistant_overrides_path = "config/rails_ai_bridge/overrides.md"
 
+            # Keep hand-authored prose inline in CLAUDE.md / AGENTS.md / GEMINI.md.
+            # When true, generated content is confined to a marked block:
+            #   <!-- BEGIN rails-ai-bridge: generated ... -->  ...  <!-- END rails-ai-bridge -->
+            # Anything you write above or below that block survives every regeneration, and an
+            # existing file without markers gets the block appended rather than overwritten.
+            # Never applies to .ai-context.json. Per-run override: `MERGE=1 rails ai:bridge`.
+            # config.output.managed_region = true
+
             # Model list size caps for compact output (0 = show no names, only MCP pointer):
             # Reduce these for apps with large model counts to keep files within size limits.
             # config.copilot_compact_model_list_limit = 15   # default
