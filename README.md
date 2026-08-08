@@ -590,6 +590,16 @@ Markdown provider files only (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`,
 receives markers. Freshness skipping and `ai:doctor` staleness both read through the region,
 so unchanged runs are still no-ops.
 
+**Caveats:**
+
+- Avoid writing marker-shaped lines (`<!-- BEGIN rails-ai-bridge: … -->` or
+  `<!-- END rails-ai-bridge -->`) in your own prose — the first BEGIN and the first
+  following END delimit the managed region, so a stray marker in hand-authored content
+  would truncate or misidentify the block.
+- If you delete both markers from a file, the old generated content is treated as your
+  own prose on the next run and a new block is appended. Re-add markers around the
+  generated part before your next run, or delete it manually.
+
 ### Extending the built-ins
 
 If you need host-app or companion-gem extensions, register them explicitly in the initializer:

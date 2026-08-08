@@ -59,6 +59,25 @@ RSpec.describe RailsAiBridge::FreshnessHeader do
         expect(described_class.extract_version(old_header)).to be_nil
       end
     end
+
+    describe '.gem_generated?' do
+      it 'returns true when content starts with the freshness header' do
+        expect(described_class.gem_generated?(embedded_content)).to be true
+      end
+
+      it 'returns true for older headers without gem version' do
+        old_header = "<!-- Generated at: 2026-04-03T14:22:00Z | Source fingerprint: a1b2c3d4e5f6 -->\n# Title"
+        expect(described_class.gem_generated?(old_header)).to be true
+      end
+
+      it 'returns false for hand-authored content' do
+        expect(described_class.gem_generated?("# House rules\n\nSome prose.\n")).to be false
+      end
+
+      it 'returns false for nil' do
+        expect(described_class.gem_generated?(nil)).to be false
+      end
+    end
   end
 
   describe 'format-dispatching methods' do
