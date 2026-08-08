@@ -65,6 +65,12 @@ RSpec.describe 'rails_ai_bridge rake tasks' do
       rake['ai:bridge:claude'].invoke
       expect(RailsAiBridge.configuration.managed_region).to be true
     end
+
+    it 'stays off when MERGE=0 and config is already false' do
+      ENV['MERGE'] = '0'
+      expect { rake['ai:bridge'].invoke }.to output(/Managed region: off/).to_stdout
+      expect(RailsAiBridge.configuration.managed_region).to be false
+    end
   end
 
   describe 'ai:bridge' do

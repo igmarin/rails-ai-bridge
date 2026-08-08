@@ -80,7 +80,7 @@ module RailsAiBridge
           # Block form: a String replacement would interpret backslash escapes in the payload.
           return existing.sub(REGION_PATTERN) { block } if markers?(existing)
 
-          "#{existing.chomp}\n\n#{block}"
+          "#{existing.rstrip}\n\n#{block}"
         end
       end
     end

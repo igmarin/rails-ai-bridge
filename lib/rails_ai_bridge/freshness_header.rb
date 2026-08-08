@@ -84,6 +84,17 @@ module RailsAiBridge
         match ? match[3] : nil
       end
 
+      # Returns +true+ when +content+ starts with the gem's freshness header,
+      # indicating it is prior whole-file output from this gem (not hand-authored).
+      #
+      # @param content [String, nil]
+      # @return [Boolean]
+      def gem_generated?(content)
+        return false unless content
+
+        HEADER_PATTERN.match?(content)
+      end
+
       private
 
       # Embeds freshness metadata into JSON content via a +_meta+ key.

@@ -153,12 +153,16 @@ module RailsAiBridge
         # from appending a second copy of the context below the stale one — a duplicate
         # that would then never refresh, because it now reads as user content.
         #
+        # Memoized per instance so the header check runs once per write cycle, not twice
+        # (previous_payload + compose both call it).
+        #
         # @param existing [String, nil] current file content
         # @return [String, nil] +existing+ when it is unmarked gem output
         def whole_file_output(existing)
-          return nil unless existing && !ManagedRegion.markers?(existing)
+          return @cached_result if @cached_for == existing
 
-          existing if FreshnessHeader::HEADER_PATTERN.match?(existing)
+          @cached_for = existing
+          @cached_result = existing if existing && !ManagedRegion.markers?(existing) && FreshnessHeader.gem_generated?(existing)
         end
       end
       private_constant :WholeFileLayout, :ManagedRegionLayout

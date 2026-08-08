@@ -124,5 +124,12 @@ RSpec.describe RailsAiBridge::Serializers::ManagedRegion do
       expect(merged.scan(described_class::BEGIN_MARKER).size).to eq(1)
       expect(described_class.extract(merged)).to eq(payload.chomp)
     end
+
+    it 'collapses trailing blank lines when appending to an existing file' do
+      merged = described_class.merge("# House rules\n\n\n\n", payload)
+
+      expect(merged).to start_with("# House rules\n\n#{described_class::BEGIN_MARKER}")
+      expect(merged).not_to start_with("# House rules\n\n\n\n")
+    end
   end
 end
