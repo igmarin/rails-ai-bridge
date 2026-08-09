@@ -35,3 +35,4 @@ gems-report.csv
 .antigravitycli/
 AGENTS.md.bak
 LEAN-CTX.md
+.rs-guard/cache/
