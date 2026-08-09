@@ -51,12 +51,13 @@ RSpec.describe RailsAiBridge::Tools::SearchCode::RubySearch do
 
     it 'prevents ReDoS with a timeout' do
       write_file('app/models/user.rb', "#{'a' * 50_000}b")
-      # A regex that exhibits catastrophic backtracking on non-matches
-      require 'benchmark'
-      elapsed = Benchmark.realtime do
-        results = make_searcher(pattern: '^(a+)+$').call
-        expect(results).to be_empty
-      end
+      # A regex that exhibits catastrophic backtracking on non-matches.
+      # Use Process.clock_gettime (not Benchmark) for Ruby 4.0+ where
+      # +benchmark+ is no longer a default gem.
+      started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      results = make_searcher(pattern: '^(a+)+$').call
+      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
+      expect(results).to be_empty
       expect(elapsed).to be < 2.5
     end
 

@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require 'benchmark'
 require_relative '../../support/real_fixture_app_context'
 
 RSpec.describe 'rails-ai-bridge context quality matrix' do
@@ -140,10 +139,11 @@ RSpec.describe 'rails-ai-bridge context quality matrix' do
     RailsAiBridge.configuration.context_mode = previous_mode
   end
 
-  it 'serializes large fixture output within a small benchmark budget', :perf do
-    elapsed = Benchmark.realtime do
-      10.times { RailsAiBridge::Serializers::Providers::CodexSerializer.new(fixtures.fetch(:large_schema)).call }
-    end
+  it 'serializes large fixture output within a small wall-clock budget', :perf do
+    # Process.clock_gettime avoids the +benchmark+ gem (not a default gem on Ruby 4.0+).
+    started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    10.times { RailsAiBridge::Serializers::Providers::CodexSerializer.new(fixtures.fetch(:large_schema)).call }
+    elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
 
     expect(elapsed).to be < 0.5
   end

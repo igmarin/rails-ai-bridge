@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed (breaking)
 
-- **`mcp` gem raised to 1.x** (#104/#118) — gemspec now requires `mcp >= 1.0, < 2.0` (was `>= 0.25, < 1.0`). Full suite green on **mcp 1.1.0** with no production code changes. Hosts must run `bundle update mcp` after upgrading. See [UPGRADING.md](UPGRADING.md) for details.
+- **`mcp` gem raised to 1.x** (#104/#118) — gemspec now requires `mcp >= 1.0, < 2.0` (was `>= 0.25, < 1.0`). Full suite green on **mcp 1.1.0** with no production code changes; characterization specs in `spec/lib/rails_ai_bridge/mcp/sdk_compatibility_spec.rb`. Hosts must run `bundle update mcp` after upgrading. See [UPGRADING.md](UPGRADING.md) for details.
 
 ### Fixed
 
