@@ -1,17 +1,20 @@
 # Upgrading rails-ai-bridge
 
-## Upgrading to a release with `mcp` 1.x (#104)
+## Upgrading from 3.7.x to 4.0.0 (`mcp` 1.x) (#104/#118)
 
-**Action required after this lands on main:**
+**Action required:**
 
 ```bash
 bundle update mcp rails-ai-bridge
 ```
 
-The official MCP Ruby SDK major version is **1.x** (gemspec `>= 1.0, < 2.0`).
-Hosts previously resolving `mcp` 0.25.x should pick up 1.1+ via Bundler.
-No configuration changes are required if you only use rails-ai-bridge's tools/HTTP
-stdio surfaces as documented; run your app's MCP smoke checks after upgrade.
+The official MCP Ruby SDK major is **1.x** (gemspec `mcp >= 1.0, < 2.0`; was
+`>= 0.25, < 1.0`). Hosts previously resolving `mcp` 0.25.x must pick up **1.1+**
+via Bundler. Rails-ai-bridge production code did not need API adapters for
+1.1.0, but you should smoke-test MCP stdio/HTTP after upgrading.
+
+Optional: characterization coverage lives in
+`spec/lib/rails_ai_bridge/mcp/sdk_compatibility_spec.rb` (for contributors).
 
 ---
 
