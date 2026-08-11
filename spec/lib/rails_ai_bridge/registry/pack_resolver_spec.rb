@@ -550,4 +550,121 @@ RSpec.describe RailsAiBridge::Registry::PackResolver do
       end
     end
   end
+
+  describe '#warn_missing_dependencies (via #resolve)' do
+    def build_manifest_with_dependency(depends_on)
+      packs = {
+        'pack-with-dep' => RailsAiBridge::Registry::PackDefinition.new(
+          source: 'dummy/pack-with-dep',
+          tile: 'directory.json',
+          always_loaded: false,
+          depends_on: depends_on,
+          ref: nil
+        )
+      }
+
+      RailsAiBridge::Registry::RegistryManifest.new(
+        version: '1.0.0',
+        packs: packs,
+        default_stack: []
+      )
+    end
+
+    before do
+      allow(mock_git_runner).to receive(:clone_repo) do |_url, dest|
+        FileUtils.mkdir_p(dest)
+        create_mock_tile(dest, name: 'pack-with-dep')
+      end
+      allow(mock_git_runner).to receive(:pull_repo)
+    end
+
+    context 'when an active pack declares a single missing dependency' do
+      it 'emits a stderr warning naming the pack and the missing dependency' do
+        manifest = build_manifest_with_dependency(['missing-dep'])
+        service = described_class.new(source_resolver)
+
+        expect { service.resolve(manifest, ['pack-with-dep'], nil) }
+          .to output(
+            /\[rails-ai-bridge\] Pack 'pack-with-dep' depends on 'missing-dep' which is not in the active pack set/
+          ).to_stderr
+      end
+
+      it 'uses singular grammar and points at skill_packs / always_loaded' do
+        manifest = build_manifest_with_dependency(['missing-dep'])
+        service = described_class.new(source_resolver)
+
+        expect { service.resolve(manifest, ['pack-with-dep'], nil) }
+          .to output(/which is not in the active pack set\. Add it to skill_packs or always_loaded/m).to_stderr
+      end
+
+      it 'still loads the pack despite the missing dependency' do
+        manifest = build_manifest_with_dependency(['missing-dep'])
+        service = described_class.new(source_resolver)
+
+        resolver = nil
+        expect { resolver = service.resolve(manifest, ['pack-with-dep'], nil) }
+          .to output(/depends on/).to_stderr
+
+        expect(resolver.active_packs.map(&:name)).to include('pack-with-dep')
+      end
+
+      it 'does not write to stdout' do
+        manifest = build_manifest_with_dependency(['missing-dep'])
+        service = described_class.new(source_resolver)
+
+        expect { service.resolve(manifest, ['pack-with-dep'], nil) }
+          .not_to output.to_stdout
+      end
+    end
+
+    context 'when an active pack declares multiple missing dependencies' do
+      it 'lists every missing dependency and uses plural grammar' do
+        manifest = build_manifest_with_dependency(%w[missing-one missing-two])
+        service = described_class.new(source_resolver)
+
+        expect { service.resolve(manifest, ['pack-with-dep'], nil) }
+          .to output(
+            /depends on 'missing-one', 'missing-two' which are not in the active pack set\. Add them to skill_packs/m
+          ).to_stderr
+      end
+    end
+
+    context 'when all declared dependencies are present in the active set' do
+      it 'does not warn' do
+        packs = {
+          'pack-with-dep' => RailsAiBridge::Registry::PackDefinition.new(
+            source: 'dummy/pack-with-dep',
+            tile: 'directory.json',
+            always_loaded: false,
+            depends_on: ['core'],
+            ref: nil
+          ),
+          'core' => RailsAiBridge::Registry::PackDefinition.new(
+            source: 'dummy/core',
+            tile: 'directory.json',
+            always_loaded: false,
+            depends_on: [],
+            ref: nil
+          )
+        }
+
+        manifest = RailsAiBridge::Registry::RegistryManifest.new(
+          version: '1.0.0',
+          packs: packs,
+          default_stack: []
+        )
+
+        allow(mock_git_runner).to receive(:clone_repo) do |url, dest|
+          FileUtils.mkdir_p(dest)
+          create_mock_tile(dest, name: url.include?('core') ? 'core' : 'pack-with-dep')
+        end
+        allow(mock_git_runner).to receive(:pull_repo)
+
+        service = described_class.new(source_resolver)
+
+        expect { service.resolve(manifest, %w[pack-with-dep core], nil) }
+          .not_to output.to_stderr
+      end
+    end
+  end
 end
