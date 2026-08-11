@@ -77,6 +77,48 @@ RSpec.describe RailsAiBridge::Registry::RegistryManifest do
         expect(manifest.packs['core'].depends_on).to eq([])
       end
     end
+
+    context 'with context_providers present' do
+      let(:minimal_json) do
+        super().merge(
+          'context_providers' => {
+            'app_mcp' => {
+              'type' => 'mcp',
+              'endpoint' => 'http://localhost:3000/mcp',
+              'optional' => true,
+              'tools' => ['rails_get_schema', { 'name' => 'rails_get_model_details', 'field' => 'models' }]
+            }
+          }
+        )
+      end
+
+      it 'parses providers into ContextProviderDefinition instances' do
+        provider = manifest.context_providers['app_mcp']
+        expect(provider).to be_a(RailsAiBridge::Registry::ContextProviderDefinition)
+        expect(provider.type).to eq('mcp')
+        expect(provider.endpoint).to eq('http://localhost:3000/mcp')
+      end
+
+      it 'parses each tool into a ContextToolSpec' do
+        tools = manifest.context_providers['app_mcp'].tools
+        expect(tools.length).to eq(2)
+        expect(tools.first).to be_simple
+        expect(tools.last).to be_mapped
+      end
+    end
+
+    context 'without context_providers' do
+      it 'defaults context_providers to an empty hash' do
+        expect(manifest.context_providers).to eq({})
+      end
+    end
+  end
+
+  describe '.new' do
+    it 'defaults context_providers when the keyword is omitted (backward compatibility)' do
+      manifest = described_class.new(version: '1.0.0', packs: {}, default_stack: [])
+      expect(manifest.context_providers).to eq({})
+    end
   end
 
   describe '.from_file' do

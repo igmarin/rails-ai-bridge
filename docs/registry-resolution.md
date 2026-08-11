@@ -200,7 +200,7 @@ Once a registry manifest is configured:
 
 | Task | Description |
 |------|-------------|
-| `rails ai:skills:list` | Print skill catalog to stdout |
+| `rails ai:skills:list` | Print skill catalog to stdout; `[json]` argument (or `FORMAT=json`) prints a `{"packs": [...], "skills": [...]}` document |
 | `rails "ai:skills:resolve[pack,skill_name]"` | Resolve and print a skill's full content |
 | `rails ai:skills:clear_cache` | Remove all cached pack git repositories and invalidate the resolver cache |
 | `rails ai:registry:validate` | Validate the registry manifest schema; exits non-zero on the first invalid field |

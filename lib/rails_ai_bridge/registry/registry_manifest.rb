@@ -10,7 +10,15 @@ module RailsAiBridge
     #   @return [Hash{String => PackDefinition}] map of pack name to definition
     # @!attribute [r] default_stack
     #   @return [Array<String>] pack names loaded when no framework is detected
-    RegistryManifest = Data.define(:version, :packs, :default_stack) do
+    # @!attribute [r] context_providers
+    #   @return [Hash{String => ContextProviderDefinition}] context providers keyed by name
+    RegistryManifest = Data.define(:version, :packs, :default_stack, :context_providers) do
+      # Backward-compatible constructor: +context_providers+ defaults to an empty
+      # hash so manifests built before context provider support keep working.
+      def initialize(version:, packs:, default_stack:, context_providers: {})
+        super
+      end
+
       # Builds a {RegistryManifest} from a parsed JSON hash.
       #
       # @param hash [Hash] parsed JSON object
@@ -29,7 +37,8 @@ module RailsAiBridge
         new(
           version: hash.fetch('version'),
           packs: packs,
-          default_stack: hash.fetch('default_stack', [])
+          default_stack: hash.fetch('default_stack', []),
+          context_providers: parse_context_providers(hash['context_providers'] || {})
         )
       rescue KeyError => error
         raise ArgumentError, "Registry manifest missing required field: #{error.key}"
@@ -47,6 +56,13 @@ module RailsAiBridge
       rescue SystemCallError => error
         raise ArgumentError, "Registry manifest at '#{path}' could not be read: #{error.message}"
       end
+
+      # @api private
+      def self.parse_context_providers(providers_hash)
+        providers_hash.transform_values { |provider_data| ContextProviderDefinition.from_json(provider_data) }
+      end
+
+      private_class_method :parse_context_providers
     end
 
     # Validation API lives in a reopened class body rather than in the

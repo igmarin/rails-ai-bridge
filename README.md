@@ -547,6 +547,7 @@ end
 | `registry.resolver_ttl` | `1800` | Seconds to cache the wired resolver in memory; `0` disables caching |
 | `registry.git_pull_ttl` | `86400` | Seconds between `git pull` refreshes per cached pack (24 h default). Set to `0` to pull on every resolver rebuild |
 | `registry.git_timeout` | `30` | Seconds before a git operation (clone, pull, checkout) is forcibly interrupted |
+| `registry.auto_load_dependencies` | `false` | Load declared `depends_on` packs transitively; circular chains warn but still load |
 
 Other HTTP MCP knobs live only on the nested object, for example `RailsAiBridge.configuration.mcp.authorize`, `mcp.mode`, `mcp.security_profile`, and `mcp.require_auth_in_production` — see [docs/GUIDE.md](docs/GUIDE.md) and [docs/mcp-security.md](docs/mcp-security.md).
 </details>

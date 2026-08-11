@@ -18,6 +18,10 @@ module RailsAiBridge
       PRIORITY_MEDIUM = 20
       PRIORITY_LOW = 30
 
+      # Cap for transitive dependency expansion to prevent runaway iteration
+      # on pathological manifests.
+      MAX_DEPENDENCY_DEPTH = 10
+
       # Creates a new PackResolverService with a reference to a SkillSourceResolver.
       #
       # @param source_resolver [SkillSourceResolver] resolver for remote git sources
@@ -84,7 +88,11 @@ module RailsAiBridge
 
       # Gathers the set of pack names that should be loaded.
       #
-      # Combines always_loaded packs with either explicit_packs or auto-detected framework packs.
+      # Combines always_loaded packs with either explicit_packs or auto-detected
+      # framework packs. When +config.registry.auto_load_dependencies+ is enabled,
+      # declared +depends_on+ entries are expanded transitively (fixed-point
+      # iteration capped at MAX_DEPENDENCY_DEPTH) and dependency cycles are
+      # reported as warnings.
       #
       # @param manifest [RegistryManifest] the registry manifest
       # @param explicit_packs [Array<String>, nil] optional explicit pack names
@@ -118,6 +126,9 @@ module RailsAiBridge
             end
           end
         end
+
+        # 3. Optionally expand declared dependencies transitively
+        expand_transitive_dependencies(manifest, active_pack_names) if auto_load_dependencies?
 
         active_pack_names
       end
@@ -199,9 +210,9 @@ module RailsAiBridge
 
       # Warns when a pack declares dependencies that are not in the active set.
       #
-      # Transitive dependency loading is not yet implemented. Packs that declare
-      # +depends_on+ will still load, but their dependencies must be explicitly
-      # included in the active set for skills to be available.
+      # When +config.registry.auto_load_dependencies+ is enabled, defined
+      # dependencies are added to the active set automatically, so this
+      # warning only fires for dependencies missing from the manifest itself.
       #
       # @param name [String] the loading pack's name
       # @param deps [Array<String>] dependency names declared by the pack
@@ -213,8 +224,92 @@ module RailsAiBridge
 
         warn "[rails-ai-bridge] Pack '#{name}' depends on #{missing.map { |d| "'#{d}'" }.join(', ')} " \
              "which #{missing.one? ? 'is' : 'are'} not in the active pack set. " \
-             "Add #{missing.one? ? 'it' : 'them'} to skill_packs or always_loaded in your registry manifest. " \
-             '(Transitive dependency loading is not yet implemented.)'
+             "Add #{missing.one? ? 'it' : 'them'} to skill_packs or always_loaded in your registry manifest, " \
+             'or enable config.registry.auto_load_dependencies.'
+      end
+
+      # @return [Boolean] whether transitive dependency loading is enabled
+      def auto_load_dependencies?
+        RailsAiBridge.configuration.registry.auto_load_dependencies
+      end
+
+      # Expands the active set with transitive +depends_on+ entries.
+      #
+      # Uses fixed-point iteration capped at MAX_DEPENDENCY_DEPTH so a
+      # pathological manifest cannot cause runaway expansion. Only
+      # dependencies defined in the manifest are added — undefined ones
+      # remain the concern of {#warn_missing_dependencies}. Cycles among
+      # active packs are detected and reported as warnings.
+      #
+      # @param manifest [RegistryManifest] the registry manifest
+      # @param active_pack_names [Set<String>] active set, mutated in place
+      # @return [void]
+      def expand_transitive_dependencies(manifest, active_pack_names)
+        MAX_DEPENDENCY_DEPTH.times do
+          added = collect_missing_dependencies(manifest, active_pack_names)
+          break if added.empty?
+
+          added.each { |dep| active_pack_names.add(dep) }
+        end
+
+        warn_dependency_cycles(manifest, active_pack_names)
+      end
+
+      # Returns defined-but-inactive dependencies of the active packs.
+      #
+      # @param manifest [RegistryManifest] the registry manifest
+      # @param active_pack_names [Set<String>] currently active pack names
+      # @return [Array<String>] dependency names to add
+      # :reek:UtilityFunction -- pure set computation over manifest data, kept on PackResolver for cohesion
+      def collect_missing_dependencies(manifest, active_pack_names)
+        active_pack_names
+          .flat_map { |name| manifest.packs[name]&.depends_on || [] }
+          .uniq
+          .select { |dep| manifest.packs.key?(dep) }
+          .reject { |dep| active_pack_names.include?(dep) }
+      end
+
+      # Detects circular dependency chains among active packs and warns once
+      # per cycle. Cycles do not block loading — pack load order is not
+      # significant — but they almost always indicate a manifest mistake.
+      #
+      # @param manifest [RegistryManifest] the registry manifest
+      # @param active_pack_names [Set<String>] currently active pack names
+      # @return [void]
+      def warn_dependency_cycles(manifest, active_pack_names)
+        visited = Set.new
+
+        active_pack_names.each do |name|
+          cycle = trace_dependency_cycle(manifest, name, [], Set.new, visited)
+          next unless cycle
+
+          warn "[rails-ai-bridge] Circular dependency detected: #{cycle.join(' -> ')}. " \
+               'All packs in the cycle are still loaded.'
+        end
+      end
+
+      # Depth-first search for a dependency cycle starting from +name+.
+      #
+      # @param manifest [RegistryManifest] the registry manifest
+      # @param name [String] pack being visited
+      # @param path [Array<String>] current DFS path (mutated during traversal)
+      # @param on_path [Set<String>] packs on the current DFS path
+      # @param visited [Set<String>] fully explored packs (shared across roots)
+      # @return [Array<String>, nil] the cycle (first pack repeated at the end), or nil
+      # :reek:TooManyStatements -- standard DFS bookkeeping: path, on-path set, visited set
+      def trace_dependency_cycle(manifest, name, path, on_path, visited)
+        return nil if visited.include?(name)
+        return [*path[path.index(name)..], name] if on_path.include?(name)
+
+        on_path.add(name)
+        path.push(name)
+        cycle = (manifest.packs[name]&.depends_on || []).lazy
+                                                        .map { |dep| trace_dependency_cycle(manifest, dep, path, on_path, visited) }
+                                                        .find(&:itself)
+        path.pop
+        on_path.delete(name)
+        visited.add(name)
+        cycle
       end
 
       # Computes priority for a pack based on its name.

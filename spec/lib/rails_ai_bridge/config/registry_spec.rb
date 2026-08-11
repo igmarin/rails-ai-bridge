@@ -11,6 +11,16 @@ RSpec.describe RailsAiBridge::Config::Registry do
       expect(config.skill_cache_dir).to eq(File.expand_path('~/.rails-ai-bridge/cache'))
       expect(config.skill_packs).to be_nil
       expect(config.local_registry_paths).to eq([])
+      expect(config.auto_load_dependencies).to be(false)
+    end
+  end
+
+  describe '#auto_load_dependencies' do
+    it 'allows enabling transitive dependency loading' do
+      config = described_class.new
+      config.auto_load_dependencies = true
+
+      expect(config.auto_load_dependencies).to be(true)
     end
   end
 

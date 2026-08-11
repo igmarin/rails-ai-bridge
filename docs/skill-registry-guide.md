@@ -47,6 +47,31 @@ Create `config/rails_ai_bridge_registry.json` in your Rails app:
 
 The `source` field is a GitHub `owner/repo` shorthand. The `tile` field is optional — it defaults to `directory.json` at the root of the pack.
 
+#### Context providers (parsed, not yet consumed)
+
+An optional `context_providers` section can declare external context services. The bridge parses it into `Registry::ContextProviderDefinition` / `Registry::ContextToolSpec` value objects, but no integration consumes these definitions yet — this is preparatory for future context provider support.
+
+```json
+{
+  "version": "1.0.0",
+  "packs": {},
+  "default_stack": [],
+  "context_providers": {
+    "app_mcp": {
+      "type": "mcp",
+      "endpoint": "http://localhost:3000/mcp",
+      "optional": true,
+      "tools": [
+        "rails_get_schema",
+        { "name": "rails_get_model_details", "field": "models", "arguments": { "model": "User" } }
+      ]
+    }
+  }
+}
+```
+
+Each tool entry is either a simple tool-name string or a mapped object with `name`, `field`, and optional `arguments`.
+
 ### Step 2 — Configure the bridge
 
 In `config/initializers/rails_ai_bridge.rb`:
@@ -280,6 +305,15 @@ rails ai:skills:list
 
 Prints a skills table to stdout with skill name, pack, and truncated description. Good for quickly checking what is loaded.
 
+For machine-readable output (CI, custom tooling), request JSON:
+
+```bash
+rails "ai:skills:list[json]"
+FORMAT=json rails ai:skills:list   # same via env var
+```
+
+The JSON document is `{ "packs": [...], "skills": [...] }` with pack summaries (`name`, `version`, `summary`, `priority`) and skill summaries (`name`, `pack`, `description`).
+
 ### Resolve a skill
 
 ```bash
@@ -312,6 +346,22 @@ rails ai:registry:validate
 ```
 
 Checks the registry manifest at `config.registry.registry_manifest_path` against the expected schema: pack `source` must be a non-empty string, `depends_on` an array of strings, `always_loaded` a boolean, and so on. Exits non-zero on the first invalid field, making it suitable for CI and pre-commit hooks.
+
+---
+
+## Transitive dependency loading (`auto_load_dependencies`)
+
+By default, a pack's `depends_on` entries are **not** loaded automatically — the resolver only warns when a dependency is missing from the active set. Enable transitive loading to have declared dependencies pulled in automatically:
+
+```ruby
+RailsAiBridge.configure do |config|
+  config.registry.auto_load_dependencies = true
+end
+```
+
+- Expansion is iterative (dependencies of dependencies), capped at 10 levels.
+- Only dependencies defined in the manifest are loaded; undefined ones still produce the missing-dependency warning.
+- Circular chains are detected and reported as a stderr warning (`Circular dependency detected: a -> b -> a`), but every pack in the cycle is still loaded.
 
 ---
 
@@ -389,7 +439,8 @@ initializer changes take effect immediately.
 | `git checkout <ref>` failed | Invalid ref or detached HEAD issue | Verify the `ref` value matches a branch, tag, or SHA in the remote repo |
 | `Lockfile mismatch for pack '…'` | Resolved pack commit differs from `directory.lock` | Run `rails ai:registry:lockfile` to update the lockfile after reviewing the pack changes |
 | Git operation hangs / server request times out | Slow or unreachable remote | Reduce `git_timeout` to fail faster; check network connectivity to the remote |
-| Warning: "Pack '…' depends on '…' which is not in the active pack set" | A loaded pack has an unsatisfied `depends_on` entry | Add the missing pack name to `always_loaded` or `skill_packs` in your manifest |
+| Warning: "Pack '…' depends on '…' which is not in the active pack set" | A loaded pack has an unsatisfied `depends_on` entry | Add the missing pack name to `always_loaded` or `skill_packs` in your manifest, or enable `config.registry.auto_load_dependencies` |
+| Warning: "Circular dependency detected: …" | Two or more active packs depend on each other | Break the cycle in the manifests; packs still load, but the cycle usually indicates a mistake |
 
 ---
 

@@ -42,6 +42,10 @@ module RailsAiBridge
       #   :strict (default) raises, :warn logs but proceeds, :disabled skips verification.
       attr_accessor :lockfile_verification
 
+      # @return [Boolean] whether declared +depends_on+ packs are loaded transitively
+      #   (default: false — dependencies must be listed explicitly and missing ones only warn)
+      attr_accessor :auto_load_dependencies
+
       # Sets the git pull TTL.
       #
       # Coerces the value to a non-negative integer; raises +ArgumentError+ for
@@ -102,6 +106,7 @@ module RailsAiBridge
         @git_timeout = 30
         @lockfile_path = 'config/rails_ai_bridge/directory.lock'
         @lockfile_verification = :strict
+        @auto_load_dependencies = false
       end
     end
   end
