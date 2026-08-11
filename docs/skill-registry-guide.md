@@ -293,6 +293,15 @@ rails_list_registry type=packs
 
 Returns all loaded packs with name, version, priority, and summary. Use this to confirm which packs are active and what their priorities are.
 
+### Apply a skill or agent in-context
+
+```bash
+rails_use_skill name=code-review
+rails_use_agent name=tdd-workflow
+```
+
+Resolves the named skill/agent (priority ordering and deprecation redirects included) and returns it framed as a directive the assistant should **execute**, not just read: an intent header, any deprecation notice, the full content, and a follow-through footer. Use `rails_resolve_skill` instead when you only want to inspect content or pin a pack (`pack=`, `type=`).
+
 ---
 
 ## Rake task reference
