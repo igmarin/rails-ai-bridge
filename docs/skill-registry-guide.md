@@ -47,6 +47,31 @@ Create `config/rails_ai_bridge_registry.json` in your Rails app:
 
 The `source` field is a GitHub `owner/repo` shorthand. The `tile` field is optional — it defaults to `directory.json` at the root of the pack.
 
+#### Context providers (parsed, not yet consumed)
+
+An optional `context_providers` section can declare external context services. The bridge parses it into `Registry::ContextProviderDefinition` / `Registry::ContextToolSpec` value objects, but no integration consumes these definitions yet — this is preparatory for future context provider support.
+
+```json
+{
+  "version": "1.0.0",
+  "packs": {},
+  "default_stack": [],
+  "context_providers": {
+    "app_mcp": {
+      "type": "mcp",
+      "endpoint": "http://localhost:3000/mcp",
+      "optional": true,
+      "tools": [
+        "rails_get_schema",
+        { "name": "rails_get_model_details", "field": "models", "arguments": { "model": "User" } }
+      ]
+    }
+  }
+}
+```
+
+Each tool entry is either a simple tool-name string or a mapped object with `name`, `field`, and optional `arguments`.
+
 ### Step 2 — Configure the bridge
 
 In `config/initializers/rails_ai_bridge.rb`:

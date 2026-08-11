@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Context provider definitions in the registry manifest** (#134) — new `Registry::ContextProviderDefinition` and `Registry::ContextToolSpec` value objects (ported from the Rust runtime) parse an optional `context_providers` section of the registry manifest: provider `type`/`endpoint`, optional flag, and tool lists supporting both simple names and `{ name, field, arguments }` mappings. `RegistryManifest#context_providers` defaults to `{}` — parsing is preparatory and nothing consumes these definitions yet.
 - **Manifest schema validation** (#123) — new `RegistryManifest.validate!` raises a descriptive `RegistryManifest::ValidationError` for the first invalid field (missing/empty pack `source`; wrong types for `version`, `default_stack`, `ref`, `tile`, `depends_on`, `always_loaded`, `priority`; non-object `packs` entries). New `rails ai:registry:validate` rake task validates the configured manifest for CI/pre-commit use and exits non-zero on failure.
 
 ### Changed (breaking)
