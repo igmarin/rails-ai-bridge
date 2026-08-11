@@ -505,6 +505,7 @@ detectors:
     - RailsAiBridge::Config::Introspection
     - RailsAiBridge::Config::Mcp
     - RailsAiBridge::Config::Output
+    - RailsAiBridge::Config::Registry
     - RailsAiBridge::Config::Rubydex
     - RailsAiBridge::Config::Server
     - RailsAiBridge::Configuration

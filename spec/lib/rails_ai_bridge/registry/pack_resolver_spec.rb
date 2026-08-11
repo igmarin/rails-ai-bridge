@@ -35,6 +35,26 @@ RSpec.describe RailsAiBridge::Registry::PackResolver do
     File.write(tile_path, JSON.generate(tile_data))
   end
 
+  # Helper to build a PackDefinition for a dummy source
+  def build_pack(name, depends_on: [])
+    RailsAiBridge::Registry::PackDefinition.new(
+      source: "dummy/#{name}",
+      tile: 'directory.json',
+      always_loaded: false,
+      depends_on: depends_on,
+      ref: nil
+    )
+  end
+
+  # Stubs clone/pull so each dummy source materializes its own tile manifest
+  def stub_pack_clones
+    allow(mock_git_runner).to receive(:clone_repo) do |url, dest|
+      FileUtils.mkdir_p(dest)
+      create_mock_tile(dest, name: url.split('/').last)
+    end
+    allow(mock_git_runner).to receive(:pull_repo)
+  end
+
   describe '#initialize' do
     it 'accepts a SkillSourceResolver' do
       service = described_class.new(source_resolver)
@@ -664,6 +684,106 @@ RSpec.describe RailsAiBridge::Registry::PackResolver do
 
         expect { service.resolve(manifest, %w[pack-with-dep core], nil) }
           .not_to output.to_stderr
+      end
+    end
+
+    describe '#resolve with auto_load_dependencies enabled' do
+      around do |example|
+        registry = RailsAiBridge.configuration.registry
+        original = registry.auto_load_dependencies
+        registry.auto_load_dependencies = true
+        example.run
+      ensure
+        registry.auto_load_dependencies = original
+      end
+
+      context 'when an active pack declares a dependency on another defined pack' do
+        it 'loads the dependency transitively' do
+          packs = {
+            'app' => build_pack('app', depends_on: ['core']),
+            'core' => build_pack('core')
+          }
+          manifest = RailsAiBridge::Registry::RegistryManifest.new(
+            version: '1.0.0', packs: packs, default_stack: []
+          )
+          stub_pack_clones
+
+          resolver = described_class.new(source_resolver).resolve(manifest, ['app'], nil)
+
+          expect(resolver.active_packs.map(&:name)).to contain_exactly('app', 'core')
+        end
+      end
+
+      context 'with a two-level dependency chain' do
+        it 'loads every level' do
+          packs = {
+            'app' => build_pack('app', depends_on: ['middleware']),
+            'middleware' => build_pack('middleware', depends_on: ['core']),
+            'core' => build_pack('core')
+          }
+          manifest = RailsAiBridge::Registry::RegistryManifest.new(
+            version: '1.0.0', packs: packs, default_stack: []
+          )
+          stub_pack_clones
+
+          resolver = described_class.new(source_resolver).resolve(manifest, ['app'], nil)
+
+          expect(resolver.active_packs.map(&:name)).to contain_exactly('app', 'middleware', 'core')
+        end
+      end
+
+      context 'when packs form a dependency cycle' do
+        it 'warns about the cycle and still loads both packs' do
+          packs = {
+            'alpha' => build_pack('alpha', depends_on: ['beta']),
+            'beta' => build_pack('beta', depends_on: ['alpha'])
+          }
+          manifest = RailsAiBridge::Registry::RegistryManifest.new(
+            version: '1.0.0', packs: packs, default_stack: []
+          )
+          stub_pack_clones
+
+          resolver = nil
+          expect { resolver = described_class.new(source_resolver).resolve(manifest, ['alpha'], nil) }
+            .to output(/[Cc]ircular dependency.*alpha.*beta/m).to_stderr
+
+          expect(resolver.active_packs.map(&:name)).to contain_exactly('alpha', 'beta')
+        end
+      end
+
+      context 'when a dependency is not defined in the manifest' do
+        it 'leaves it out of the active set and keeps the missing-dependency warning' do
+          packs = { 'app' => build_pack('app', depends_on: ['ghost']) }
+          manifest = RailsAiBridge::Registry::RegistryManifest.new(
+            version: '1.0.0', packs: packs, default_stack: []
+          )
+          stub_pack_clones
+
+          resolver = nil
+          expect { resolver = described_class.new(source_resolver).resolve(manifest, ['app'], nil) }
+            .to output(/depends on 'ghost'/).to_stderr
+
+          expect(resolver.active_packs.map(&:name)).to contain_exactly('app')
+        end
+      end
+    end
+
+    describe '#resolve with auto_load_dependencies disabled (default)' do
+      it 'does not load dependencies transitively' do
+        packs = {
+          'app' => build_pack('app', depends_on: ['core']),
+          'core' => build_pack('core')
+        }
+        manifest = RailsAiBridge::Registry::RegistryManifest.new(
+          version: '1.0.0', packs: packs, default_stack: []
+        )
+        stub_pack_clones
+
+        resolver = nil
+        expect { resolver = described_class.new(source_resolver).resolve(manifest, ['app'], nil) }
+          .to output(/depends on 'core'/).to_stderr
+
+        expect(resolver.active_packs.map(&:name)).to contain_exactly('app')
       end
     end
   end
