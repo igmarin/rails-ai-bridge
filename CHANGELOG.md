@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Manifest schema validation** (#123) — new `RegistryManifest.validate!` raises a descriptive `RegistryManifest::ValidationError` for the first invalid field (missing/empty pack `source`; wrong types for `version`, `default_stack`, `ref`, `tile`, `depends_on`, `always_loaded`, `priority`; non-object `packs` entries). New `rails ai:registry:validate` rake task validates the configured manifest for CI/pre-commit use and exits non-zero on failure.
+
 ### Changed (breaking)
 
 - **Full SHA-256 digests for skill-pack cache keys** (#122) — `SkillSourceResolver.compute_cache_key` now appends the full 64-character SHA-256 hex digest instead of a 16-character truncation, consistent with the gem's fingerprinting. Cache directories created under the old key format are orphaned; clear `~/.rails-ai-bridge/cache` to reclaim disk space.

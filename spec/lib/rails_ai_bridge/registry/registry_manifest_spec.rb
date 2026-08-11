@@ -131,4 +131,188 @@ RSpec.describe RailsAiBridge::Registry::RegistryManifest do
       end
     end
   end
+
+  describe '.validate!' do
+    subject(:validate) { described_class.validate!(json) }
+
+    context 'with a valid minimal manifest' do
+      let(:json) { minimal_json }
+
+      it 'returns the data without raising' do
+        expect { validate }.not_to raise_error
+      end
+    end
+
+    context 'with an empty manifest' do
+      let(:json) { {} }
+
+      it 'is valid (no required top-level keys)' do
+        expect { validate }.not_to raise_error
+      end
+    end
+
+    context 'with every optional key populated' do
+      let(:json) do
+        {
+          'version' => '2.0.0',
+          'packs' => {
+            'core' => {
+              'source' => 'igmarin/ruby-core-skills',
+              'ref' => 'main',
+              'tile' => 'tile.json',
+              'depends_on' => %w[rails planning],
+              'always_loaded' => true,
+              'priority' => 10
+            }
+          },
+          'default_stack' => %w[core]
+        }
+      end
+
+      it 'is valid' do
+        expect { validate }.not_to raise_error
+      end
+    end
+
+    context 'when the root is not a Hash' do
+      let(:json) { %w[not a hash] }
+
+      it 'raises ValidationError' do
+        expect { validate }.to raise_error(
+          RailsAiBridge::Registry::RegistryManifest::ValidationError, /root.*Hash/i
+        )
+      end
+    end
+
+    context 'when version is not a String' do
+      let(:json) { minimal_json.merge('version' => 1) }
+
+      it 'raises ValidationError naming the field' do
+        expect { validate }.to raise_error(
+          RailsAiBridge::Registry::RegistryManifest::ValidationError, /version.*String/i
+        )
+      end
+    end
+
+    context 'when packs is not a Hash' do
+      let(:json) { minimal_json.merge('packs' => []) }
+
+      it 'raises ValidationError' do
+        expect { validate }.to raise_error(
+          RailsAiBridge::Registry::RegistryManifest::ValidationError, /packs.*Hash/i
+        )
+      end
+    end
+
+    context 'when default_stack is not an Array of Strings' do
+      let(:json) { minimal_json.merge('default_stack' => ['core', 42]) }
+
+      it 'raises ValidationError' do
+        expect { validate }.to raise_error(
+          RailsAiBridge::Registry::RegistryManifest::ValidationError, /default_stack/i
+        )
+      end
+    end
+
+    context 'when a pack entry is not a Hash' do
+      let(:json) { minimal_json.merge('packs' => { 'core' => 'not-a-hash' }) }
+
+      it 'raises ValidationError naming the pack' do
+        expect { validate }.to raise_error(
+          RailsAiBridge::Registry::RegistryManifest::ValidationError, /pack 'core'.*Hash/i
+        )
+      end
+    end
+
+    context 'when a pack is missing source' do
+      let(:json) { minimal_json.merge('packs' => { 'core' => { 'tile' => 'tile.json' } }) }
+
+      it 'raises ValidationError naming the pack and key' do
+        expect { validate }.to raise_error(
+          RailsAiBridge::Registry::RegistryManifest::ValidationError, /pack 'core'.*source/i
+        )
+      end
+    end
+
+    context 'when a pack source is an empty String' do
+      let(:json) { minimal_json.merge('packs' => { 'core' => { 'source' => '' } }) }
+
+      it 'raises ValidationError' do
+        expect { validate }.to raise_error(
+          RailsAiBridge::Registry::RegistryManifest::ValidationError, /pack 'core'.*source.*non-empty/i
+        )
+      end
+    end
+
+    context 'when a pack source is not a String' do
+      let(:json) { minimal_json.merge('packs' => { 'core' => { 'source' => 123 } }) }
+
+      it 'raises ValidationError' do
+        expect { validate }.to raise_error(
+          RailsAiBridge::Registry::RegistryManifest::ValidationError, /pack 'core'.*source.*String/i
+        )
+      end
+    end
+
+    context 'when depends_on is not an Array' do
+      let(:json) { minimal_json.merge('packs' => { 'core' => { 'source' => 'x/y', 'depends_on' => 'rails' } }) }
+
+      it 'raises ValidationError' do
+        expect { validate }.to raise_error(
+          RailsAiBridge::Registry::RegistryManifest::ValidationError, /pack 'core'.*depends_on.*Array/i
+        )
+      end
+    end
+
+    context 'when depends_on contains a non-String' do
+      let(:json) { minimal_json.merge('packs' => { 'core' => { 'source' => 'x/y', 'depends_on' => [:rails] } }) }
+
+      it 'raises ValidationError' do
+        expect { validate }.to raise_error(
+          RailsAiBridge::Registry::RegistryManifest::ValidationError, /pack 'core'.*depends_on.*String/i
+        )
+      end
+    end
+
+    context 'when ref is not a String' do
+      let(:json) { minimal_json.merge('packs' => { 'core' => { 'source' => 'x/y', 'ref' => 1 } }) }
+
+      it 'raises ValidationError' do
+        expect { validate }.to raise_error(
+          RailsAiBridge::Registry::RegistryManifest::ValidationError, /pack 'core'.*ref.*String/i
+        )
+      end
+    end
+
+    context 'when always_loaded is not a boolean' do
+      let(:json) { minimal_json.merge('packs' => { 'core' => { 'source' => 'x/y', 'always_loaded' => 'yes' } }) }
+
+      it 'raises ValidationError' do
+        expect { validate }.to raise_error(
+          RailsAiBridge::Registry::RegistryManifest::ValidationError, /pack 'core'.*always_loaded.*boolean/i
+        )
+      end
+    end
+
+    context 'when priority is not an Integer' do
+      let(:json) { minimal_json.merge('packs' => { 'core' => { 'source' => 'x/y', 'priority' => 'high' } }) }
+
+      it 'raises ValidationError' do
+        expect { validate }.to raise_error(
+          RailsAiBridge::Registry::RegistryManifest::ValidationError, /pack 'core'.*priority.*Integer/i
+        )
+      end
+    end
+
+    it 'reports only the first invalid field' do
+      json = minimal_json.merge(
+        'version' => 1,
+        'packs' => { 'core' => { 'source' => 123 } }
+      )
+
+      expect { described_class.validate!(json) }.to raise_error(
+        RailsAiBridge::Registry::RegistryManifest::ValidationError
+      ) { |error| expect(error.message).not_to include('source') }
+    end
+  end
 end

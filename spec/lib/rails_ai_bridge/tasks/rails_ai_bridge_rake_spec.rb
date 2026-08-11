@@ -264,4 +264,76 @@ RSpec.describe 'rails_ai_bridge rake tasks' do
       end
     end
   end
+
+  describe 'ai:registry:validate' do
+    # The top-level group already defines six memoized helpers — the
+    # RSpec/MultipleMemoizedHelpers limit — so this block manages the manifest
+    # path with an `around` hook and a helper method instead of `let`s or
+    # instance variables (which RSpec/InstanceVariable forbids).
+    around do |example|
+      registry = RailsAiBridge.configuration.registry
+      original_path = registry.registry_manifest_path
+      tmp_dir = Dir.mktmpdir
+      registry.registry_manifest_path = File.join(tmp_dir, 'registry.json')
+
+      example.run
+    ensure
+      registry.registry_manifest_path = original_path
+      FileUtils.rm_rf(tmp_dir)
+    end
+
+    def manifest_path
+      RailsAiBridge.configuration.registry.registry_manifest_path
+    end
+
+    context 'when the manifest is valid' do
+      before do
+        File.write(manifest_path, JSON.generate({
+                                                  'version' => '1.0.0',
+                                                  'packs' => { 'core' => { 'source' => 'igmarin/ruby-core-skills' } },
+                                                  'default_stack' => %w[core]
+                                                }))
+      end
+
+      it 'reports success with version and pack count' do
+        expect { rake['ai:registry:validate'].invoke }
+          .to output(/is valid \(version: 1\.0\.0, packs: 1\)/).to_stdout
+      end
+    end
+
+    context 'when the manifest is structurally invalid' do
+      before do
+        File.write(manifest_path, JSON.generate({
+                                                  'version' => '1.0.0',
+                                                  'packs' => { 'core' => { 'source' => '' } }
+                                                }))
+      end
+
+      it 'prints the validation error to stderr and exits 1' do
+        expect { rake['ai:registry:validate'].invoke }
+          .to raise_error(SystemExit) { |error| expect(error.status).to eq(1) }
+          .and output(/validation failed.*source.*non-empty/m).to_stderr
+      end
+    end
+
+    context 'when the manifest file does not exist' do
+      it 'reports the missing file and exits 1' do
+        expect { rake['ai:registry:validate'].invoke }
+          .to raise_error(SystemExit) { |error| expect(error.status).to eq(1) }
+          .and output(/not found/).to_stderr
+      end
+    end
+
+    context 'when the manifest contains invalid JSON' do
+      before do
+        File.write(manifest_path, '{ not valid json }')
+      end
+
+      it 'reports the parse error and exits 1' do
+        expect { rake['ai:registry:validate'].invoke }
+          .to raise_error(SystemExit) { |error| expect(error.status).to eq(1) }
+          .and output(/invalid JSON/).to_stderr
+      end
+    end
+  end
 end

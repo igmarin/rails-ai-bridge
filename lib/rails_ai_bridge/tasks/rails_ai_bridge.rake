@@ -307,6 +307,34 @@ namespace :ai do
       RailsAiBridge::Registry.write_lockfile(config)
       puts "📝 Wrote skill pack lockfile to #{config.lockfile_path}"
     end
+
+    desc 'Validate the skill pack registry manifest structure (use before CI or pre-commit)'
+    task validate: :environment do
+      require 'rails_ai_bridge'
+
+      config = RailsAiBridge.configuration.registry
+      path = config.registry_manifest_path
+
+      unless File.exist?(path)
+        warn "❌ Registry manifest not found at #{path}"
+        warn 'Create one or set config.registry.registry_manifest_path.'
+        exit 1
+      end
+
+      begin
+        data = JSON.parse(File.read(path))
+      rescue JSON::ParserError => error
+        warn "❌ Registry manifest at #{path} contains invalid JSON: #{error.message}"
+        exit 1
+      end
+
+      RailsAiBridge::Registry::RegistryManifest.validate!(data)
+      pack_count = data.fetch('packs', {}).size
+      puts "✅ Registry manifest at #{path} is valid (version: #{data['version'] || 'unspecified'}, packs: #{pack_count})"
+    rescue RailsAiBridge::Registry::RegistryManifest::ValidationError => error
+      warn "❌ Registry manifest validation failed: #{error.message}"
+      exit 1
+    end
   end
 end
 
