@@ -214,15 +214,20 @@ module RailsAiBridge
       # When a ref is provided the key includes it so that different refs for the
       # same source produce isolated cache directories, preventing cross-ref
       # contamination. Sanitizes non-alphanumeric characters to underscores and
-      # appends a SHA256 hash suffix to ensure uniqueness.
+      # appends the full 64-character SHA256 hex digest to ensure uniqueness,
+      # consistent with the fingerprinting used elsewhere in the gem.
+      #
+      # NOTE: This is a change from the previous 16-character truncated digest.
+      # Cache directories created under the old key format are orphaned; clear
+      # +~/.rails-ai-bridge/cache+ to reclaim disk space.
       #
       # @param source [String] source string (e.g., 'igmarin/ruby-core-skills')
       # @param ref [String, nil] git ref or nil for the default branch
-      # @return [String] cache key (e.g., 'igmarin_ruby_core_skills_a1b2c3d4')
+      # @return [String] cache key (e.g., 'igmarin_ruby_core_skills_<64-hex-sha256>')
       def self.compute_cache_key(source, ref = nil)
         identity  = ref ? "#{source}@#{ref}" : source
         sanitized = identity.gsub(/[^a-zA-Z0-9]/, '_')
-        hash = Digest::SHA256.hexdigest(identity)[0..15]
+        hash = Digest::SHA256.hexdigest(identity)
         "#{sanitized}_#{hash}"
       end
 

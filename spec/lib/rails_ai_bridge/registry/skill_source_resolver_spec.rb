@@ -66,6 +66,23 @@ RSpec.describe RailsAiBridge::Registry::SkillSourceResolver do
       expect(result).to match(/_[a-f0-9]+$/)
     end
 
+    it 'uses the full 64-character SHA-256 digest for the hash suffix' do
+      result = described_class.compute_cache_key('test-source')
+      expect(result).to match(/_[a-f0-9]{64}$/)
+    end
+
+    it 'matches the full SHA-256 of the source identity' do
+      source = 'test-source'
+      result = described_class.compute_cache_key(source)
+      expect(result).to end_with("_#{Digest::SHA256.hexdigest(source)}")
+    end
+
+    it 'includes the ref in the digest when a ref is provided' do
+      source = 'test-source'
+      result = described_class.compute_cache_key(source, 'v1.0')
+      expect(result).to end_with("_#{Digest::SHA256.hexdigest("#{source}@v1.0")}")
+    end
+
     it 'produces consistent keys for the same source' do
       key1 = described_class.compute_cache_key('igmarin/ruby-core-skills')
       key2 = described_class.compute_cache_key('igmarin/ruby-core-skills')

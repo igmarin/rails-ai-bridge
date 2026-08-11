@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (breaking)
+
+- **Full SHA-256 digests for skill-pack cache keys** (#122) — `SkillSourceResolver.compute_cache_key` now appends the full 64-character SHA-256 hex digest instead of a 16-character truncation, consistent with the gem's fingerprinting. Cache directories created under the old key format are orphaned; clear `~/.rails-ai-bridge/cache` to reclaim disk space.
+
 ## [4.0.0] - 2026-08-09
 
 ### Changed (breaking)
