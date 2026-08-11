@@ -340,6 +340,22 @@ Checks the registry manifest at `config.registry.registry_manifest_path` against
 
 ---
 
+## Transitive dependency loading (`auto_load_dependencies`)
+
+By default, a pack's `depends_on` entries are **not** loaded automatically — the resolver only warns when a dependency is missing from the active set. Enable transitive loading to have declared dependencies pulled in automatically:
+
+```ruby
+RailsAiBridge.configure do |config|
+  config.registry.auto_load_dependencies = true
+end
+```
+
+- Expansion is iterative (dependencies of dependencies), capped at 10 levels.
+- Only dependencies defined in the manifest are loaded; undefined ones still produce the missing-dependency warning.
+- Circular chains are detected and reported as a stderr warning (`Circular dependency detected: a -> b -> a`), but every pack in the cycle is still loaded.
+
+---
+
 ## Git operation settings
 
 ### Pull freshness window (`git_pull_ttl`)
@@ -414,7 +430,8 @@ initializer changes take effect immediately.
 | `git checkout <ref>` failed | Invalid ref or detached HEAD issue | Verify the `ref` value matches a branch, tag, or SHA in the remote repo |
 | `Lockfile mismatch for pack '…'` | Resolved pack commit differs from `directory.lock` | Run `rails ai:registry:lockfile` to update the lockfile after reviewing the pack changes |
 | Git operation hangs / server request times out | Slow or unreachable remote | Reduce `git_timeout` to fail faster; check network connectivity to the remote |
-| Warning: "Pack '…' depends on '…' which is not in the active pack set" | A loaded pack has an unsatisfied `depends_on` entry | Add the missing pack name to `always_loaded` or `skill_packs` in your manifest |
+| Warning: "Pack '…' depends on '…' which is not in the active pack set" | A loaded pack has an unsatisfied `depends_on` entry | Add the missing pack name to `always_loaded` or `skill_packs` in your manifest, or enable `config.registry.auto_load_dependencies` |
+| Warning: "Circular dependency detected: …" | Two or more active packs depend on each other | Break the cycle in the manifests; packs still load, but the cycle usually indicates a mistake |
 
 ---
 
