@@ -336,4 +336,47 @@ RSpec.describe 'rails_ai_bridge rake tasks' do
       end
     end
   end
+
+  describe 'ai:skills:list output formats' do
+    # No memoized helpers here: the top-level group already defines six,
+    # which is the RSpec/MultipleMemoizedHelpers limit.
+    before do
+      resolver = instance_double(RailsAiBridge::Registry::Resolver)
+      allow(RailsAiBridge::Registry).to receive(:build_resolver).and_return(resolver)
+      allow(resolver).to receive_messages(
+        list_skills: [
+          RailsAiBridge::Registry::SkillSummary.new(name: 'code-review', pack: 'rails', description: 'Review code.')
+        ],
+        active_packs: []
+      )
+    end
+
+    it 'prints the human-readable table by default' do
+      expect { rake['ai:skills:list'].invoke }.to output(/Available Skills \(1\)/).to_stdout
+    end
+
+    it 'prints a parseable JSON document for the json format argument' do
+      json = capture_stdout { rake['ai:skills:list'].invoke('json') }
+      parsed = JSON.parse(json)
+
+      expect(parsed.keys).to contain_exactly('packs', 'skills')
+      expect(parsed['skills'].first['name']).to eq('code-review')
+    end
+
+    it 'prints JSON when FORMAT=json is set' do
+      ENV['FORMAT'] = 'json'
+      json = capture_stdout { rake['ai:skills:list'].invoke }
+
+      expect { JSON.parse(json) }.not_to raise_error
+    end
+
+    def capture_stdout
+      original = $stdout
+      $stdout = StringIO.new
+      yield
+      $stdout.string
+    ensure
+      $stdout = original
+    end
+  end
 end

@@ -340,12 +340,15 @@ end
 
 namespace :ai do
   namespace :skills do
-    desc 'List all available skills from configured skill packs'
-    task list: :environment do
+    desc 'List all available skills from configured skill packs (rails "ai:skills:list[json]" or FORMAT=json for JSON output)'
+    task :list, [:format] => :environment do |_t, args|
       require 'rails_ai_bridge'
 
       resolver = RailsAiBridge::Registry::RakePresenter.require_resolver!
-      puts RailsAiBridge::Registry::RakePresenter.new(resolver).skills_table
+      presenter = RailsAiBridge::Registry::RakePresenter.new(resolver)
+      output_format = (args[:format] || ENV.fetch('FORMAT', nil)).to_s.downcase
+
+      puts output_format == 'json' ? presenter.catalog_json : presenter.skills_table
     end
 
     desc 'Resolve and print a skill by name (usage: rails "ai:skills:resolve[pack_name,skill_name]")'

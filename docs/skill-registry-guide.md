@@ -305,6 +305,15 @@ rails ai:skills:list
 
 Prints a skills table to stdout with skill name, pack, and truncated description. Good for quickly checking what is loaded.
 
+For machine-readable output (CI, custom tooling), request JSON:
+
+```bash
+rails "ai:skills:list[json]"
+FORMAT=json rails ai:skills:list   # same via env var
+```
+
+The JSON document is `{ "packs": [...], "skills": [...] }` with pack summaries (`name`, `version`, `summary`, `priority`) and skill summaries (`name`, `pack`, `description`).
+
 ### Resolve a skill
 
 ```bash
