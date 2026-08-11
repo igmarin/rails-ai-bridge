@@ -48,6 +48,22 @@ module RailsAiBridge
         lines.join("\n")
       end
 
+      # @return [String] JSON document with the full registry catalog
+      #   ({ "packs": [...], "skills": [...] }) for machine consumption
+      def catalog_json
+        JSON.generate({ packs: packs_data, skills: skills_data })
+      end
+
+      # @return [String] JSON array of skill summaries (name, pack, description)
+      def skills_json
+        JSON.generate(skills_data)
+      end
+
+      # @return [String] JSON array of pack summaries (name, version, summary, priority)
+      def packs_json
+        JSON.generate(packs_data)
+      end
+
       # @param name [String] skill name
       # @param requested_pack [String, nil] optional pack the user asked for
       # @return [String] multi-line output including content, or an error message
@@ -87,6 +103,22 @@ module RailsAiBridge
         path = RailsAiBridge.configuration.registry.registry_manifest_path
         warn no_manifest_message(path)
         exit 1 # rubocop:disable Rails/Exit
+      end
+
+      private
+
+      # @return [Array<Hash>] skill summaries as plain hashes
+      def skills_data
+        @resolver.list_skills.map do |skill|
+          { name: skill.name, pack: skill.pack, description: skill.description }
+        end
+      end
+
+      # @return [Array<Hash>] pack summaries as plain hashes
+      def packs_data
+        @resolver.active_packs.map do |pack|
+          { name: pack.name, version: pack.tile.version, summary: pack.tile.summary, priority: pack.priority }
+        end
       end
     end
   end

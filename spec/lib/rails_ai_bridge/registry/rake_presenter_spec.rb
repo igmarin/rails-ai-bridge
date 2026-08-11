@@ -185,4 +185,77 @@ RSpec.describe RailsAiBridge::Registry::RakePresenter do
       expect(msg).to include('skill-registry-guide.md')
     end
   end
+
+  describe '#skills_json' do
+    let(:tile) do
+      RailsAiBridge::Registry::TileManifest.new(
+        name: 'rails', version: '1.2.0', summary: 'Rails skills',
+        depends_on: [], skills: {}, agents: {}, deprecated_skills: {}
+      )
+    end
+
+    before { allow(resolver).to receive(:list_skills).and_return([skill_summary]) }
+
+    it 'returns a JSON array of skill summaries' do
+      parsed = JSON.parse(presenter.skills_json)
+
+      expect(parsed).to eq([
+                             { 'name' => 'code-review', 'pack' => 'rails',
+                               'description' => 'Review Rails code against team conventions.' }
+                           ])
+    end
+  end
+
+  describe '#packs_json' do
+    let(:tile) do
+      RailsAiBridge::Registry::TileManifest.new(
+        name: 'rails', version: '1.2.0', summary: 'Rails skills',
+        depends_on: [], skills: {}, agents: {}, deprecated_skills: {}
+      )
+    end
+
+    let(:loaded_pack) do
+      RailsAiBridge::Registry::LoadedPack.new(
+        name: 'rails', tile: tile, base_path: '/tmp/rails', priority: 10
+      )
+    end
+
+    before { allow(resolver).to receive(:active_packs).and_return([loaded_pack]) }
+
+    it 'returns a JSON array of pack summaries' do
+      parsed = JSON.parse(presenter.packs_json)
+
+      expect(parsed).to eq([
+                             { 'name' => 'rails', 'version' => '1.2.0',
+                               'summary' => 'Rails skills', 'priority' => 10 }
+                           ])
+    end
+  end
+
+  describe '#catalog_json' do
+    let(:tile) do
+      RailsAiBridge::Registry::TileManifest.new(
+        name: 'rails', version: '1.2.0', summary: 'Rails skills',
+        depends_on: [], skills: {}, agents: {}, deprecated_skills: {}
+      )
+    end
+
+    let(:loaded_pack) do
+      RailsAiBridge::Registry::LoadedPack.new(
+        name: 'rails', tile: tile, base_path: '/tmp/rails', priority: 10
+      )
+    end
+
+    before do
+      allow(resolver).to receive_messages(list_skills: [skill_summary], active_packs: [loaded_pack])
+    end
+
+    it 'returns a combined JSON document with packs and skills keys' do
+      parsed = JSON.parse(presenter.catalog_json)
+
+      expect(parsed.keys).to contain_exactly('packs', 'skills')
+      expect(parsed['skills'].first['name']).to eq('code-review')
+      expect(parsed['packs'].first['name']).to eq('rails')
+    end
+  end
 end
