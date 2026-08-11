@@ -48,5 +48,124 @@ module RailsAiBridge
         raise ArgumentError, "Registry manifest at '#{path}' could not be read: #{error.message}"
       end
     end
+
+    # Validation API lives in a reopened class body rather than in the
+    # +Data.define+ block: constant declarations inside a +Data.define+ block
+    # resolve lexically into the surrounding +Registry+ module, so a nested
+    # +ValidationError+ could neither be defined on the Data class nor
+    # referenced by bare name from methods defined in that block.
+    class RegistryManifest
+      # Raised by {.validate!} when the manifest structure is invalid.
+      class ValidationError < StandardError; end
+
+      # Validates the structure of a parsed registry manifest hash.
+      #
+      # An empty manifest is valid (no required top-level keys). When present,
+      # known keys are type-checked: +version+ (String), +default_stack+
+      # (Array of Strings), and +packs+ (Hash of pack name to definition with a
+      # required non-empty String +source+). Unknown keys are ignored so future
+      # manifest fields do not break older validators.
+      #
+      # @param data [Object] parsed JSON value to validate
+      # @return [Hash] the validated data, unchanged
+      # @raise [ValidationError] with a message describing the first invalid field
+      def self.validate!(data)
+        raise ValidationError, 'Registry manifest root must be a JSON object (Hash)' unless data.is_a?(Hash)
+
+        validate_version!(data) if data.key?('version')
+        validate_default_stack!(data) if data.key?('default_stack')
+        validate_packs!(data) if data.key?('packs')
+        data
+      end
+
+      class << self
+        private
+
+        def validate_version!(data)
+          version = data['version']
+          return if version.is_a?(String)
+
+          raise ValidationError, "'version' must be a String (got #{type_name(version)})"
+        end
+
+        def validate_default_stack!(data)
+          stack = data['default_stack']
+          return if stack.is_a?(Array) && stack.all?(String)
+
+          raise ValidationError, "'default_stack' must be an Array of Strings"
+        end
+
+        def validate_packs!(data)
+          packs = data['packs']
+          raise ValidationError, "'packs' must be a Hash (got #{type_name(packs)})" unless packs.is_a?(Hash)
+
+          packs.each { |name, pack| validate_pack!(name, pack) }
+        end
+
+        # :reek:TooManyStatements -- one guard clause per manifest field; further extraction would obscure the schema
+        def validate_pack!(name, pack)
+          raise ValidationError, "pack '#{name}' must be a JSON object (Hash), got #{type_name(pack)}" unless pack.is_a?(Hash)
+
+          validate_pack_source!(name, pack)
+          validate_pack_string_field!(name, pack, 'ref')
+          validate_pack_string_field!(name, pack, 'tile')
+          validate_pack_string_array_field!(name, pack, 'depends_on')
+          validate_pack_boolean_field!(name, pack, 'always_loaded')
+          validate_pack_integer_field!(name, pack, 'priority')
+        end
+
+        def validate_pack_source!(name, pack)
+          raise ValidationError, "pack '#{name}' is missing required key 'source'" unless pack.key?('source')
+
+          source = pack['source']
+          raise ValidationError, "pack '#{name}': 'source' must be a String (got #{type_name(source)})" unless source.is_a?(String)
+          return unless source.strip.empty?
+
+          raise ValidationError, "pack '#{name}': 'source' must be a non-empty String"
+        end
+
+        # :reek:NilCheck -- optional string fields legitimately accept an explicit null
+        def validate_pack_string_field!(name, pack, key)
+          return unless pack.key?(key)
+
+          value = pack[key]
+          return if value.nil? || value.is_a?(String)
+
+          raise ValidationError, "pack '#{name}': '#{key}' must be a String (got #{type_name(value)})"
+        end
+
+        def validate_pack_string_array_field!(name, pack, key)
+          return unless pack.key?(key)
+
+          value = pack[key]
+          raise ValidationError, "pack '#{name}': '#{key}' must be an Array of Strings (got #{type_name(value)})" unless value.is_a?(Array)
+          return if value.all?(String)
+
+          raise ValidationError, "pack '#{name}': '#{key}' must be an Array of Strings"
+        end
+
+        def validate_pack_boolean_field!(name, pack, key)
+          return unless pack.key?(key)
+
+          value = pack[key]
+          return if [true, false].include?(value)
+
+          raise ValidationError, "pack '#{name}': '#{key}' must be a boolean (got #{type_name(value)})"
+        end
+
+        def validate_pack_integer_field!(name, pack, key)
+          return unless pack.key?(key)
+
+          value = pack[key]
+          return if value.is_a?(Integer)
+
+          raise ValidationError, "pack '#{name}': '#{key}' must be an Integer (got #{type_name(value)})"
+        end
+
+        def type_name(value)
+          value.class.name
+        end
+      end
+    end
   end
 end

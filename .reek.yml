@@ -87,6 +87,7 @@ detectors:
     - RailsAiBridge::Serializers::RegenerationFooter
     - RailsAiBridge::Introspectors::SemanticIntrospector
     - RailsAiBridge::RubydexAdapter::IncrementalIndexer
+    - RailsAiBridge::Registry::RegistryManifest
   DuplicateMethodCall:
     exclude:
     - RailsAiBridge::Config::Introspection#excluded_table?
@@ -416,6 +417,7 @@ detectors:
     - RailsAiBridge::Tools::BaseTool
     - RailsAiBridge::Watcher::BridgeRegenerator
     - RailsAiBridge::Fingerprinter::CachedSnapshot
+    - RailsAiBridge::Registry::RegistryManifest
   NestedIterators:
     exclude:
     - RailsAiBridge::Fingerprinter#snapshot
@@ -495,6 +497,7 @@ detectors:
     - RailsAiBridge::Introspectors::TestIntrospector
     - RailsAiBridge::Introspectors::ViewIntrospector
     - RailsAiBridge::RubydexAdapter
+    - RailsAiBridge::Registry::RegistryManifest
     - RailsAiBridge::Tools::GetStimulus::ResponseFormatter
     - RailsAiBridge::Tools::SearchSemantic
   TooManyInstanceVariables:

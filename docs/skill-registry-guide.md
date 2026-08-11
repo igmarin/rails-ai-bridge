@@ -305,6 +305,14 @@ Removes all locally cached pack repositories from the skill cache directory and 
 - You want to free disk space
 - You changed the `skill_cache_dir` configuration
 
+### Validate the manifest
+
+```bash
+rails ai:registry:validate
+```
+
+Checks the registry manifest at `config.registry.registry_manifest_path` against the expected schema: pack `source` must be a non-empty string, `depends_on` an array of strings, `always_loaded` a boolean, and so on. Exits non-zero on the first invalid field, making it suitable for CI and pre-commit hooks.
+
 ---
 
 ## Git operation settings
