@@ -574,6 +574,104 @@ RSpec.describe RailsAiBridge::Registry::SkillSourceResolver do
       end
     end
   end
+
+  describe '.default_logger' do
+    context 'when Rails.logger is present' do
+      it 'returns Rails.logger' do
+        custom_logger = Logger.new(File::NULL)
+        allow(Rails).to receive(:logger).and_return(custom_logger)
+
+        expect(described_class.default_logger).to eq(custom_logger)
+      end
+    end
+
+    context 'when Rails.logger is nil' do
+      it 'falls back to a stderr logger' do
+        allow(Rails).to receive(:logger).and_return(nil)
+
+        expect(described_class.default_logger).to be_a(Logger)
+      end
+    end
+  end
+
+  describe 'structured git operation logging' do
+    let(:log_io) { StringIO.new }
+    let(:logger) { Logger.new(log_io) }
+    let(:resolver) { described_class.new(cache_dir, mock_runner, logger: logger) }
+
+    before do
+      logger.level = Logger::DEBUG
+    end
+
+    context 'when cloning a pack' do
+      before do
+        allow(mock_runner).to receive(:clone_repo) do |_url, dest|
+          FileUtils.mkdir_p(dest)
+          true
+        end
+      end
+
+      it 'logs DEBUG before and INFO after with op, source, cache_path, and duration' do
+        resolver.resolve('igmarin/test-pack')
+
+        expect(log_io.string).to match(%r{DEBUG.*op=clone status=started.*source="igmarin/test-pack".*cache_path=})
+        expect(log_io.string).to match(/INFO.*op=clone status=succeeded.*duration_ms=\d+.*cache_path=/)
+      end
+    end
+
+    context 'when pulling a cached pack' do
+      it 'logs the pull operation' do
+        allow(mock_runner).to receive(:clone_repo) do |_url, dest|
+          FileUtils.mkdir_p(dest)
+          true
+        end
+        allow(mock_runner).to receive(:pull_repo)
+
+        resolver.resolve('igmarin/test-pack') # initial clone
+        log_io.truncate(0)
+        log_io.rewind
+        resolver = described_class.new(cache_dir, mock_runner, pull_ttl: 0, logger: logger)
+        resolver.resolve('igmarin/test-pack') # cached + stale -> pull
+
+        expect(log_io.string).to include('op=pull status=started')
+        expect(log_io.string).to include('op=pull status=succeeded')
+      end
+    end
+
+    context 'when checking out a pinned ref' do
+      it 'logs the checkout operation with the ref' do
+        allow(mock_runner).to receive_messages(clone_repo: true, pull_repo: true, checkout_ref: true)
+
+        resolver.resolve('igmarin/test-pack', ref: 'v1.0.0')
+
+        expect(log_io.string).to match(/op=checkout status=started.*ref="v1\.0\.0"/)
+        expect(log_io.string).to include('op=checkout status=succeeded')
+      end
+    end
+
+    context 'when a git operation fails' do
+      it 'logs ERROR with op, source, and error message before raising' do
+        allow(mock_runner).to receive(:clone_repo).and_raise(RuntimeError, 'git clone failed')
+
+        expect { resolver.resolve('igmarin/broken-pack') }
+          .to raise_error(RailsAiBridge::Registry::SkillSourceResolver::ResolutionError)
+
+        expect(log_io.string).to match(%r{ERROR.*op=clone status=failed.*source="igmarin/broken-pack".*error=})
+      end
+    end
+
+    context 'when no logger is given' do
+      it 'uses the default logger without raising' do
+        allow(mock_runner).to receive(:clone_repo) do |_url, dest|
+          FileUtils.mkdir_p(dest)
+          true
+        end
+
+        default_resolver = described_class.new(cache_dir, mock_runner)
+        expect { default_resolver.resolve('igmarin/test-pack') }.not_to raise_error
+      end
+    end
+  end
 end
 
 RSpec.describe RailsAiBridge::Registry::GitRunner do

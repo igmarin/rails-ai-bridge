@@ -2,6 +2,7 @@
 
 require 'open3'
 require 'digest'
+require 'logger'
 
 module RailsAiBridge
   module Registry
@@ -189,12 +190,28 @@ module RailsAiBridge
       # @param git_runner [GitRunner] git runner implementation (defaults to DefaultGitRunner)
       # @param pull_ttl [Integer] seconds between git pull refreshes per cached pack (default: 86400 = 24 h).
       #   Set to 0 to always pull on every resolve call.
-      def initialize(cache_dir, git_runner = DefaultGitRunner.new, pull_ttl: 86_400)
+      # @param logger [Logger, nil] logger for structured git operation messages
+      #   (defaults to {.default_logger})
+      # :reek:TooManyStatements -- constructor wiring one attribute per collaborator
+      def initialize(cache_dir, git_runner = DefaultGitRunner.new, pull_ttl: 86_400, logger: nil)
         @cache_dir = validate_cache_dir(cache_dir)
         @git_runner = git_runner
         @pull_ttl = pull_ttl
+        @logger = logger || self.class.default_logger
         @last_pulled = {} # cache_path => Float (monotonic seconds) — in-memory freshness tracking
         @pull_mutex = Mutex.new
+      end
+
+      # Resolves the default logger for git operation messages.
+      #
+      # Uses +Rails.logger+ in a Rails context and a stderr logger otherwise,
+      # so resolution diagnostics are never silently lost.
+      #
+      # @return [Logger] logger instance
+      def self.default_logger
+        return Rails.logger if defined?(Rails) && !Rails.logger.nil?
+
+        Logger.new($stderr)
       end
 
       # Resolves the default cache directory, checking RAILS_AI_BRIDGE_CACHE_DIR then HOME.
@@ -328,7 +345,9 @@ module RailsAiBridge
       end
 
       def perform_pull(source, cache_path)
-        @git_runner.pull_repo(cache_path)
+        instrument_git_operation(:pull, source: source, cache_path: cache_path) do
+          @git_runner.pull_repo(cache_path)
+        end
         record_pull(cache_path)
       rescue StandardError => error
         raise ResolutionError, "git pull failed for pack: #{source}: #{error.message}"
@@ -337,7 +356,9 @@ module RailsAiBridge
       # :reek:TooManyStatements -- Necessary complexity for git clone setup, execution, and error handling
       def perform_clone(source, cache_path, clone_url)
         FileUtils.mkdir_p(@cache_dir)
-        @git_runner.clone_repo(clone_url, cache_path)
+        instrument_git_operation(:clone, source: source, cache_path: cache_path) do
+          @git_runner.clone_repo(clone_url, cache_path)
+        end
         record_pull(cache_path)
       rescue StandardError => error
         FileUtils.rm_rf(cache_path)
@@ -345,9 +366,45 @@ module RailsAiBridge
       end
 
       def perform_checkout_ref(source, cache_path, ref)
-        @git_runner.checkout_ref(cache_path, ref)
+        instrument_git_operation(:checkout, source: source, cache_path: cache_path, ref: ref) do
+          @git_runner.checkout_ref(cache_path, ref)
+        end
       rescue StandardError => error
         raise ResolutionError, "git checkout #{ref} failed for pack: #{source}: #{error.message}"
+      end
+
+      # Executes a git operation while emitting structured log lines.
+      #
+      # Logs at DEBUG before the operation, at INFO (with elapsed milliseconds)
+      # after success, and at ERROR with the failure message before re-raising
+      # the original error unchanged.
+      #
+      # @param operation [Symbol] operation name (e.g. +:clone+, +:pull+, +:checkout+)
+      # @param fields [Hash] contextual fields included in every log line
+      # @return [Object] the block's result
+      # :reek:TooManyStatements -- timing + three log levels is intrinsic to operation instrumentation
+      def instrument_git_operation(operation, **fields)
+        @logger.debug { format_git_log(operation, :started, **fields) }
+        started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        result = yield
+        duration_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at) * 1000).round
+        @logger.info { format_git_log(operation, :succeeded, duration_ms: duration_ms, **fields) }
+        result
+      rescue StandardError => error
+        @logger.error { format_git_log(operation, :failed, **fields, error: error.message) }
+        raise
+      end
+
+      # Builds one structured +key=value+ log line for a git operation.
+      #
+      # @param operation [Symbol] operation name
+      # @param status [Symbol] +:started+, +:succeeded+, or +:failed+
+      # @param fields [Hash] contextual fields rendered as +key=value+ pairs
+      # @return [String] formatted log line
+      # :reek:UtilityFunction -- pure formatting helper paired with instrument_git_operation
+      def format_git_log(operation, status, **fields)
+        pairs = fields.map { |key, value| "#{key}=#{value.inspect}" }.join(' ')
+        "[rails-ai-bridge] op=#{operation} status=#{status} #{pairs}"
       end
     end
   end
