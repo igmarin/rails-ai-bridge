@@ -251,7 +251,7 @@ This keeps context focused and avoids unnecessary token usage while still allowi
 
 ## MCP Tools
 
-The gem exposes **13 built-in tools** via MCP that AI clients call on-demand (hosts can append more via `config.additional_tools`):
+The gem exposes **16 built-in tools** via MCP that AI clients call on-demand (hosts can append more via `config.additional_tools`):
 
 | Tool | What it returns |
 |------|----------------|
@@ -268,6 +268,9 @@ The gem exposes **13 built-in tools** via MCP that AI clients call on-demand (ho
 | `rails_search_semantic` | Semantic code search using rubydex — find declarations by name with types, locations, and relationships |
 | `rails_get_stimulus` | Stimulus controllers: targets, values, actions, outlets (requires `:stimulus` introspector) |
 | `rails_list_registry` | Skill pack catalog — list skills, agents, or active packs; requires `config/rails_ai_bridge_registry.json` |
+| `rails_resolve_skill` | Full content of a named skill or agent from the registry (priority ordering + deprecation redirects); optional `pack=` pin and `type=agent` |
+| `rails_use_skill` | Loads a skill framed as an application directive (apply it step by step to the current task) |
+| `rails_use_agent` | Loads an agent/workflow framed as an activation directive (follow it end to end) |
 
 All tools are **read-only** — they never modify your application or database.
 
