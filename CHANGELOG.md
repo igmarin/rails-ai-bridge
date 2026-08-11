@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **JWT authentication docs for the HTTP MCP transport** (#129) — `docs/mcp-security.md` now documents the `mcp_jwt_decoder` pattern with a worked `JWT.decode` example, the decoder return-value contract, and a token rotation strategy (short expiry, signing-key overlap windows, revocation guidance).
 - **`rails_use_skill` / `rails_use_agent` MCP tools** (#133) — resolve a skill or agent via `Registry::Resolver` and return it framed for immediate in-context application: an intent header, the deprecation notice when the name was redirected, the full content, and a follow-through footer. Use these to *act on* a skill; `rails_resolve_skill` remains the read-only inspection tool (with `pack=` pinning).
 - **JSON output for the registry rake tasks** (#128) — `rails "ai:skills:list[json]"` (or `FORMAT=json rails ai:skills:list`) prints a stable `{"packs": [...], "skills": [...]}` catalog document for CI and custom tooling. `RakePresenter` gains `skills_json`, `packs_json`, and `catalog_json`; the default table output is unchanged.
 - **Transitive `depends_on` loading for skill packs** (#126) — opt in with `config.registry.auto_load_dependencies = true` (default `false`): `PackResolver` expands declared pack dependencies transitively (fixed-point iteration capped at 10 levels) and warns about circular dependency chains while still loading every pack in the cycle. Dependencies missing from the manifest are left to the existing warning, which now points at the new flag.

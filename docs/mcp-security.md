@@ -12,6 +12,59 @@ By default, HTTP MCP allows anonymous access when no auth strategy is configured
 
 In non-production environments, the standalone HTTP MCP server prints a one-time stderr warning when it starts without authentication to make the default behavior visible.
 
+## JWT authentication with short-lived tokens
+
+`http_mcp_token` is a static bearer token: rotating it means redistributing a secret to every client. For deployments that need rotation or expiry, configure `config.mcp_jwt_decoder` instead — the highest-priority auth strategy. The gem carries **no JWT dependency**: you supply a lambda that decodes (and verifies) the token.
+
+```ruby
+# config/initializers/rails_ai_bridge.rb
+require "jwt" # the host app's own jwt gem
+
+RailsAiBridge.configure do |config|
+  config.mcp.require_http_auth = true
+
+  config.mcp_jwt_decoder = ->(token) do
+    payload, _header = JWT.decode(
+      token,
+      Rails.application.credentials.jwt_mcp_secret!,
+      true,                          # verify signature
+      algorithm: "HS256",
+      verify_expiration: true        # reject expired tokens (default when verifying)
+    )
+    payload                          # truthy payload => authenticated
+  rescue JWT::DecodeError, JWT::ExpiredSignature
+    nil                              # nil => 401 unauthorized
+  end
+end
+```
+
+Decoder contract:
+
+- Return a **truthy payload** (Hash recommended) — request is authenticated; the payload is exposed to authorization hooks.
+- Return **`nil`** or **`false`** — request is rejected with `401` (`:unauthorized`).
+- **Raise** — treated as `:decode_error`, also `401`; the exception never propagates.
+
+### Token rotation strategy
+
+- **Short expiry, frequent re-issue.** Issue MCP tokens with a 5–15 minute `exp` from your existing login/session flow. A leaked token expires on its own; there is nothing to rotate per incident.
+- **Signing-key rotation.** When rotating the HMAC secret (or moving to RS256/JWKS), accept both keys during the overlap window:
+
+  ```ruby
+  config.mcp_jwt_decoder = ->(token) do
+    keys = [Rails.application.credentials.jwt_mcp_secret!,
+            Rails.application.credentials.jwt_mcp_secret_previous!]
+    keys.lazy.filter_map do |key|
+      JWT.decode(token, key, true, algorithm: "HS256").first
+    rescue JWT::DecodeError, JWT::ExpiredSignature
+      nil
+    end.first
+  end
+  ```
+
+  Retire the previous key once all clients have re-issued tokens.
+- **Immediate revocation.** Stateless JWTs cannot be revoked; if you need it, combine short `exp` with your own denylist check inside the decoder (return `nil` for revoked subjects).
+- **Client capability note.** Some AI hosts cannot refresh tokens and work best with a long-lived static token or `mcp_token_resolver` (which can consult a secret manager per request). Pick the strategy per client: JWT for short-lived machine-to-machine auth, `mcp_token_resolver` when the credential lives in a vault, `http_mcp_token` only for local development.
+
 ## Rate limiting and proxies
 
 Built-in rate limiting keys off the Rack request IP. Behind reverse proxies, configure Rails `trusted_proxies` so `request.ip` reflects the real client; otherwise limits may apply to the wrong address or be bypassed.
