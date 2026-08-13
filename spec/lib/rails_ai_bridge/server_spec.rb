@@ -36,6 +36,19 @@ RSpec.describe RailsAiBridge::Server do
     end
   end
 
+  describe 'TOOLS constant' do
+    it 'includes all 16 built-in tools' do
+      expect(RailsAiBridge::Server::TOOLS.length).to eq(16)
+    end
+
+    it 'includes the registry tool classes' do
+      expect(RailsAiBridge::Server::TOOLS).to include(RailsAiBridge::Tools::ListRegistry)
+      expect(RailsAiBridge::Server::TOOLS).to include(RailsAiBridge::Tools::ResolveSkill)
+      expect(RailsAiBridge::Server::TOOLS).to include(RailsAiBridge::Tools::UseSkill)
+      expect(RailsAiBridge::Server::TOOLS).to include(RailsAiBridge::Tools::UseAgent)
+    end
+  end
+
   describe '#tool_classes' do
     it 'returns built-in tools plus additional tools' do
       additional_tools = [double(tool_name: 'custom_tool')]
@@ -53,6 +66,77 @@ RSpec.describe RailsAiBridge::Server do
       tool_classes = server.tool_classes
 
       expect(tool_classes).to eq(RailsAiBridge::Server::TOOLS)
+    end
+
+    it 'returns a wrapper for every built-in tool' do
+      allow(RailsAiBridge.configuration).to receive(:additional_tools).and_return([])
+
+      tool_classes = server.tool_classes
+
+      expect(tool_classes.length).to eq(RailsAiBridge::Server::TOOLS.length)
+      expect(tool_classes.map(&:tool_name)).to eq(RailsAiBridge::Server::TOOLS.map(&:tool_name))
+    end
+
+    it 'wraps every tool with Instrumentation::InstrumentedTool' do
+      allow(RailsAiBridge.configuration).to receive(:additional_tools).and_return([])
+
+      tool_classes = server.tool_classes
+
+      expect(tool_classes).to all(be_a(RailsAiBridge::Instrumentation::InstrumentedTool))
+    end
+
+    it 'includes wrappers for the registry tools' do
+      allow(RailsAiBridge.configuration).to receive(:additional_tools).and_return([])
+
+      tool_names = server.tool_classes.map(&:tool_name)
+
+      expect(tool_names).to include('rails_list_registry')
+      expect(tool_names).to include('rails_resolve_skill')
+      expect(tool_names).to include('rails_use_skill')
+      expect(tool_names).to include('rails_use_agent')
+    end
+
+    context 'when caching is enabled' do
+      before do
+        allow(RailsAiBridge.configuration.mcp).to receive(:tool_result_cache_ttl).and_return(30)
+      end
+
+      it 'wraps every tool with Instrumentation::InstrumentedTool' do
+        allow(RailsAiBridge.configuration).to receive(:additional_tools).and_return([])
+
+        tool_classes = server.tool_classes
+
+        expect(tool_classes).to all(be_a(RailsAiBridge::Instrumentation::InstrumentedTool))
+      end
+
+      it 'wraps the registry tools with ToolResultCache::CachedTool' do
+        allow(RailsAiBridge.configuration).to receive(:additional_tools).and_return([])
+
+        registry_names = %w[rails_list_registry rails_resolve_skill rails_use_skill rails_use_agent]
+        registry_wrappers = server.tool_classes.select { |t| registry_names.include?(t.tool_name) }
+
+        expect(registry_wrappers.length).to eq(4)
+        expect(registry_wrappers.map(&:__getobj__)).to all(be_a(RailsAiBridge::ToolResultCache::CachedTool))
+      end
+
+      it 'wraps all built-in tools with ToolResultCache::CachedTool' do
+        allow(RailsAiBridge.configuration).to receive(:additional_tools).and_return([])
+
+        inner = server.tool_classes.map(&:__getobj__)
+
+        expect(inner).to all(be_a(RailsAiBridge::ToolResultCache::CachedTool))
+      end
+    end
+
+    context 'when caching is disabled' do
+      it 'does not wrap tools with ToolResultCache::CachedTool' do
+        allow(RailsAiBridge.configuration).to receive(:additional_tools).and_return([])
+
+        inner = server.tool_classes.map(&:__getobj__)
+
+        expect(inner).to all(be_a(Class))
+        expect(inner).to all(be < RailsAiBridge::Tools::BaseTool)
+      end
     end
   end
 
