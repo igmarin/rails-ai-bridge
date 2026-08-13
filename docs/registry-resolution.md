@@ -16,7 +16,7 @@ When a pack is loaded, its skills and agents appear in `rails_list_registry`, an
 
 ## Quick start
 
-**1. Create the registry manifest** at `config/rails_ai_bridge_registry.json`:
+**1. Create the registry manifest** at `config/rails_ai_bridge/registry.json`:
 
 ```json
 {
@@ -39,7 +39,7 @@ When a pack is loaded, its skills and agents appear in `rails_list_registry`, an
 
 ```ruby
 RailsAiBridge.configure do |config|
-  config.registry.registry_manifest_path = "config/rails_ai_bridge_registry.json"
+  config.registry.registry_manifest_path = "config/rails_ai_bridge/registry.json"
 end
 ```
 
@@ -102,7 +102,7 @@ All options live under `config.registry.*`:
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `registry_manifest_path` | `"config/rails_ai_bridge_registry.json"` | Path to the registry manifest JSON |
+| `registry_manifest_path` | `"config/rails_ai_bridge/registry.json"` | Path to the registry manifest JSON |
 | `skill_cache_dir` | `~/.rails-ai-bridge/cache` | Directory for caching cloned git repositories |
 | `skill_packs` | `nil` | Explicit list of pack names to load, or `nil` for auto-detection |
 | `local_registry_paths` | `[]` | Local directory paths containing a `directory.json` (loaded at priority 0) |

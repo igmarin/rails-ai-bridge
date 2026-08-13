@@ -267,7 +267,7 @@ The gem exposes **17 built-in tools** via MCP that AI clients call on-demand (ho
 | `rails_get_view` | View layouts, templates, partials; optional per-file detail under the configured `app/views` path |
 | `rails_search_semantic` | Semantic code search using rubydex — find declarations by name with types, locations, and relationships |
 | `rails_get_stimulus` | Stimulus controllers: targets, values, actions, outlets (requires `:stimulus` introspector) |
-| `rails_list_registry` | Skill pack catalog — list skills, agents, or active packs; requires `config/rails_ai_bridge_registry.json` |
+| `rails_list_registry` | Skill pack catalog — list skills, agents, or active packs; requires `config/rails_ai_bridge/registry.json` |
 | `rails_resolve_skill` | Full content of a named skill or agent from the registry (priority ordering + deprecation redirects); optional `pack=` pin and `type=agent` |
 | `rails_use_skill` | Loads a skill framed as an application directive (apply it step by step to the current task) |
 | `rails_use_agent` | Loads an agent/workflow framed as an activation directive (follow it end to end) |
@@ -544,7 +544,7 @@ end
 | `parallel_introspection` | `false` | Run introspectors concurrently (requires `concurrent-ruby`, which is already a Rails dependency) |
 | `parallel_pool_size` | `4` | Max threads in the parallel pool; capped at the number of active introspectors so no idle threads are created |
 | `parallel_timeout_seconds` | `10` | Per-introspector future timeout (seconds); timed-out introspectors return `{ error: "timed out after Ns" }` without blocking the others |
-| `registry.registry_manifest_path` | `"config/rails_ai_bridge_registry.json"` | Path to the registry manifest JSON file for skill pack resolution |
+| `registry.registry_manifest_path` | `"config/rails_ai_bridge/registry.json"` | Path to the registry manifest JSON file for skill pack resolution |
 | `registry.skill_cache_dir` | `"~/.rails-ai-bridge/cache"` | Directory for caching git repositories containing skill packs |
 | `registry.skill_packs` | `nil` | Explicit pack names to load, or `nil` for auto-detection based on framework |
 | `registry.local_registry_paths` | `[]` | Local directory paths (must contain `directory.json`) loaded at priority 0 |
@@ -687,10 +687,10 @@ To customize it in your initializer (`config/initializers/rails_ai_bridge.rb`):
 rails-ai-bridge can load **skill packs** — shared collections of agent instructions — from versioned git repositories and surface them through `rails_list_registry` and rake tasks.
 
 ```ruby
-config.registry.registry_manifest_path = "config/rails_ai_bridge_registry.json"
+config.registry.registry_manifest_path = "config/rails_ai_bridge/registry.json"
 ```
 
-Quick example manifest (`config/rails_ai_bridge_registry.json`):
+Quick example manifest (`config/rails_ai_bridge/registry.json`):
 
 ```json
 {

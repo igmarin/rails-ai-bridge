@@ -226,7 +226,7 @@ rails-ai-bridge supports a skill registry — a collection of reusable AI skills
 
 The `rails_list_registry` tool returns all available skills. The `rails_resolve_skill` tool retrieves the full content of a named skill so Devin can apply it.
 
-Skills are configured via `config/rails_ai_bridge_registry.json` in your Rails application. A minimal registry file looks like:
+Skills are configured via `config/rails_ai_bridge/registry.json` in your Rails application. A minimal registry file looks like:
 
 ```json
 {
@@ -261,4 +261,4 @@ Devin will call `rails_list_registry`, review the options, and call `rails_resol
 | `.devin/rules/rails-mcp-tools.md` | `rails ai:bridge:devin` | Yes |
 | `AGENTS.md` | `rails ai:bridge:devin` | Yes |
 | `.devin/mcp.json` | Manual | Yes |
-| `config/rails_ai_bridge_registry.json` | Manual | Yes |
+| `config/rails_ai_bridge/registry.json` | Manual | Yes |
