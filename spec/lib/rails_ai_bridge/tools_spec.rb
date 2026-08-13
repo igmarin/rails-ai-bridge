@@ -37,7 +37,7 @@ RSpec.describe 'MCP Tool Integration' do
     end
 
     it 'builds with all tools registered' do
-      expect(server.tools.size).to eq(16)
+      expect(server.tools.size).to eq(17)
       expect(server.tools.keys).to contain_exactly(
         'rails_get_schema',
         'rails_get_routes',
@@ -54,7 +54,8 @@ RSpec.describe 'MCP Tool Integration' do
         'rails_list_registry',
         'rails_resolve_skill',
         'rails_use_skill',
-        'rails_use_agent'
+        'rails_use_agent',
+        'rails_list_context_providers'
       )
     end
 

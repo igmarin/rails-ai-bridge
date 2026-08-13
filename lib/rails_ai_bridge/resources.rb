@@ -16,6 +16,9 @@ module RailsAiBridge
     # URI pattern for matching stimulus controller URIs (rails://stimulus/{name})
     STIMULUS_URI_PATTERN = %r{\Arails://stimulus/(.+)\z}
 
+    # URI pattern for matching context provider URIs (rails://context-providers/{name})
+    CONTEXT_PROVIDER_URI_PATTERN = %r{\Arails://context-providers/(.+)\z}
+
     # Standard MIME type for all JSON resources
     JSON_MIME_TYPE = 'application/json'
 
@@ -125,7 +128,9 @@ module RailsAiBridge
       #
       # @return [Hash{String => Hash}] resource definitions keyed by URI
       def resource_definitions
-        STATIC_RESOURCES.merge(RailsAiBridge.configuration.additional_resources)
+        STATIC_RESOURCES
+          .merge(context_provider_resources)
+          .merge(RailsAiBridge.configuration.additional_resources)
       end
 
       # Builds the list of static +MCP::Resource+ objects for all registered URIs.
@@ -165,6 +170,12 @@ module RailsAiBridge
             uri_template: 'rails://stimulus/{name}',
             name: 'Stimulus Controller Details',
             description: 'Detailed information about a specific Stimulus controller',
+            mime_type: JSON_MIME_TYPE
+          ),
+          MCP::ResourceTemplate.new(
+            uri_template: 'rails://context-providers/{name}',
+            name: 'Context Provider Details',
+            description: 'Detailed information about a specific context provider declared in the registry manifest',
             mime_type: JSON_MIME_TYPE
           )
         ]
@@ -217,17 +228,20 @@ module RailsAiBridge
         definition = resource_definitions[uri]
         return nil unless definition
 
+        return read_context_provider(definition[:context_provider_name]) if definition[:context_provider_name]
+
         fetch_context_section(definition[:key])
       end
 
-      # Resolves templated resource URIs (models, views, stimulus).
+      # Resolves templated resource URIs (models, views, stimulus, context providers).
       # Tries each template pattern in order until one matches.
       # @param uri [String] templated resource URI
       # @return [Hash, nil] resource data or nil if no pattern matches
       def read_templated_resource(uri)
         read_model_resource(uri) ||
           read_view_template_resource(uri) ||
-          read_stimulus_template_resource(uri)
+          read_stimulus_template_resource(uri) ||
+          read_context_provider_resource(uri)
       end
 
       # Resolves model-specific resource URIs.
@@ -265,6 +279,18 @@ module RailsAiBridge
 
         name = CGI.unescape(match[1])
         read_stimulus_resource(name)
+      end
+
+      # Resolves context provider-specific resource URIs.
+      # Extracts provider name from URI and looks it up in the registry manifest.
+      # @param uri [String] context provider resource URI (rails://context-providers/{name})
+      # @return [Hash, nil] provider data or nil if no pattern matches
+      def read_context_provider_resource(uri)
+        match = uri.match(CONTEXT_PROVIDER_URI_PATTERN)
+        return nil unless match
+
+        name = CGI.unescape(match[1])
+        read_context_provider(name)
       end
 
       # Generates bridge metadata including version, configuration, and available resources.
@@ -308,6 +334,64 @@ module RailsAiBridge
         data = fetch_context_section(:stimulus)
         controllers = Array(data[:controllers])
         find_controller_by_name(controllers, name) || { error: STIMULUS_NOT_FOUND_ERROR % name }
+      end
+
+      # Builds dynamic MCP resource definitions for each context provider declared
+      # in the registry manifest. Each provider is exposed as a readable resource
+      # at +rails://context-providers/{name}+.
+      #
+      # @return [Hash{String => Hash}] resource definitions keyed by URI
+      def context_provider_resources
+        manifest = load_registry_manifest
+        return {} unless manifest
+
+        manifest.context_providers.each_with_object({}) do |(name, provider), resources|
+          uri = "rails://context-providers/#{name}"
+          resources[uri] = {
+            name: "Context Provider: #{name}",
+            description: "Context provider '#{name}' (#{provider.type}) declared in the registry manifest",
+            mime_type: JSON_MIME_TYPE,
+            context_provider_name: name
+          }
+        end
+      end
+
+      # Loads the registry manifest from the configured path, returning nil when
+      # no manifest is configured or the file is missing/unreadable.
+      #
+      # @return [Registry::RegistryManifest, nil]
+      def load_registry_manifest
+        path = RailsAiBridge.configuration.registry.registry_manifest_path
+        return nil unless path && File.exist?(path)
+
+        Registry::RegistryManifest.from_file(path)
+      rescue ArgumentError => error
+        Rails.logger&.error { "[rails-ai-bridge] Resource manifest load failed: #{error.message}" }
+        nil
+      end
+
+      # Fetches a single context provider by name from the registry manifest.
+      # @param name [String] provider name to find
+      # @return [Hash, nil] provider data or nil if not found
+      def read_context_provider(name)
+        manifest = load_registry_manifest
+        return nil unless manifest
+
+        provider = manifest.context_providers[name]
+        return nil unless provider
+
+        {
+          name: name,
+          type: provider.type,
+          endpoint: provider.endpoint,
+          optional: provider.optional?,
+          tools: provider.tools.map do |tool|
+            spec = { name: tool.name }
+            spec[:field] = tool.field if tool.mapped?
+            spec[:arguments] = tool.arguments if tool.arguments
+            spec
+          end
+        }
       end
 
       # Safely extracts a value from context with fallback.

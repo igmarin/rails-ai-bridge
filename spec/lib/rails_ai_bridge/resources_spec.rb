@@ -60,7 +60,7 @@ RSpec.describe RailsAiBridge::Resources do
       templates = described_class.build_templates
 
       expect(templates).to be_an(Array)
-      expect(templates.size).to eq(3)
+      expect(templates.size).to eq(4)
 
       model_template = templates.find { |t| t.uri_template == 'rails://models/{name}' }
       expect(model_template.name).to eq('Model Details')
