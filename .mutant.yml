@@ -1,0 +1,26 @@
+---
+# Mutant configuration for rails-ai-bridge critical paths.
+#
+# Run with: BUNDLE_GEMFILE=Gemfile-mutation bundle exec mutant run [subject expressions]
+# Example: BUNDLE_GEMFILE=Gemfile-mutation bundle exec mutant run RailsAiBridge::Registry::FrontmatterParser
+#
+# The open-source usage mode is used because rails-ai-bridge is an
+# open-source project. A commercial license is required for private
+# repositories or advanced features (full operator set, isolation).
+#
+# Target: >80% mutation coverage on registry/tools.
+#
+# Subject expressions are passed on the CLI to target critical paths:
+#   RailsAiBridge::Registry            — registry resolution
+#   RailsAiBridge::Tools               — MCP tools
+#   RailsAiBridge::Serializers         — output serializers
+usage: opensource
+integration: rspec
+includes:
+  - lib
+  - spec
+requires:
+  - spec_helper
+fail_fast: false
+mutation:
+  timeout: 5.0

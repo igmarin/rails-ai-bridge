@@ -1,0 +1,59 @@
+name: Mutation Testing
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mutation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+    env:
+      RAILS_VERSION: "8.1"
+      BUNDLE_GEMFILE: Gemfile-mutation
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Run mutation testing (advisory)
+        run: |
+          bundle exec mutant run --fail-fast \
+            RailsAiBridge::Registry::Resolver \
+            RailsAiBridge::Registry::FrontmatterParser \
+            RailsAiBridge::Registry::RegistryManifest \
+            RailsAiBridge::Registry::PackResolver \
+            RailsAiBridge::Registry::SkillSourceResolver \
+            RailsAiBridge::Tools::GetSchema \
+            RailsAiBridge::Tools::GetRoutes \
+            RailsAiBridge::Tools::GetModelDetails \
+            RailsAiBridge::Tools::ListRegistry \
+            RailsAiBridge::Serializers::Providers::CodexSerializer \
+            2>&1 | tee mutant_output.txt
+
+      - name: Report mutation score
+        if: always()
+        run: |
+          echo "## Mutation Testing Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -20 mutant_output.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Note:** This job is advisory (non-blocking) initially." >> $GITHUB_STEP_SUMMARY
+          echo "Target: >80% mutation coverage on registry/tools." >> $GITHUB_STEP_SUMMARY

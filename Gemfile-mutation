@@ -1,0 +1,12 @@
+# frozen_string_literal: true
+
+source 'https://rubygems.org'
+
+# Evaluate the main Gemfile but add mutant-rspec for mutation testing.
+# This Gemfile is used by the mutation workflow with:
+#   BUNDLE_GEMFILE=Gemfile-mutation bundle install
+#   BUNDLE_GEMFILE=Gemfile-mutation bundle exec mutant run ...
+
+eval_gemfile('Gemfile')
+
+gem 'mutant-rspec', '~> 0.16', require: false

@@ -19,3 +19,7 @@ group :development, :test do
   gem 'skunk', '~> 0.5'
   gem 'sqlite3', '~> 2.9'
 end
+
+# Mutation testing requires Ruby >= 3.3.
+# mutant-rspec is installed via the mutation workflow's Gemfile-mutation, not here,
+# to avoid breaking bundle resolution on Ruby 3.2 CI matrix.
