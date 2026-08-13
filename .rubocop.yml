@@ -57,6 +57,12 @@ RSpec/MultipleDescribes:
   Enabled: false
 RSpec/MessageSpies:
   Enabled: false
+RSpec/Output:
+  Exclude:
+    - "spec/support/perf_baseline.rb"
+Rails/RakeEnvironment:
+  Exclude:
+    - "lib/tasks/*.rake"
 Metrics/PerceivedComplexity:
   Max: 35
   Exclude:

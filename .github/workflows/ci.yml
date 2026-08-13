@@ -87,6 +87,16 @@ jobs:
       - name: Run perf specs
         run: bundle exec rspec --tag perf
 
+      - name: Compare against perf baseline
+        run: bundle exec rake perf:compare
+
+      - name: Upload perf baseline artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-baseline
+          path: spec/support/perf_baseline.json
+          retention-days: 30
+
   skunk:
     needs: [test]
     runs-on: ubuntu-latest

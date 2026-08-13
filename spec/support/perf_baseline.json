@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "description": "Performance regression baseline for rails-ai-bridge. Captured on Ruby 3.3 / Rails 8.1 in CI. Regressions exceeding 20% over these values fail the perf job.",
+  "metrics": {
+    "introspection_time_sec": 0.01,
+    "context_generation_time_sec": 0.005,
+    "mcp_tool_response_time_sec": 0.01
+  }
+}
