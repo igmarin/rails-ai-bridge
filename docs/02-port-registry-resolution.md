@@ -96,7 +96,7 @@ end
 ### 3. Configuration
 
 **Add to `lib/rails_ai_bridge/configuration.rb`:**
-- `registry_manifest_path` — Path to registry.json (default: `config/rails_ai_bridge_registry.json`)
+- `registry_manifest_path` — Path to registry.json (default: `config/rails_ai_bridge/registry.json`)
 - `skill_cache_dir` — Path to git cache directory (default: `~/.rails-ai-bridge/cache`)
 - `skill_packs` — Array of explicit pack names to load (optional)
 - `local_registry_paths` — Array of local registry directories (optional)

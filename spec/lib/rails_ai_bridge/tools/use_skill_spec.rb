@@ -22,7 +22,7 @@ RSpec.describe RailsAiBridge::Tools::UseSkill do
     end
 
     it 'includes the configured manifest path' do
-      expect(content).to include('config/rails_ai_bridge_registry.json')
+      expect(content).to include('config/rails_ai_bridge/registry.json')
     end
   end
 

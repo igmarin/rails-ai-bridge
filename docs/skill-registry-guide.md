@@ -18,7 +18,7 @@ A **skill pack** is a git repository containing:
 - **Markdown files** for each skill (e.g. `skills/code-review.md`)
 - Optional **deprecation redirects** when skills are renamed
 
-The skill registry in your Rails app is a **`config/rails_ai_bridge_registry.json`** manifest that tells rails-ai-bridge which packs to load, where to find them, and how to prioritize them when two packs define a skill with the same name.
+The skill registry in your Rails app is a **`config/rails_ai_bridge/registry.json`** manifest that tells rails-ai-bridge which packs to load, where to find them, and how to prioritize them when two packs define a skill with the same name.
 
 ---
 
@@ -26,7 +26,7 @@ The skill registry in your Rails app is a **`config/rails_ai_bridge_registry.jso
 
 ### Step 1 — Create the registry manifest
 
-Create `config/rails_ai_bridge_registry.json` in your Rails app:
+Create `config/rails_ai_bridge/registry.json` in your Rails app:
 
 ```json
 {
@@ -78,7 +78,7 @@ In `config/initializers/rails_ai_bridge.rb`:
 
 ```ruby
 RailsAiBridge.configure do |config|
-  config.registry.registry_manifest_path = "config/rails_ai_bridge_registry.json"
+  config.registry.registry_manifest_path = "config/rails_ai_bridge/registry.json"
 end
 ```
 
@@ -195,13 +195,13 @@ This protects against:
 rails ai:registry:lockfile
 ```
 
-The file is written to `config/rails_ai_bridge/directory.lock` by default. Commit it alongside your manifest.
+The file is written to `config/rails_ai_bridge/registry.lock` by default. Commit it alongside your manifest.
 
 ### Configuration
 
 ```ruby
 RailsAiBridge.configure do |config|
-  config.registry.lockfile_path = "config/rails_ai_bridge/directory.lock"
+  config.registry.lockfile_path = "config/rails_ai_bridge/registry.lock"
   config.registry.lockfile_verification = :strict  # :strict (default), :warn, or :disabled
 end
 ```
@@ -438,7 +438,7 @@ initializer changes take effect immediately.
 
 | Symptom | Likely cause | Fix |
 |---------|-------------|-----|
-| `rails ai:skills:list` shows "No registry manifest found" | Manifest file does not exist or path is wrong | Create `config/rails_ai_bridge_registry.json` or check `config.registry.registry_manifest_path` |
+| `rails ai:skills:list` shows "No registry manifest found" | Manifest file does not exist or path is wrong | Create `config/rails_ai_bridge/registry.json` or check `config.registry.registry_manifest_path` |
 | Git clone fails with "not found" | Pack source URL is wrong or repo is private | Check the `source` field; for private repos use a full SSH URL `git@github.com:org/repo.git` |
 | `Invalid source format` error mentioning `http://` | Pack source uses plain HTTP | Change `source` to `https://` or `git@` — plain HTTP is not accepted |
 | Pack loads but shows 0 skills | `directory.json` is missing or has wrong path | Check the root of the cloned pack for `directory.json`; set `tile:` field if the file is elsewhere |
@@ -446,7 +446,7 @@ initializer changes take effect immediately.
 | Stale skills after pack update | Resolver cache is warm or pull TTL has not elapsed | Run `rails ai:skills:clear_cache` to force a re-clone on the next build |
 | Pack is not re-fetched even after `resolver_ttl` expired | Pack was cloned recently — `git_pull_ttl` (24 h) is still fresh | Run `rails ai:skills:clear_cache` or set `git_pull_ttl: 0` temporarily |
 | `git checkout <ref>` failed | Invalid ref or detached HEAD issue | Verify the `ref` value matches a branch, tag, or SHA in the remote repo |
-| `Lockfile mismatch for pack '…'` | Resolved pack commit differs from `directory.lock` | Run `rails ai:registry:lockfile` to update the lockfile after reviewing the pack changes |
+| `Lockfile mismatch for pack '…'` | Resolved pack commit differs from `registry.lock` | Run `rails ai:registry:lockfile` to update the lockfile after reviewing the pack changes |
 | Git operation hangs / server request times out | Slow or unreachable remote | Reduce `git_timeout` to fail faster; check network connectivity to the remote |
 | Warning: "Pack '…' depends on '…' which is not in the active pack set" | A loaded pack has an unsatisfied `depends_on` entry | Add the missing pack name to `always_loaded` or `skill_packs` in your manifest, or enable `config.registry.auto_load_dependencies` |
 | Warning: "Circular dependency detected: …" | Two or more active packs depend on each other | Break the cycle in the manifests; packs still load, but the cycle usually indicates a mistake |
@@ -462,5 +462,5 @@ initializer changes take effect immediately.
 - **Timeout protection**: all git operations are bounded by `git_timeout` (default 30 s) so a slow remote cannot block the calling thread indefinitely.
 - **Cache key sanitization**: local cache directory names are derived from a sanitized source string plus a SHA256 hash suffix to prevent filesystem collisions.
 - **Stable local pack names**: local registry pack names use a SHA256 digest of the directory path, so reordering `local_registry_paths` cannot silently shift pack identities.
-- **Lockfile verification**: a `directory.lock` records the expected commit SHA for each remote pack. The resolver fails closed when the cloned commit does not match, preventing a compromised or unexpectedly modified pack from injecting instructions.
+- **Lockfile verification**: a `registry.lock` records the expected commit SHA for each remote pack. The resolver fails closed when the cloned commit does not match, preventing a compromised or unexpectedly modified pack from injecting instructions.
 - **Local path trust**: local paths are used directly without git operations. The path traversal guard in the Resolver still applies to file reads within a local pack.

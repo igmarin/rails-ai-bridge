@@ -36,8 +36,8 @@ RSpec.describe RailsAiBridge::Doctor do
       expect(names).to include('View MCP tool', 'Stimulus MCP tool', 'Bridge metadata')
     end
 
-    it 'runs 16 total checks' do
-      expect(result[:checks].size).to eq(16)
+    it 'runs 17 total checks' do
+      expect(result[:checks].size).to eq(17)
     end
 
     it 'checks MCP server buildability' do

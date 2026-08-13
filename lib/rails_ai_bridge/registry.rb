@@ -44,6 +44,11 @@ module RailsAiBridge
   # @see Registry::ResolvedSkill
   # @see Registry::SkillSummary
   module Registry
+    # Thread-local key for the request-scoped resolver.
+    #
+    # @api private
+    REQUEST_RESOLVER_KEY = :rails_ai_bridge_request_resolver
+
     # Module-level resolver cache (one per process, lazy-initialized on first use).
     #
     # @api private
@@ -68,11 +73,38 @@ module RailsAiBridge
       @resolver_cache_mutex.synchronize { @resolver_cache&.invalidate! }
     end
 
+    # Wraps a block in a request scope so that {build_resolver} is called at most
+    # once per request cycle. The first {build_resolver} call within the block
+    # stores the result in a thread-local; subsequent calls return the same
+    # resolver without touching the TTL cache. The thread-local is always cleared
+    # when the block exits, even on error.
+    #
+    # @yield block to execute within the request scope
+    # @return [Object] the block result
+    def self.with_request_resolver
+      previous = Thread.current[REQUEST_RESOLVER_KEY]
+      Thread.current[REQUEST_RESOLVER_KEY] = nil
+      yield
+    ensure
+      Thread.current[REQUEST_RESOLVER_KEY] = previous
+    end
+
+    # Clears the request-scoped resolver for the current thread, if any.
+    #
+    # @return [void]
+    def self.clear_request_resolver!
+      Thread.current[REQUEST_RESOLVER_KEY] = nil
+    end
+
     # Builds (or returns a cached) {Resolver} from the current {Config::Registry}.
     #
     # The first call for a given TTL window loads the manifest from disk, wires the
     # {SkillSourceResolver} and {PackResolver} pipeline, and caches the result.
     # Subsequent calls within the TTL window return the same resolver without I/O.
+    #
+    # When inside a {with_request_resolver} block, the first successful build is
+    # memoized for the remainder of the request so multiple tool calls in the same
+    # request cycle share a single resolver without risking a mid-request rebuild.
     #
     # Returns +nil+ when the registry manifest file does not exist, allowing callers
     # to surface a helpful setup message rather than raising. A nil result is never
@@ -81,8 +113,36 @@ module RailsAiBridge
     # @param config [RailsAiBridge::Config::Registry] registry configuration
     # @return [Resolver, nil] wired resolver, or nil if manifest file is missing
     def self.build_resolver(config = RailsAiBridge.configuration.registry)
-      resolver_cache.fetch(config) { build_resolver_uncached(config) }
+      return request_resolver if request_resolver?
+
+      resolver = resolver_cache.fetch(config) { build_resolver_uncached(config) }
+      store_request_resolver(resolver) if request_active?
+      resolver
     end
+
+    # @api private
+    def self.request_resolver?
+      !Thread.current[REQUEST_RESOLVER_KEY].nil?
+    end
+    private_class_method :request_resolver?
+
+    # @api private
+    def self.request_resolver
+      Thread.current[REQUEST_RESOLVER_KEY]
+    end
+    private_class_method :request_resolver
+
+    # @api private
+    def self.request_active?
+      Thread.current.key?(REQUEST_RESOLVER_KEY)
+    end
+    private_class_method :request_active?
+
+    # @api private
+    def self.store_request_resolver(resolver)
+      Thread.current[REQUEST_RESOLVER_KEY] = resolver if resolver
+    end
+    private_class_method :store_request_resolver
 
     # Writes a lockfile containing the current HEAD commit SHA for every pack in
     # the registry manifest.

@@ -11,8 +11,20 @@ module RailsAiBridge
     # @see RailsAiBridge::Registry::PackResolver
     # @see RailsAiBridge::Registry::Resolver
     class Registry
+      # Default path for the registry manifest (4.2.0+ standard location).
+      DEFAULT_REGISTRY_MANIFEST_PATH = 'config/rails_ai_bridge/registry.json'
+
+      # Legacy manifest path used before 4.2.0; kept for backward-compat fallback.
+      LEGACY_REGISTRY_MANIFEST_PATH = 'config/rails_ai_bridge_registry.json'
+
+      # Default path for the skill pack lockfile (4.2.0+ standard location).
+      DEFAULT_LOCKFILE_PATH = 'config/rails_ai_bridge/registry.lock'
+
+      # Legacy lockfile path used before 4.2.0; kept for backward-compat fallback.
+      LEGACY_LOCKFILE_PATH = 'config/rails_ai_bridge/directory.lock'
+
       # @return [String] path to the registry manifest JSON file
-      attr_accessor :registry_manifest_path
+      attr_writer :registry_manifest_path
 
       # @return [String] directory for caching git repositories
       attr_accessor :skill_cache_dir
@@ -36,7 +48,38 @@ module RailsAiBridge
       attr_reader :git_timeout
 
       # @return [String, nil] path to the skill pack lockfile. nil disables lockfile verification.
-      attr_accessor :lockfile_path
+      attr_writer :lockfile_path
+
+      # Returns the configured registry manifest path, applying a backward-compatibility
+      # fallback when the default path does not exist but the legacy path does.
+      #
+      # @return [String] resolved manifest path
+      def registry_manifest_path
+        return @registry_manifest_path unless @registry_manifest_path == DEFAULT_REGISTRY_MANIFEST_PATH
+
+        File.exist?(DEFAULT_REGISTRY_MANIFEST_PATH) ? DEFAULT_REGISTRY_MANIFEST_PATH : legacy_manifest_path
+      end
+
+      # Returns the configured lockfile path, applying a backward-compatibility
+      # fallback when the default path does not exist but the legacy path does.
+      # Returns +nil+ when lockfile verification is disabled.
+      #
+      # @return [String, nil] resolved lockfile path
+      def lockfile_path
+        return @lockfile_path unless @lockfile_path == DEFAULT_LOCKFILE_PATH
+
+        File.exist?(DEFAULT_LOCKFILE_PATH) ? DEFAULT_LOCKFILE_PATH : legacy_lockfile_path
+      end
+
+      # @api private
+      def legacy_manifest_path
+        File.exist?(LEGACY_REGISTRY_MANIFEST_PATH) ? LEGACY_REGISTRY_MANIFEST_PATH : DEFAULT_REGISTRY_MANIFEST_PATH
+      end
+
+      # @api private
+      def legacy_lockfile_path
+        File.exist?(LEGACY_LOCKFILE_PATH) ? LEGACY_LOCKFILE_PATH : DEFAULT_LOCKFILE_PATH
+      end
 
       # @return [Symbol] how to behave when the lockfile differs from the resolved pack:
       #   :strict (default) raises, :warn logs but proceeds, :disabled skips verification.
@@ -97,14 +140,14 @@ module RailsAiBridge
       end
 
       def initialize
-        @registry_manifest_path = 'config/rails_ai_bridge_registry.json'
+        @registry_manifest_path = DEFAULT_REGISTRY_MANIFEST_PATH
         @skill_cache_dir = File.expand_path('~/.rails-ai-bridge/cache')
         @skill_packs = nil
         @local_registry_paths = []
         @resolver_ttl = 1800
         @git_pull_ttl = 86_400
         @git_timeout = 30
-        @lockfile_path = 'config/rails_ai_bridge/directory.lock'
+        @lockfile_path = DEFAULT_LOCKFILE_PATH
         @lockfile_verification = :strict
         @auto_load_dependencies = false
       end

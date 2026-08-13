@@ -39,6 +39,8 @@ Layout/LineLength:
   Max: 180
 Metrics/ModuleLength:
   Max: 240
+  Exclude:
+    - "lib/rails_ai_bridge/resources.rb"
 Metrics/MethodLength:
   Max: 70
 RSpec/NestedGroups:

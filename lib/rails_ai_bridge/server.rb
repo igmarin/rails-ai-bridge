@@ -45,7 +45,8 @@ module RailsAiBridge
       Tools::ListRegistry,
       Tools::ResolveSkill,
       Tools::UseSkill,
-      Tools::UseAgent
+      Tools::UseAgent,
+      Tools::ListContextProviders
     ].freeze
 
     # Initialize a new MCP server instance.

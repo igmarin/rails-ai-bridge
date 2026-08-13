@@ -28,7 +28,7 @@ module RailsAiBridge
         To use skill registry tools, create a registry manifest file.
         See `#{SETUP_DOC_PATH}` for a step-by-step guide.
 
-        Quick start — add `config/rails_ai_bridge_registry.json` to your Rails app:
+        Quick start — add `config/rails_ai_bridge/registry.json` to your Rails app:
 
         ```json
         {
@@ -42,7 +42,7 @@ module RailsAiBridge
 
         ```ruby
         RailsAiBridge.configure do |config|
-          config.registry.registry_manifest_path = "config/rails_ai_bridge_registry.json"
+          config.registry.registry_manifest_path = "config/rails_ai_bridge/registry.json"
         end
         ```
 
@@ -56,7 +56,7 @@ module RailsAiBridge
                   'Use type=skills to list available skills, type=agents for workflows, ' \
                   'type=packs to see loaded packs with version and priority. ' \
                   'Optional pack: filter narrows skills/agents to one pack. ' \
-                  'Requires config/rails_ai_bridge_registry.json — see docs/skill-registry-guide.md.'
+                  'Requires config/rails_ai_bridge/registry.json — see docs/skill-registry-guide.md.'
 
       input_schema(
         properties: {

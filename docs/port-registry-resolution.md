@@ -119,7 +119,7 @@ necessary for the future skill compiler feature.
 
 **Files:**
 - `lib/rails_ai_bridge/config/registry.rb` — `Config::Registry` sub-object
-  - `registry_manifest_path` (default: `config/rails_ai_bridge_registry.json`)
+  - `registry_manifest_path` (default: `config/rails_ai_bridge/registry.json`)
   - `skill_cache_dir` (default: `~/.rails-ai-bridge/cache`)
   - `skill_packs` (default: `nil` — triggers auto-detection)
   - `local_registry_paths` (default: `[]`)

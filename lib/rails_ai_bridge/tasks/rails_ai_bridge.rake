@@ -299,7 +299,7 @@ end
 
 namespace :ai do
   namespace :registry do
-    desc 'Generate or update the skill pack lockfile (config/rails_ai_bridge/directory.lock)'
+    desc 'Generate or update the skill pack lockfile (config/rails_ai_bridge/registry.lock)'
     task lockfile: :environment do
       require 'rails_ai_bridge'
 

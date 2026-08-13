@@ -29,7 +29,7 @@ RSpec.describe RailsAiBridge::Tools::ListRegistry do
     end
 
     it 'mentions the default manifest path' do
-      expect(content).to include('config/rails_ai_bridge_registry.json')
+      expect(content).to include('config/rails_ai_bridge/registry.json')
     end
 
     it 'includes a quick-start JSON snippet' do
