@@ -31,6 +31,7 @@ jobs:
 
     env:
       RAILS_VERSION: ${{ matrix.rails }}
+      BUNDLE_WITHOUT: mutation
 
     steps:
       - uses: actions/checkout@v7
@@ -52,6 +53,8 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
+    env:
+      BUNDLE_WITHOUT: mutation
     steps:
       - uses: actions/checkout@v7
         with:
@@ -73,6 +76,7 @@ jobs:
     env:
       RAILS_VERSION: "8.1"
       PERF: "true"
+      BUNDLE_WITHOUT: mutation
     steps:
       - uses: actions/checkout@v7
         with:
@@ -102,6 +106,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RAILS_VERSION: "8.1"
+      BUNDLE_WITHOUT: mutation
     steps:
       - uses: actions/checkout@v7
         with:
@@ -126,6 +131,8 @@ jobs:
 
   audit:
     runs-on: ubuntu-latest
+    env:
+      BUNDLE_WITHOUT: mutation
     steps:
       - uses: actions/checkout@v7
         with:
