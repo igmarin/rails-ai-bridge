@@ -32,6 +32,7 @@ module RailsAiBridge
       def initialize(tool_class)
         super
         @tool_class = tool_class
+        @server_context_param = detect_server_context_param(tool_class)
       end
 
       # @param server_context [Object, nil]
@@ -39,8 +40,34 @@ module RailsAiBridge
       # @return [MCP::Tool::Response]
       def call(server_context: nil, **arguments)
         Instrumentation.instrument('tool.call', tool_name: @tool_class.tool_name, arguments: arguments) do
-          @tool_class.call(server_context: server_context, **arguments)
+          invoke_tool(arguments, server_context)
         end
+      end
+
+      private
+
+      def invoke_tool(arguments, server_context)
+        case @server_context_param
+        when :server_context
+          @tool_class.call(**arguments, server_context: server_context)
+        when :_server_context
+          @tool_class.call(**arguments, _server_context: server_context)
+        else
+          @tool_class.call(**arguments)
+        end
+      end
+
+      def detect_server_context_param(tool_class)
+        method_object = tool_class.method(:call)
+        parameters = method_object.parameters
+        keyish = %i[key keyreq].freeze
+        return :server_context if parameters.any? { |type, name| name == :server_context && keyish.include?(type) }
+        return :_server_context if parameters.any? { |type, name| name == :_server_context && keyish.include?(type) }
+        return :server_context if parameters.any? { |type, _| type == :keyrest }
+
+        nil
+      rescue NameError
+        nil
       end
     end
   end
