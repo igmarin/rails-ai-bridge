@@ -87,6 +87,33 @@ jobs:
       - name: Run perf specs
         run: bundle exec rspec --tag perf
 
+  skunk:
+    needs: [test]
+    runs-on: ubuntu-latest
+    env:
+      RAILS_VERSION: "8.1"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Run Skunk and enforce score threshold
+        run: |
+          set -o pipefail
+          bundle exec skunk lib/ | tee skunk_output.txt
+          score=$(grep 'SkunkScore Average:' skunk_output.txt | grep -oE '[0-9]+(\.[0-9]+)?' | tail -1)
+          echo "Skunk score average: ${score}"
+          awk -v s="$score" 'BEGIN { exit !(s > 30) }' && {
+            echo "::error::Skunk score ${score} exceeds threshold of 30"
+            exit 1
+          } || echo "Skunk score ${score} within threshold (<=30)"
+
   audit:
     runs-on: ubuntu-latest
     steps:
