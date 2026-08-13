@@ -52,7 +52,6 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
-    env:
     steps:
       - uses: actions/checkout@v7
         with:
@@ -127,7 +126,6 @@ jobs:
 
   audit:
     runs-on: ubuntu-latest
-    env:
     steps:
       - uses: actions/checkout@v7
         with:
