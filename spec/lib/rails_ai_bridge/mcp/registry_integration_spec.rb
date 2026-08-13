@@ -76,7 +76,7 @@ RSpec.describe 'Registry tools integration in MCP server' do
         text = response_text('rails_list_registry', type: 'skills')
 
         expect(text).to include('registry manifest')
-        expect(text).to include('config/rails_ai_bridge_registry.json')
+        expect(text).to include('config/rails_ai_bridge/registry.json')
       end
     end
 

@@ -40,7 +40,9 @@ module RailsAiBridge
       # @return [MCP::Tool::Response]
       def call(server_context: nil, **arguments)
         Instrumentation.instrument('tool.call', tool_name: @tool_class.tool_name, arguments: arguments) do
-          invoke_tool(arguments, server_context)
+          Registry.with_request_resolver do
+            invoke_tool(arguments, server_context)
+          end
         end
       end
 

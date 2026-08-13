@@ -172,4 +172,99 @@ RSpec.describe RailsAiBridge::Registry do
       end
     end
   end
+
+  describe '.with_request_resolver' do
+    let(:config) { RailsAiBridge::Config::Registry.new }
+
+    before do
+      described_class.invalidate_resolver_cache!
+      described_class.clear_request_resolver!
+    end
+
+    after do
+      described_class.invalidate_resolver_cache!
+      described_class.clear_request_resolver!
+    end
+
+    it 'memoizes the resolver across multiple build_resolver calls within the block' do
+      calls = 0
+      allow(described_class).to receive(:build_resolver_uncached).and_wrap_original do |original, cfg|
+        calls += 1
+        original.call(cfg)
+      end
+
+      Dir.mktmpdir do |dir|
+        manifest_path = File.join(dir, 'registry.json')
+        File.write(manifest_path, JSON.generate(version: '1.0.0', packs: {}, default_stack: []))
+        config.registry_manifest_path = manifest_path
+        config.skill_packs = nil
+        config.local_registry_paths = []
+        allow(RailsAiBridge::Registry::PackDetector).to receive(:detect).and_return([])
+
+        described_class.invalidate_resolver_cache!
+
+        described_class.with_request_resolver do
+          first = described_class.build_resolver(config)
+          second = described_class.build_resolver(config)
+
+          expect(first).to equal(second)
+          expect(calls).to eq(1)
+        end
+      end
+    end
+
+    it 'clears the request-scoped resolver after the block exits' do
+      Dir.mktmpdir do |dir|
+        manifest_path = File.join(dir, 'registry.json')
+        File.write(manifest_path, JSON.generate(version: '1.0.0', packs: {}, default_stack: []))
+        config.registry_manifest_path = manifest_path
+        config.skill_packs = nil
+        config.local_registry_paths = []
+        allow(RailsAiBridge::Registry::PackDetector).to receive(:detect).and_return([])
+
+        described_class.invalidate_resolver_cache!
+
+        described_class.with_request_resolver do
+          described_class.build_resolver(config)
+        end
+
+        expect(described_class.send(:request_resolver?)).to be(false)
+      end
+    end
+
+    it 'clears the request-scoped resolver even when the block raises' do
+      Dir.mktmpdir do |dir|
+        manifest_path = File.join(dir, 'registry.json')
+        File.write(manifest_path, JSON.generate(version: '1.0.0', packs: {}, default_stack: []))
+        config.registry_manifest_path = manifest_path
+        config.skill_packs = nil
+        config.local_registry_paths = []
+        allow(RailsAiBridge::Registry::PackDetector).to receive(:detect).and_return([])
+
+        described_class.invalidate_resolver_cache!
+
+        expect do
+          described_class.with_request_resolver do
+            described_class.build_resolver(config)
+            raise 'boom'
+          end
+        end.to raise_error('boom')
+
+        expect(described_class.send(:request_resolver?)).to be(false)
+      end
+    end
+
+    it 'does not memoize nil results (manifest missing)' do
+      config.registry_manifest_path = '/nonexistent/path/registry.json'
+
+      described_class.with_request_resolver do
+        first = described_class.build_resolver(config)
+        second = described_class.build_resolver(config)
+
+        expect(first).to be_nil
+        expect(second).to be_nil
+        expect(described_class.send(:request_resolver?)).to be(false)
+      end
+    end
+  end
 end
