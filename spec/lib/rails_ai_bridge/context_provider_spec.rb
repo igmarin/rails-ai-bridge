@@ -93,4 +93,32 @@ RSpec.describe RailsAiBridge::ContextProvider do
       expect(second).to eq(schema_context[:schema])
     end
   end
+
+  describe 'fork safety' do
+    it 'uses a stable cache key that does not depend on object_id' do
+      app1 = double('App1', class: double(name: 'Rails::Application'))
+      app2 = double('App2', class: double(name: 'Rails::Application'))
+      allow(RailsAiBridge).to receive(:introspect).and_return(context)
+      allow(RailsAiBridge::Fingerprinter).to receive(:snapshot).and_return(fingerprint)
+      allow(RailsAiBridge::Fingerprinter::CachedSnapshot).to receive(:fetch).and_return(fingerprint)
+
+      described_class.fetch(app1)
+
+      # A new app object with the same class name and env should hit the same cache key
+      result = described_class.fetch(app2)
+
+      expect(result).to eq(context)
+      # introspect should only be called once because both apps share the cache key
+      expect(RailsAiBridge).to have_received(:introspect).once
+    end
+
+    it 'cache key includes class name and Rails env' do
+      app_double = double('App', class: double(name: 'MyApp::Application'))
+
+      key = described_class.send(:cache_key, app_double)
+
+      expect(key).to include('MyApp::Application')
+      expect(key).to include(Rails.env.to_s)
+    end
+  end
 end
