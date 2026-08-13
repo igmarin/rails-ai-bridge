@@ -7,10 +7,18 @@ module RailsAiBridge
     class TestIntrospector
       attr_reader :app
 
+      # @param app [Rails::Application] the Rails application to introspect
       def initialize(app)
         @app = app
       end
 
+      # Discovers test infrastructure: framework (rspec/minitest), factories,
+      # fixtures, system tests, helpers, VCR cassettes, CI config, and coverage.
+      #
+      # @return [Hash] with +:framework+, +:factories+, +:fixtures+,
+      #   +:system_tests+, +:test_helpers+, +:vcr_cassettes+, +:ci_config+,
+      #   and +:coverage+ on success; +{ error: String }+ on any rescued
+      #   +StandardError+
       def call
         {
           framework: detect_framework,

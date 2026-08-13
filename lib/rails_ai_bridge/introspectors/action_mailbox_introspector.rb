@@ -6,10 +6,16 @@ module RailsAiBridge
     class ActionMailboxIntrospector
       attr_reader :app
 
+      # @param app [Rails::Application] the Rails application to introspect
       def initialize(app)
         @app = app
       end
 
+      # Discovers Action Mailbox setup: whether ActionMailbox is loaded and
+      # all mailbox classes with their routing patterns.
+      #
+      # @return [Hash] with +:installed+ (Boolean) and +:mailboxes+ (Array)
+      #   on success; +{ error: String }+ on any rescued +StandardError+
       def call
         {
           installed: defined?(ActionMailbox) ? true : false,

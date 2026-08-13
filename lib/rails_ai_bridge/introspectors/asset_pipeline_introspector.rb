@@ -7,10 +7,17 @@ module RailsAiBridge
     class AssetPipelineIntrospector
       attr_reader :app
 
+      # @param app [Rails::Application] the Rails application to introspect
       def initialize(app)
         @app = app
       end
 
+      # Discovers asset pipeline configuration: Propshaft/Sprockets, importmap
+      # pins, CSS framework, JS bundler, and manifest files.
+      #
+      # @return [Hash] with +:pipeline+, +:importmap_pins+, +:css_framework+,
+      #   +:js_bundler+, and +:manifest_files+ on success;
+      #   +{ error: String }+ on any rescued +StandardError+
       def call
         {
           pipeline: detect_pipeline,

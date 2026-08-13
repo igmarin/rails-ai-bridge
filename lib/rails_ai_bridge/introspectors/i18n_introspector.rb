@@ -8,10 +8,17 @@ module RailsAiBridge
     class I18nIntrospector
       attr_reader :app
 
+      # @param app [Rails::Application] the Rails application to introspect
       def initialize(app)
         @app = app
       end
 
+      # Discovers internationalization setup: default and available locales,
+      # backend class, locale file listing with key counts.
+      #
+      # @return [Hash] with +:default_locale+, +:available_locales+, +:backend+,
+      #   +:locale_files+, and +:total_locale_files+ on success;
+      #   +{ error: String }+ on any rescued +StandardError+
       def call
         {
           default_locale: I18n.default_locale.to_s,

@@ -6,10 +6,17 @@ module RailsAiBridge
     class RakeTaskIntrospector
       attr_reader :app
 
+      # @param app [Rails::Application] the Rails application to introspect
       def initialize(app)
         @app = app
       end
 
+      # Discovers custom rake tasks from +lib/tasks/+, parsing task names,
+      # descriptions, and namespace hierarchy from +.rake+ files.
+      #
+      # @return [Hash] with +:tasks+ (Array of task hashes with +:name+,
+      #   +:description+, +:file+) on success; +{ error: String }+ on any
+      #   rescued +StandardError+
       def call
         tasks_dir = File.join(app.root.to_s, 'lib/tasks')
         return { tasks: [] } unless Dir.exist?(tasks_dir)
