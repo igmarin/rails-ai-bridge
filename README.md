@@ -159,7 +159,7 @@ Optional: `gem install rails-ai-bridge` installs the gem into your Ruby environm
 | Zero config | Yes — Railtie + install generator | No — per-project `projects.yml` | No |
 | Token optimization | Yes — compact files + `detail:"summary"` workflow | Varies | No |
 | Codex-oriented repo files | Yes — `AGENTS.md`, `.codex/README.md` | No | DIY |
-| Live MCP tools | Yes — 13 read-only `rails_*` tools (extensible) | Yes | No |
+| Live MCP tools | Yes — 16 read-only `rails_*` tools (extensible) | Yes | No |
 | Auto-introspection | Yes — up to **27** domains (`:full`) | No — server points at projects you configure | DIY |
 
 *Comparison reflects typical documented setups; verify against each project before treating any row as absolute.*
