@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.0] - 2026-08-13
+
+### Added
+
+- **`rails_list_context_providers` MCP tool and dynamic resources** (#147) — new tool reads the registry manifest's `context_providers` section and returns formatted markdown with provider name, type, endpoint, optional flag, and tool specs. Context providers are also registered as dynamic MCP resources (URI template `rails://context-providers/{name}`), bringing the tool count from 16 to 17.
+- **Registry health checker for Doctor** (#145) — new `Doctor::Checkers::RegistryChecker` validates manifest existence, JSON parsing, `RegistryManifest.validate!`, resolver construction, and lockfile presence (when configured). Returns pass/warn/fail with actionable fix hints. Doctor check count: 17.
+- **Request-level resolver memoization** (#159) — `Registry.with_request_resolver` wraps each tool invocation in a thread-local request scope so `build_resolver` is called once per request instead of once per tool. Nil results are never memoized; thread-local storage is always cleaned up (even on error).
+- **Dependabot configuration** (#153) — `.github/dependabot.yml` with grouped updates for bundler, github-actions, and gomod ecosystems, plus automatic PR labeling.
+- **Rails 8.1 in release workflow matrix** (#164) — `.github/workflows/release.yml` now includes Rails 8.1 alongside 7.1, 7.2, and 8.0.
+- **Skunk score threshold CI job** (#157) — advisory CI job runs `skunk lib/` after tests generate coverage data, fails if the SkunkScore average exceeds 30. Threshold to be ratcheted down over time.
+- **Performance regression baseline** (#160) — `spec/support/perf_baseline.json` with three metrics (introspection, context generation, MCP tool response). `rake perf:compare` fails on >20% regression. CI uploads the baseline as a 30-day artifact.
+- **Mutation testing for critical paths** (#163) — `mutant-rspec` via separate `Gemfile-mutation` (eval'd from the main Gemfile) to avoid breaking Ruby 3.2 CI resolution. Advisory CI job targets `Registry::Resolver`, `FrontmatterParser`, `RegistryManifest`, `PackResolver`, `SkillSourceResolver`, and key tools/serializers. Initial coverage: 94.39% on `FrontmatterParser`.
+- **YARD documentation for 9 uncovered files** (#156) — `@param`/`@return` tags added to `search_code.rb`, all 6 introspectors, `json_serializer.rb`, and `usage_formatter.rb`. `yard stats` now 100% for `lib/`.
+- **Dedicated `UsageFormatter` spec** (#151) — comprehensive spec coverage for `Tools::UsageFormatter` formatting logic.
+- **Registry server specs and integration tests** (#149, #150) — `server_spec.rb` extended with registry tool assertions; new `mcp/registry_integration_spec.rb` covers `rails_list_registry`, `rails_resolve_skill`, and `rails_use_skill` end-to-end through the MCP server.
+- **Documentation parity guard spec** — `spec/lib/rails_ai_bridge/doc_parity_spec.rb` fails when README/AGENTS/CLAUDE tool or introspector counts drift from the actual constants.
+
+### Changed
+
+- **Standardized registry manifest and lockfile paths** (#155) — defaults changed from `config/rails_ai_bridge_registry.json` / `config/rails_ai_bridge_registry.lock` to `config/rails_ai_bridge/registry.json` / `config/rails_ai_bridge/registry.lock`. Backward-compat fallback: when the new path doesn't exist but the legacy path does, the getter returns the legacy path. Custom user paths are never overridden.
+- **Documentation humanization and Windsurf purge** (#144, #148) — README, AGENTS.md, CLAUDE.md, CONTRIBUTING.md, and SECURITY.md updated: tool count 16→17, introspector count 26→27, serializer list humanized (alphabetical with Claude/Codex/Gemini), bogus `.Codex/rules/` path fixed to `.codex/`, Windsurf support claims removed (no serializer will be implemented), Mermaid diagrams added to docs.
+
+### Fixed
+
+- **`Instrumentation::InstrumentedTool` server_context parameter translation** — tools without caching received `server_context:` but expected `_server_context:`, causing `ArgumentError` when caching was disabled. `InstrumentedTool` now detects the tool's parameter name and translates accordingly.
+- **`ContextProvider` cache key fork safety** (#162) — replaced `object_id`-based cache key with a stable digest, preventing stale cache hits after `Process.fork`.
+
 ## [4.1.0] - 2026-08-11
 
 ### Added
