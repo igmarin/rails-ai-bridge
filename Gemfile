@@ -20,7 +20,6 @@ group :development, :test do
   gem 'sqlite3', '~> 2.9'
 end
 
-# Mutation testing requires Ruby >= 3.3; install with `bundle install --with mutation`
-group :mutation do
-  gem 'mutant-rspec', '~> 0.16', require: false
-end
+# Mutation testing requires Ruby >= 3.3.
+# mutant-rspec is installed via the mutation workflow's Gemfile-mutation, not here,
+# to avoid breaking bundle resolution on Ruby 3.2 CI matrix.

@@ -1,8 +1,8 @@
 ---
 # Mutant configuration for rails-ai-bridge critical paths.
 #
-# Run with: bundle exec mutant run [subject expressions]
-# Example: bundle exec mutant run RailsAiBridge::Registry::FrontmatterParser
+# Run with: BUNDLE_GEMFILE=Gemfile-mutation bundle exec mutant run [subject expressions]
+# Example: BUNDLE_GEMFILE=Gemfile-mutation bundle exec mutant run RailsAiBridge::Registry::FrontmatterParser
 #
 # The open-source usage mode is used because rails-ai-bridge is an
 # open-source project. A commercial license is required for private

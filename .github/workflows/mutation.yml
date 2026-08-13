@@ -19,6 +19,7 @@ jobs:
     continue-on-error: true
     env:
       RAILS_VERSION: "8.1"
+      BUNDLE_GEMFILE: Gemfile-mutation
     steps:
       - uses: actions/checkout@v7
         with:
