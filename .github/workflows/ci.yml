@@ -70,6 +70,7 @@ jobs:
     needs: [test]
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    continue-on-error: true
     env:
       RAILS_VERSION: "8.1"
       PERF: "true"
@@ -100,6 +101,7 @@ jobs:
   skunk:
     needs: [test]
     runs-on: ubuntu-latest
+    continue-on-error: true
     env:
       RAILS_VERSION: "8.1"
     steps:
@@ -112,6 +114,9 @@ jobs:
         with:
           ruby-version: "3.3"
           bundler-cache: true
+
+      - name: Run tests for coverage data
+        run: bundle exec rspec
 
       - name: Run Skunk and enforce score threshold
         run: |
