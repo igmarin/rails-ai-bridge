@@ -4,10 +4,10 @@
 
 | Version | Supported          |
 |---------|--------------------|
-| 3.6.x   | :white_check_mark: |
-| 3.5.x   | :white_check_mark: |
-| 3.0.x–3.4.x | :white_check_mark: (security fixes best-effort) |
-| 2.x     | :x: (end of life — upgrade to 3.x) |
+| 4.x     | :white_check_mark: |
+| 3.6.x   | :white_check_mark: (security fixes best-effort) |
+| 3.0.x–3.5.x | :warning: (best-effort) |
+| 2.x     | :x: (end of life — upgrade to 4.x) |
 | 1.x     | :x: |
 | < 1.0   | :x: |
 
