@@ -4,7 +4,23 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "patch"
+          - "minor"
+    labels:
+      - "deps"
+      - "improvement"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      actions:
+        update-types:
+          - "patch"
+          - "minor"
+    labels:
+      - "deps"
+      - "improvement"
