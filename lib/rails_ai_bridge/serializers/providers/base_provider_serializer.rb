@@ -3,7 +3,7 @@
 module RailsAiBridge
   module Serializers
     module Providers
-      # Base class for AI assistant provider serializers (Claude, Copilot, Gemini, Codex, Cursor, Windsurf).
+      # Base class for AI assistant provider serializers (Claude, Copilot, Gemini, Codex, Cursor).
       # Shared compact-mode sections: header, stack, models, gems, architecture, MCP guide, commands, footer.
       class BaseProviderSerializer
         # Maximum number of key models to display in compact mode
