@@ -54,6 +54,26 @@ Uses combustion gem for testing Rails engine behavior in isolation.
 - `generate_context` returns `{ written: [], skipped: [] }` hash
 - Zeitwerk autoloads all files — no `require_relative` needed for new classes
 
+## Multi-Issue Workflow
+
+When working on a milestone with 3+ issues:
+
+- **Group** issues by independence — parallel work streams get one git worktree each
+- **Stack** dependent PRs within a group using `gh stack` (each PR's base is the previous branch)
+- **Merge** bottom-up: the first PR in a stack merges to `main`, then `gh stack rebase` restacks the rest
+- **Clean up** worktrees after all PRs in a group are merged
+
+```bash
+# One worktree per independent group
+git worktree add ../project-worktrees/group-a -b group-a-branch
+
+# Stack dependent PRs within a group
+gh stack create "feat: description (#issue)"
+
+# Restack after bottom PR merges
+gh stack rebase
+```
+
 <!-- lean-ctx -->
 ## lean-ctx
 
