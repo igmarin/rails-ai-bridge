@@ -33,6 +33,15 @@ module RailsAiBridge
 
       annotations(read_only_hint: true, destructive_hint: false, idempotent_hint: true, open_world_hint: false)
 
+      # Searches the Rails codebase for a pattern using ripgrep or a Ruby fallback.
+      #
+      # @param pattern [String] search pattern (regex supported)
+      # @param path [String, nil] subdirectory to search in (defaults to app root)
+      # @param file_type [String, nil] filter by allowed file extension
+      # @param max_results [Integer] maximum number of results (capped at MAX_RESULTS_CAP)
+      #
+      # @return [MCP::Tool::Response] search results formatted as text, or an
+      #   error response if validation fails
       def self.call(pattern:, path: nil, file_type: nil, max_results: 30)
         root = Rails.root.to_s
         validator = Validator.new(pattern, file_type, root, path)
@@ -49,6 +58,10 @@ module RailsAiBridge
         text_response(Formatter.new.call(results, pattern, path))
       end
 
+      # Returns the full set of allowed file type extensions for search filtering.
+      # Merges {DEFAULT_ALLOWED_FILE_TYPES} with configured extras.
+      #
+      # @return [Array<String>] lowercase extension strings without leading dots
       def self.allowed_search_file_types
         extras = RailsAiBridge.configuration.search_code_allowed_file_types.map do |x|
           x.to_s.downcase.strip.delete_prefix('.').gsub(/[^a-z0-9]/, '')
@@ -57,11 +70,20 @@ module RailsAiBridge
         (DEFAULT_ALLOWED_FILE_TYPES + extras).uniq
       end
 
+      # Normalizes the max_results parameter, capping at MAX_RESULTS_CAP and
+      # defaulting to 30 for invalid values.
+      #
+      # @param max_results [Integer, nil] requested result limit
+      # @return [Integer] normalized result limit (1..MAX_RESULTS_CAP)
       def self.normalize_max_results(max_results)
         normalized = [max_results.to_i, MAX_RESULTS_CAP].min
         normalized < 1 ? 30 : normalized
       end
 
+      # Selects and runs the appropriate search engine (ripgrep or Ruby fallback).
+      #
+      # @param search_params [Hash] validated search parameters
+      # @return [Array<Hash>] search results with +:file+, +:line_number+, +:content+
       def self.search_engine(search_params)
         if ripgrep_available?
           RipgrepSearch.new(search_params).call
@@ -70,6 +92,10 @@ module RailsAiBridge
         end
       end
 
+      # Checks whether ripgrep (+rg+) is available on the system.
+      # Result is memoized for the process lifetime.
+      #
+      # @return [Boolean] true if ripgrep is installed and callable
       def self.ripgrep_available?
         return @ripgrep_available if instance_variable_defined?(:@ripgrep_available)
 
@@ -78,6 +104,11 @@ module RailsAiBridge
         @ripgrep_available = false
       end
 
+      # Executes the search block with an optional wall-clock timeout.
+      # When +search_code_timeout_seconds+ is 0 or negative, no timeout is applied.
+      #
+      # @yield block to execute with timeout protection
+      # @return [Object] the block's result, or a timeout error array on timeout
       def self.with_search_timeout(&)
         sec = RailsAiBridge.configuration.search_code_timeout_seconds.to_f
         return yield if sec <= 0

@@ -7,10 +7,18 @@ module RailsAiBridge
     class DatabaseStatsIntrospector
       attr_reader :app
 
+      # @param app [Rails::Application] the Rails application to introspect
       def initialize(app)
         @app = app
       end
 
+      # Collects approximate row counts from PostgreSQL's pg_stat_user_tables.
+      # Returns +{ skipped: true }+ for non-PostgreSQL adapters or when
+      # ActiveRecord is unavailable.
+      #
+      # @return [Hash] with +:adapter+, +:tables+, and +:total_tables+ on
+      #   success; +{ skipped: true, reason: String }+ when not applicable;
+      #   +{ error: String }+ on any rescued +StandardError+
       def call
         return { skipped: true, reason: 'ActiveRecord not available' } unless defined?(ActiveRecord::Base)
 

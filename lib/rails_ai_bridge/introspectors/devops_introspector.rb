@@ -7,10 +7,17 @@ module RailsAiBridge
     class DevOpsIntrospector
       attr_reader :app
 
+      # @param app [Rails::Application] the Rails application to introspect
       def initialize(app)
         @app = app
       end
 
+      # Discovers DevOps configuration: Puma config, Procfile entries, health
+      # check routes, Docker setup, and deployment tooling.
+      #
+      # @return [Hash] with +:puma+, +:procfile+, +:health_check+, +:docker+,
+      #   and +:deployment+ on success; +{ error: String }+ on any rescued
+      #   +StandardError+
       def call
         {
           puma: extract_puma_config,
