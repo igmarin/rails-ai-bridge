@@ -83,7 +83,7 @@ This creates two complementary layers:
 | Static files | Give the assistant passive project orientation at session start | Fewer cold starts and fewer generic assumptions |
 | MCP tools | Return exact live details when requested | Less context bloat and fewer schema/route hallucinations |
 
-Compact files are ordered for usefulness: primary domain models, busy endpoints, recently migrated tables, and optional hot-table signals appear before lower-signal supporting details.
+Compact files are ordered for usefulness: primary domain models, busy endpoints, recently migrated tables, and optional hot-table hints appear before less important details.
 
 ## Safety model
 
@@ -307,7 +307,7 @@ A safety net (`max_tool_response_chars`, default 120K) truncates oversized respo
 
 Early project-level trials suggest the biggest improvement is not always dramatic token reduction by itself. In several runs, `rails-ai-bridge` led to faster, more focused responses even when total token usage only dropped modestly.
 
-This is expected: compact assistant-specific files and the summary-first MCP workflow reduce orientation overhead, help the model navigate the codebase earlier, and improve the quality of the initial context.
+This makes sense: compact assistant-specific files and the summary-first MCP workflow help the model find relevant code faster and start with better context.
 
 Observed benefits so far:
 - Less exploratory reading before the assistant reaches the relevant files

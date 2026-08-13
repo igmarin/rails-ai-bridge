@@ -15,8 +15,8 @@ structure to AI assistants via the Model Context Protocol (MCP).
 - `lib/rails_ai_bridge/tools/` — 16 built-in MCP tools using the official mcp SDK
   (hosts can add more via `additional_tools`)
 - `lib/rails_ai_bridge/serializers/` — Output formatters (claude, claude_rules,
-  cursor_rules, devin, devin_rules, copilot, copilot_instructions, rules,
-  markdown, JSON)
+  codex, cursor_rules, devin, devin_rules, copilot, copilot_instructions,
+  gemini, rules, markdown, JSON)
 - `lib/rails_ai_bridge/resources.rb` — MCP resources (static data AI clients read directly)
 - `lib/rails_ai_bridge/server.rb` — MCP server configuration (stdio + HTTP transports)
 - `lib/rails_ai_bridge/middleware.rb` — Rack middleware for auto-mounting MCP HTTP endpoint

@@ -33,9 +33,9 @@ RSpec.describe 'documentation parity with source constants' do
       expected_count = 27
 
       expect(actual_count).to eq(expected_count),
-                               "RailsAiBridge::Configuration::PRESETS[:full] has " \
-                               "#{actual_count} introspectors, expected #{expected_count}. " \
-                               'Update the docs if the preset changed.'
+                              'RailsAiBridge::Configuration::PRESETS[:full] has ' \
+                              "#{actual_count} introspectors, expected #{expected_count}. " \
+                              'Update the docs if the preset changed.'
     end
   end
 
@@ -45,9 +45,9 @@ RSpec.describe 'documentation parity with source constants' do
       expected_count = 9
 
       expect(actual_count).to eq(expected_count),
-                               "RailsAiBridge::Configuration::PRESETS[:standard] has " \
-                               "#{actual_count} introspectors, expected #{expected_count}. " \
-                               'Update the docs if the preset changed.'
+                              'RailsAiBridge::Configuration::PRESETS[:standard] has ' \
+                              "#{actual_count} introspectors, expected #{expected_count}. " \
+                              'Update the docs if the preset changed.'
     end
   end
 end

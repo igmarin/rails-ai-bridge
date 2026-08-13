@@ -25,7 +25,7 @@ lib/rails_ai_bridge/
 │   ├── serializer.rb        # Hash serialization (declaration_to_hash, definition_to_hash, …)
 │   ├── indexer.rb           # Graph building + source file scanning
 │   └── method_counter.rb    # Flat method counting pipeline (no nested conditionals)
-├── serializers/            # Per-assistant formatters (claude, cursor, windsurf, copilot, JSON)
+├── serializers/            # Per-assistant formatters (claude, codex, cursor, devin, copilot, gemini, JSON)
 ├── server.rb               # MCP server setup (stdio + HTTP)
 ├── engine.rb               # Rails Engine for auto-integration
 └── configuration.rb        # User-facing config (presets, context_mode, limits)
