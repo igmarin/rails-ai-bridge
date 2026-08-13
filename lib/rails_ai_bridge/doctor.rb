@@ -22,7 +22,8 @@ module RailsAiBridge
       check_ripgrep: Checkers::RipgrepChecker,
       check_view_mcp_tool: Checkers::ViewMcpToolChecker,
       check_stimulus_mcp_tool: Checkers::StimulusMcpToolChecker,
-      check_bridge_metadata: Checkers::BridgeMetadataChecker
+      check_bridge_metadata: Checkers::BridgeMetadataChecker,
+      check_registry: Checkers::RegistryChecker
     }.freeze
 
     attr_reader :app
