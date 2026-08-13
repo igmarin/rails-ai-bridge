@@ -39,6 +39,7 @@ module RailsAiBridge
     # preventing stale config after an initializer change.
     config.to_prepare do
       RailsAiBridge::Registry.invalidate_resolver_cache!
+      RailsAiBridge::ContextProvider.reset!
     end
 
     # Auto-mount MCP HTTP middleware when configured
