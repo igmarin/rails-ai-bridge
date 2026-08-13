@@ -8,6 +8,7 @@ gemspec
 group :development, :test do
   gem 'bundler-audit', '~> 0.9'
   gem 'combustion', '~> 1.3'
+  gem 'mutant-rspec', '~> 0.16', require: false
   gem 'rails', '~> 8.1'
   gem 'reek', '~> 6.1'
   gem 'rspec', '~> 3.13'

@@ -9,6 +9,7 @@ AllCops:
     - "vendor/**/*"
     - "spec/internal/**/*"
     - "gemfiles/**/*"
+    - ".mutant.yml"
 Naming/FileName:
   Exclude:
     - "lib/rails-ai-bridge.rb"
