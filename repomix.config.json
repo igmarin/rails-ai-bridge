@@ -1,0 +1,44 @@
+{
+  "$schema": "https://repomix.com/schemas/latest/schema.json",
+  "output": {
+    "filePath": "repomix-output.xml",
+    "style": "xml",
+    "git": {
+      "sortByChanges": true
+    }
+  },
+  "include": [
+    "lib/**",
+    "spec/**",
+    "test/**",
+    "*.gemspec",
+    "README.md",
+    "docs/**",
+    "skills/**"
+  ],
+  "ignore": {
+    "useGitignore": true,
+    "useDefaultPatterns": true,
+    "customPatterns": [
+      ".git",
+      ".idea",
+      ".cursor",
+      ".claude",
+      ".grok",
+      ".zed",
+      ".codegraph",
+      "graphify-out",
+      "repomix-output.xml",
+      "repomix-output.md",
+      "coverage",
+      "review-result.txt",
+      "rs-guard-metrics.json",
+      "*.gem",
+      ".DS_Store",
+      "tmp/",
+      "doc/",
+      "vendor/bundle/",
+      "coverage/"
+    ]
+  }
+}

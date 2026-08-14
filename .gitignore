@@ -39,3 +39,9 @@ gems-report.csv
 AGENTS.md.bak
 LEAN-CTX.md
 .rs-guard/cache/
+
+# AI code intelligence artifacts
+.codegraph/
+graphify-out/
+repomix-output.xml
+repomix-output.md
