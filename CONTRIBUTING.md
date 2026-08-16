@@ -19,7 +19,7 @@ The test suite uses [Combustion](https://github.com/pat/combustion) to boot a mi
 ```
 lib/rails_ai_bridge/
 ├── introspectors/          # Built-in introspectors (schema, models, non_ar_models, routes, …)
-├── tools/                  # 18 built-in MCP tools (detail levels, pagination, extensible)
+├── tools/                  # 19 built-in MCP tools (detail levels, pagination, extensible)
 ├── rubydex_adapter.rb       # Rubydex API wrapper (singleton + query interface + stats)
 ├── rubydex_adapter/         # Extracted collaborators (one concern each)
 │   ├── serializer.rb        # Hash serialization (declaration_to_hash, definition_to_hash, …)

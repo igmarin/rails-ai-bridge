@@ -74,7 +74,7 @@ flowchart LR
 
 1. **Introspect**: built-in scanners read your Rails app structure: schema, models, routes, controllers, gems, tests, conventions, and optional full-stack details.
 2. **Generate**: `rails ai:bridge` writes compact, assistant-specific files such as `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/`, and Copilot instructions.
-3. **Serve**: `rails ai:serve` exposes 18 read-only `rails_*` tools so an assistant can drill into exact details on demand.
+3. **Serve**: `rails ai:serve` exposes 19 read-only `rails_*` tools so an assistant can drill into exact details on demand.
 
 This creates two complementary layers:
 
@@ -156,7 +156,11 @@ Optional: `gem install rails-ai-bridge` installs the gem into your Ruby environm
 
 | | **rails-ai-bridge** | **[rails-mcp-server](https://github.com/maquina-app/rails-mcp-server)** | **Manual context** |
 | --- | --- | --- | --- |
-| Zero-config | Yes — Railtie + install generator | No — per-project `projects.yml` | No |
+| Zero config | Yes — Railtie + install generator | No — per-project `projects.yml` | No |
+| Token optimization | Yes — compact files + `detail:"summary"` workflow | Varies | No |
+| Codex-oriented repo files | Yes — `AGENTS.md`, `.codex/README.md` | No | DIY |
+| Live MCP tools | Yes — 19 read-only `rails_*` tools (extensible) | Yes | No |
+| Auto-introspection | Yes — up to **27** domains (`:full`) | No — server points at projects you configure | DIY |
 | Committed files | Yes — assistant files committed to the repo | No — configured projects only | DIY |
 | Read-only | Yes — inspects structure; never writes or mutates | Yes | Yes |
 | Presets | Yes — `:standard`, `:full`, and `:regulated` | No | No |
@@ -251,7 +255,7 @@ This keeps context focused and avoids unnecessary token usage while still allowi
 
 ## MCP Tools
 
-The gem exposes **18 built-in tools** via MCP that AI clients call on-demand (hosts can append more via `config.additional_tools`):
+The gem exposes **19 built-in tools** via MCP that AI clients call on-demand (hosts can append more via `config.additional_tools`):
 
 | Tool | What it returns |
 |------|----------------|
@@ -267,6 +271,7 @@ The gem exposes **18 built-in tools** via MCP that AI clients call on-demand (ho
 | `rails_search_code` | Ripgrep (or Ruby) search under `Rails.root` with allowlisted extensions, pattern size cap, and optional wall-clock timeout |
 | `rails_get_view` | View layouts, templates, partials; optional per-file detail under the configured `app/views` path |
 | `rails_search_semantic` | Semantic code search using rubydex — find declarations by name with types, locations, and relationships |
+| `rails_explain_symbol` | Local CodeGraph explanation for a `symbol` or `query` when `.codegraph/` exists; otherwise setup instructions |
 | `rails_get_stimulus` | Stimulus controllers: targets, values, actions, outlets (requires `:stimulus` introspector) |
 | `rails_list_registry` | Skill pack catalog — list skills, agents, or active packs; requires `config/rails_ai_bridge/registry.json` |
 | `rails_resolve_skill` | Full content of a named skill or agent from the registry (priority ordering + deprecation redirects); optional `pack=` pin and `type=agent` |
