@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Skunk CI gate ratcheted to 20 and made blocking** (#183) — measured 4.2/4.3 SkunkScore averages were 15.93, 15.97, 15.96, 16.18, 15.89 (mean ≈ 15.99). Threshold 20 leaves ~25% headroom above the worst sample. The skunk job still runs rspec first for coverage. Perf stays advisory (`continue-on-error`). Mutation stays advisory but now also targets `Tools::SearchCode::Validator`, `ViewFileAnalyzer`, and `ExclusionHelper`.
+- **Advisory perf compare** — `rake perf:compare` takes the median of five iterations after one warmup. `introspection_time_sec` rebased to 0.028s after 4.3 schema/routes work (CI was 0.0269s on main, 0.0277s with PathResolver realpath). Context and MCP baselines stay at their 4.2 values because CI still measures well under them.
 - **Documentation and gemspec humanization** (#189) — gemspec is one plain sentence (maps a Rails
   app so assistants stop guessing); Windsurf dropped from the gemspec; `:full` YARD comment is 27
   to match `Configuration::PRESETS[:full]`; README comparison uses four durable rows
@@ -37,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **`PathResolver` symlink escape** — existing files from `existing_file_for` and `glob_for` are accepted only when `File.realpath` stays inside the realpath of the resolved directory or the application root. File and directory symlinks under a configured path that point outside the root are omitted. Missing paths still return `nil` without calling `realpath`. Allowed roots are realpathed once per resolver instance.
 - **`ViewFileAnalyzer` symlink escape** (#185) — existing view files are resolved with `File.realpath` and compared against the realpath of every configured `app/views` root (including custom Rails paths). A symlink under views that points outside every root now raises `SecurityError` instead of emitting the target file contents.
 
 ## [4.2.0] - 2026-08-13
