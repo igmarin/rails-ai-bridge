@@ -56,6 +56,33 @@ RSpec.describe RailsAiBridge::Serializers::SharedAssistantGuidance do
     end
   end
 
+  describe '.anti_hallucination_rules_lines' do
+    around do |example|
+      original = RailsAiBridge.configuration.anti_hallucination_rules
+      example.run
+    ensure
+      RailsAiBridge.configuration.anti_hallucination_rules = original
+    end
+
+    it 'includes the six shared rules when the flag is on' do
+      RailsAiBridge.configuration.anti_hallucination_rules = true
+      md = described_class.anti_hallucination_rules_lines.join("\n")
+
+      expect(md).to include('## Anti-hallucination')
+      expect(md).to include('Verify before you write (column, association, route, helper, gem).')
+      expect(md).to include('[ASSUMPTION]')
+      expect(md).to include('This app is not average Rails.')
+      expect(md).to include('inheritance chain')
+      expect(md).to include('Empty tool output is information')
+      expect(md).to include('Re-query after writes')
+    end
+
+    it 'returns no lines when the flag is off' do
+      RailsAiBridge.configuration.anti_hallucination_rules = false
+      expect(described_class.anti_hallucination_rules_lines).to eq([])
+    end
+  end
+
   describe '.performance_security_and_rails_examples_lines' do
     it 'includes baseline and Rails pattern examples' do
       lines = described_class.performance_security_and_rails_examples_lines.join("\n")
@@ -64,17 +91,58 @@ RSpec.describe RailsAiBridge::Serializers::SharedAssistantGuidance do
     end
   end
 
+  describe '.compact_engineering_rules_lines' do
+    it 'includes the anti-hallucination block when the flag is on' do
+      md = described_class.compact_engineering_rules_lines.join("\n")
+      expect(md).to include('## Anti-hallucination')
+      expect(md).to include('[ASSUMPTION]')
+      expect(md).to include('## Engineering rules (read first)')
+    end
+
+    it 'omits the anti-hallucination block when the flag is off' do
+      original = RailsAiBridge.configuration.anti_hallucination_rules
+      RailsAiBridge.configuration.anti_hallucination_rules = false
+      md = described_class.compact_engineering_rules_lines.join("\n")
+      expect(md).not_to include('[ASSUMPTION]')
+      expect(md).to include('## Engineering rules (read first)')
+    ensure
+      RailsAiBridge.configuration.anti_hallucination_rules = original
+    end
+  end
+
+  describe '.cursor_engineering_mdc_body_lines' do
+    it 'includes the anti-hallucination block when the flag is on' do
+      md = described_class.cursor_engineering_mdc_body_lines.join("\n")
+      expect(md).to include('## Anti-hallucination')
+      expect(md).to include('[ASSUMPTION]')
+      expect(md).to include('# Engineering essentials')
+    end
+
+    it 'omits the anti-hallucination block when the flag is off' do
+      original = RailsAiBridge.configuration.anti_hallucination_rules
+      RailsAiBridge.configuration.anti_hallucination_rules = false
+      md = described_class.cursor_engineering_mdc_body_lines.join("\n")
+      expect(md).not_to include('[ASSUMPTION]')
+      expect(md).to include('# Engineering essentials')
+    ensure
+      RailsAiBridge.configuration.anti_hallucination_rules = original
+    end
+  end
+
   describe '.compact_engineering_rules_footer_lines' do
     let(:base_ctx) { { tests: { framework: 'rspec' } } }
 
     it 'starts with the default rules heading and omits architecture without conventions' do
-      lines = described_class.compact_engineering_rules_footer_lines(base_ctx)
+      lines = described_class.compact_engineering_rules_footer_lines(base_ctx, include_anti_hallucination: false)
       expect(lines.first).to eq('## Rules')
       expect(lines.join("\n")).not_to include('Match Architecture')
     end
 
     it 'includes standard bullets, test command, rubocop, and regeneration trailer' do
-      md = described_class.compact_engineering_rules_footer_lines(base_ctx).join("\n")
+      md = described_class.compact_engineering_rules_footer_lines(
+        base_ctx,
+        include_anti_hallucination: false
+      ).join("\n")
       expect(md).to include('- **Adhere to Conventions:**')
       expect(md).to include('- **Schema as Source of Truth:**')
       expect(md).to include('Run `bundle exec rspec` and `bundle exec rubocop`')
@@ -91,8 +159,26 @@ RSpec.describe RailsAiBridge::Serializers::SharedAssistantGuidance do
     end
 
     it 'honors a custom rules_heading keyword' do
-      lines = described_class.compact_engineering_rules_footer_lines(base_ctx, rules_heading: '## Custom heading')
+      lines = described_class.compact_engineering_rules_footer_lines(
+        base_ctx,
+        rules_heading: '## Custom heading',
+        include_anti_hallucination: false
+      )
       expect(lines.first).to eq('## Custom heading')
+    end
+
+    it 'includes the anti-hallucination block by default' do
+      md = described_class.compact_engineering_rules_footer_lines(base_ctx).join("\n")
+      expect(md).to include('[ASSUMPTION]')
+      expect(md).to include('## Anti-hallucination')
+    end
+
+    it 'omits the anti-hallucination block when include_anti_hallucination is false' do
+      md = described_class.compact_engineering_rules_footer_lines(
+        base_ctx,
+        include_anti_hallucination: false
+      ).join("\n")
+      expect(md).not_to include('[ASSUMPTION]')
     end
   end
 

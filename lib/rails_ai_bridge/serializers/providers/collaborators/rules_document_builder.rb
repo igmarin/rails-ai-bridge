@@ -28,7 +28,7 @@ module RailsAiBridge
               ['', *SharedAssistantGuidance.repo_specific_guidance_section_lines],
               model_section_lines,
               mcp_tool_reference_lines,
-              SharedAssistantGuidance.compact_engineering_rules_footer_lines(@context)
+              SharedAssistantGuidance.compact_engineering_rules_footer_lines(@context, include_anti_hallucination: false)
             ].flatten
           end
 

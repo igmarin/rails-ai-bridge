@@ -35,6 +35,7 @@ RSpec.describe RailsAiBridge::Serializers::Providers::McpToolReferenceFormatter 
       expect(formatter.call).to include('### Other tools')
       expect(formatter.call).to include('- `rails_get_config`')
       expect(formatter.call).to include('- `rails_search_code(pattern:"regex", file_type:"rb", max_results:20)`')
+      expect(formatter.call).to include('- `rails_explain_symbol(query:"User")`')
     end
 
     it 'uses literal newline characters for formatting' do

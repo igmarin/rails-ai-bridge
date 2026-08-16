@@ -6,6 +6,7 @@ module RailsAiBridge
     class GetSchema < BaseTool
       tool_name 'rails_get_schema'
       description 'Get the database schema for the Rails app including tables, columns, indexes, and foreign keys. ' \
+                  'Facts are tagged [VERIFIED] from a live ActiveRecord connection or [INFERRED] from a static schema parse. ' \
                   'Optionally filter by table name. Supports detail levels and pagination for large schemas.'
 
       input_schema(
@@ -97,7 +98,11 @@ module RailsAiBridge
 
         def format_single_table
           table_data = @tables[@table]
-          @format == 'json' ? table_data.to_json : Schema::TableFormatter.new(name: @table, data: table_data).call
+          if @format == 'json'
+            table_data.to_json
+          else
+            Schema::TableFormatter.new(name: @table, data: table_data, source: schema_source).call
+          end
         end
 
         def format_all_tables
@@ -110,7 +115,18 @@ module RailsAiBridge
                                            else [Schema::StandardFormatter, 15]
                                            end
 
-          formatter_class.new(tables: @tables, total: total, limit: @limit || default_limit, offset: offset).call
+          formatter_class.new(tables: @tables, total: total, limit: @limit || default_limit, offset: offset,
+                              source: schema_source).call
+        end
+
+        def schema_source
+          return @schema[:source] if @schema.key?(:source)
+
+          adapter = @schema[:adapter].to_s
+          return :static if adapter == 'static_parse'
+          return :live if adapter.present?
+
+          nil
         end
       end
     end

@@ -26,6 +26,29 @@ RSpec.describe RailsAiBridge::Introspectors::RouteIntrospector do
       expect(user_routes).to include(a_hash_including(verb: 'GET', path: '/users'))
     end
 
+    it 'includes the Rails path helper and required params for a named route' do
+      post_show = result[:by_controller]['posts'].find { |route| route[:action] == 'show' }
+
+      expect(post_show).to include(
+        helper: 'post_path',
+        required_params: ['id']
+      )
+    end
+
+    it 'does not invent a helper for an unnamed route' do
+      ping = result[:by_controller]['users'].find { |route| route[:path] == '/legacy-ping' }
+
+      expect(ping).to include(verb: 'GET', path: '/legacy-ping', action: 'index')
+      expect(ping).not_to have_key(:helper)
+    end
+
+    it 'uses the declared route name rather than inventing a helper from the path' do
+      profile = result[:by_controller]['users'].find { |route| route[:path] == '/me' }
+
+      expect(profile[:helper]).to eq('profile_path')
+      expect(profile[:helper]).not_to eq('me_path')
+    end
+
     it 'returns api_namespaces as an array' do
       expect(result[:api_namespaces]).to be_an(Array)
     end

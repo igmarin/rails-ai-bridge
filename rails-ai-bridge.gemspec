@@ -8,14 +8,8 @@ Gem::Specification.new do |spec|
   spec.authors       = ['Ismael Marin']
   spec.email         = ['ismael.marin@gmail.com']
 
-  spec.summary       = 'Senior-grade AI context and semantic model tiering for Ruby on Rails.'
-  spec.description   = <<~DESC.gsub(/\s+/, ' ').strip
-    Rails-AI-Bridge introspects your Rails application and exposes structure to AI assistants via
-    static context files and a live Model Context Protocol (MCP) server. It classifies Active Record
-    models semantically (Core, Join, Supporting), optionally surfaces non-ActiveRecord Ruby classes
-    under app/models (tagged POJO/Service), and integrates with editors and assistants such as
-    Claude, Gemini, Cursor, and Windsurf.
-  DESC
+  spec.summary       = 'Maps a Rails app so AI assistants stop guessing.'
+  spec.description   = 'Maps a Rails app so assistants stop guessing — static context files and a read-only MCP server.'
 
   spec.homepage      = 'https://github.com/igmarin/rails-ai-bridge'
   spec.license       = 'MIT'

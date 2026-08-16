@@ -9,7 +9,7 @@ structure to AI assistants via the Model Context Protocol (MCP).
 - `lib/rails_ai_bridge/configuration.rb` — User-facing config with presets (:standard, :full)
 - `lib/rails_ai_bridge/introspector.rb` — Orchestrates sub-introspectors
 - `lib/rails_ai_bridge/introspectors/` — Built-in introspector classes; `:standard` preset runs **9**, `:full` runs **27** (see `Configuration::PRESETS`). Registry: `Introspector::BUILTIN_INTROSPECTORS` (includes opt-in symbols such as `database_stats`, `non_ar_models` not listed in those presets).
-- `lib/rails_ai_bridge/tools/` — 17 built-in MCP tools using the official mcp SDK (hosts can add more via `additional_tools`)
+- `lib/rails_ai_bridge/tools/` — 19 built-in MCP tools using the official mcp SDK (hosts can add more via `additional_tools`)
 - `lib/rails_ai_bridge/serializers/` — Output formatters (claude, claude_rules, codex, cursor_rules, devin, devin_rules, copilot, copilot_instructions, gemini, rules, markdown, JSON)
 - `lib/rails_ai_bridge/resources.rb` — MCP resources (static data AI clients read directly)
 - `lib/rails_ai_bridge/server.rb` — MCP server configuration (stdio + HTTP transports)

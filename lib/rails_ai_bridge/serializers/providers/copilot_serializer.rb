@@ -59,6 +59,13 @@ module RailsAiBridge
           lines.join("\n")
         end
 
+        # Engineering rules already include the anti-hallucination block.
+        #
+        # @return [Array<String>]
+        def render_footer
+          SharedAssistantGuidance.compact_engineering_rules_footer_lines(context, include_anti_hallucination: false)
+        end
+
         # Renders Copilot-specific MCP tool reference.
         # @return [Array<String>] Lines for the MCP tool reference.
         def render_mcp_tool_reference

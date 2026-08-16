@@ -10,6 +10,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Skunk CI gate ratcheted to 20 and made blocking** (#183) — measured 4.2/4.3 SkunkScore averages were 15.93, 15.97, 15.96, 16.18, 15.89 (mean ≈ 15.99). Threshold 20 leaves ~25% headroom above the worst sample. The skunk job still runs rspec first for coverage. Perf stays advisory (`continue-on-error`). Mutation stays advisory but now also targets `Tools::SearchCode::Validator`, `ViewFileAnalyzer`, and `ExclusionHelper`.
+### Added
+
+- **`rails_explain_symbol` MCP tool** (#192) — optional in-process explanation of a `symbol` or `query` from a **local** CodeGraph index (`.codegraph/`). Runs `codegraph explore` with a timeout and argv arrays (no shell, no network). Missing index or CLI failure returns setup instructions (`codegraph init` / `codegraph index`) instead of raising. Always registered so doc-parity stays a single tool list. Tool count: 17 → 18 on this branch (merge with #181 will make 19).
+- **`rails_get_context` MCP tool** (#181) — in-process composite for one model, controller, or feature (table + model + routes + controller actions/filters + cheap related tests). Reuses `[VERIFIED]` / `[INFERRED]` tags from #187. No HTTP; provider fan-out stays on a different name. Tool count 17 → 18.
+- **Confidence tags on schema and model MCP tools** (#187) — `rails_get_schema` and `rails_get_model_details` markdown now marks facts as `[VERIFIED]` (live ActiveRecord reflection or rubydex/Prism) or `[INFERRED]` (source-regex macros and static schema parses). Missing sections are omitted rather than tagged empty.
+- **Shared anti-hallucination rules in compact assistant files** (#188) — compact Claude, Cursor, Copilot, Codex, Gemini, and `AGENTS.md` output now include a short verify-before-write block from `SharedAssistantGuidance`. Disable with `config.output.anti_hallucination_rules = false` (default: on).
+- **`rails_get_routes` URL helpers and required params** (#191) — named routes now include the Rails path helper (from the route set's declared name, e.g. `post_path`) and required parameter names (from Journey `required_parts`). Unnamed routes are left without a helper. Summary stays a compact per-controller overview (counts plus one sample helper); standard/full list helpers and required params (paginated).
+- **Partition-child tables in `structure.sql` introspection** (#166) — `StaticStructureSqlParser` now expands PostgreSQL `CREATE TABLE … PARTITION OF …` children as table entries with `partition_of` / `partition_bound`, and marks parents with `partitioned` / `partition_by`. `rails_get_schema` surfaces the parent/child relationship at `detail: standard` and `full`.
+### Changed
+
+- **Documentation and gemspec humanization** (#189) — gemspec is one plain sentence (maps a Rails
+  app so assistants stop guessing); Windsurf dropped from the gemspec; `:full` YARD comment is 27
+  to match `Configuration::PRESETS[:full]`; README comparison uses four durable rows
+  (zero-config, committed files, read-only, presets) plus a dated checked-against line;
+  `docs/gem-general-improvements.md` marked done-in-4.1; `docs/offline-mode.md` labeled
+  5.0 / registry. SECURITY.md outbound policy unchanged (git packs only).
+### Security
+
+- **`ViewFileAnalyzer` symlink escape** (#185) — existing view files are resolved with `File.realpath` and compared against the realpath of every configured `app/views` root (including custom Rails paths). A symlink under views that points outside every root now raises `SecurityError` instead of emitting the target file contents.
 
 ## [4.2.0] - 2026-08-13
 

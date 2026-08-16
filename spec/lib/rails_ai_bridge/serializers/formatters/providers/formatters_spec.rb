@@ -225,12 +225,12 @@ module RailsAiBridge
           subject(:output) { described_class.new(footer_ctx).call }
 
           it 'uses the Behavioral Rules heading' do
-            expect(output.lines.first.chomp).to eq('## Behavioral Rules')
+            expect(output).to include('## Behavioral Rules')
           end
 
           it 'includes the same rule bullets and trailer as shared compact footer (with Gemini heading)' do
             shared_md = SharedAssistantGuidance.compact_engineering_rules_footer_lines(footer_ctx).join("\n")
-            expect(output).to eq(shared_md.sub(/\A## Rules\n/, "## Behavioral Rules\n"))
+            expect(output).to eq(shared_md.sub(/^## Rules\n/, "## Behavioral Rules\n"))
           end
 
           it 'appends Match Architecture when conventions include architecture' do
@@ -292,6 +292,7 @@ module RailsAiBridge
               - `rails_get_gems` — notable gems categorized by function (auth, background jobs, etc.)
               - `rails_get_conventions` — architecture patterns, directory structure, config files
               - `rails_search_code(pattern:"regex", file_type:"rb", max_results:20)` — ripgrep search
+              - `rails_explain_symbol(query:"User")` — local CodeGraph symbol explanation (requires `.codegraph/`)
             MARKDOWN
           end
         end

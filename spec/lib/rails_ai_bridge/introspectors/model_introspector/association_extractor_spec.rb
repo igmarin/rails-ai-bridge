@@ -40,6 +40,7 @@ RSpec.describe RailsAiBridge::Introspectors::ModelIntrospector::AssociationExtra
       expect(detail[:optional]).to be(true)
       expect(detail[:through]).to eq('user_posts')
       expect(detail[:dependent]).to eq('destroy')
+      expect(detail[:source]).to eq(:reflection)
     end
 
     it 'handles associations with empty options gracefully' do
