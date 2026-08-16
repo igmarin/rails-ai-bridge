@@ -82,19 +82,9 @@ module RailsAiBridge
       # @param assoc [Hash] association descriptor
       # @return [Boolean]
       def excluded_association?(assoc)
-        class_name = assoc[:class_name].to_s
-        return true if class_name.present? && config.excluded_models.include?(class_name)
-
-        candidates = [assoc[:name], assoc[:through], table_name_for_class(class_name)].compact.map(&:to_s)
-        candidates.any? { |name| config.excluded_table?(name) || config.excluded_table?(name.pluralize) }
-      end
-
-      # @param class_name [String]
-      # @return [String, nil]
-      def table_name_for_class(class_name)
-        return if class_name.blank?
-
-        class_name.underscore.pluralize
+        [assoc[:class_name], assoc[:name], assoc[:through]].compact.any? do |value|
+          ExclusionHelper.excluded_class_or_table?(value, config)
+        end
       end
 
       # Drops generated association accessors that name an excluded table or model.

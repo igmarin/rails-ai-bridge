@@ -31,7 +31,7 @@ module MCPExclusionParityTables
     'rails_get_gems' => :does_not_list_models_or_tables,
     'rails_search_code' => :source_search,
     'rails_search_semantic' => :source_search,
-    'rails_get_conventions' => :omits_excluded_names,
+    'rails_get_conventions' => :does_not_list_models_or_tables,
     'rails_get_controllers' => :omits_excluded_names,
     'rails_get_config' => :does_not_list_models_or_tables,
     'rails_get_test_info' => :does_not_list_models_or_tables,
@@ -60,7 +60,7 @@ module MCPExclusionParityTables
     'rails://bridge/meta' => :does_not_list_models_or_tables,
     'rails://schema' => :omits_excluded_names,
     'rails://routes' => :omits_excluded_names,
-    'rails://conventions' => :omits_excluded_names,
+    'rails://conventions' => :does_not_list_models_or_tables,
     'rails://gems' => :does_not_list_models_or_tables,
     'rails://controllers' => :omits_excluded_names,
     'rails://config' => :does_not_list_models_or_tables,
@@ -72,8 +72,10 @@ module MCPExclusionParityTables
     'rails://semantic/analysis' => :does_not_list_models_or_tables
   }.freeze
 
-  EXCLUDED_MODEL = 'Categorization'
-  EXCLUDED_TABLE = 'categorizations'
+  # Combustion lists these on routes (/users) and UsersController. Using them
+  # makes the routes/controllers parity examples non-vacuous.
+  EXCLUDED_MODEL = 'User'
+  EXCLUDED_TABLE = 'users'
 
   # Routes/controllers stay enabled under :regulated and may name /users.
   DOMAIN_METADATA_TOOL_NAMES = %w[rails_get_schema rails_get_model_details].freeze
@@ -189,8 +191,19 @@ RSpec.describe 'MCP exclusion parity' do
     it 'still lists non-excluded models and tables' do
       schema = tool_text(RailsAiBridge::Tools::GetSchema, detail: 'summary')
       models = tool_text(RailsAiBridge::Tools::GetModelDetails, detail: 'summary')
-      expect(schema).to include('users')
-      expect(models).to include('User')
+      expect(schema).to include('posts')
+      expect(models).to include('Post')
+    end
+
+    it 'treats conventions as a non-inventory surface' do
+      expect(MCPExclusionParityTables::TOOL_EXCLUSION_POLICY['rails_get_conventions'])
+        .to eq(:does_not_list_models_or_tables)
+      expect(MCPExclusionParityTables::STATIC_RESOURCE_POLICY['rails://conventions'])
+        .to eq(:does_not_list_models_or_tables)
+      body = tool_text(RailsAiBridge::Tools::GetConventions)
+      expect(body).to include('Architecture')
+      expect(body).not_to include('# Available models')
+      expect(body).not_to include('# Schema')
     end
 
     it 'omits excluded model dumps from rails_get_context when that tool is registered' do

@@ -5,13 +5,14 @@ module RailsAiBridge
     # Discovers controllers and extracts filters, strong params,
     # respond_to formats, concerns, actions, and API detection.
     class ControllerIntrospector
-      attr_reader :app
+      attr_reader :app, :config
 
       # Initializes the controller introspector and path resolver.
       #
       # @param app [Rails::Application] host Rails application
       def initialize(app)
         @app = app
+        @config = RailsAiBridge.configuration
         @path_resolver = PathResolver.new(app)
       end
 
@@ -47,8 +48,17 @@ module RailsAiBridge
 
         bases.flat_map(&:descendants).reject do |ctrl|
           ctrl.name.nil? || ctrl.name == 'ApplicationController' ||
-            ctrl.name.start_with?('Rails::', 'ActionMailbox::', 'ActiveStorage::')
+            ctrl.name.start_with?('Rails::', 'ActionMailbox::', 'ActiveStorage::') ||
+            excluded_controller?(ctrl)
         end.uniq.sort_by(&:name)
+      end
+
+      # @param ctrl [Class]
+      # @return [Boolean]
+      def excluded_controller?(ctrl)
+        base = ctrl.name.demodulize.sub(/Controller\z/, '')
+        ExclusionHelper.excluded_class_or_table?(ctrl.name, config) ||
+          ExclusionHelper.excluded_class_or_table?(base, config)
       end
 
       def extract_controller_details(ctrl)

@@ -5,10 +5,11 @@ module RailsAiBridge
     # Extracts route information from the Rails router including
     # HTTP verb, path, controller#action, and route constraints.
     class RouteIntrospector
-      attr_reader :app
+      attr_reader :app, :config
 
       def initialize(app)
         @app = app
+        @config = RailsAiBridge.configuration
       end
 
       # @return [Hash] routes grouped by controller
@@ -27,8 +28,29 @@ module RailsAiBridge
           next if route.respond_to?(:internal?) && route.internal?
           next if route.defaults[:controller].blank?
 
-          RouteParser.new(route).to_h
+          parsed = RouteParser.new(route).to_h
+          next if excluded_route?(parsed)
+
+          parsed
         end
+      end
+
+      # @param route [Hash]
+      # @return [Boolean]
+      def excluded_route?(route)
+        tokens = [
+          route[:controller],
+          route[:controller].to_s.split('/').last,
+          route[:name]
+        ]
+        tokens.concat(route_path_tokens(route[:path]))
+        tokens.compact.any? { |token| ExclusionHelper.excluded_class_or_table?(token, config) }
+      end
+
+      # @param path [String, nil]
+      # @return [Array<String>]
+      def route_path_tokens(path)
+        path.to_s.split('/').reject { |segment| segment.empty? || segment.start_with?(':', '(') }
       end
 
       def detect_mounted_engines

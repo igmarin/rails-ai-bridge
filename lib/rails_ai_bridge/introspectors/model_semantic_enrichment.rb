@@ -86,17 +86,7 @@ module RailsAiBridge
       # @param name [String]
       # @return [Boolean]
       def excluded_related_model?(name)
-        token = name.to_s
-        excluded_models_from_config.any? do |excluded|
-          token == excluded || token.start_with?("#{excluded}::")
-        end
-      end
-
-      # @return [Array<String>]
-      def excluded_models_from_config
-        return [] unless config.respond_to?(:excluded_models)
-
-        Array(config.excluded_models)
+        ExclusionHelper.excluded_class_or_table?(name, config)
       end
     end
   end

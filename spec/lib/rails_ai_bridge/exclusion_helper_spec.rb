@@ -52,4 +52,31 @@ RSpec.describe RailsAiBridge::ExclusionHelper do
       expect(described_class.table_pattern_match?('{audit,pii}_*', 'user_logs')).to be false
     end
   end
+
+  describe '.excluded_class_or_table?' do
+    let(:config) { RailsAiBridge.configuration }
+
+    around do |example|
+      original_models = config.excluded_models.dup
+      original_tables = config.excluded_tables.dup
+      example.run
+    ensure
+      config.excluded_models = original_models
+      config.excluded_tables = original_tables
+    end
+
+    it 'is true when only the table is excluded' do
+      config.excluded_tables += %w[patient_records]
+      expect(described_class.excluded_class_or_table?('PatientRecord', config)).to be true
+    end
+
+    it 'is true for rubydex-decorated class names of an excluded table' do
+      config.excluded_tables += %w[patient_records]
+      expect(described_class.excluded_class_or_table?('PatientRecord::<PatientRecord>', config)).to be true
+    end
+
+    it 'is false when neither the class nor its table is excluded' do
+      expect(described_class.excluded_class_or_table?('Post', config)).to be false
+    end
+  end
 end

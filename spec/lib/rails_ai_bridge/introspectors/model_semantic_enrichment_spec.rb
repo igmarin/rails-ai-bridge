@@ -8,7 +8,19 @@ RSpec.describe RailsAiBridge::Introspectors::ModelSemanticEnrichment do
       include RailsAiBridge::Introspectors::ModelSemanticEnrichment
 
       def config
-        @config ||= Struct.new(:rubydex_available?).new(true)
+        @config ||= begin
+          cfg = Struct.new(:rubydex_available?, :excluded_models, :excluded_tables, keyword_init: true).new(
+            rubydex_available?: true,
+            excluded_models: [],
+            excluded_tables: []
+          )
+          def cfg.excluded_table?(table_name)
+            Array(excluded_tables).any? do |pattern|
+              RailsAiBridge::ExclusionHelper.table_pattern_match?(pattern.to_s, table_name.to_s)
+            end
+          end
+          cfg
+        end
       end
     end
   end
@@ -63,6 +75,24 @@ RSpec.describe RailsAiBridge::Introspectors::ModelSemanticEnrichment do
   describe '#find_similar_models' do
     it 'returns nil if no similar models found' do
       allow(adapter).to receive_messages(ancestors: [], descendants: [])
+      expect(instance.send(:find_similar_models, model)).to be_nil
+    end
+
+    it 'omits similar models whose table is excluded even when the class is not' do
+      instance.config.excluded_tables << 'patient_records'
+      allow(adapter).to receive(:ancestors).with('User').and_return(['ApplicationRecord'])
+      allow(adapter).to receive(:descendants).with('ApplicationRecord').and_return(%w[User Post PatientRecord])
+      allow(adapter).to receive(:descendants).with('User').and_return([])
+
+      expect(instance.send(:find_similar_models, model)).to eq(['Post'])
+    end
+
+    it 'omits rubydex-decorated names for an excluded table' do
+      instance.config.excluded_tables << 'patient_records'
+      allow(adapter).to receive(:ancestors).with('User').and_return(['ApplicationRecord'])
+      allow(adapter).to receive(:descendants).with('ApplicationRecord').and_return(['User', 'PatientRecord::<PatientRecord>'])
+      allow(adapter).to receive(:descendants).with('User').and_return([])
+
       expect(instance.send(:find_similar_models, model)).to be_nil
     end
 
