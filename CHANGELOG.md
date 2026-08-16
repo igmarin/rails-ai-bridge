@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Public docs wording** — README, GUIDE, and AGENTS/CLAUDE/GEMINI openers say what the gem does in plain language. Comparison table is four durable rows (setup, files in git, read-only, presets) instead of tool-count marketing.
+
 ### Added
 
 - **Inherited controller filters** (#190) — `rails_get_controllers` lists `before_action` / `after_action` filters from the controller and its ancestors. Filters whose `only` / `except` do not apply to any action are omitted. `detail: summary` stays at filter names; `standard` / `full` include the defining class. ActionFilter `only`/`except` conditions are parsed on Rails 7.1+.
