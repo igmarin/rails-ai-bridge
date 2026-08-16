@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (zero-config, committed files, read-only, presets) plus a dated checked-against line;
   `docs/gem-general-improvements.md` marked done-in-4.1; `docs/offline-mode.md` labeled
   5.0 / registry. SECURITY.md outbound policy unchanged (git packs only).
+### Security
+
+- **`ViewFileAnalyzer` symlink escape** (#185) — existing view files are resolved with `File.realpath` and compared against the realpath of every configured `app/views` root (including custom Rails paths). A symlink under views that points outside every root now raises `SecurityError` instead of emitting the target file contents.
 
 ## [4.2.0] - 2026-08-13
 
