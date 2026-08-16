@@ -48,6 +48,11 @@ please report it responsibly:
 
 ## HTTP MCP authentication
 
+HTTP MCP is unauthenticated unless you set a token (`http_mcp_token` /
+`RAILS_AI_BRIDGE_MCP_TOKEN`, or a resolver/JWT decoder) or
+`require_http_auth`. Bind the endpoint to `127.0.0.1` unless you add auth.
+`require_http_auth` stays **`false`** by default.
+
 For day-to-day hardening (tokens, `require_http_auth`, proxies, stdio threat model),
 see **[docs/mcp-security.md](docs/mcp-security.md)**.
 

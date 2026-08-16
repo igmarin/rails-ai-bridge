@@ -122,9 +122,17 @@ module RailsAiBridge
 
       # Switch the active introspector list to a named preset.
       #
-      # @param name [Symbol, String] preset key from {Configuration::PRESETS}
+      # +nil+ clears the tracked preset name and leaves {#introspectors} unchanged
+      # so around-hooks can restore an unset preset without rewriting the list.
+      #
+      # @param name [Symbol, String, nil] preset key from {Configuration::PRESETS}, or +nil+
       # @raise [ArgumentError] when the preset is unknown
       def preset=(name)
+        if name.nil?
+          @preset = nil
+          return
+        end
+
         name = name.to_sym
         raise ArgumentError, "Unknown preset: #{name}. Valid presets: #{Configuration::PRESETS.keys.join(', ')}" unless Configuration::PRESETS.key?(name)
 
