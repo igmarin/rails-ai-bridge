@@ -54,11 +54,11 @@ module RailsAiBridge
         return text_response(MISSING_INPUT_MESSAGE) if blank_name?(model) && blank_name?(controller) && blank_name?(feature)
 
         snapshots = {
-          models: cached_section(:models),
-          schema: cached_section(:schema),
-          controllers: cached_section(:controllers),
-          routes: cached_section(:routes),
-          tests: cached_section(:tests)
+          models: section_if_enabled(:models),
+          schema: section_if_enabled(:schema),
+          controllers: section_if_enabled(:controllers),
+          routes: section_if_enabled(:routes),
+          tests: section_if_enabled(:tests)
         }
 
         resolution = Resolver.new(
@@ -85,6 +85,19 @@ module RailsAiBridge
       def self.app_root
         rails_app&.root
       end
+
+      # Fetches a cached section only when it is in {Configuration#effective_introspectors}.
+      # Skips disabled domain introspectors under +:regulated+ even if a stale
+      # or unfiltered +cached_section+ would still return payload.
+      #
+      # @param name [Symbol] introspector key
+      # @return [Object, nil]
+      def self.section_if_enabled(name)
+        return nil unless config.effective_introspectors.include?(name)
+
+        cached_section(name)
+      end
+      private_class_method :section_if_enabled
 
       # @param value [String, nil]
       # @return [Boolean] +true+ when the argument is nil or whitespace

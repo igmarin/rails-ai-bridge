@@ -30,8 +30,14 @@ module RailsAiBridge
           resolved_controller = match_controller(@controller) || match_controller(@feature) ||
                                 infer_controller_from_model(resolved_model)
           resolved_model ||= infer_model_from_controller(resolved_controller)
+          domain_blocked = related_model_excluded?(resolved_model || resolved_controller || @feature || @controller)
 
-          table_name, table_data = resolve_table(resolved_model)
+          table_name, table_data = domain_blocked ? [nil, nil] : resolve_table(resolved_model)
+          routes = if domain_blocked || excluded_table?(table_name)
+                     {}
+                   else
+                     matching_routes(resolved_controller, resolved_model, table_name)
+                   end
           {
             requested_model: @model,
             requested_controller: @controller,
@@ -43,7 +49,7 @@ module RailsAiBridge
             schema_source: schema_source,
             controller_name: resolved_controller,
             controller_data: controller_payload(resolved_controller),
-            routes: matching_routes(resolved_controller, resolved_model, table_name),
+            routes: routes,
             setup_messages: setup_messages,
             error: nothing_resolved_error(resolved_model, resolved_controller, table_name)
           }
@@ -142,9 +148,9 @@ module RailsAiBridge
         def resolve_table(model_name)
           from_model = model_payload(model_name)&.[](:table_name).presence
           candidates = [from_model, *table_candidates(model_name || @feature || @model || @controller)].compact
-          name = candidates.find { |candidate| schema_tables.key?(candidate) && !@config.excluded_table?(candidate) }
-          name ||= from_model unless from_model && @config.excluded_table?(from_model)
-          return [nil, nil] if name.nil? || @config.excluded_table?(name)
+          name = candidates.find { |candidate| schema_tables.key?(candidate) && !excluded_table?(candidate) }
+          name ||= from_model unless from_model && excluded_table?(from_model)
+          return [nil, nil] if name.nil? || excluded_table?(name)
 
           [name, schema_tables[name]]
         end
@@ -154,13 +160,39 @@ module RailsAiBridge
             controller_route_token(controller_name),
             normalize(model_name),
             normalize(model_name)&.pluralize,
-            table_name,
-            normalize(@feature)
+            table_name
           ].compact.uniq
 
           routes_by_controller.select do |key, _|
             snake = key.to_s.downcase
-            tokens.any? { |token| snake == token || snake.end_with?("/#{token}") || snake.include?(token) }
+            next false if excluded_route_key?(snake)
+
+            tokens.any? { |token| snake == token || snake.end_with?("/#{token}") }
+          end
+        end
+
+        def related_model_excluded?(name)
+          return false if name.blank?
+          return true if excluded_model?(name)
+
+          model_candidates(name).any? { |candidate| excluded_model?(candidate) }
+        end
+
+        def excluded_table?(name)
+          return false if name.blank?
+
+          @config.excluded_table?(name)
+        end
+
+        def excluded_route_key?(key)
+          return true if excluded_table?(key)
+
+          @config.excluded_models.any? do |model|
+            token = normalize(model)
+            next false if token.blank?
+
+            key == token || key == token.pluralize || key == token.tableize ||
+              key.end_with?("/#{token}") || key.end_with?("/#{token.pluralize}")
           end
         end
 
@@ -261,15 +293,22 @@ module RailsAiBridge
           if @model
             model_not_found_message(@model)
           elsif @controller
-            "Controller '#{@controller}' not found. Available: #{controllers.keys.sort.join(', ')}"
+            "Controller '#{display_name(@controller)}' not found. Available: #{controllers.keys.sort.join(', ')}"
           else
-            "Nothing matched feature '#{@feature}'. Available models: #{available_model_names.join(', ')}. " \
+            "Nothing matched feature '#{display_name(@feature)}'. Available models: #{available_model_names.join(', ')}. " \
               "Available controllers: #{controllers.keys.sort.join(', ')}"
           end
         end
 
         def model_not_found_message(name)
-          "Model '#{name}' not found. Available: #{available_model_names.join(', ')}"
+          "Model '#{display_name(name)}' not found. Available: #{available_model_names.join(', ')}"
+        end
+
+        def display_name(name)
+          raw = name.to_s.strip
+          return '(invalid name)' if raw.include?('..') || raw.start_with?('/', '\\') || raw.include?('\\')
+
+          raw
         end
 
         def available_model_names

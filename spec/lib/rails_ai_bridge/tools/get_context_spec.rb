@@ -246,6 +246,10 @@ RSpec.describe RailsAiBridge::Tools::GetContext do
         expect(content).not_to include('index_users_on_email')
         expect(content).not_to match(/## Table.*users/m)
       end
+
+      it 'omits users routes as well as the table section' do
+        expect(content).not_to include('/users')
+      end
     end
 
     context 'when :regulated omits domain introspectors' do
@@ -257,6 +261,87 @@ RSpec.describe RailsAiBridge::Tools::GetContext do
         expect(content).to match(/not available|Add :models|Add :schema/i)
         expect(content).to include('PostsController')
         expect(content).to include('index')
+      end
+    end
+
+    context 'when preset is :regulated but cached sections still contain schema' do
+      around do |example|
+        original = RailsAiBridge.configuration.preset
+        RailsAiBridge.configuration.preset = :regulated
+        example.run
+      ensure
+        RailsAiBridge.configuration.preset = original
+      end
+
+      let(:params) { { model: 'User' } }
+
+      it 'does not dump schema or model facts' do
+        expect(content).not_to include('index_users_on_email')
+        expect(content).not_to include('has_many')
+        expect(content).to match(/not available|Add :models|Add :schema|not found/i)
+      end
+    end
+
+    context 'when feature is a path-traversal token' do
+      let(:params) { { feature: '../../.env' } }
+
+      it 'does not probe files outside the app root' do
+        probed = []
+        allow(File).to receive(:exist?).and_wrap_original do |original, path|
+          probed << path.to_s
+          original.call(path)
+        end
+
+        expect(content).not_to include('.env')
+        expect(content).to match(/not found|Nothing matched/i)
+
+        root = File.expand_path(app_root.to_s)
+        probed.each do |path|
+          expect(path).not_to include('..')
+          expanded = File.expand_path(path)
+          expect(expanded == root || expanded.start_with?("#{root}#{File::SEPARATOR}")).to be(true)
+        end
+      end
+    end
+
+    context 'when nearby controller route keys share a substring' do
+      let(:routes_data) do
+        {
+          total_routes: 3,
+          api_namespaces: [],
+          by_controller: {
+            'users' => [{ verb: 'GET', path: '/users', action: 'index', name: 'users' }],
+            'user_sessions' => [{ verb: 'GET', path: '/user_sessions', action: 'index', name: 'user_sessions' }],
+            'superuser' => [{ verb: 'GET', path: '/superuser', action: 'show', name: 'superuser' }]
+          }
+        }
+      end
+      let(:params) { { feature: 'user' } }
+
+      it 'does not attach user_sessions or superuser routes' do
+        expect(content).to include('/users')
+        expect(content).not_to include('user_sessions')
+        expect(content).not_to include('/user_sessions')
+        expect(content).not_to include('superuser')
+        expect(content).not_to include('/superuser')
+      end
+    end
+
+    context 'when the related model is excluded and a controller is requested' do
+      around do |example|
+        original = RailsAiBridge.configuration.excluded_models.dup
+        RailsAiBridge.configuration.excluded_models += ['User']
+        example.run
+      ensure
+        RailsAiBridge.configuration.excluded_models = original
+      end
+
+      let(:params) { { controller: 'UsersController' } }
+
+      it 'does not attach routes for the excluded model' do
+        expect(content).to include('UsersController')
+        expect(content).not_to include('/users')
+        expect(content).not_to include('has_many')
       end
     end
 
