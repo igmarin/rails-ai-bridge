@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Shared anti-hallucination rules in compact assistant files** (#188) — compact Claude, Cursor, Copilot, Codex, Gemini, and `AGENTS.md` output now include a short verify-before-write block from `SharedAssistantGuidance`. Disable with `config.output.anti_hallucination_rules = false` (default: on).
 - **`rails_get_routes` URL helpers and required params** (#191) — named routes now include the Rails path helper (from the route set's declared name, e.g. `post_path`) and required parameter names (from Journey `required_parts`). Unnamed routes are left without a helper. Summary stays a compact per-controller overview (counts plus one sample helper); standard/full list helpers and required params (paginated).
 - **Partition-child tables in `structure.sql` introspection** (#166) — `StaticStructureSqlParser` now expands PostgreSQL `CREATE TABLE … PARTITION OF …` children as table entries with `partition_of` / `partition_bound`, and marks parents with `partitioned` / `partition_by`. `rails_get_schema` surfaces the parent/child relationship at `detail: standard` and `full`.
 ### Changed
