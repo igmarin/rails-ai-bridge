@@ -33,6 +33,10 @@ RSpec.describe RailsAiBridge::Config::Output do
     expect(output.codex_compact_model_list_limit).to eq(3)
   end
 
+  it 'defaults anti_hallucination_rules to true' do
+    expect(output.anti_hallucination_rules).to be(true)
+  end
+
   describe '#output_dir_for' do
     it 'returns output_dir when set' do
       output.output_dir = '/custom/path'

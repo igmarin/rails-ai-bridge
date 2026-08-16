@@ -27,13 +27,14 @@ module RailsAiBridge
       # Returns database schema context. Uses a live connection when available;
       # falls back to static text-parsing otherwise.
       #
-      # @return [Hash{Symbol => Object}] includes +:adapter+, +:tables+,
-      #   +:total_tables+, and +:schema_version+ (live) or +:note+ (static)
+      # @return [Hash{Symbol => Object}] includes +:adapter+, +:source+ (+:live+ or +:static+),
+      #   +:tables+, +:total_tables+, and +:schema_version+ (live) or +:note+ (static)
       def call
         return static_schema_parse unless active_record_connected?
 
         {
           adapter: adapter_name,
+          source: :live,
           tables: extract_tables,
           total_tables: table_names.size,
           schema_version: current_schema_version

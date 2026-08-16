@@ -31,6 +31,10 @@ RSpec.describe RailsAiBridge::Introspectors::Schema::StaticStructureSqlParser do
       expect(parse(content)[:adapter]).to eq('static_parse')
     end
 
+    it 'marks the parse as inferred source' do
+      expect(parse(content)[:source]).to eq(:static)
+    end
+
     it 'includes a note about the parse source' do
       expect(parse(content)[:note]).to include('structure.sql')
     end
@@ -300,6 +304,167 @@ RSpec.describe RailsAiBridge::Introspectors::Schema::StaticStructureSqlParser do
             ADD CONSTRAINT users_pkey PRIMARY KEY (id);
       DDL
       expect(parse(content)[:tables]['users'][:foreign_keys]).to be_empty
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL declarative partitions (CREATE TABLE … PARTITION OF …)
+  # ---------------------------------------------------------------------------
+  describe 'partitioned table parsing' do
+    after { config.excluded_tables.clear }
+
+    let(:content) do
+      <<~DDL
+        CREATE TABLE public.events (
+            id bigint NOT NULL,
+            created_at timestamp without time zone NOT NULL
+        )
+        PARTITION BY RANGE (created_at);
+
+        CREATE TABLE public.events_2024 PARTITION OF public.events
+        FOR VALUES FROM ('2024-01-01') TO ('2025-01-01');
+
+        CREATE TABLE public.events_2025 PARTITION OF public.events
+        FOR VALUES FROM ('2025-01-01') TO ('2026-01-01');
+      DDL
+    end
+
+    it 'includes the parent table' do
+      expect(parse(content)[:tables]).to have_key('events')
+    end
+
+    it 'expands PARTITION OF children as table entries' do
+      expect(parse(content)[:tables].keys).to include('events_2024', 'events_2025')
+    end
+
+    it 'records the parent name on each child' do
+      tables = parse(content)[:tables]
+      expect(tables['events_2024'][:partition_of]).to eq('events')
+      expect(tables['events_2025'][:partition_of]).to eq('events')
+    end
+
+    it 'does not mark the parent as a child of itself' do
+      expect(parse(content)[:tables]['events']).not_to have_key(:partition_of)
+    end
+
+    it 'marks the parent as partitioned and captures the PARTITION BY method' do
+      parent = parse(content)[:tables]['events']
+      expect(parent[:partitioned]).to be(true)
+      expect(parent[:partition_by]).to eq('RANGE (created_at)')
+    end
+
+    it 'records the FOR VALUES bound on each child' do
+      bound = parse(content)[:tables]['events_2024'][:partition_bound]
+      expect(bound).to include('FROM')
+      expect(bound).to include('2024-01-01')
+      expect(bound).to include('2025-01-01')
+    end
+
+    it 'copies parent columns onto children that have no column list (pg_dump form)' do
+      columns = parse(content)[:tables]['events_2024'][:columns]
+      expect(columns.pluck(:name)).to contain_exactly('id', 'created_at')
+    end
+
+    it 'counts parent and children in total_tables' do
+      expect(parse(content)[:total_tables]).to eq(3)
+    end
+
+    it 'parses LIST and HASH bounds and a DEFAULT partition' do
+      content = <<~DDL
+        CREATE TABLE public.orders (
+            id bigint NOT NULL,
+            region character varying NOT NULL
+        )
+        PARTITION BY LIST (region);
+
+        CREATE TABLE public.orders_us PARTITION OF public.orders
+        FOR VALUES IN ('US');
+
+        CREATE TABLE public.orders_0 PARTITION OF public.orders
+        FOR VALUES WITH (MODULUS 4, REMAINDER 0);
+
+        CREATE TABLE public.orders_default PARTITION OF public.orders
+        DEFAULT;
+      DDL
+
+      tables = parse(content)[:tables]
+      expect(tables.keys).to include('orders', 'orders_us', 'orders_0', 'orders_default')
+      expect(tables['orders_us'][:partition_of]).to eq('orders')
+      expect(tables['orders_us'][:partition_bound]).to include('IN')
+      expect(tables['orders_0'][:partition_bound]).to include('MODULUS')
+      expect(tables['orders_default'][:partition_bound]).to match(/\ADEFAULT\b/i)
+    end
+
+    it 'handles IF NOT EXISTS, quoting, and a schema qualifier on PARTITION OF' do
+      content = <<~DDL
+        CREATE TABLE public.events (
+            id bigint
+        )
+        PARTITION BY RANGE (id);
+
+        CREATE TABLE IF NOT EXISTS public."events_q1" PARTITION OF public."events"
+        FOR VALUES FROM (1) TO (100);
+      DDL
+
+      child = parse(content)[:tables]['events_q1']
+      expect(child).to include(partition_of: 'events')
+    end
+
+    it 'parses a child that repeats its column list before PARTITION OF' do
+      content = <<~DDL
+        CREATE TABLE public.events (
+            id bigint NOT NULL,
+            created_at timestamp without time zone NOT NULL
+        )
+        PARTITION BY RANGE (created_at);
+
+        CREATE TABLE public.events_2024 (
+            id bigint NOT NULL,
+            created_at timestamp without time zone NOT NULL
+        )
+        PARTITION OF public.events
+        FOR VALUES FROM ('2024-01-01') TO ('2025-01-01');
+      DDL
+
+      child = parse(content)[:tables]['events_2024']
+      expect(child[:partition_of]).to eq('events')
+      expect(child[:columns].pluck(:name)).to contain_exactly('id', 'created_at')
+    end
+
+    it 'attaches indexes declared on a partition child' do
+      content = <<~DDL
+        CREATE TABLE public.events (
+            id bigint NOT NULL,
+            created_at timestamp without time zone NOT NULL
+        )
+        PARTITION BY RANGE (created_at);
+
+        CREATE TABLE public.events_2024 PARTITION OF public.events
+        FOR VALUES FROM ('2024-01-01') TO ('2025-01-01');
+
+        CREATE INDEX index_events_2024_on_created_at ON public.events_2024 USING btree (created_at);
+      DDL
+
+      indexes = parse(content)[:tables]['events_2024'][:indexes]
+      expect(indexes.pluck(:columns)).to contain_exactly('created_at')
+    end
+
+    it 'skips a partition child listed in config.excluded_tables' do
+      config.excluded_tables << 'events_2024'
+      expect(parse(content)[:tables]).not_to have_key('events_2024')
+      expect(parse(content)[:tables]).to have_key('events_2025')
+    end
+
+    it 'does not treat a regular CREATE TABLE as partitioned' do
+      content = <<~DDL
+        CREATE TABLE public.users (
+            email character varying
+        );
+      DDL
+
+      users = parse(content)[:tables]['users']
+      expect(users).not_to have_key(:partitioned)
+      expect(users).not_to have_key(:partition_of)
     end
   end
 

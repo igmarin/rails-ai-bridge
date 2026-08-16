@@ -8,16 +8,24 @@ module RailsAiBridge
       # indexes, and foreign keys.
       class TableFormatter
         # @param name [String] table name
-        # @param data [Hash] slice from schema introspection (+:columns+, +:indexes+, +:foreign_keys+)
+        # @param data [Hash] slice from schema introspection (+:columns+, +:indexes+,
+        #   +:foreign_keys+, optional +:partition_of+ / +:partitioned+)
+        # @param source [Symbol, String, nil] +:live+ (verified) or +:static+ (inferred)
         # @return [void]
-        def initialize(name:, data:)
+        def initialize(name:, data:, source: nil)
           @name = name
           @data = data
+          @source = source
         end
 
         # @return [String] Markdown representation of the table
         def call
-          lines = ["## Table: #{@name}", '']
+          lines = ["## Table: #{ConfidenceTag.tagged(@name, @source)}", '']
+          heading = partition_heading
+          if heading
+            lines << heading
+            lines << ''
+          end
           lines << '| Column | Type | Nullable | Default |'
           lines << '|--------|------|----------|---------|'
 
@@ -41,6 +49,19 @@ module RailsAiBridge
           end
 
           lines.join("\n")
+        end
+
+        private
+
+        # @return [String, nil] italic partition relationship line for full detail
+        def partition_heading
+          if @data[:partition_of]
+            note = "_Partition of `#{@data[:partition_of]}`"
+            note += " — #{@data[:partition_bound]}" if @data[:partition_bound]
+            "#{note}_"
+          elsif @data[:partitioned]
+            @data[:partition_by] ? "_Partitioned by #{@data[:partition_by]}_" : '_Partitioned_'
+          end
         end
       end
     end

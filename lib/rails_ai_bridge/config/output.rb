@@ -34,6 +34,10 @@ module RailsAiBridge
       #   regeneration. Never applies to +.ai-context.json+. Defaults to +false+.
       attr_accessor :managed_region
 
+      # @return [Boolean] when +true+, compact assistant files include the shared
+      #   anti-hallucination rules. Defaults to +true+.
+      attr_accessor :anti_hallucination_rules
+
       def initialize
         @output_dir                     = nil
         @context_mode                   = :compact
@@ -44,6 +48,7 @@ module RailsAiBridge
         @codex_compact_model_list_limit   = 3
         @watcher_formats                  = :all
         @managed_region                   = false
+        @anti_hallucination_rules         = true
       end
 
       # Resolve the effective output directory.

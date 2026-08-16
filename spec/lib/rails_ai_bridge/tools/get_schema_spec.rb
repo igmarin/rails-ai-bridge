@@ -5,6 +5,8 @@ require 'spec_helper'
 RSpec.describe RailsAiBridge::Tools::GetSchema do
   let(:schema_data) do
     {
+      adapter: 'SQLite',
+      source: :live,
       total_tables: 2,
       tables: {
         'users' => { columns: [{ name: 'id', type: 'integer' }], indexes: [], foreign_keys: [] },
@@ -35,8 +37,8 @@ RSpec.describe RailsAiBridge::Tools::GetSchema do
 
       it 'delegates to the SummaryFormatter' do
         expect(content).to include('# Schema Summary (2 tables)')
-        expect(content).to include('- **users** — 1 columns, 0 indexes')
-        expect(content).to include('- **posts** — 2 columns, 0 indexes')
+        expect(content).to include('- **users** [VERIFIED] — 1 columns, 0 indexes')
+        expect(content).to include('- **posts** [VERIFIED] — 2 columns, 0 indexes')
       end
     end
 
@@ -66,7 +68,7 @@ RSpec.describe RailsAiBridge::Tools::GetSchema do
 
       it 'uses summary detail' do
         expect(content).to include('# Schema Summary (2 tables)')
-        expect(content).to include('- **users** — 1 columns, 0 indexes')
+        expect(content).to include('- **users** [VERIFIED] — 1 columns, 0 indexes')
       end
     end
 
