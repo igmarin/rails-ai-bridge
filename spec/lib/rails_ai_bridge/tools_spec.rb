@@ -37,11 +37,12 @@ RSpec.describe 'MCP Tool Integration' do
     end
 
     it 'builds with all tools registered' do
-      expect(server.tools.size).to eq(RailsAiBridge::Server::TOOLS.size)
+      expect(server.tools.size).to eq(18)
       expect(server.tools.keys).to contain_exactly(
         'rails_get_schema',
         'rails_get_routes',
         'rails_get_model_details',
+        'rails_get_context',
         'rails_get_gems',
         'rails_search_code',
         'rails_search_semantic',

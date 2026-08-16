@@ -46,6 +46,7 @@ RSpec.describe RailsAiBridge::Server do
       expect(RailsAiBridge::Server::TOOLS).to include(RailsAiBridge::Tools::ResolveSkill)
       expect(RailsAiBridge::Server::TOOLS).to include(RailsAiBridge::Tools::UseSkill)
       expect(RailsAiBridge::Server::TOOLS).to include(RailsAiBridge::Tools::UseAgent)
+      expect(RailsAiBridge::Server::TOOLS).to include(RailsAiBridge::Tools::GetContext)
     end
   end
 
