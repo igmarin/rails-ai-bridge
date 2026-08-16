@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Namespaced model exclusions no longer collide on the last path segment** — `excluded_models: ['User']` still matches `User` / `Users` / `users` / `UsersController`, but not `Admin::User`, `Admin::UsersController`, `UserSession`, or `Superuser`. `excluded_models: ['Admin::User']` matches `Admin::User` and `Admin::UsersController` only. Table-only exclusions are unchanged (`patient_records` still drops `PatientRecord`).
 - **MCP `fetch_section` honored disabled introspectors** (#186) — `Introspector#selected_introspectors` now intersects `only:` with `effective_introspectors`, so `:regulated` and `disabled_introspection_categories` cannot be bypassed by `rails_get_schema` / `rails://schema`.
 - **Excluded association names no longer leak via model details** (#186) — associations, generated accessors, and rubydex `similar_models` that name an excluded model or table are omitted from MCP output.
 - **`similar_models` honors `excluded_tables`** (#186) — rubydex sibling names such as `PatientRecord` are dropped when only `patient_records` is excluded (`ExclusionHelper.excluded_class_or_table?`).

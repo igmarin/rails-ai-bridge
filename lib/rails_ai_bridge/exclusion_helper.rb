@@ -22,6 +22,8 @@ module RailsAiBridge
 
     # Returns +true+ when +name+ is an excluded model or maps to an excluded table.
     # Accepts rubydex-decorated tokens such as +PatientRecord::<PatientRecord>+.
+    # Demodulized bases match only when the module prefix is the same
+    # (+User+ vs +UsersController+, not +User+ vs +Admin::User+).
     #
     # @param name [String, nil] class, association, controller, or route token
     # @param config [#excluded_models, #excluded_table?]
@@ -33,7 +35,7 @@ module RailsAiBridge
       if config.respond_to?(:excluded_models)
         models = Array(config.excluded_models).map(&:to_s)
         return true if models.any? { |excluded| token == excluded || token.start_with?("#{excluded}::") }
-        return true if class_stems(token).any? { |stem| models.include?(stem.singularize.camelize) }
+        return true if models.any? { |excluded| namespaced_base_match?(token, excluded) }
       end
 
       return false unless config.respond_to?(:excluded_table?)
@@ -41,12 +43,36 @@ module RailsAiBridge
       class_stems(token).any? { |stem| config.excluded_table?(stem) }
     end
 
-    # Strips rubydex decoration (+Class::<Class>+) from a related-model token.
+    # Strips rubydex decoration (+Class::<Class>+) from a related-model token
+    # and normalizes route-style +admin/users+ paths to +admin::users+.
     #
     # @param name [String, nil]
     # @return [String]
     def normalize_class_token(name)
-      name.to_s.sub(/::<[^>]*>\z/, '')
+      name.to_s.sub(/::<[^>]*>\z/, '').gsub('/', '::')
+    end
+
+    # True when demodulized bases match and both tokens share a module prefix.
+    #
+    # @param token [String]
+    # @param excluded [String]
+    # @return [Boolean]
+    def namespaced_base_match?(token, excluded)
+      return false unless module_prefix(token).casecmp?(module_prefix(excluded))
+
+      classify_base(token) == classify_base(excluded)
+    end
+
+    # @param name [String]
+    # @return [String]
+    def module_prefix(name)
+      name.to_s.deconstantize
+    end
+
+    # @param name [String]
+    # @return [String]
+    def classify_base(name)
+      name.to_s.demodulize.sub(/Controller\z/, '').singularize.camelize
     end
 
     # Table-name candidates for a class or route/controller token.
