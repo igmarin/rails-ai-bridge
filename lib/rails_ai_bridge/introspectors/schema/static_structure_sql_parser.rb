@@ -22,6 +22,15 @@ module RailsAiBridge
       #   is the SQL type. Table-level constraint lines (+CONSTRAINT+,
       #   +PRIMARY KEY+, +FOREIGN KEY+, …) are skipped.
       # * +);+ — closes the current table context
+      # * +) PARTITION BY method+ / a following +PARTITION BY+ line — marks the
+      #   just-closed table as a partitioned parent (+partitioned+, +partition_by+)
+      # * +CREATE TABLE [IF NOT EXISTS] [schema.]child PARTITION OF [schema.]parent+
+      #   (pg_dump form, no column list) — expands a partition child with
+      #   +partition_of+ / +partition_bound+ and inherited parent columns
+      # * +) PARTITION OF parent+ / a following +PARTITION OF+ line — attaches
+      #   the parent reference to a child that repeated its column list
+      # * +FOR VALUES ...+ / +DEFAULT+ — records the partition bound on the
+      #   pending child (RANGE / LIST / HASH / default)
       # * +CREATE [UNIQUE] INDEX name ON [schema.]table USING method (cols)+ —
       #   adds an index entry (first simple column) to the named table.
       #   Functional/expression indexes (e.g. +lower(email)+) are skipped.
@@ -48,7 +57,21 @@ module RailsAiBridge
       class StaticStructureSqlParser
         # Regex matching a +CREATE TABLE+ declaration, tolerating +IF NOT EXISTS+,
         # a schema qualifier (+public.+), and optional quoting of either part.
+        # Requires an opening paren so +CREATE TABLE … PARTITION OF …+ (no
+        # column list) is handled by {PARTITION_OF_LINE} instead.
         TABLE_LINE = /\ACREATE TABLE (?:IF NOT EXISTS\s+)?(?:[\w"]+\.)?"?([A-Za-z_]\w*)"?\s*\(/
+
+        # Regex matching a pg_dump partition child: +CREATE TABLE child
+        # PARTITION OF parent+ with no column list. Captures child, parent, and
+        # any trailing bound clause on the same line.
+        PARTITION_OF_LINE = /\ACREATE TABLE (?:IF NOT EXISTS\s+)?(?:[\w"]+\.)?"?([A-Za-z_]\w*)"?\s+PARTITION OF\s+(?:[\w"]+\.)?"?([A-Za-z_]\w*)"?\s*(.*)/i
+
+        # Regex matching a standalone +PARTITION OF parent+ clause (emitted after
+        # a child that repeated its column list).
+        PARTITION_OF_CLAUSE = /\APARTITION OF\s+(?:[\w"]+\.)?"?([A-Za-z_]\w*)"?\s*(.*)/i
+
+        # Regex matching a +PARTITION BY method+ clause on a parent table.
+        PARTITION_BY_CLAUSE = /\APARTITION BY\s+(.+)/i
 
         # Regex matching the end of a table body (+);+ at column zero).
         TABLE_END_LINE = /\A\)/
@@ -88,12 +111,13 @@ module RailsAiBridge
         # @param config  [RailsAiBridge::Config::Introspection, RailsAiBridge::Configuration]
         #   any object that responds to +#excluded_table?+
         def initialize(content:, config:)
-          @content       = content
-          @config        = config
-          @tables        = {}
-          @current_table = nil
-          @in_table      = false
-          @alter_target  = nil
+          @content            = content
+          @config             = config
+          @tables             = {}
+          @current_table      = nil
+          @in_table           = false
+          @alter_target       = nil
+          @pending_partition  = nil
         end
 
         # Parse the structure.sql content and return the tables hash. Never
@@ -124,7 +148,9 @@ module RailsAiBridge
         # @return [void]
         def parse_line(line)
           return parse_body_line(line) if @in_table
+          return if parse_partition_of_line?(line)
           return if parse_table_line?(line)
+          return if parse_partition_followup?(line)
           return if parse_index_line?(line)
           return if parse_alter_table_line?(line)
 
@@ -143,24 +169,188 @@ module RailsAiBridge
 
           name = match[1]
           @in_table = true
+          @pending_partition = nil
           @current_table = skip_table?(name) ? nil : name
-          @tables[@current_table] = { columns: [], indexes: [], foreign_keys: [] } if @current_table
+          @tables[@current_table] = empty_table_entry if @current_table
+          true
+        end
+
+        # Expands a pg_dump partition child (+CREATE TABLE child PARTITION OF
+        # parent+ with no column list) as a table entry referencing its parent.
+        #
+        # @param line [String]
+        # @return [Boolean] +true+ if the line matched
+        def parse_partition_of_line?(line)
+          match = PARTITION_OF_LINE.match(line)
+          return false unless match
+
+          register_partition_child(name: match[1], parent: match[2], rest: match[3].to_s)
           true
         end
 
         # Handles a line while inside a table body: either the closing paren or a
-        # column definition (constraint lines are ignored).
+        # column definition (constraint lines are ignored). A close without a
+        # trailing semicolon (pg_dump parent / column-list child) waits for a
+        # following +PARTITION BY+ / +PARTITION OF+ line.
         #
         # @param line [String]
         # @return [void]
         def parse_body_line(line)
           if TABLE_END_LINE.match?(line)
-            @in_table = false
-            @current_table = nil
+            close_table_body(line)
             return
           end
 
           parse_column_line(line) if @current_table
+        end
+
+        # Closes the current table body and applies any partition clause that
+        # shares the closing parenthesis line.
+        #
+        # @param line [String]
+        # @return [void]
+        def close_table_body(line)
+          table = @current_table
+          remainder = line.sub(/\A\)\s*/, '')
+          apply_inline_partition_clause(table, remainder) if table && !remainder.empty?
+
+          @in_table = false
+          @current_table = nil
+          @pending_partition = table if table && line.exclude?(';')
+        end
+
+        # Attaches +PARTITION OF+ / +PARTITION BY+ written on the same line as
+        # the closing +)+.
+        #
+        # @param table [String]
+        # @param remainder [String] text after the closing parenthesis
+        # @return [void]
+        def apply_inline_partition_clause(table, remainder)
+          stripped = remainder.strip
+          if (match = PARTITION_OF_CLAUSE.match(stripped))
+            apply_partition_of(table, match[1], match[2].to_s)
+          elsif (match = PARTITION_BY_CLAUSE.match(stripped))
+            apply_partition_by(table, match[1])
+          end
+        end
+
+        # Consumes a line that continues a just-closed or just-declared
+        # partition statement: +PARTITION BY+, +PARTITION OF+, or the bound
+        # (+FOR VALUES …+ / +DEFAULT+). Clears the pending target when the
+        # line is unrelated.
+        #
+        # @param line [String]
+        # @return [Boolean] +true+ if the line was consumed as a follow-up
+        def parse_partition_followup?(line)
+          return false unless @pending_partition
+
+          stripped = line.strip
+          return true if stripped.empty?
+
+          if (match = PARTITION_OF_CLAUSE.match(stripped))
+            apply_partition_of(@pending_partition, match[1], match[2].to_s)
+            @pending_partition = nil if stripped.include?(';')
+            return true
+          end
+
+          if (match = PARTITION_BY_CLAUSE.match(stripped))
+            apply_partition_by(@pending_partition, match[1])
+            @pending_partition = nil
+            return true
+          end
+
+          bound = extract_partition_bound(stripped)
+          if bound
+            apply_partition_bound(@pending_partition, bound)
+            @pending_partition = nil
+            return true
+          end
+
+          @pending_partition = nil
+          false
+        end
+
+        # Records a partition child and copies the parent's columns when the
+        # child declaration has no column list.
+        #
+        # @param name [String]
+        # @param parent [String]
+        # @param rest [String] remainder of the CREATE line (bound and/or +;+)
+        # @return [void]
+        def register_partition_child(name:, parent:, rest:)
+          @pending_partition = nil
+          return if skip_table?(name)
+
+          @tables[name] = empty_table_entry.merge(
+            columns: inherit_columns(parent),
+            partition_of: parent
+          )
+          apply_partition_bound(name, extract_partition_bound(rest))
+          @pending_partition = name unless rest.include?(';')
+        end
+
+        # Marks +table+ as a partition of +parent+ without replacing columns
+        # already parsed from an inline column list.
+        #
+        # @param table [String]
+        # @param parent [String]
+        # @param rest [String]
+        # @return [void]
+        def apply_partition_of(table, parent, rest)
+          entry = @tables[table]
+          return unless entry
+
+          entry[:partition_of] = parent
+          apply_partition_bound(table, extract_partition_bound(rest))
+          @pending_partition = table unless rest.include?(';')
+        end
+
+        # Marks +table+ as a partitioned parent.
+        #
+        # @param table [String]
+        # @param method [String] raw +PARTITION BY+ argument (e.g. +RANGE (col)+)
+        # @return [void]
+        def apply_partition_by(table, method)
+          entry = @tables[table]
+          return unless entry
+
+          entry[:partitioned] = true
+          entry[:partition_by] = method.sub(/;\s*\z/, '').strip
+        end
+
+        # @param table [String]
+        # @param bound [String, nil]
+        # @return [void]
+        def apply_partition_bound(table, bound)
+          return if bound.blank?
+
+          @tables[table][:partition_bound] = bound if @tables[table]
+        end
+
+        # Strips a trailing semicolon and keeps +FOR VALUES …+ / +DEFAULT+.
+        #
+        # @param text [String]
+        # @return [String, nil]
+        def extract_partition_bound(text)
+          cleaned = text.to_s.sub(/;\s*\z/, '').strip
+          return nil if cleaned.empty?
+          return cleaned if cleaned.match?(/\A(?:FOR VALUES\b|DEFAULT\b)/i)
+
+          nil
+        end
+
+        # @param parent [String]
+        # @return [Array<Hash>] a copy of the parent's columns, or +[]+
+        def inherit_columns(parent)
+          columns = @tables.dig(parent, :columns)
+          return [] unless columns
+
+          columns.map(&:dup)
+        end
+
+        # @return [Hash] empty table payload matching the live introspector shape
+        def empty_table_entry
+          { columns: [], indexes: [], foreign_keys: [] }
         end
 
         # Appends a column to the current table unless the line is a table-level
