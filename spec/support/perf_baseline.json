@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "description": "Performance regression baseline for rails-ai-bridge. Captured on Ruby 3.3 / Rails 8.1 in CI. Regressions exceeding 20% over these values fail the perf job.",
+  "description": "Performance regression baseline for rails-ai-bridge. Captured on Ruby 3.3 / Rails 8.1 in CI. Metrics are the median of five iterations after one warmup. introspection_time_sec reflects 4.3 schema/routes work (exclusions, partition children, route helpers). Regressions exceeding 20% over these values fail the perf job.",
   "metrics": {
-    "introspection_time_sec": 0.02,
+    "introspection_time_sec": 0.028,
     "context_generation_time_sec": 0.01,
     "mcp_tool_response_time_sec": 0.02
   }
