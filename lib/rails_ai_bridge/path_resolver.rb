@@ -220,7 +220,9 @@ module RailsAiBridge
 
     # Accepts an existing candidate only when its realpath stays inside the
     # resolved directory or the application root. Missing paths are not
-    # realpathed.
+    # realpathed. Regular files still go through +File.realpath+ so a
+    # directory symlink under the configured path cannot leak outside.
+    # Allowed roots are realpathed once per resolver instance.
     #
     # @param candidate [String] absolute candidate path
     # @param directory [String] resolved logical directory for this lookup
@@ -234,18 +236,27 @@ module RailsAiBridge
       false
     end
 
-    # Compares a resolved file path against the realpath of one allowed root.
+    # Compares a resolved file path against the cached realpath of one allowed root.
     #
     # @param real_path [String] File.realpath of an existing candidate
     # @param root [String] resolved directory or application root
     # @return [Boolean] true when the file is inside this root
     def path_inside_real_root?(real_path, root)
-      return false unless File.exist?(root)
+      real_root = real_root_for(root)
+      return false unless real_root
 
-      real_root = File.realpath(root)
       real_path == real_root || real_path.start_with?("#{real_root}#{File::SEPARATOR}")
+    end
+
+    # @param root [String] resolved directory or application root
+    # @return [String, nil] File.realpath of the root, or nil when missing
+    def real_root_for(root)
+      @real_roots ||= {}
+      return @real_roots[root] if @real_roots.key?(root)
+
+      @real_roots[root] = File.exist?(root) ? File.realpath(root) : nil
     rescue Errno::ENOENT
-      false
+      @real_roots[root] = nil
     end
 
     def configured_paths_for(logical_path)

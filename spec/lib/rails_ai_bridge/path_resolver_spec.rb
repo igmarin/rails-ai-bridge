@@ -72,6 +72,26 @@ RSpec.describe RailsAiBridge::PathResolver do
     end
   end
 
+  context 'when a directory symlink under a configured path points outside the app root' do
+    let(:outside_dir) { Dir.mktmpdir('rails-ai-bridge-path-resolver-outside-dir') }
+    let(:outside_target) { File.join(outside_dir, 'secret.rb') }
+
+    before do
+      File.write(outside_target, 'class Secret; end')
+      File.symlink(outside_dir, models_dir.join('leaked'))
+    end
+
+    after { FileUtils.rm_rf(outside_dir) }
+
+    it 'does not return files reached through the directory symlink' do
+      results = resolver.glob_for('app/models', '**/*.rb')
+
+      expect(results).not_to include(outside_target)
+      expect(results).not_to include(models_dir.join('leaked/secret.rb').to_s)
+      expect(resolver.existing_file_for('app/models', 'leaked/secret.rb')).to be_nil
+    end
+  end
+
   it 'rejects traversal in glob patterns before reading the filesystem' do
     expect { resolver.glob_for('app/models', '../**/*.rb') }.to raise_error(
       ArgumentError,
