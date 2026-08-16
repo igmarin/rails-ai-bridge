@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Documentation and gemspec humanization** (#189) — gemspec is one plain sentence (maps a Rails
+  app so assistants stop guessing); Windsurf dropped from the gemspec; `:full` YARD comment is 27
+  to match `Configuration::PRESETS[:full]`; README comparison uses four durable rows
+  (zero-config, committed files, read-only, presets) plus a dated checked-against line;
+  `docs/gem-general-improvements.md` marked done-in-4.1; `docs/offline-mode.md` labeled
+  5.0 / registry. SECURITY.md outbound policy unchanged (git packs only).
+
 ## [4.2.0] - 2026-08-13
 
 ### Added
