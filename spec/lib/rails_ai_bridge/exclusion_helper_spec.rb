@@ -94,5 +94,26 @@ RSpec.describe RailsAiBridge::ExclusionHelper do
       expect(described_class.excluded_class_or_table?('UserSession', config)).to be false
       expect(described_class.excluded_class_or_table?('Superuser', config)).to be false
     end
+
+    it 'does not treat a namespaced class as excluded when only the un-namespaced model is listed' do
+      config.excluded_models += %w[User]
+
+      expect(described_class.excluded_class_or_table?('Admin::User', config)).to be false
+      expect(described_class.excluded_class_or_table?('Admin::UsersController', config)).to be false
+    end
+
+    it 'matches a namespaced model and its controller when that namespaced class is listed' do
+      config.excluded_models += %w[Admin::User]
+
+      expect(described_class.excluded_class_or_table?('Admin::User', config)).to be true
+      expect(described_class.excluded_class_or_table?('Admin::UsersController', config)).to be true
+    end
+
+    it 'does not treat an un-namespaced class as excluded when only the namespaced model is listed' do
+      config.excluded_models += %w[Admin::User]
+
+      expect(described_class.excluded_class_or_table?('User', config)).to be false
+      expect(described_class.excluded_class_or_table?('UsersController', config)).to be false
+    end
   end
 end

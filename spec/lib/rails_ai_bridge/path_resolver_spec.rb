@@ -38,6 +38,60 @@ RSpec.describe RailsAiBridge::PathResolver do
     )
   end
 
+  it 'returns nil for a missing relative file without resolving realpath' do
+    expect(resolver.existing_file_for('app/models', 'billing/missing.rb')).to be_nil
+  end
+
+  context 'when a symlink under a configured path points outside the app root' do
+    let(:outside_dir) { Dir.mktmpdir('rails-ai-bridge-path-resolver-outside') }
+    let(:outside_target) { File.join(outside_dir, 'secret.rb') }
+
+    before do
+      File.write(outside_target, 'class Secret; end')
+      File.symlink(outside_target, models_dir.join('billing/secret.rb'))
+    end
+
+    after { FileUtils.rm_rf(outside_dir) }
+
+    it 'does not return the outside target from existing_file_for' do
+      expect(resolver.existing_file_for('app/models', 'billing/secret.rb')).to be_nil
+    end
+
+    it 'does not return the outside target from glob_for' do
+      results = resolver.glob_for('app/models', '**/*.rb')
+
+      expect(results).not_to include(outside_target)
+      expect(results).not_to include(models_dir.join('billing/secret.rb').to_s)
+      expect(results).to include(models_dir.join('billing/account.rb').to_s)
+    end
+
+    it 'still resolves a valid non-symlink file beside the escaping symlink' do
+      expect(resolver.existing_file_for('app/models', 'billing/account.rb')).to eq(
+        models_dir.join('billing/account.rb').to_s
+      )
+    end
+  end
+
+  context 'when a directory symlink under a configured path points outside the app root' do
+    let(:outside_dir) { Dir.mktmpdir('rails-ai-bridge-path-resolver-outside-dir') }
+    let(:outside_target) { File.join(outside_dir, 'secret.rb') }
+
+    before do
+      File.write(outside_target, 'class Secret; end')
+      File.symlink(outside_dir, models_dir.join('leaked'))
+    end
+
+    after { FileUtils.rm_rf(outside_dir) }
+
+    it 'does not return files reached through the directory symlink' do
+      results = resolver.glob_for('app/models', '**/*.rb')
+
+      expect(results).not_to include(outside_target)
+      expect(results).not_to include(models_dir.join('leaked/secret.rb').to_s)
+      expect(resolver.existing_file_for('app/models', 'leaked/secret.rb')).to be_nil
+    end
+  end
+
   it 'rejects traversal in glob patterns before reading the filesystem' do
     expect { resolver.glob_for('app/models', '../**/*.rb') }.to raise_error(
       ArgumentError,
