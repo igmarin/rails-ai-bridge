@@ -279,7 +279,7 @@ end
 
 ## MCP Tools — Full Reference
 
-All **18 built-in tools** are **read-only** and **idempotent** — they never modify your application or database. Hosts can append more via `config.additional_tools`.
+All **19 built-in tools** are **read-only** and **idempotent** — they never modify your application or database. Hosts can append more via `config.additional_tools`.
 
 ### rails_get_schema
 
