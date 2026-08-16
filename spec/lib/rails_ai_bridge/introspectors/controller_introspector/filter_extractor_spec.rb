@@ -114,4 +114,67 @@ RSpec.describe RailsAiBridge::Introspectors::ControllerIntrospector::FilterExtra
       expect(described_class.new(ctrl).call).to eq([])
     end
   end
+
+  describe 'inherited ActionController filters' do
+    subject(:filters) { described_class.new(child_class).call }
+
+    let(:parent_class) do
+      Class.new(ApplicationController) do
+        def self.name
+          'InheritedFiltersParentController'
+        end
+
+        before_action :authenticate_user!
+        before_action :require_admin, only: :admin_panel
+        after_action :write_audit, except: :index
+      end
+    end
+
+    let(:child_class) do
+      Class.new(parent_class) do
+        def self.name
+          'InheritedFiltersChildController'
+        end
+
+        before_action :set_user, only: :show
+
+        def index; end
+        def show; end
+        def create; end
+      end
+    end
+
+    def filter_named(name)
+      filters.find { |filter| filter[:name] == name }
+    end
+
+    it 'includes inherited applicable filters with their source class' do
+      auth = filter_named('authenticate_user!')
+      expect(auth).to include(kind: 'before', source: 'InheritedFiltersParentController')
+    end
+
+    it 'omits inherited only: filters that do not apply to any child action' do
+      expect(filter_named('require_admin')).to be_nil
+    end
+
+    it 'keeps except: filters that still apply to some child action' do
+      audit = filter_named('write_audit')
+      expect(audit).to include(kind: 'after', except: ['index'], source: 'InheritedFiltersParentController')
+    end
+
+    it 'extracts only: from ActionFilter conditions and tags the defining class' do
+      expect(filter_named('set_user')).to include(
+        kind: 'before',
+        only: ['show'],
+        source: 'InheritedFiltersChildController'
+      )
+    end
+
+    it 'omits parent filters the child skipped' do
+      child_class.skip_before_action :authenticate_user!
+
+      expect(described_class.new(child_class).call.pluck(:name))
+        .not_to include('authenticate_user!')
+    end
+  end
 end
