@@ -74,7 +74,7 @@ flowchart LR
 
 1. **Introspect**: built-in scanners read your Rails app structure: schema, models, routes, controllers, gems, tests, conventions, and optional full-stack details.
 2. **Generate**: `rails ai:bridge` writes compact, assistant-specific files such as `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/`, and Copilot instructions.
-3. **Serve**: `rails ai:serve` exposes read-only `rails_*` MCP tools so an assistant can drill into exact details on demand.
+3. **Serve**: `rails ai:serve` exposes 17 read-only `rails_*` tools so an assistant can drill into exact details on demand.
 
 This creates two complementary layers:
 
@@ -156,13 +156,13 @@ Optional: `gem install rails-ai-bridge` installs the gem into your Ruby environm
 
 | | **rails-ai-bridge** | **[rails-mcp-server](https://github.com/maquina-app/rails-mcp-server)** | **Manual context** |
 | --- | --- | --- | --- |
-| Zero config | Yes — Railtie + install generator | No — per-project `projects.yml` | No |
-| Token optimization | Yes — compact files + `detail:"summary"` workflow | Varies | No |
-| Codex-oriented repo files | Yes — `AGENTS.md`, `.codex/README.md` | No | DIY |
-| Live MCP tools | Yes — 17 read-only `rails_*` tools (extensible) | Yes | No |
-| Auto-introspection | Yes — up to **27** domains (`:full`) | No — server points at projects you configure | DIY |
+| Zero-config | Yes — Railtie + install generator | No — per-project `projects.yml` | No |
+| Committed files | Yes — assistant files committed to the repo | No — configured projects only | DIY |
+| Read-only | Yes — inspects structure; never writes or mutates | Yes | Yes |
+| Presets | Yes — `:standard`, `:full`, and `:regulated` | No | No |
 
-*Comparison reflects typical documented setups; verify against each project before treating any row as absolute.*
+*Checked against rails-mcp-server README and typical manual-context workflows on 2026-08-15.
+This table lists durable product differences, not tool or introspector counts that change release to release.*
 
 ---
 
@@ -257,7 +257,7 @@ The gem exposes **17 built-in tools** via MCP that AI clients call on-demand (ho
 |------|----------------|
 | `rails_get_schema` | Tables, columns, indexes, foreign keys |
 | `rails_get_model_details` | Associations, validations, scopes, enums, callbacks, semantic tier, non-AR models (when enabled) |
-| `rails_get_routes` | HTTP verbs, paths, controller actions |
+| `rails_get_routes` | HTTP verbs, paths, controller actions, URL helpers, required params |
 | `rails_get_controllers` | Actions, filters, strong params, concerns |
 | `rails_get_config` | Cache, session, timezone, middleware, initializers |
 | `rails_get_test_info` | Test framework, factories, CI config, coverage |
