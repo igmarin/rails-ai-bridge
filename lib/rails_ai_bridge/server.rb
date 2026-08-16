@@ -33,6 +33,7 @@ module RailsAiBridge
       Tools::GetSchema,
       Tools::GetRoutes,
       Tools::GetModelDetails,
+      Tools::GetContext,
       Tools::GetGems,
       Tools::SearchCode,
       Tools::SearchSemantic,

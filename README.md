@@ -74,7 +74,7 @@ flowchart LR
 
 1. **Introspect**: built-in scanners read your Rails app structure: schema, models, routes, controllers, gems, tests, conventions, and optional full-stack details.
 2. **Generate**: `rails ai:bridge` writes compact, assistant-specific files such as `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/`, and Copilot instructions.
-3. **Serve**: `rails ai:serve` exposes 17 read-only `rails_*` tools so an assistant can drill into exact details on demand.
+3. **Serve**: `rails ai:serve` exposes 18 read-only `rails_*` tools so an assistant can drill into exact details on demand.
 
 This creates two complementary layers:
 
@@ -251,12 +251,13 @@ This keeps context focused and avoids unnecessary token usage while still allowi
 
 ## MCP Tools
 
-The gem exposes **17 built-in tools** via MCP that AI clients call on-demand (hosts can append more via `config.additional_tools`):
+The gem exposes **18 built-in tools** via MCP that AI clients call on-demand (hosts can append more via `config.additional_tools`):
 
 | Tool | What it returns |
 |------|----------------|
 | `rails_get_schema` | Tables, columns, indexes, foreign keys — tagged `[VERIFIED]` (live ActiveRecord) or `[INFERRED]` (static schema.rb / structure.sql parse) |
 | `rails_get_model_details` | Associations, validations, scopes, enums, callbacks, source macros, semantic tier, non-AR models (when enabled) — tagged `[VERIFIED]` (reflection / rubydex) or `[INFERRED]` (source regex) |
+| `rails_get_context` | In-process composite for one model, controller, or feature: table + model + routes + controller actions + cheap related tests (no HTTP) |
 | `rails_get_routes` | HTTP verbs, paths, controller actions |
 | `rails_get_controllers` | Actions, filters, strong params, concerns |
 | `rails_get_config` | Cache, session, timezone, middleware, initializers |

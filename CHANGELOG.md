@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`rails_get_context` MCP tool** (#181) — in-process composite for one model, controller, or feature (table + model + routes + controller actions/filters + cheap related tests). Reuses `[VERIFIED]` / `[INFERRED]` tags from #187. No HTTP; provider fan-out stays on a different name. Tool count 17 → 18.
 - **Confidence tags on schema and model MCP tools** (#187) — `rails_get_schema` and `rails_get_model_details` markdown now marks facts as `[VERIFIED]` (live ActiveRecord reflection or rubydex/Prism) or `[INFERRED]` (source-regex macros and static schema parses). Missing sections are omitted rather than tagged empty.
 - **Shared anti-hallucination rules in compact assistant files** (#188) — compact Claude, Cursor, Copilot, Codex, Gemini, and `AGENTS.md` output now include a short verify-before-write block from `SharedAssistantGuidance`. Disable with `config.output.anti_hallucination_rules = false` (default: on).
 - **`rails_get_routes` URL helpers and required params** (#191) — named routes now include the Rails path helper (from the route set's declared name, e.g. `post_path`) and required parameter names (from Journey `required_parts`). Unnamed routes are left without a helper. Summary stays a compact per-controller overview (counts plus one sample helper); standard/full list helpers and required params (paginated).
