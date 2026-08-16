@@ -15,9 +15,9 @@ require_relative '../../../internal/app/models/membership'
 # Parity tables for MCP exclusion coverage. When Server::TOOLS or resource
 # templates grow, add the new entry here or this spec fails.
 #
-# Composite +rails_get_context+ does not exist yet (issue #181). When that
-# tool ships, add it to TOOL_EXCLUSION_POLICY as +:omits_excluded_names+ and
-# remove it from PENDING_COMPOSITE_TOOLS.
+# +rails_get_context+ (#181) is in the policy as a listing surface but is
+# only required/invoked when it is present in Server::TOOLS. That keeps this
+# spec order-safe with the stacked GetContext PR.
 module MCPExclusionParityTables
   # Policy for every Server::TOOLS entry.
   # :omits_excluded_names — invoked; omitted names must not appear.
@@ -41,10 +41,13 @@ module MCPExclusionParityTables
     'rails_resolve_skill' => :does_not_list_models_or_tables,
     'rails_use_skill' => :does_not_list_models_or_tables,
     'rails_use_agent' => :does_not_list_models_or_tables,
-    'rails_list_context_providers' => :does_not_list_models_or_tables
+    'rails_list_context_providers' => :does_not_list_models_or_tables,
+    # Required as a listing surface once Server::TOOLS includes this tool (#181).
+    'rails_get_context' => :omits_excluded_names
   }.freeze
 
-  PENDING_COMPOSITE_TOOLS = %w[rails_get_context].freeze
+  # Present in TOOL_EXCLUSION_POLICY but not required in Server::TOOLS until #181.
+  OPTIONAL_UNTIL_REGISTERED = %w[rails_get_context].freeze
 
   RESOURCE_TEMPLATE_POLICY = {
     'rails://models/{name}' => :omits_excluded_names,
@@ -113,10 +116,13 @@ RSpec.describe 'MCP exclusion parity' do
 
   describe 'parity tables' do
     it 'lists every Server::TOOLS entry' do
-      registered = RailsAiBridge::Server::TOOLS.map(&:tool_name)
-      expect(MCPExclusionParityTables::TOOL_EXCLUSION_POLICY.keys).to match_array(registered),
-                                                                      'Add the new tool to TOOL_EXCLUSION_POLICY ' \
-                                                                      '(or PENDING_COMPOSITE_TOOLS is stale).'
+      registered = registered_tool_names
+      policy_keys = MCPExclusionParityTables::TOOL_EXCLUSION_POLICY.keys
+      expect(policy_keys).to include(*registered),
+                             'Add the new tool to TOOL_EXCLUSION_POLICY.'
+      expect(registered).to match_array(expected_registered_tool_names),
+                            'Every registered tool must have a policy row; ' \
+                            'rails_get_context is optional until it is in Server::TOOLS.'
     end
 
     it 'lists every resource template' do
@@ -131,16 +137,10 @@ RSpec.describe 'MCP exclusion parity' do
             'Add the new static resource to STATIC_RESOURCE_POLICY.'
     end
 
-    # rails_get_context does not exist yet — skip/allowlist it until #181.
-    it 'allowlists rails_get_context until issue #181' do
-      pending_tools = MCPExclusionParityTables::PENDING_COMPOSITE_TOOLS
-      expect(pending_tools).to include('rails_get_context')
-      registered = RailsAiBridge::Server::TOOLS.map(&:tool_name)
-      shipped = pending_tools & registered
-      expect(shipped).to be_empty,
-                         "#{shipped.join(', ')} is now in Server::TOOLS — add it to " \
-                         'TOOL_EXCLUSION_POLICY as :omits_excluded_names and remove it ' \
-                         'from PENDING_COMPOSITE_TOOLS.'
+    it 'treats rails_get_context as a listing surface when it is registered' do
+      policy = MCPExclusionParityTables::TOOL_EXCLUSION_POLICY['rails_get_context']
+      expect(policy).to eq(:omits_excluded_names)
+      expect(registered_tool_names).to include('rails_get_context') if context_composite_tool
     end
   end
 
@@ -192,6 +192,16 @@ RSpec.describe 'MCP exclusion parity' do
       expect(schema).to include('users')
       expect(models).to include('User')
     end
+
+    it 'omits excluded model dumps from rails_get_context when that tool is registered' do
+      tool = context_composite_tool
+      skip 'rails_get_context is not in Server::TOOLS yet (issue #181)' unless tool
+
+      model_name = MCPExclusionParityTables::EXCLUDED_MODEL
+      [tool_text(tool, model: model_name), tool_text(tool, model: model_name, detail: 'full')].each do |body|
+        expect_get_context_omits_excluded_dump(body)
+      end
+    end
   end
 
   describe ':regulated preset' do
@@ -207,6 +217,10 @@ RSpec.describe 'MCP exclusion parity' do
     it 'does not leak schema or model names via rails:// resources' do
       uris = MCPExclusionParityTables::DOMAIN_METADATA_RESOURCE_URIS
       expect_no_domain_metadata_leak(uris.map { |uri| resource_body(uri) })
+    end
+
+    it 'does not dump schema or model details via rails_get_context when registered' do
+      expect_get_context_omits_domain_metadata_dump
     end
   end
 
@@ -224,6 +238,10 @@ RSpec.describe 'MCP exclusion parity' do
     it 'does not leak schema or model names via rails:// resources' do
       uris = MCPExclusionParityTables::DOMAIN_METADATA_RESOURCE_URIS
       expect_no_domain_metadata_leak(uris.map { |uri| resource_body(uri) })
+    end
+
+    it 'does not dump schema or model details via rails_get_context when registered' do
+      expect_get_context_omits_domain_metadata_dump
     end
   end
 
@@ -247,9 +265,24 @@ RSpec.describe 'MCP exclusion parity' do
     end
   end
 
+  def registered_tool_names
+    RailsAiBridge::Server::TOOLS.map(&:tool_name)
+  end
+
+  def expected_registered_tool_names
+    optional_absent = MCPExclusionParityTables::OPTIONAL_UNTIL_REGISTERED - registered_tool_names
+    MCPExclusionParityTables::TOOL_EXCLUSION_POLICY.keys - optional_absent
+  end
+
+  def context_composite_tool
+    RailsAiBridge::Server::TOOLS.find { |tool| tool.tool_name == 'rails_get_context' }
+  end
+
   def listing_tools
     policy = MCPExclusionParityTables::TOOL_EXCLUSION_POLICY
-    RailsAiBridge::Server::TOOLS.select { |tool| policy[tool.tool_name] == :omits_excluded_names }
+    RailsAiBridge::Server::TOOLS.select do |tool|
+      policy[tool.tool_name] == :omits_excluded_names && tool.tool_name != 'rails_get_context'
+    end
   end
 
   def listing_resource_uris
@@ -311,5 +344,28 @@ RSpec.describe 'MCP exclusion parity' do
         expect(body).not_to include(name), "leaked #{name.inspect} in: #{body[0, 240]}"
       end
     end
+  end
+
+  # GetContext echoes the requested name in a not-found line. Assert no dump.
+  def expect_get_context_omits_excluded_dump(body)
+    model_name = MCPExclusionParityTables::EXCLUDED_MODEL
+    table_name = MCPExclusionParityTables::EXCLUDED_TABLE
+    expect(body).to match(/not found|not available/i)
+    expect(body).not_to include("## Table: #{table_name}")
+    expect(body).not_to include("table: #{table_name}")
+    expect(body).not_to match(/Available:.*\b#{Regexp.escape(model_name)}\b/)
+    expect(body).not_to match(/Available:.*\b#{Regexp.escape(table_name)}\b/)
+    expect(body).not_to include('has_many')
+  end
+
+  def expect_get_context_omits_domain_metadata_dump
+    tool = context_composite_tool
+    skip 'rails_get_context is not in Server::TOOLS yet (issue #181)' unless tool
+
+    body = tool_text(tool, model: 'User', detail: 'full')
+    expect(body).to match(/not found|not available/i)
+    expect(body).not_to include('## Table')
+    expect(body).not_to include('has_many')
+    expect(body).not_to include('belongs_to')
   end
 end

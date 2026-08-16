@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **MCP exclusion parity spec** (#186) — `spec/lib/rails_ai_bridge/mcp/exclusion_parity_spec.rb` fails when `Server::TOOLS` or resource templates grow without a policy entry, and asserts `excluded_models`, `excluded_tables`, `:regulated`, and `disabled_introspection_categories` do not leak omitted names through listing tools or `rails://` resources. Composite `rails_get_context` is allowlisted until #181.
+- **MCP exclusion parity spec** (#186) — `spec/lib/rails_ai_bridge/mcp/exclusion_parity_spec.rb` fails when `Server::TOOLS` or resource templates grow without a policy entry, and asserts `excluded_models`, `excluded_tables`, `:regulated`, and `disabled_introspection_categories` do not leak omitted names through listing tools or `rails://` resources. Composite `rails_get_context` is a listing-surface policy row, invoked only when that tool is already in `Server::TOOLS` (#181).
 
 ### Fixed
 
