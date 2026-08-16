@@ -7,9 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-
-- **Public docs wording** — README, GUIDE, and AGENTS/CLAUDE/GEMINI openers say what the gem does in plain language. Comparison table is four durable rows (setup, files in git, read-only, presets) instead of tool-count marketing.
+## [4.3.0] - 2026-08-16
 
 ### Added
 
@@ -23,17 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`rails_get_routes` URL helpers and required params** (#191) — named routes now include the Rails path helper (from the route set's declared name, e.g. `post_path`) and required parameter names (from Journey `required_parts`). Unnamed routes are left without a helper. Summary stays a compact per-controller overview (counts plus one sample helper); standard/full list helpers and required params (paginated).
 - **Partition-child tables in `structure.sql` introspection** (#166) — `StaticStructureSqlParser` now expands PostgreSQL `CREATE TABLE … PARTITION OF …` children as table entries with `partition_of` / `partition_bound`, and marks parents with `partitioned` / `partition_by`. `rails_get_schema` surfaces the parent/child relationship at `detail: standard` and `full`.
 
-### Fixed
-
-- **`Config::Introspection#preset=` accepts `nil`** — `preset = nil` now sets `@preset` to `nil` and leaves `introspectors` unchanged, so around-hooks can restore an unset preset. Named presets (`:standard`, `:regulated`, `:full`) are unchanged.
-- **Namespaced model exclusions no longer collide on the last path segment** — `excluded_models: ['User']` still matches `User` / `Users` / `users` / `UsersController`, but not `Admin::User`, `Admin::UsersController`, `UserSession`, or `Superuser`. `excluded_models: ['Admin::User']` matches `Admin::User` and `Admin::UsersController` only. Table-only exclusions are unchanged (`patient_records` still drops `PatientRecord`).
-- **MCP `fetch_section` honored disabled introspectors** (#186) — `Introspector#selected_introspectors` now intersects `only:` with `effective_introspectors`, so `:regulated` and `disabled_introspection_categories` cannot be bypassed by `rails_get_schema` / `rails://schema`.
-- **Excluded association names no longer leak via model details** (#186) — associations, generated accessors, and rubydex `similar_models` that name an excluded model or table are omitted from MCP output.
-- **`similar_models` honors `excluded_tables`** (#186) — rubydex sibling names such as `PatientRecord` are dropped when only `patient_records` is excluded (`ExclusionHelper.excluded_class_or_table?`).
-- **Routes and controllers honor model or table exclusions** (#186) — `RouteIntrospector` and `ControllerIntrospector` omit `/users` and `UsersController` when `excluded_models` includes `User` or `excluded_tables` includes `users`. Conventions stay a non-inventory surface (`:does_not_list_models_or_tables`).
-
 ### Changed
 
+- **Public docs wording** (#212) — README, GUIDE, and AGENTS/CLAUDE/GEMINI openers say what the gem does in plain language. Comparison table is four durable rows (setup, files in git, read-only, presets) instead of tool-count marketing.
 - **Skunk CI gate ratcheted to 20 and made blocking** (#183) — measured 4.2/4.3 SkunkScore averages were 15.93, 15.97, 15.96, 16.18, 15.89 (mean ≈ 15.99). Threshold 20 leaves ~25% headroom above the worst sample. The skunk job still runs rspec first for coverage. Perf stays advisory (`continue-on-error`). Mutation stays advisory but now also targets `Tools::SearchCode::Validator`, `ViewFileAnalyzer`, and `ExclusionHelper`.
 - **Advisory perf compare** — `rake perf:compare` takes the median of five iterations after one warmup. `introspection_time_sec` rebased to 0.028s after 4.3 schema/routes work (CI was 0.0269s on main, 0.0277s with PathResolver realpath). Context and MCP baselines stay at their 4.2 values because CI still measures well under them.
 - **Documentation and gemspec humanization** (#189) — gemspec is one plain sentence (maps a Rails
@@ -42,6 +32,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (zero-config, committed files, read-only, presets) plus a dated checked-against line;
   `docs/gem-general-improvements.md` marked done-in-4.1; `docs/offline-mode.md` labeled
   5.0 / registry. SECURITY.md outbound policy unchanged (git packs only).
+
+### Fixed
+
+- **`Config::Introspection#preset=` accepts `nil`** — `preset = nil` now sets `@preset` to `nil` and leaves `introspectors` unchanged, so around-hooks can restore an unset preset. Named presets (`:standard`, `:regulated`, `:full`) are unchanged.
+- **Namespaced model exclusions no longer collide on the last path segment** — `excluded_models: ['User']` still matches `User` / `Users` / `users` / `UsersController`, but not `Admin::User`, `Admin::UsersController`, `UserSession`, or `Superuser`. `excluded_models: ['Admin::User']` matches `Admin::User` and `Admin::UsersController` only. Table-only exclusions are unchanged (`patient_records` still drops `PatientRecord`).
+- **MCP `fetch_section` honored disabled introspectors** (#186) — `Introspector#selected_introspectors` now intersects `only:` with `effective_introspectors`, so `:regulated` and `disabled_introspection_categories` cannot be bypassed by `rails_get_schema` / `rails://schema`.
+- **Excluded association names no longer leak via model details** (#186) — associations, generated accessors, and rubydex `similar_models` that name an excluded model or table are omitted from MCP output.
+- **`similar_models` honors `excluded_tables`** (#186) — rubydex sibling names such as `PatientRecord` are dropped when only `patient_records` is excluded (`ExclusionHelper.excluded_class_or_table?`).
+- **Routes and controllers honor model or table exclusions** (#186) — `RouteIntrospector` and `ControllerIntrospector` omit `/users` and `UsersController` when `excluded_models` includes `User` or `excluded_tables` includes `users`. Conventions stay a non-inventory surface (`:does_not_list_models_or_tables`).
 
 ### Security
 
