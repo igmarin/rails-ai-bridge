@@ -24,6 +24,8 @@ Use `BaseTool` helpers instead of rolling your own runtime behavior:
 
 ## When to use `cached_section`
 
+`rails_get_context` is the local composite (model + table + routes + controller + related tests). It reads multiple cached sections and never makes outbound HTTP.
+
 Prefer `cached_section` when the tool only needs one introspection section:
 
 - `:schema`
