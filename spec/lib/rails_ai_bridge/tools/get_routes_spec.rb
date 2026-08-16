@@ -148,10 +148,38 @@ RSpec.describe RailsAiBridge::Tools::GetRoutes do
       context "with detail: 'summary'" do
         let(:params) { { detail: 'summary' } }
 
-        it 'lists verb, path, and helper name without required params' do
+        it 'includes a sample verb, path, and helper name without required params' do
           expect(content).to include('GET `/posts/:id` `post_path`')
           expect(content).to include('GET `/me` `profile_path`')
           expect(content).not_to include('required_params')
+        end
+      end
+
+      context "with detail: 'summary' on a large route set" do
+        let(:routes_data) do
+          by_controller = 40.times.to_h do |controller|
+            ["controller_#{controller.to_s.rjust(2, '0')}", 8.times.map do |action|
+              {
+                verb: 'GET',
+                path: "/controller_#{controller}/action_#{action}",
+                action: "action_#{action}",
+                name: "controller_#{controller}_action_#{action}",
+                helper: "controller_#{controller}_action_#{action}_path"
+              }
+            end]
+          end
+
+          { total_routes: 320, by_controller: by_controller, api_namespaces: [] }
+        end
+        let(:params) { { detail: 'summary' } }
+
+        it 'stays a compact per-controller overview instead of listing every route' do
+          expect(content).to include('# Routes Summary (320 total)')
+          expect(content).to include('**controller_00** — 8 routes')
+          expect(content).to include('GET `/controller_0/action_0` `controller_0_action_0_path`')
+          expect(content).not_to include('/controller_0/action_7')
+          expect(content.scan(%r{/controller_\d+/action_}).size).to be <= 40
+          expect(content).to include('controller:"name"')
         end
       end
 

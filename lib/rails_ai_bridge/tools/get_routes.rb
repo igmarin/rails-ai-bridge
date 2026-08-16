@@ -17,8 +17,8 @@ module RailsAiBridge
           detail: {
             type: 'string',
             enum: %w[summary standard full],
-            description: 'Detail level. summary: verb + path + helper name. standard: paths, helpers, and required params ' \
-                         '(default). full: table including helpers and required params.'
+            description: 'Detail level. summary: per-controller counts plus a sample helper. standard: paths, helpers, and ' \
+                         'required params (default). full: table including helpers and required params.'
           },
           limit: {
             type: 'integer',
@@ -109,8 +109,10 @@ module RailsAiBridge
           @by_controller.keys.sort.each do |ctrl|
             actions = @by_controller[ctrl]
             verbs = actions.map { |r| r[:verb] }.tally.map { |v, c| "#{c} #{v}" }.join(', ')
-            lines << "- **#{ctrl}** — #{actions.size} routes (#{verbs})"
-            actions.each { |route| lines << "  - #{compact_route_line(route)}" }
+            line = "- **#{ctrl}** — #{actions.size} routes (#{verbs})"
+            sample = summary_sample(actions)
+            line = "#{line} — e.g. #{sample}" if sample
+            lines << line
           end
           lines << '' << "API namespaces: #{@routes[:api_namespaces].join(', ')}" if @routes[:api_namespaces]&.any?
           lines << '' << '_Use `controller:"name"` to see routes for a specific controller._'
@@ -163,6 +165,15 @@ module RailsAiBridge
           lines << '' << "## API namespaces: #{@routes[:api_namespaces].join(', ')}" if @routes[:api_namespaces]&.any?
           lines << next_offset_hint(limit) if next_page?(limit)
           lines.join("\n")
+        end
+
+        # One compact example per controller: prefer a named helper when present.
+        #
+        # @param actions [Array<Hash>] routes for one controller
+        # @return [String, nil]
+        def summary_sample(actions)
+          route = actions.find { |item| item[:helper].present? } || actions.first
+          compact_route_line(route) if route
         end
 
         # Compact summary line: verb + path + helper name (no required params).
