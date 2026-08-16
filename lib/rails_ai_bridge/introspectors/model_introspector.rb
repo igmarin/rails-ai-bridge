@@ -71,6 +71,38 @@ module RailsAiBridge
         false
       end
 
+      # Drops associations that name an excluded model or table (including +through+).
+      #
+      # @param associations [Array<Hash>] association descriptors from {AssociationExtractor}
+      # @return [Array<Hash>]
+      def filter_excluded_associations(associations)
+        associations.reject { |assoc| excluded_association?(assoc) }
+      end
+
+      # @param assoc [Hash] association descriptor
+      # @return [Boolean]
+      def excluded_association?(assoc)
+        [assoc[:class_name], assoc[:name], assoc[:through]].compact.any? do |value|
+          ExclusionHelper.excluded_class_or_table?(value, config)
+        end
+      end
+
+      # Drops generated association accessors that name an excluded table or model.
+      #
+      # @param names [Array<String>]
+      # @return [Array<String>]
+      def filter_excluded_method_names(names)
+        names.reject { |name| excluded_method_name?(name) }
+      end
+
+      # @param name [String]
+      # @return [Boolean]
+      def excluded_method_name?(name)
+        token = name.to_s.delete_suffix('=')
+        stems = [token, token.delete_suffix('_ids'), token.delete_suffix('_id')].uniq
+        stems.any? { |stem| stem.present? && ExclusionHelper.excluded_class_or_table?(stem, config) }
+      end
+
       # Discovers application ActiveRecord model classes subject to configuration and table exclusions.
       #
       # Returns an array of model classes sorted by name. The list excludes:
@@ -121,14 +153,14 @@ module RailsAiBridge
         details = {
           name: model.name,
           table_name: model.table_name,
-          associations: AssociationExtractor.new(model).call,
+          associations: filter_excluded_associations(AssociationExtractor.new(model).call),
           validations: extract_validations(model),
           scopes: extract_scopes(model),
           enums: extract_enums(model),
           callbacks: CallbackExtractor.new(model, excluded_prefixes: EXCLUDED_CALLBACKS).call,
           concerns: extract_concerns(model),
-          class_methods: method_extractor.extract_class_methods,
-          instance_methods: method_extractor.extract_instance_methods
+          class_methods: filter_excluded_method_names(method_extractor.extract_class_methods),
+          instance_methods: filter_excluded_method_names(method_extractor.extract_instance_methods)
         }
 
         tier = classifier.call(model)

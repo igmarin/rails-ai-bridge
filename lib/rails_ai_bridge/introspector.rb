@@ -111,16 +111,22 @@ module RailsAiBridge
 
     # Resolves the list of introspector keys to run.
     #
-    # Returns +config.effective_introspectors+ when +only+ is blank; otherwise
-    # returns the compact, de-nilified version of +only+.
+    # Returns +config.effective_introspectors+ when +only+ is blank. A non-blank
+    # +only+ list is intersected with +effective_introspectors+ (plus
+    # +additional_introspectors+ keys) so MCP +fetch_section+ cannot run
+    # schema or models when they were disabled by +:regulated+ or
+    # +disabled_introspection_categories+, while host-registered extras
+    # remain fetchable.
     #
     # @param only [Array<Symbol>, nil]
     # @return [Array<Symbol>]
     def selected_introspectors(only)
+      allowed = config.effective_introspectors
       names = Array(only).compact
-      return config.effective_introspectors if names.empty?
+      return allowed if names.empty?
 
-      names
+      extra = config.additional_introspectors.keys
+      names.select { |name| allowed.include?(name) || extra.include?(name) }
     end
 
     # Looks up and instantiates an introspector by name.
