@@ -30,6 +30,8 @@ module RailsAiBridge
             cols = (data[:columns] || []).map { |c| "#{c[:name]}:#{c[:type]}" }.join(', ')
             lines << "### #{ConfidenceTag.tagged(name, @source)}"
             lines << cols
+            note = partition_note(data)
+            lines << note if note
             lines << ''
           end
 
@@ -39,6 +41,20 @@ module RailsAiBridge
           end
 
           lines.join("\n")
+        end
+
+        private
+
+        # @param data [Hash] table introspection payload
+        # @return [String, nil] one-line parent/child partition note
+        def partition_note(data)
+          if data[:partition_of]
+            note = "partition of #{data[:partition_of]}"
+            note += " (#{data[:partition_bound]})" if data[:partition_bound]
+            note
+          elsif data[:partitioned]
+            data[:partition_by] ? "partitioned by #{data[:partition_by]}" : 'partitioned'
+          end
         end
       end
     end

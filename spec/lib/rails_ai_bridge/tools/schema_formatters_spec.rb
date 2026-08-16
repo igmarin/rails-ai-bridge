@@ -72,6 +72,29 @@ RSpec.describe 'RailsAiBridge::Tools::Schema formatters' do
       output = described_class.new(tables: tables, total: 10, limit: 2, offset: 0).call
       expect(output).to include('detail:"summary"')
     end
+
+    it 'surfaces partition parent/child info when present' do
+      partitioned = {
+        'events' => {
+          columns: [{ name: 'id', type: 'bigint' }],
+          indexes: [],
+          foreign_keys: [],
+          partitioned: true,
+          partition_by: 'RANGE (created_at)'
+        },
+        'events_2024' => {
+          columns: [{ name: 'id', type: 'bigint' }],
+          indexes: [],
+          foreign_keys: [],
+          partition_of: 'events',
+          partition_bound: "FOR VALUES FROM ('2024-01-01') TO ('2025-01-01')"
+        }
+      }
+      output = described_class.new(tables: partitioned, total: 2, limit: 15, offset: 0).call
+      expect(output).to include('partitioned by RANGE (created_at)')
+      expect(output).to include('partition of events')
+      expect(output).to include('2024-01-01')
+    end
   end
 
   describe RailsAiBridge::Tools::Schema::FullFormatter do
@@ -125,6 +148,31 @@ RSpec.describe 'RailsAiBridge::Tools::Schema formatters' do
       output = described_class.new(name: 'posts', data: tables['posts']).call
       expect(output).to include('Foreign keys')
       expect(output).to include('`user_id` → `users.id`')
+    end
+
+    it 'surfaces the partition parent on a child table' do
+      data = {
+        columns: [{ name: 'id', type: 'bigint', null: false }],
+        indexes: [],
+        foreign_keys: [],
+        partition_of: 'events',
+        partition_bound: "FOR VALUES FROM ('2024-01-01') TO ('2025-01-01')"
+      }
+      output = described_class.new(name: 'events_2024', data: data).call
+      expect(output).to include('Partition of `events`')
+      expect(output).to include('2024-01-01')
+    end
+
+    it 'surfaces the partition method on a parent table' do
+      data = {
+        columns: [{ name: 'id', type: 'bigint', null: false }],
+        indexes: [],
+        foreign_keys: [],
+        partitioned: true,
+        partition_by: 'RANGE (created_at)'
+      }
+      output = described_class.new(name: 'events', data: data).call
+      expect(output).to include('Partitioned by RANGE (created_at)')
     end
   end
 end

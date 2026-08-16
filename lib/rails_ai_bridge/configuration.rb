@@ -152,6 +152,7 @@ module RailsAiBridge
                    :codex_compact_model_list_limit, :codex_compact_model_list_limit=,
                    :watcher_formats, :watcher_formats=,
                    :managed_region, :managed_region=,
+                   :anti_hallucination_rules, :anti_hallucination_rules=,
                    :output_dir_for
   end
 end

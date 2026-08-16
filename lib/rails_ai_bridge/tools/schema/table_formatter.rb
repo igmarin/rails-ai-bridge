@@ -44,6 +44,19 @@ module RailsAiBridge
 
           lines.join("\n")
         end
+
+        private
+
+        # @return [String, nil] italic partition relationship line for full detail
+        def partition_heading
+          if @data[:partition_of]
+            note = "_Partition of `#{@data[:partition_of]}`"
+            note += " — #{@data[:partition_bound]}" if @data[:partition_bound]
+            "#{note}_"
+          elsif @data[:partitioned]
+            @data[:partition_by] ? "_Partitioned by #{@data[:partition_by]}_" : '_Partitioned_'
+          end
+        end
       end
     end
   end
