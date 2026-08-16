@@ -39,12 +39,8 @@ module RailsAiBridge
       # @param route [Hash]
       # @return [Boolean]
       def excluded_route?(route)
-        tokens = [
-          route[:controller],
-          route[:controller].to_s.split('/').last,
-          route[:name]
-        ]
-        tokens.concat(route_path_tokens(route[:path]))
+        tokens = [route[:controller], route[:name]]
+        tokens.concat(route_path_tokens(route[:path])) unless route[:controller].to_s.include?('/')
         tokens.compact.any? { |token| ExclusionHelper.excluded_class_or_table?(token, config) }
       end
 
