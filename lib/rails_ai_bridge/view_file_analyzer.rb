@@ -52,7 +52,8 @@ module RailsAiBridge
         candidates = allowed_view_candidates(context, relative_path)
         raise SecurityError, "Path not allowed: #{relative_path}" if candidates.empty?
 
-        existing_file_candidate(candidates, relative_path)
+        view_file = existing_file_candidate(candidates, relative_path)
+        contained_existing_view_file(context, view_file, relative_path)
       end
 
       # Builds allowed candidates for a requested path across all configured view roots.
@@ -77,6 +78,43 @@ module RailsAiBridge
         raise Errno::ENOENT, relative_path unless requested
 
         requested
+      end
+
+      # Re-checks an existing candidate after resolving symlinks.
+      #
+      # @param context [ViewContext] root/app path resolution context
+      # @param view_file [ViewFile] lexically allowed existing candidate
+      # @param relative_path [String] original requested path for error reporting
+      # @return [ViewFile] candidate whose path is the resolved realpath
+      # @raise [SecurityError] when the real path escapes every allowed view root
+      def contained_existing_view_file(context, view_file, relative_path)
+        real_path = File.realpath(view_file.path)
+        raise SecurityError, "Path not allowed: #{relative_path}" unless contained_in_real_view_root?(context, real_path)
+
+        ViewFile.new(path: real_path, relative_path: view_file.relative_path)
+      end
+
+      # Checks whether a resolved path remains inside any configured view root.
+      #
+      # @param context [ViewContext] root/app path resolution context
+      # @param real_path [String] File.realpath of the existing view file
+      # @return [Boolean] true when the file is inside at least one view root
+      def contained_in_real_view_root?(context, real_path)
+        view_roots(context).any? { |views_root| path_inside_real_root?(real_path, views_root) }
+      end
+
+      # Compares a resolved file path against the realpath of one view root.
+      #
+      # @param real_path [String] File.realpath of the existing view file
+      # @param views_root [String] configured view root path
+      # @return [Boolean] true when the file is inside this root
+      def path_inside_real_root?(real_path, views_root)
+        return false unless File.directory?(views_root)
+
+        real_root = File.realpath(views_root)
+        real_path == real_root || real_path.start_with?("#{real_root}/")
+      rescue Errno::ENOENT
+        false
       end
 
       # Returns logical view roots from configured Rails paths or the conventional fallback.
