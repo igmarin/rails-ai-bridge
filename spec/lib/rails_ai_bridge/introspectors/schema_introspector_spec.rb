@@ -17,6 +17,10 @@ RSpec.describe RailsAiBridge::Introspectors::SchemaIntrospector do
       expect(result[:adapter]).to be_a(String)
     end
 
+    it 'marks live reflection as source :live' do
+      expect(result[:source]).to eq(:live)
+    end
+
     it 'includes tables from the test schema' do
       expect(result[:tables]).to have_key('users')
       expect(result[:tables]).to have_key('posts')
@@ -71,6 +75,10 @@ RSpec.describe RailsAiBridge::Introspectors::SchemaIntrospector do
 
       it 'returns the static_parse adapter' do
         expect(result[:adapter]).to eq('static_parse')
+      end
+
+      it 'marks the static parse as source :static' do
+        expect(result[:source]).to eq(:static)
       end
 
       it 'includes a note about the parse source' do

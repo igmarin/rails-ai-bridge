@@ -3,7 +3,8 @@
 module RailsAiBridge
   module Introspectors
     # Extracts route information from the Rails router including
-    # HTTP verb, path, controller#action, and route constraints.
+    # HTTP verb, path, controller#action, declared URL helper, required params,
+    # and route constraints.
     class RouteIntrospector
       attr_reader :app, :config
 
@@ -83,11 +84,43 @@ module RailsAiBridge
             controller: defaults[:controller],
             action: defaults[:action],
             name: @route.name,
+            helper: path_helper,
+            required_params: required_params,
             constraints: extract_constraints
           }.compact
         end
 
         private
+
+        # Rails path helper from the route's declared name only (`post` → `post_path`).
+        # Unnamed routes have no name, so no helper is invented from the path string.
+        #
+        # @return [String, nil]
+        def path_helper
+          name = @route.name
+          return if name.blank?
+
+          "#{name}_path"
+        end
+
+        # Required dynamic segments from Journey (`required_parts` / `required_names`).
+        #
+        # @return [Array<String>, nil]
+        def required_params
+          names = required_part_names
+          names.presence
+        end
+
+        # @return [Array<String>]
+        def required_part_names
+          if @route.respond_to?(:required_parts)
+            Array(@route.required_parts).map(&:to_s)
+          elsif @route.path.respond_to?(:required_names)
+            Array(@route.path.required_names).map(&:to_s)
+          else
+            []
+          end
+        end
 
         def extract_constraints
           constraints = @route.constraints.to_s
@@ -141,7 +174,9 @@ module RailsAiBridge
             verb: @route[:verb],
             path: @route[:path],
             action: @route[:action],
-            name: @route[:name]
+            name: @route[:name],
+            helper: @route[:helper],
+            required_params: @route[:required_params]
           }.compact
         end
       end

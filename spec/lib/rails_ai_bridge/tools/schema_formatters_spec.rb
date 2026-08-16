@@ -26,15 +26,15 @@ RSpec.describe 'RailsAiBridge::Tools::Schema formatters' do
   end
 
   describe RailsAiBridge::Tools::Schema::SummaryFormatter do
-    subject(:output) { described_class.new(tables: tables, total: 2, limit: 50, offset: 0).call }
+    subject(:output) { described_class.new(tables: tables, total: 2, limit: 50, offset: 0, source: :live).call }
 
     it 'includes the total table count in the header' do
       expect(output).to include('Schema Summary (2 tables)')
     end
 
     it 'lists each table with column and index counts' do
-      expect(output).to include('**users** — 2 columns, 1 indexes')
-      expect(output).to include('**posts** — 3 columns, 1 indexes')
+      expect(output).to include('**users** [VERIFIED] — 2 columns, 1 indexes')
+      expect(output).to include('**posts** [VERIFIED] — 3 columns, 1 indexes')
     end
 
     it 'does not include column names or types' do
@@ -53,7 +53,7 @@ RSpec.describe 'RailsAiBridge::Tools::Schema formatters' do
   end
 
   describe RailsAiBridge::Tools::Schema::StandardFormatter do
-    subject(:output) { described_class.new(tables: tables, total: 2, limit: 15, offset: 0).call }
+    subject(:output) { described_class.new(tables: tables, total: 2, limit: 15, offset: 0, source: :live).call }
 
     it 'includes the table count in the header' do
       expect(output).to include('showing 2')
@@ -72,10 +72,33 @@ RSpec.describe 'RailsAiBridge::Tools::Schema formatters' do
       output = described_class.new(tables: tables, total: 10, limit: 2, offset: 0).call
       expect(output).to include('detail:"summary"')
     end
+
+    it 'surfaces partition parent/child info when present' do
+      partitioned = {
+        'events' => {
+          columns: [{ name: 'id', type: 'bigint' }],
+          indexes: [],
+          foreign_keys: [],
+          partitioned: true,
+          partition_by: 'RANGE (created_at)'
+        },
+        'events_2024' => {
+          columns: [{ name: 'id', type: 'bigint' }],
+          indexes: [],
+          foreign_keys: [],
+          partition_of: 'events',
+          partition_bound: "FOR VALUES FROM ('2024-01-01') TO ('2025-01-01')"
+        }
+      }
+      output = described_class.new(tables: partitioned, total: 2, limit: 15, offset: 0).call
+      expect(output).to include('partitioned by RANGE (created_at)')
+      expect(output).to include('partition of events')
+      expect(output).to include('2024-01-01')
+    end
   end
 
   describe RailsAiBridge::Tools::Schema::FullFormatter do
-    subject(:output) { described_class.new(tables: tables, total: 2, limit: 5, offset: 0).call }
+    subject(:output) { described_class.new(tables: tables, total: 2, limit: 5, offset: 0, source: :live).call }
 
     it "includes 'Full Detail' in the header" do
       expect(output).to include('Full Detail')
@@ -102,7 +125,7 @@ RSpec.describe 'RailsAiBridge::Tools::Schema formatters' do
   end
 
   describe RailsAiBridge::Tools::Schema::TableFormatter do
-    subject(:output) { described_class.new(name: 'users', data: tables['users']).call }
+    subject(:output) { described_class.new(name: 'users', data: tables['users'], source: :live).call }
 
     it 'renders a table header' do
       expect(output).to include('## Table: users')
@@ -125,6 +148,31 @@ RSpec.describe 'RailsAiBridge::Tools::Schema formatters' do
       output = described_class.new(name: 'posts', data: tables['posts']).call
       expect(output).to include('Foreign keys')
       expect(output).to include('`user_id` → `users.id`')
+    end
+
+    it 'surfaces the partition parent on a child table' do
+      data = {
+        columns: [{ name: 'id', type: 'bigint', null: false }],
+        indexes: [],
+        foreign_keys: [],
+        partition_of: 'events',
+        partition_bound: "FOR VALUES FROM ('2024-01-01') TO ('2025-01-01')"
+      }
+      output = described_class.new(name: 'events_2024', data: data).call
+      expect(output).to include('Partition of `events`')
+      expect(output).to include('2024-01-01')
+    end
+
+    it 'surfaces the partition method on a parent table' do
+      data = {
+        columns: [{ name: 'id', type: 'bigint', null: false }],
+        indexes: [],
+        foreign_keys: [],
+        partitioned: true,
+        partition_by: 'RANGE (created_at)'
+      }
+      output = described_class.new(name: 'events', data: data).call
+      expect(output).to include('Partitioned by RANGE (created_at)')
     end
   end
 end

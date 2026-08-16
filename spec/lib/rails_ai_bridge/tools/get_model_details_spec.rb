@@ -70,8 +70,8 @@ RSpec.describe RailsAiBridge::Tools::GetModelDetails do
       let(:params) { { detail: 'full' } }
 
       it 'delegates to the FullFormatter' do
-        expect(content).to include('- **User** (table: users) — has_many :posts')
-        expect(content).to include('- **Post** (table: posts) — belongs_to :user')
+        expect(content).to include('- **User** (table: users) — has_many :posts [VERIFIED]')
+        expect(content).to include('- **Post** (table: posts) — belongs_to :user [VERIFIED]')
       end
     end
 

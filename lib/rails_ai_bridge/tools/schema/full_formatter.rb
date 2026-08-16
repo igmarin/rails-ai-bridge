@@ -10,12 +10,14 @@ module RailsAiBridge
         # @param total [Integer] total number of tables in the schema
         # @param limit [Integer] max tables to display
         # @param offset [Integer] number of tables to skip
+        # @param source [Symbol, String, nil] +:live+ (verified) or +:static+ (inferred)
         # @return [void]
-        def initialize(tables:, total:, limit:, offset:)
+        def initialize(tables:, total:, limit:, offset:, source: nil)
           @tables = tables
           @total  = total
           @limit  = limit
           @offset = offset
+          @source = source
         end
 
         # @return [String] Markdown full-detail listing
@@ -24,7 +26,7 @@ module RailsAiBridge
           lines = ["# Schema Full Detail (#{paginated.size} of #{@total} tables)", '']
 
           paginated.each do |name|
-            lines << TableFormatter.new(name: name, data: @tables[name]).call
+            lines << TableFormatter.new(name: name, data: @tables[name], source: @source).call
             lines << ''
           end
 

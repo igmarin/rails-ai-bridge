@@ -14,6 +14,8 @@ Each tool should:
 
 ## Shared helpers
 
+Use `ConfidenceTag` for `[VERIFIED]` / `[INFERRED]` markers on schema and model markdown (live reflection and rubydex/Prism vs source regex).
+
 Use `BaseTool` helpers instead of rolling your own runtime behavior:
 
 - `cached_context` for a full snapshot
@@ -21,6 +23,8 @@ Use `BaseTool` helpers instead of rolling your own runtime behavior:
 - `text_response(text)` for truncation-safe responses
 
 ## When to use `cached_section`
+
+`rails_get_context` is the local composite (model + table + routes + controller + related tests). It reads multiple cached sections and never makes outbound HTTP.
 
 Prefer `cached_section` when the tool only needs one introspection section:
 

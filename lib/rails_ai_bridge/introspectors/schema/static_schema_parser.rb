@@ -24,7 +24,7 @@ module RailsAiBridge
       # @example
       #   content = File.read("db/schema.rb")
       #   result  = StaticSchemaParser.new(content: content, config: RailsAiBridge.configuration).call
-      #   # => { adapter: "static_parse", tables: { ... }, total_tables: N, note: "..." }
+      #   # => { adapter: "static_parse", source: :static, tables: { ... }, total_tables: N, note: "..." }
       #
       # @see RailsAiBridge::Introspectors::SchemaIntrospector
       class StaticSchemaParser
@@ -54,8 +54,8 @@ module RailsAiBridge
 
         # Parse the schema content and return the tables hash.
         #
-        # @return [Hash{Symbol => Object}] with keys +:adapter+, +:tables+,
-        #   +:total_tables+, and +:note+
+        # @return [Hash{Symbol => Object}] with keys +:adapter+, +:source+ (+:static+),
+        #   +:tables+, +:total_tables+, and +:note+
         def call
           @content.each_line do |line|
             next if parse_table_line?(line)
@@ -66,6 +66,7 @@ module RailsAiBridge
 
           {
             adapter: 'static_parse',
+            source: :static,
             tables: @tables,
             total_tables: @tables.size,
             note: 'Parsed from db/schema.rb (no DB connection)'

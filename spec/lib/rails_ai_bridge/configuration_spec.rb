@@ -21,6 +21,8 @@ RSpec.describe RailsAiBridge::Configuration do
     expect(config.assistant_overrides_path).to be_nil
     expect(config.copilot_compact_model_list_limit).to eq(5)
     expect(config.codex_compact_model_list_limit).to eq(3)
+    expect(config.anti_hallucination_rules).to be(true)
+    expect(config.output.anti_hallucination_rules).to be(true)
     expect(config.additional_introspectors).to eq({})
     expect(config.additional_tools).to eq([])
     expect(config.additional_resources).to eq({})

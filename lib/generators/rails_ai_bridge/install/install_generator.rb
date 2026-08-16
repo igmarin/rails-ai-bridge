@@ -154,6 +154,10 @@ module RailsAiBridge
             # Never applies to .ai-context.json. Per-run override: `MERGE=1 rails ai:bridge`.
             # config.output.managed_region = true
 
+            # Shared verify-before-write rules in compact CLAUDE.md / AGENTS.md / GEMINI.md /
+            # Copilot / Cursor output. Default is on; set false to omit the block.
+            # config.output.anti_hallucination_rules = false
+
             # Model list size caps for compact output (0 = show no names, only MCP pointer):
             # Reduce these for apps with large model counts to keep files within size limits.
             # config.copilot_compact_model_list_limit = 15   # default

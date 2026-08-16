@@ -58,7 +58,7 @@ module RailsAiBridge
 
     # Registry of all built-in introspector classes, keyed by symbolic name.
     #
-    # The +:standard+ preset uses 9 of these; the +:full+ preset uses 26.
+    # The +:standard+ preset uses 9 of these; the +:full+ preset uses 27.
     # Opt-in-only keys (e.g. +:database_stats+, +:non_ar_models+) are present
     # here but excluded from both presets by default.
     #

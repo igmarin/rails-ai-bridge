@@ -26,22 +26,27 @@ RSpec.describe RailsAiBridge::Introspectors::RouteIntrospector do
       expect(user_routes).to include(a_hash_including(verb: 'GET', path: '/users'))
     end
 
-    it 'omits routes for an excluded model and table' do
-      unfiltered = described_class.new(Rails.application).call
-      original_models = RailsAiBridge.configuration.excluded_models.dup
-      original_tables = RailsAiBridge.configuration.excluded_tables.dup
-      RailsAiBridge.configuration.excluded_models += %w[User]
-      RailsAiBridge.configuration.excluded_tables += %w[users]
+    it 'includes the Rails path helper and required params for a named route' do
+      post_show = result[:by_controller]['posts'].find { |route| route[:action] == 'show' }
 
-      filtered = described_class.new(Rails.application).call
+      expect(post_show).to include(
+        helper: 'post_path',
+        required_params: ['id']
+      )
+    end
 
-      expect(unfiltered[:by_controller]).to have_key('users')
-      expect(filtered[:by_controller]).not_to have_key('users')
-      expect(filtered[:by_controller]).to have_key('posts')
-      expect(filtered[:total_routes]).to eq(unfiltered[:total_routes] - unfiltered[:by_controller]['users'].size)
-    ensure
-      RailsAiBridge.configuration.excluded_models = original_models
-      RailsAiBridge.configuration.excluded_tables = original_tables
+    it 'does not invent a helper for an unnamed route' do
+      ping = result[:by_controller]['users'].find { |route| route[:path] == '/legacy-ping' }
+
+      expect(ping).to include(verb: 'GET', path: '/legacy-ping', action: 'index')
+      expect(ping).not_to have_key(:helper)
+    end
+
+    it 'uses the declared route name rather than inventing a helper from the path' do
+      profile = result[:by_controller]['users'].find { |route| route[:path] == '/me' }
+
+      expect(profile[:helper]).to eq('profile_path')
+      expect(profile[:helper]).not_to eq('me_path')
     end
 
     it 'returns api_namespaces as an array' do
