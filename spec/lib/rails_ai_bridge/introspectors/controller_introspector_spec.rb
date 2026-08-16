@@ -58,6 +58,29 @@ RSpec.describe RailsAiBridge::Introspectors::ControllerIntrospector do
       expect(set_post[:kind]).to eq('before')
     end
 
+    context 'with inherited parent filters' do
+      before do
+        stub_const('StaffAuthController', Class.new(ApplicationController) do
+          before_action :authenticate_staff!
+          before_action :require_superadmin, only: :impersonate
+        end)
+        stub_const('AccountsController', Class.new(StaffAuthController) do
+          def index; end
+          def create; end
+        end)
+      end
+
+      it 'includes inherited applicable filters and omits non-applicable only: filters' do
+        filters = result[:controllers]['AccountsController'][:filters]
+        names = filters.pluck(:name)
+
+        expect(names).to include('authenticate_staff!')
+        expect(names).not_to include('require_superadmin')
+        expect(filters.find { |filter| filter[:name] == 'authenticate_staff!' }[:source])
+          .to eq('StaffAuthController')
+      end
+    end
+
     it 'extracts parent class' do
       expect(result[:controllers]['PostsController'][:parent_class]).to eq('ApplicationController')
     end

@@ -10,7 +10,10 @@ RSpec.describe RailsAiBridge::Tools::GetControllers do
           parent_class: 'ApplicationController',
           api_controller: false,
           actions: %w[index show create],
-          filters: [{ kind: 'before_action', name: 'set_post', only: ['show'] }],
+          filters: [
+            { kind: 'before', name: 'authenticate_user!', source: 'ApplicationController' },
+            { kind: 'before', name: 'set_post', only: ['show'], source: 'PostsController' }
+          ],
           strong_params: ['post_params']
         },
         'Api::V1::UsersController' => {
@@ -40,9 +43,22 @@ RSpec.describe RailsAiBridge::Tools::GetControllers do
         expect(content).to include('## Actions')
         expect(content).to include('- `create`')
         expect(content).to include('## Filters')
-        expect(content).to include('- `before_action` **set_post** (only: show)')
+        expect(content).to include('- `before` **set_post** (only: show)')
         expect(content).to include('## Strong Params')
         expect(content).to include('- `post_params`')
+      end
+
+      it 'lists inherited filters with their source class at standard/full detail' do
+        expect(content).to include('- `before` **authenticate_user!** (ApplicationController)')
+        expect(content).to include('- `before` **set_post** (only: show) (PostsController)')
+      end
+
+      it 'keeps summary filter lines to names only' do
+        summary = described_class.call(controller: 'PostsController', detail: 'summary').content.first[:text]
+        expect(summary).to include('authenticate_user!')
+        expect(summary).to include('set_post')
+        expect(summary).not_to include('(ApplicationController)')
+        expect(summary).not_to include('(PostsController)')
       end
     end
 
@@ -73,7 +89,8 @@ RSpec.describe RailsAiBridge::Tools::GetControllers do
         expect(content).to include('## Api::V1::UsersController')
         expect(content).to include('- Actions: index, show')
         expect(content).to include('## PostsController')
-        expect(content).to include('- Filters: before_action set_post')
+        expect(content).to include('Filters:')
+        expect(content).to include('set_post')
         expect(content).to include('- Strong params: post_params')
       end
     end

@@ -233,7 +233,7 @@ Each file respects the AI tool's format and size limits. **Commit these files** 
 | **Models** | Associations, validations, scopes, enums, callbacks, concerns, macros (`has_secure_password`, `encrypts`, `normalizes`, etc.), **semantic tier** (`core_entity`, `pure_join`, `rich_join`, `supporting`) |
 | **Non-AR Models** | Ruby classes under the configured logical `app/models` path that aren't ActiveRecord, tagged as `[POJO/Service]` (included in `:full`, or opt in with `:non_ar_models`) |
 | **Routing** | Every route with HTTP verbs, paths, controller actions, API namespaces, plus compact endpoint-focus summaries for busy controllers |
-| **Controllers** | Actions, filters, strong params, concerns, API controllers; source metadata honors configured controller paths |
+| **Controllers** | Actions, inherited filters (with `only`/`except` and source class), strong params, concerns, API controllers; source metadata honors configured controller paths |
 | **Views** | Layouts, templates, partials, helpers, template engines, view components |
 | **Frontend** | Stimulus controllers, views, Turbo Frames/Streams, and broadcasts from configured Rails paths |
 | **Background** | ActiveJob classes, mailers, Action Cable channels |
@@ -263,7 +263,7 @@ The gem exposes **19 built-in tools** via MCP that AI clients call on-demand (ho
 | `rails_get_model_details` | Associations, validations, scopes, enums, callbacks, source macros, semantic tier, non-AR models (when enabled) — tagged `[VERIFIED]` (reflection / rubydex) or `[INFERRED]` (source regex) |
 | `rails_get_context` | In-process composite for one model, controller, or feature: table + model + routes + controller actions + cheap related tests (no HTTP) |
 | `rails_get_routes` | HTTP verbs, paths, controller actions |
-| `rails_get_controllers` | Actions, filters, strong params, concerns |
+| `rails_get_controllers` | Actions, inherited filters (source class at standard/full), strong params, concerns |
 | `rails_get_config` | Cache, session, timezone, middleware, initializers |
 | `rails_get_test_info` | Test framework, factories, CI config, coverage |
 | `rails_get_gems` | Notable gems categorized by function |

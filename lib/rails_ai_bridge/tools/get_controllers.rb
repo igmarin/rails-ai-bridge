@@ -113,7 +113,7 @@ module RailsAiBridge
             info = @controllers[name]
             lines << "## #{name}"
             lines << "- Actions: #{info[:actions]&.join(', ')}" if info[:actions]&.any?
-            lines << "- Filters: #{info[:filters].map { |f| "#{f[:kind]} #{f[:name]}" }.join(', ')}" if info[:filters]&.any?
+            lines << "- Filters: #{info[:filters].map { |f| format_listed_filter(f) }.join(', ')}" if info[:filters]&.any?
             lines << "- Strong params: #{info[:strong_params].join(', ')}" if info[:strong_params]&.any?
             lines << ''
           end
@@ -123,6 +123,23 @@ module RailsAiBridge
         def format_name_list
           list = @controllers.keys.sort.map { |c| "- #{c}" }.join("\n")
           "# Controllers (#{@controllers.size})\n\n#{list}"
+        end
+
+        def format_filter_line(filter)
+          return "- #{filter[:name]}" if @detail == 'summary'
+
+          detail = "- `#{filter[:kind]}` **#{filter[:name]}**"
+          detail += " (only: #{filter[:only].join(', ')})" if filter[:only]&.any?
+          detail += " (except: #{filter[:except].join(', ')})" if filter[:except]&.any?
+          detail += " (#{filter[:source]})" if filter[:source]
+          detail
+        end
+
+        def format_listed_filter(filter)
+          label = "#{filter[:kind]} #{filter[:name]}"
+          return label unless filter[:source] && @detail != 'summary'
+
+          "#{label} (#{filter[:source]})"
         end
 
         def format_single_controller
@@ -138,9 +155,7 @@ module RailsAiBridge
           if controller_info[:filters]&.any?
             lines << '' << '## Filters'
             controller_info[:filters].each do |f|
-              detail = "- `#{f[:kind]}` **#{f[:name]}**"
-              detail += " (only: #{f[:only].join(', ')})" if f[:only]&.any?
-              lines << detail
+              lines << format_filter_line(f)
             end
           end
 

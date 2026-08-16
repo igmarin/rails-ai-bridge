@@ -381,7 +381,7 @@ rails_get_routes(detail: "standard", limit: 20, offset: 100)
 
 ### rails_get_controllers
 
-Returns controller details: actions, filters, strong params, concerns.
+Returns controller details: actions, inherited filters, strong params, concerns.
 
 **Parameters:**
 
@@ -400,7 +400,7 @@ rails_get_controllers(detail: "summary")
   → Controller names with action counts
 
 rails_get_controllers(controller: "UsersController")
-  → Full detail: parent class, actions, filters (with only/except), strong params
+  → Full detail: parent class, actions, inherited filters (with only/except and source class), strong params
 
 rails_get_controllers(detail: "full")
   → All controllers with actions, filters, and strong params
@@ -850,7 +850,7 @@ These run by default. Fast and cover core Rails structure.
 | `jobs` | ActiveJob classes with queue names. Mailers with action methods. Action Cable channels. |
 | `gems` | 70+ notable gems categorized: auth, background_jobs, admin, monitoring, search, pagination, forms, file_upload, testing, linting, security, api, frontend, utilities. |
 | `conventions` | Architecture patterns (MVC, service objects, STI, polymorphism, etc.), directory structure with file counts, config files, detected patterns. |
-| `controllers` | Actions, filters (before/after/around with only/except), strong params methods, parent class, API controller detection, concerns. Source-derived metadata honors the configured logical `app/controllers` path. |
+| `controllers` | Actions, inherited filters (before/after/around with only/except and defining class), strong params methods, parent class, API controller detection, concerns. Source-derived metadata honors the configured logical `app/controllers` path. |
 | `tests` | Test framework (rspec/minitest), factories/fixtures with locations and counts, system tests, CI config files, coverage tool, test helpers, VCR cassettes. |
 | `migrations` | Total count, schema version, pending migrations, recent migration history with detected actions (create_table, add_column, etc.), migration statistics. |
 
