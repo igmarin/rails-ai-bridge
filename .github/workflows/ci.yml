@@ -98,10 +98,12 @@ jobs:
           path: spec/support/perf_baseline.json
           retention-days: 30
 
+  # Blocking SkunkScore average gate. Five recent 4.2/4.3 PR jobs measured
+  # 15.93, 15.97, 15.96, 16.18, 15.89 (mean ≈ 15.99). Threshold 20 is ~25%
+  # headroom above the 16.18 worst sample so coverage noise does not block.
   skunk:
     needs: [test]
     runs-on: ubuntu-latest
-    continue-on-error: true
     env:
       RAILS_VERSION: "8.1"
     steps:
@@ -124,10 +126,10 @@ jobs:
           bundle exec skunk lib/ | tee skunk_output.txt
           score=$(grep 'SkunkScore Average:' skunk_output.txt | grep -oE '[0-9]+(\.[0-9]+)?' | tail -1)
           echo "Skunk score average: ${score}"
-          awk -v s="$score" 'BEGIN { exit !(s > 30) }' && {
-            echo "::error::Skunk score ${score} exceeds threshold of 30"
+          awk -v s="$score" 'BEGIN { exit !(s > 20) }' && {
+            echo "::error::Skunk score ${score} exceeds threshold of 20"
             exit 1
-          } || echo "Skunk score ${score} within threshold (<=30)"
+          } || echo "Skunk score ${score} within threshold (<=20)"
 
   audit:
     runs-on: ubuntu-latest

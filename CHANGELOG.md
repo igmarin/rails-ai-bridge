@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Skunk CI gate ratcheted to 20 and made blocking** (#183) — measured 4.2/4.3 SkunkScore averages were 15.93, 15.97, 15.96, 16.18, 15.89 (mean ≈ 15.99). Threshold 20 leaves ~25% headroom above the worst sample. The skunk job still runs rspec first for coverage. Perf stays advisory (`continue-on-error`). Mutation stays advisory but now also targets `Tools::SearchCode::Validator`, `ViewFileAnalyzer`, and `ExclusionHelper`.
 ### Added
 
 - **`rails_explain_symbol` MCP tool** (#192) — optional in-process explanation of a `symbol` or `query` from a **local** CodeGraph index (`.codegraph/`). Runs `codegraph explore` with a timeout and argv arrays (no shell, no network). Missing index or CLI failure returns setup instructions (`codegraph init` / `codegraph index`) instead of raising. Always registered so doc-parity stays a single tool list. Tool count: 17 → 18 on this branch (merge with #181 will make 19).
