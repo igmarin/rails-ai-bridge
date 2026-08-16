@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Shared anti-hallucination rules in compact assistant files** (#188) — compact Claude, Cursor, Copilot, Codex, Gemini, and `AGENTS.md` output now include a short verify-before-write block from `SharedAssistantGuidance`. Disable with `config.output.anti_hallucination_rules = false` (default: on).
+
 ## [4.2.0] - 2026-08-13
 
 ### Added

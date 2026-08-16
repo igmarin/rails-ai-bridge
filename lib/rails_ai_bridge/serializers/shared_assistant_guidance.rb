@@ -13,9 +13,30 @@ module RailsAiBridge
       # First line of +overrides.md+ while in stub mode — file is not merged until removed.
       OMIT_MERGE_FIRST_LINE = /\A<!--\s*rails-ai-bridge:omit-merge\s*-->\z/i
 
+      # Shared heading used by compact assistant files.
+      ANTI_HALLUCINATION_HEADING = '## Anti-hallucination'
+
+      # @return [Array<String>] markdown lines including heading and trailing blank line,
+      #   or +[]+ when {Config::Output#anti_hallucination_rules} is off
+      def anti_hallucination_rules_lines
+        return [] unless anti_hallucination_rules_enabled?
+
+        [
+          ANTI_HALLUCINATION_HEADING,
+          '',
+          '- Verify before you write (column, association, route, helper, gem).',
+          '- Mark assumptions with `[ASSUMPTION]`. Silent guesses are forbidden.',
+          '- This app is not average Rails. Query conventions and gems before scaffolding.',
+          '- Check the inheritance chain (filters, concerns, STI) before editing a controller or model.',
+          '- Empty tool output is information, not permission to invent.',
+          '- Re-query after writes. Stale tool output lies.',
+          ''
+        ]
+      end
+
       # @return [Array<String>] markdown lines including heading and trailing blank line
       def compact_engineering_rules_lines
-        [
+        anti_hallucination_rules_lines + [
           '## Engineering rules (read first)',
           '',
           'Defaults for this codebase unless existing files clearly show a different pattern.',
@@ -75,7 +96,10 @@ module RailsAiBridge
       def cursor_engineering_mdc_body_lines(show_overrides_pointer: false)
         lines = [
           '# Engineering essentials',
-          '',
+          ''
+        ]
+        lines.concat(anti_hallucination_rules_lines)
+        lines.push(
           '- **Strong params**: permit explicitly; never mass-assign raw `params`.',
           '- **Auth**: protect mutations and sensitive reads; public route ≠ public data.',
           '- **N+1**: `includes` / `preload` / `eager_load` for associations in views and serializers.',
@@ -87,7 +111,7 @@ module RailsAiBridge
           'Generated files are **snapshots** — prefer `rails_*` MCP tools for current structure.',
           'Full engineering rules: `.github/copilot-instructions.md` or `AGENTS.md`.',
           'MCP tool reference: `rails-mcp-tools.mdc`.'
-        ]
+        )
         lines << 'Repo-specific performance/security: `config/rails_ai_bridge/overrides.md`.' if show_overrides_pointer
         lines << ''
         lines
@@ -175,19 +199,23 @@ module RailsAiBridge
       #
       # @param context [Hash] introspection context (+:conventions+ optional for architecture line)
       # @param rules_heading [String] markdown `## ...` line opening the rules section (default: `## Rules`)
+      # @param include_anti_hallucination [Boolean] prepend {#anti_hallucination_rules_lines} (set
+      #   +false+ when the caller already included that block via {#compact_engineering_rules_lines})
       # @return [Array<String>] markdown lines
-      def compact_engineering_rules_footer_lines(context, rules_heading: '## Rules')
+      def compact_engineering_rules_footer_lines(context, rules_heading: '## Rules', include_anti_hallucination: true)
         arch = context.dig(:conventions, :architecture)
         arch_summary = arch&.any? ? arch.join(', ') : nil
 
-        lines = [
+        lines = []
+        lines.concat(anti_hallucination_rules_lines) if include_anti_hallucination
+        lines.push(
           rules_heading,
           '',
           '- **Adhere to Conventions:** Strictly follow the existing patterns and conventions outlined in this document.',
           '- **Schema as Source of Truth:** Always use the database schema as the definitive source for column names, types, and relationships.',
           '- **Respect Existing Logic:** Ensure all new code respects existing associations, validations, and service objects.',
           '- **Write Tests:** All new features and bug fixes must be accompanied by corresponding tests.'
-        ]
+        )
         lines << "- **Match Architecture:** Align with the project's architectural style (#{arch_summary})." if arch_summary
         lines << "- **Verify Correctness:** Run `#{ContextSummary.test_command(context)}` and `bundle exec rubocop` after making changes to ensure correctness and style adherence."
         lines << ''
@@ -201,6 +229,11 @@ module RailsAiBridge
       # @return [Array<String>]
       def performance_security_and_rails_examples_lines
         ContextSummary.compact_performance_security_section + rails_performance_examples_lines
+      end
+
+      # @return [Boolean] +true+ when compact output should include the shared anti-hallucination block
+      def anti_hallucination_rules_enabled?
+        RailsAiBridge.configuration.anti_hallucination_rules
       end
     end
   end
