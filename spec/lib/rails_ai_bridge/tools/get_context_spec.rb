@@ -266,11 +266,13 @@ RSpec.describe RailsAiBridge::Tools::GetContext do
 
     context 'when preset is :regulated but cached sections still contain schema' do
       around do |example|
-        original = RailsAiBridge.configuration.preset
-        RailsAiBridge.configuration.preset = :regulated
+        config = RailsAiBridge.configuration
+        previous_introspectors = config.introspectors.dup
+        config.preset = :regulated
         example.run
       ensure
-        RailsAiBridge.configuration.preset = original
+        # +preset=+ rejects nil; default Configuration#preset is unset until assigned.
+        config.introspectors = previous_introspectors
       end
 
       let(:params) { { model: 'User' } }
