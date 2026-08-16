@@ -10,12 +10,14 @@ module RailsAiBridge
         # @param total [Integer] total number of tables in the schema
         # @param limit [Integer] max tables to display
         # @param offset [Integer] number of tables to skip
+        # @param source [Symbol, String, nil] +:live+ (verified) or +:static+ (inferred)
         # @return [void]
-        def initialize(tables:, total:, limit:, offset:)
+        def initialize(tables:, total:, limit:, offset:, source: nil)
           @tables = tables
           @total  = total
           @limit  = limit
           @offset = offset
+          @source = source
         end
 
         # @return [String] Markdown listing with column signatures
@@ -26,7 +28,7 @@ module RailsAiBridge
           paginated.each do |name|
             data = @tables[name]
             cols = (data[:columns] || []).map { |c| "#{c[:name]}:#{c[:type]}" }.join(', ')
-            lines << "### #{name}"
+            lines << "### #{ConfidenceTag.tagged(name, @source)}"
             lines << cols
             note = partition_note(data)
             lines << note if note

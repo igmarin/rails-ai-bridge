@@ -10,12 +10,14 @@ module RailsAiBridge
         # @param total [Integer] total number of tables in the schema
         # @param limit [Integer] max tables to display
         # @param offset [Integer] number of tables to skip
+        # @param source [Symbol, String, nil] +:live+ (verified) or +:static+ (inferred)
         # @return [void]
-        def initialize(tables:, total:, limit:, offset:)
+        def initialize(tables:, total:, limit:, offset:, source: nil)
           @tables = tables
           @total  = total
           @limit  = limit
           @offset = offset
+          @source = source
         end
 
         # @return [String] Markdown summary listing
@@ -27,7 +29,7 @@ module RailsAiBridge
             data = @tables[name]
             col_count = data[:columns]&.size || 0
             idx_count = data[:indexes]&.size || 0
-            lines << "- **#{name}** — #{col_count} columns, #{idx_count} indexes"
+            lines << "- **#{name}** #{ConfidenceTag.tag(@source)} — #{col_count} columns, #{idx_count} indexes"
           end
 
           if @offset + @limit < @total

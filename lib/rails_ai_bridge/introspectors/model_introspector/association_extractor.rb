@@ -33,7 +33,8 @@ module RailsAiBridge
               name: assoc.name.to_s,
               type: assoc.macro.to_s,
               class_name: assoc.class_name,
-              foreign_key: assoc.foreign_key.to_s
+              foreign_key: assoc.foreign_key.to_s,
+              source: :reflection
             }
           end
 

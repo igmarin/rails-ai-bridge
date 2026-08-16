@@ -50,7 +50,7 @@ module RailsAiBridge
       # @example
       #   content = File.read("db/structure.sql")
       #   result  = StaticStructureSqlParser.new(content: content, config: RailsAiBridge.configuration).call
-      #   # => { adapter: "static_parse", tables: { ... }, total_tables: N, note: "..." }
+      #   # => { adapter: "static_parse", source: :static, tables: { ... }, total_tables: N, note: "..." }
       #
       # @see RailsAiBridge::Introspectors::SchemaIntrospector
       # @see RailsAiBridge::Introspectors::Schema::StaticSchemaParser
@@ -124,13 +124,14 @@ module RailsAiBridge
         # raises — malformed or non-UTF-8 input is caught and reported as an
         # error hash, per the introspector contract.
         #
-        # @return [Hash{Symbol => Object}] with keys +:adapter+, +:tables+,
-        #   +:total_tables+, and +:note+; or +{ error: }+ on failure
+        # @return [Hash{Symbol => Object}] with keys +:adapter+, +:source+ (+:static+),
+        #   +:tables+, +:total_tables+, and +:note+; or +{ error: }+ on failure
         def call
           @content.each_line { |line| parse_line(line) }
 
           {
             adapter: 'static_parse',
+            source: :static,
             tables: @tables,
             total_tables: @tables.size,
             note: 'Parsed from db/structure.sql (no DB connection)'
