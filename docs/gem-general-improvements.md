@@ -1,7 +1,16 @@
 # Gem General Improvements — Roadmap
 
+> **Status:** Done in **4.1**. Historical only — not an open backlog.
+>
+> Shipped in [4.1.0](../CHANGELOG.md#410---2026-08-11): manifest validation (#123),
+> pack lockfile (later path defaults in 4.2 #155), rake JSON (#128), full SHA-256 cache
+> keys (#122), transitive `depends_on` (#126), JWT MCP auth docs (#129), structured
+> registry git logging (#131). Treat this file as an archive of that planning, not as
+> work remaining for 4.3.
+
 Collected opportunities for improving the `rails-ai-bridge` gem beyond the issues already
-addressed in the current session. Ordered roughly by impact vs effort.
+addressed in the current session. Ordered roughly by impact vs effort. All items below
+shipped in 4.1 (or were completed as follow-ups called out in the banner).
 
 ---
 
@@ -42,6 +51,7 @@ if packs do not pin a `ref`. There is no equivalent of `Gemfile.lock` for skill 
     "ruby-core-skills":  { "sha": "def456...", "resolved_at": "2025-06-01T10:00:00Z" }
   }
   ```
+
 - When the lock file is present, `SkillSourceResolver#resolve` uses the locked SHA as the
   `ref` argument, bypassing any branch-tip divergence.
 - A `rails rails_ai:registry:update` task regenerates the lock (analogous to `bundle update`).
@@ -71,6 +81,7 @@ a different, richer format. The two diverge over time.
     "skills": [{ "name": "...", "pack": "...", "description": "..." }]
   }
   ```
+
 - `RakePresenter` gains a `skills_json` and `packs_json` method alongside the existing
   `skills_table` / `resolve_skill_output`.
 
