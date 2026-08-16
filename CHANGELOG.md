@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **`PathResolver` symlink escape** — existing files from `existing_file_for` and `glob_for` are accepted only when `File.realpath` stays inside the realpath of the resolved directory or the application root. A symlink under a configured path (for example `app/models`) that points outside the root is omitted rather than returned. Missing paths still return `nil` without calling `realpath`.
 - **`ViewFileAnalyzer` symlink escape** (#185) — existing view files are resolved with `File.realpath` and compared against the realpath of every configured `app/views` root (including custom Rails paths). A symlink under views that points outside every root now raises `SecurityError` instead of emitting the target file contents.
 
 ## [4.2.0] - 2026-08-13
