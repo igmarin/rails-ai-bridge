@@ -22,11 +22,9 @@ RSpec.describe RailsAiBridge::Introspectors::ControllerIntrospector do
       expect(result[:controllers]).to have_key('PostsController')
     end
 
-    it 'omits controllers that name an excluded model or table' do
+    it 'omits UsersController when only User is excluded' do
       original_models = RailsAiBridge.configuration.excluded_models.dup
-      original_tables = RailsAiBridge.configuration.excluded_tables.dup
       RailsAiBridge.configuration.excluded_models += %w[User]
-      RailsAiBridge.configuration.excluded_tables += %w[users]
 
       filtered = described_class.new(Rails.application).call
 
@@ -34,6 +32,17 @@ RSpec.describe RailsAiBridge::Introspectors::ControllerIntrospector do
       expect(filtered[:controllers]).to have_key('PostsController')
     ensure
       RailsAiBridge.configuration.excluded_models = original_models
+    end
+
+    it 'omits UsersController when only the users table is excluded' do
+      original_tables = RailsAiBridge.configuration.excluded_tables.dup
+      RailsAiBridge.configuration.excluded_tables += %w[users]
+
+      filtered = described_class.new(Rails.application).call
+
+      expect(filtered[:controllers]).not_to have_key('UsersController')
+      expect(filtered[:controllers]).to have_key('PostsController')
+    ensure
       RailsAiBridge.configuration.excluded_tables = original_tables
     end
 

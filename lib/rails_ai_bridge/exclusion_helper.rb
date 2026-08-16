@@ -31,8 +31,9 @@ module RailsAiBridge
       return false if token.empty?
 
       if config.respond_to?(:excluded_models)
-        models = Array(config.excluded_models)
-        return true if models.any? { |excluded| token == excluded.to_s || token.start_with?("#{excluded}::") }
+        models = Array(config.excluded_models).map(&:to_s)
+        return true if models.any? { |excluded| token == excluded || token.start_with?("#{excluded}::") }
+        return true if class_stems(token).any? { |stem| models.include?(stem.singularize.camelize) }
       end
 
       return false unless config.respond_to?(:excluded_table?)
@@ -54,7 +55,10 @@ module RailsAiBridge
     # @return [Array<String>]
     def class_stems(token)
       pieces = [token, token.split('::').last].compact
+      pieces << pieces.last.to_s.sub(/Controller\z/, '')
       pieces.flat_map do |piece|
+        next [] if piece.empty?
+
         snake = piece.underscore
         [snake, snake.pluralize, snake.singularize]
       end.uniq

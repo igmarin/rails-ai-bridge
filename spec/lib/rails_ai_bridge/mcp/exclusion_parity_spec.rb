@@ -31,6 +31,7 @@ module MCPExclusionParityTables
     'rails_get_gems' => :does_not_list_models_or_tables,
     'rails_search_code' => :source_search,
     'rails_search_semantic' => :source_search,
+    'rails_explain_symbol' => :does_not_list_models_or_tables,
     'rails_get_conventions' => :does_not_list_models_or_tables,
     'rails_get_controllers' => :omits_excluded_names,
     'rails_get_config' => :does_not_list_models_or_tables,
@@ -214,6 +215,26 @@ RSpec.describe 'MCP exclusion parity' do
       [tool_text(tool, model: model_name), tool_text(tool, model: model_name, detail: 'full')].each do |body|
         expect_get_context_omits_excluded_dump(body)
       end
+    end
+  end
+
+  describe 'model-only and table-only exclusions' do
+    it 'omits UsersController and /users when only User is excluded' do
+      config.excluded_models += [MCPExclusionParityTables::EXCLUDED_MODEL]
+      RailsAiBridge::ContextProvider.reset!
+
+      expect(tool_text(RailsAiBridge::Tools::GetControllers)).not_to include('UsersController')
+      expect(tool_text(RailsAiBridge::Tools::GetRoutes)).not_to include('/users')
+      expect(tool_text(RailsAiBridge::Tools::GetControllers)).to include('PostsController')
+    end
+
+    it 'omits UsersController and /users when only the users table is excluded' do
+      config.excluded_tables += [MCPExclusionParityTables::EXCLUDED_TABLE]
+      RailsAiBridge::ContextProvider.reset!
+
+      expect(tool_text(RailsAiBridge::Tools::GetRoutes)).not_to include('/users')
+      expect(tool_text(RailsAiBridge::Tools::GetControllers)).not_to include('UsersController')
+      expect(tool_text(RailsAiBridge::Tools::GetControllers)).to include('PostsController')
     end
   end
 

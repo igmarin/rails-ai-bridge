@@ -100,13 +100,7 @@ module RailsAiBridge
       def excluded_method_name?(name)
         token = name.to_s.delete_suffix('=')
         stems = [token, token.delete_suffix('_ids'), token.delete_suffix('_id')].uniq
-        stems.any? do |stem|
-          next if stem.empty?
-
-          config.excluded_table?(stem) ||
-            config.excluded_table?(stem.pluralize) ||
-            config.excluded_models.include?(stem.camelize)
-        end
+        stems.any? { |stem| stem.present? && ExclusionHelper.excluded_class_or_table?(stem, config) }
       end
 
       # Discovers application ActiveRecord model classes subject to configuration and table exclusions.

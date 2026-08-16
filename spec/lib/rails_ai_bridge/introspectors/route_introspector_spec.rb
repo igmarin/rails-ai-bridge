@@ -56,5 +56,31 @@ RSpec.describe RailsAiBridge::Introspectors::RouteIntrospector do
     it 'returns mounted_engines as an array' do
       expect(result[:mounted_engines]).to be_an(Array)
     end
+
+    it 'omits user routes when only User is excluded' do
+      unfiltered = result[:total_routes]
+      original_models = RailsAiBridge.configuration.excluded_models.dup
+      RailsAiBridge.configuration.excluded_models += %w[User]
+
+      filtered = described_class.new(Rails.application).call
+
+      expect(filtered[:by_controller]).not_to have_key('users')
+      expect(filtered[:by_controller]).to have_key('posts')
+      expect(filtered[:total_routes]).to be < unfiltered
+    ensure
+      RailsAiBridge.configuration.excluded_models = original_models
+    end
+
+    it 'omits user routes when only the users table is excluded' do
+      original_tables = RailsAiBridge.configuration.excluded_tables.dup
+      RailsAiBridge.configuration.excluded_tables += %w[users]
+
+      filtered = described_class.new(Rails.application).call
+
+      expect(filtered[:by_controller]).not_to have_key('users')
+      expect(filtered[:by_controller]).to have_key('posts')
+    ensure
+      RailsAiBridge.configuration.excluded_tables = original_tables
+    end
   end
 end
