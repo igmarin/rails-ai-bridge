@@ -163,7 +163,8 @@ module RailsAiBridge
     # Finds files matching a glob under every directory for a logical Rails path.
     #
     # The pattern must be a safe relative glob. Absolute paths and traversal
-    # segments are rejected before +Dir.glob+ runs.
+    # segments are rejected before +Dir.glob+ runs. Existing matches are kept
+    # only when +File.realpath+ stays inside the resolved directory or app root.
     #
     # @param logical_path [String] Rails path key, such as +"app/views"+
     # @param pattern [String] glob pattern relative to each resolved directory
@@ -173,23 +174,31 @@ module RailsAiBridge
       safe_pattern = SafeRelativePath.new(pattern, argument_name: 'pattern').to_s
 
       directories_for(logical_path).flat_map do |path|
-        Dir.exist?(path) ? Dir.glob(File.join(path, safe_pattern)) : []
+        next [] unless Dir.exist?(path)
+
+        Dir.glob(File.join(path, safe_pattern)).select { |file| contained_existing_path?(file, path) }
       end
     end
 
     # Finds the first existing file under a logical Rails path.
     #
+    # Missing paths return +nil+ without calling +File.realpath+. Existing
+    # candidates are accepted only when their realpath stays inside the
+    # resolved directory or the application root.
+    #
     # @param logical_path [String] Rails path key, such as +"app/models"+
     # @param relative_file [String] file path relative to the resolved directory
-    # @return [String, nil] absolute file path when found
+    # @return [String, nil] absolute file path when found and contained
     # @raise [ArgumentError] when +relative_file+ is absolute or contains traversal segments
     def existing_file_for(logical_path, relative_file)
       safe_file = SafeRelativePath.new(relative_file, argument_name: 'relative_file').to_s
 
-      directories_for(logical_path).find do |path|
+      directories_for(logical_path).each do |path|
         candidate = SafeJoin.new(path, safe_file).to_s
-        return candidate if File.exist?(candidate)
+        return candidate if contained_existing_path?(candidate, path)
       end
+
+      nil
     end
 
     # Converts an absolute file path under a logical Rails path into a stable
@@ -208,6 +217,47 @@ module RailsAiBridge
     end
 
     private
+
+    # Accepts an existing candidate only when its realpath stays inside the
+    # resolved directory or the application root. Missing paths are not
+    # realpathed. Regular files still go through +File.realpath+ so a
+    # directory symlink under the configured path cannot leak outside.
+    # Allowed roots are realpathed once per resolver instance.
+    #
+    # @param candidate [String] absolute candidate path
+    # @param directory [String] resolved logical directory for this lookup
+    # @return [Boolean] true when the file exists and is contained
+    def contained_existing_path?(candidate, directory)
+      return false unless File.exist?(candidate)
+
+      real_path = File.realpath(candidate)
+      path_inside_real_root?(real_path, directory) || path_inside_real_root?(real_path, @root)
+    rescue Errno::ENOENT
+      false
+    end
+
+    # Compares a resolved file path against the cached realpath of one allowed root.
+    #
+    # @param real_path [String] File.realpath of an existing candidate
+    # @param root [String] resolved directory or application root
+    # @return [Boolean] true when the file is inside this root
+    def path_inside_real_root?(real_path, root)
+      real_root = real_root_for(root)
+      return false unless real_root
+
+      real_path == real_root || real_path.start_with?("#{real_root}#{File::SEPARATOR}")
+    end
+
+    # @param root [String] resolved directory or application root
+    # @return [String, nil] File.realpath of the root, or nil when missing
+    def real_root_for(root)
+      @real_roots ||= {}
+      return @real_roots[root] if @real_roots.key?(root)
+
+      @real_roots[root] = File.exist?(root) ? File.realpath(root) : nil
+    rescue Errno::ENOENT
+      @real_roots[root] = nil
+    end
 
     def configured_paths_for(logical_path)
       configured_paths = @app.paths[logical_path]

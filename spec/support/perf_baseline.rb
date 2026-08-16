@@ -9,9 +9,12 @@ require 'json'
 # the committed baseline in +spec/support/perf_baseline.json+.
 #
 # A regression exceeding 20% over the baseline fails the perf job.
+# Each metric is the median of five timed iterations after one discarded warmup.
 module PerfBaseline
   BASELINE_PATH = File.expand_path('perf_baseline.json', __dir__)
   REGRESSION_THRESHOLD = 0.20
+  WARMUP_ITERATIONS = 1
+  MEASURED_ITERATIONS = 5
 
   # Measures the three key perf metrics against the combustion dummy app.
   #
@@ -136,12 +139,20 @@ module PerfBaseline
 
   # @api private
   def self.benchmark_average
-    iterations = 5
-    results = iterations.times.map do
+    samples = (WARMUP_ITERATIONS + MEASURED_ITERATIONS).times.map do
       started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       yield
       Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
     end
-    (results.sum / iterations).to_f.round(4)
+    median(samples.drop(WARMUP_ITERATIONS)).round(4)
+  end
+
+  # @api private
+  def self.median(samples)
+    sorted = samples.sort
+    mid = sorted.length / 2
+    return sorted[mid] if sorted.length.odd?
+
+    (sorted[mid - 1] + sorted[mid]) / 2.0
   end
 end

@@ -56,9 +56,7 @@ module RailsAiBridge
       # @param ctrl [Class]
       # @return [Boolean]
       def excluded_controller?(ctrl)
-        base = ctrl.name.demodulize.sub(/Controller\z/, '')
-        ExclusionHelper.excluded_class_or_table?(ctrl.name, config) ||
-          ExclusionHelper.excluded_class_or_table?(base, config)
+        ExclusionHelper.excluded_class_or_table?(ctrl.name, config)
       end
 
       def extract_controller_details(ctrl)

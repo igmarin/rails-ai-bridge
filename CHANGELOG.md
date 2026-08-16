@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **`Config::Introspection#preset=` accepts `nil`** — `preset = nil` now sets `@preset` to `nil` and leaves `introspectors` unchanged, so around-hooks can restore an unset preset. Named presets (`:standard`, `:regulated`, `:full`) are unchanged.
+- **Namespaced model exclusions no longer collide on the last path segment** — `excluded_models: ['User']` still matches `User` / `Users` / `users` / `UsersController`, but not `Admin::User`, `Admin::UsersController`, `UserSession`, or `Superuser`. `excluded_models: ['Admin::User']` matches `Admin::User` and `Admin::UsersController` only. Table-only exclusions are unchanged (`patient_records` still drops `PatientRecord`).
 - **MCP `fetch_section` honored disabled introspectors** (#186) — `Introspector#selected_introspectors` now intersects `only:` with `effective_introspectors`, so `:regulated` and `disabled_introspection_categories` cannot be bypassed by `rails_get_schema` / `rails://schema`.
 - **Excluded association names no longer leak via model details** (#186) — associations, generated accessors, and rubydex `similar_models` that name an excluded model or table are omitted from MCP output.
 - **`similar_models` honors `excluded_tables`** (#186) — rubydex sibling names such as `PatientRecord` are dropped when only `patient_records` is excluded (`ExclusionHelper.excluded_class_or_table?`).
@@ -29,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Skunk CI gate ratcheted to 20 and made blocking** (#183) — measured 4.2/4.3 SkunkScore averages were 15.93, 15.97, 15.96, 16.18, 15.89 (mean ≈ 15.99). Threshold 20 leaves ~25% headroom above the worst sample. The skunk job still runs rspec first for coverage. Perf stays advisory (`continue-on-error`). Mutation stays advisory but now also targets `Tools::SearchCode::Validator`, `ViewFileAnalyzer`, and `ExclusionHelper`.
+- **Advisory perf compare** — `rake perf:compare` takes the median of five iterations after one warmup. `introspection_time_sec` rebased to 0.028s after 4.3 schema/routes work (CI was 0.0269s on main, 0.0277s with PathResolver realpath). Context and MCP baselines stay at their 4.2 values because CI still measures well under them.
 - **Documentation and gemspec humanization** (#189) — gemspec is one plain sentence (maps a Rails
   app so assistants stop guessing); Windsurf dropped from the gemspec; `:full` YARD comment is 27
   to match `Configuration::PRESETS[:full]`; README comparison uses four durable rows
@@ -39,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 - **HTTP MCP auth defaults documented more clearly** — README and SECURITY.md now lead with: HTTP MCP is unauthenticated unless you set a token or `require_http_auth`; bind to `127.0.0.1` unless you add auth. Default remains `require_http_auth = false`.
+- **`PathResolver` symlink escape** — existing files from `existing_file_for` and `glob_for` are accepted only when `File.realpath` stays inside the realpath of the resolved directory or the application root. File and directory symlinks under a configured path that point outside the root are omitted. Missing paths still return `nil` without calling `realpath`. Allowed roots are realpathed once per resolver instance.
 - **`ViewFileAnalyzer` symlink escape** (#185) — existing view files are resolved with `File.realpath` and compared against the realpath of every configured `app/views` root (including custom Rails paths). A symlink under views that points outside every root now raises `SecurityError` instead of emitting the target file contents.
 
 ## [4.2.0] - 2026-08-13
