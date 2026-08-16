@@ -255,8 +255,8 @@ The gem exposes **17 built-in tools** via MCP that AI clients call on-demand (ho
 
 | Tool | What it returns |
 |------|----------------|
-| `rails_get_schema` | Tables, columns, indexes, foreign keys |
-| `rails_get_model_details` | Associations, validations, scopes, enums, callbacks, semantic tier, non-AR models (when enabled) |
+| `rails_get_schema` | Tables, columns, indexes, foreign keys — tagged `[VERIFIED]` (live ActiveRecord) or `[INFERRED]` (static schema.rb / structure.sql parse) |
+| `rails_get_model_details` | Associations, validations, scopes, enums, callbacks, source macros, semantic tier, non-AR models (when enabled) — tagged `[VERIFIED]` (reflection / rubydex) or `[INFERRED]` (source regex) |
 | `rails_get_routes` | HTTP verbs, paths, controller actions |
 | `rails_get_controllers` | Actions, filters, strong params, concerns |
 | `rails_get_config` | Cache, session, timezone, middleware, initializers |

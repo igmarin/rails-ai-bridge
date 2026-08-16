@@ -9,15 +9,17 @@ module RailsAiBridge
       class TableFormatter
         # @param name [String] table name
         # @param data [Hash] slice from schema introspection (+:columns+, +:indexes+, +:foreign_keys+)
+        # @param source [Symbol, String, nil] +:live+ (verified) or +:static+ (inferred)
         # @return [void]
-        def initialize(name:, data:)
+        def initialize(name:, data:, source: nil)
           @name = name
           @data = data
+          @source = source
         end
 
         # @return [String] Markdown representation of the table
         def call
-          lines = ["## Table: #{@name}", '']
+          lines = ["## Table: #{ConfidenceTag.tagged(@name, @source)}", '']
           lines << '| Column | Type | Nullable | Default |'
           lines << '|--------|------|----------|---------|'
 

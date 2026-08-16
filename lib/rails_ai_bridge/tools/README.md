@@ -14,6 +14,8 @@ Each tool should:
 
 ## Shared helpers
 
+Use `ConfidenceTag` for `[VERIFIED]` / `[INFERRED]` markers on schema and model markdown (live reflection and rubydex/Prism vs source regex).
+
 Use `BaseTool` helpers instead of rolling your own runtime behavior:
 
 - `cached_context` for a full snapshot

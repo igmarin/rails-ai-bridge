@@ -22,7 +22,9 @@ module RailsAiBridge
             data = @models[name]
             next if data[:error]
 
-            assocs = (data[:associations] || []).map { |a| "#{a[:type]} :#{a[:name]}" }.join(', ')
+            assocs = (data[:associations] || []).map do |a|
+              ConfidenceTag.tagged("#{a[:type]} :#{a[:name]}", a[:source] || :reflection)
+            end.join(', ')
             line = "- **#{name}**"
             line += " (table: #{data[:table_name]})" if data[:table_name]
             line += " — tier: #{data[:semantic_tier]}" if data[:semantic_tier].present?

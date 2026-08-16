@@ -31,6 +31,10 @@ RSpec.describe RailsAiBridge::Introspectors::Schema::StaticStructureSqlParser do
       expect(parse(content)[:adapter]).to eq('static_parse')
     end
 
+    it 'marks the parse as inferred source' do
+      expect(parse(content)[:source]).to eq(:static)
+    end
+
     it 'includes a note about the parse source' do
       expect(parse(content)[:note]).to include('structure.sql')
     end
