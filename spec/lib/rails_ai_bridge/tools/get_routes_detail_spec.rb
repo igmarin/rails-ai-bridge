@@ -48,6 +48,7 @@ RSpec.describe RailsAiBridge::Tools::GetRoutes do
       text = result.content.first[:text]
       expect(text).to include('Routes Full Detail')
       expect(text).to include('| Verb |')
+      expect(text).to include('| Helper |')
       expect(text).to include('users')
     end
 
