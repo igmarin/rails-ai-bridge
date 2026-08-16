@@ -1,7 +1,6 @@
-# rails-ai-bridge — Complete Guide
+# rails-ai-bridge guide
 
-> Full documentation for [rails-ai-bridge](https://github.com/igmarin/rails-ai-bridge).
-> For a quick overview, see the [README](../README.md).
+Commands, tools, config, and setup. For the short path, use the [README](../README.md).
 
 ---
 

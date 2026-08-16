@@ -1,7 +1,7 @@
 # AGENTS.md — rails-ai-bridge development guide
 
-This is a Ruby gem that auto-introspects Rails applications and exposes their
-structure to AI assistants via the Model Context Protocol (MCP).
+Ruby gem that reads a Rails app and gives assistants that map over MCP and
+committed context files. It does not write to the host database.
 
 ## Architecture
 

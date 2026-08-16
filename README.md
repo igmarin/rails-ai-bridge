@@ -2,9 +2,9 @@
 
 ![Rails AI Bridge Logo](https://github.com/user-attachments/assets/ee7b04bd-2d67-483e-be4a-cffdefdbdc50)
 
-> **Turn any Rails app into an AI-ready system — with real context, not guesswork.**
+> Maps your Rails app so assistants stop guessing table names, routes, and conventions.
 
-**One command. Zero config. Structured context + live introspection for AI assistants** via compact project files and an MCP server.
+The install generator writes compact context files and starts a read-only MCP server. Assistants can read the files at session start, then ask for one model, table, or controller when they need detail.
 
 [![Gem Version](https://badge.fury.io/rb/rails-ai-bridge.svg)](https://rubygems.org/gems/rails-ai-bridge)
 [![CI](https://github.com/igmarin/rails-ai-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/igmarin/rails-ai-bridge/actions)
@@ -24,7 +24,7 @@ rails-ai-bridge turns a Rails app into an AI-readable project map:
 - **A read-only MCP server** lets assistants ask for exact details only when needed, such as one model, one table, one controller, or one route group.
 - **Assistant-specific output** keeps Claude Code, Cursor, Codex, Copilot, Devin, Gemini, and JSON consumers aligned without making you hand-write context files.
 
-The goal is simple: help AI assistants produce code that fits your Rails app instead of generic Rails code.
+The point is that generated code should match this app, not a generic Rails tutorial.
 
 ## Start here
 
@@ -52,7 +52,7 @@ This is useful when you want an AI assistant to work inside a real Rails codebas
 - A team that wants shared AI guidance committed to the repo
 - Large schemas where dumping everything into context would be noisy
 
-For tiny apps or one-off scripts, manual context may be enough. For team Rails apps, generated context plus MCP gives the assistant a much better starting point.
+Skip this on a tiny app or a one-off script. On a team app with real models and conventions, generated files plus MCP beat a hand-written notes file.
 
 ---
 
@@ -80,8 +80,8 @@ This creates two complementary layers:
 
 | Layer | What it does | Why it matters |
 |---|---|---|
-| Static files | Give the assistant passive project orientation at session start | Fewer cold starts and fewer generic assumptions |
-| MCP tools | Return exact live details when requested | Less context bloat and fewer schema/route hallucinations |
+| Static files | Overview the assistant sees when the session starts | Less time spent rediscovering models and routes |
+| MCP tools | Exact live details when the assistant asks | Smaller prompts; fewer invented columns and helpers |
 
 Compact files are ordered for usefulness: primary domain models, busy endpoints, recently migrated tables, and optional hot-table hints appear before less important details.
 
@@ -152,27 +152,23 @@ Optional: `gem install rails-ai-bridge` installs the gem into your Ruby environm
 
 ---
 
-## Why rails-ai-bridge over alternatives?
+## Compared with writing the files yourself, or rails-mcp-server
 
-| | **rails-ai-bridge** | **[rails-mcp-server](https://github.com/maquina-app/rails-mcp-server)** | **Manual context** |
+| | **rails-ai-bridge** | **[rails-mcp-server](https://github.com/maquina-app/rails-mcp-server)** | **Hand-written notes** |
 | --- | --- | --- | --- |
-| Zero config | Yes — Railtie + install generator | No — per-project `projects.yml` | No |
-| Token optimization | Yes — compact files + `detail:"summary"` workflow | Varies | No |
-| Codex-oriented repo files | Yes — `AGENTS.md`, `.codex/README.md` | No | DIY |
-| Live MCP tools | Yes — 19 read-only `rails_*` tools (extensible) | Yes | No |
-| Auto-introspection | Yes — up to **27** domains (`:full`) | No — server points at projects you configure | DIY |
-| Committed files | Yes — assistant files committed to the repo | No — configured projects only | DIY |
-| Read-only | Yes — inspects structure; never writes or mutates | Yes | Yes |
-| Presets | Yes — `:standard`, `:full`, and `:regulated` | No | No |
+| Setup | Railtie and an install generator | Per-project `projects.yml` | You write everything |
+| Files in git | Assistant files committed in the app | Configured projects only | Whatever you remember to commit |
+| Read-only | Inspects structure; does not write or mutate | Yes | Yes |
+| Presets | `:standard`, `:full`, and `:regulated` | No | No |
 
 *Checked against rails-mcp-server README and typical manual-context workflows on 2026-08-15.
 This table lists durable product differences, not tool or introspector counts that change release to release.*
 
 ---
 
-## What Gets Generated
+## What `rails ai:bridge` writes
 
-`rails ai:bridge` generates assistant-specific files tailored to each AI workflow:
+It writes one set of files per assistant. Compact files stay near 150 lines. Split rules live next to the tool that reads them:
 
 ```text
 your-rails-app/
