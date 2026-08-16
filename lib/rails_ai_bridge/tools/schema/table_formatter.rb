@@ -8,7 +8,8 @@ module RailsAiBridge
       # indexes, and foreign keys.
       class TableFormatter
         # @param name [String] table name
-        # @param data [Hash] slice from schema introspection (+:columns+, +:indexes+, +:foreign_keys+)
+        # @param data [Hash] slice from schema introspection (+:columns+, +:indexes+,
+        #   +:foreign_keys+, optional +:partition_of+ / +:partitioned+)
         # @param source [Symbol, String, nil] +:live+ (verified) or +:static+ (inferred)
         # @return [void]
         def initialize(name:, data:, source: nil)
@@ -20,6 +21,11 @@ module RailsAiBridge
         # @return [String] Markdown representation of the table
         def call
           lines = ["## Table: #{ConfidenceTag.tagged(@name, @source)}", '']
+          heading = partition_heading
+          if heading
+            lines << heading
+            lines << ''
+          end
           lines << '| Column | Type | Nullable | Default |'
           lines << '|--------|------|----------|---------|'
 
