@@ -36,6 +36,10 @@ module RailsAiBridge
       # @return [Integer] TTL in seconds for cached introspection results
       attr_accessor :cache_ttl
 
+      # @return [Integer] maximum paths returned by {PathResolver#glob_for} and
+      #   {PathResolver#files_for} (sorted, then taken). Default is +2000+.
+      attr_accessor :max_files_per_path
+
       # @return [Boolean] include credential key names in config introspection output
       attr_accessor :expose_credentials_key_names
 
@@ -83,6 +87,7 @@ module RailsAiBridge
       # | +excluded_tables+                  | +[]+                                                 |
       # | +disabled_introspection_categories+| +[]+                                                 |
       # | +cache_ttl+                        | +30+ (seconds)                                       |
+      # | +max_files_per_path+               | +2000+                                               |
       # | +expose_credentials_key_names+     | +false+                                              |
       # | +additional_introspectors+         | +{}+                                                 |
       # | +search_code_allowed_file_types+   | +[]+                                                 |
@@ -108,6 +113,7 @@ module RailsAiBridge
         @excluded_tables                   = []
         @disabled_introspection_categories = []
         @cache_ttl                         = 30
+        @max_files_per_path                = 2000
         @expose_credentials_key_names      = false
         @additional_introspectors          = {}
         @search_code_allowed_file_types    = []

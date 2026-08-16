@@ -95,6 +95,7 @@ module RailsAiBridge
                    :excluded_tables, :excluded_tables=,
                    :disabled_introspection_categories, :disabled_introspection_categories=,
                    :cache_ttl, :cache_ttl=,
+                   :max_files_per_path, :max_files_per_path=,
                    :expose_credentials_key_names, :expose_credentials_key_names=,
                    :additional_introspectors, :additional_introspectors=,
                    :search_code_allowed_file_types, :search_code_allowed_file_types=,

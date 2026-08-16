@@ -33,6 +33,13 @@ RSpec.describe RailsAiBridge::Configuration do
     expect(config.http_log_json).to be(false)
   end
 
+  it 'delegates max_files_per_path to introspection' do
+    expect(config.max_files_per_path).to eq(2000)
+    config.max_files_per_path = 3
+    expect(config.introspection.max_files_per_path).to eq(3)
+    expect(config.max_files_per_path).to eq(3)
+  end
+
   it 'exposes the mcp sub-config' do
     expect(config.mcp).to be_a(RailsAiBridge::Config::Mcp)
   end

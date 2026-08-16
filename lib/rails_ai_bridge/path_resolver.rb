@@ -153,6 +153,9 @@ module RailsAiBridge
 
     # Finds files under every directory for a logical Rails path.
     #
+    # Results are sorted then truncated to
+    # {Config::Introspection#max_files_per_path} (default +2000+).
+    #
     # @param logical_path [String] Rails path key, such as +"app/models"+
     # @param extension [String] file extension without a leading dot
     # @return [Array<String>] absolute file paths
@@ -163,7 +166,8 @@ module RailsAiBridge
     # Finds files matching a glob under every directory for a logical Rails path.
     #
     # The pattern must be a safe relative glob. Absolute paths and traversal
-    # segments are rejected before +Dir.glob+ runs.
+    # segments are rejected before +Dir.glob+ runs. Matches are sorted then
+    # truncated to {Config::Introspection#max_files_per_path} (default +2000+).
     #
     # @param logical_path [String] Rails path key, such as +"app/views"+
     # @param pattern [String] glob pattern relative to each resolved directory
@@ -172,9 +176,10 @@ module RailsAiBridge
     def glob_for(logical_path, pattern)
       safe_pattern = SafeRelativePath.new(pattern, argument_name: 'pattern').to_s
 
-      directories_for(logical_path).flat_map do |path|
+      matches = directories_for(logical_path).flat_map do |path|
         Dir.exist?(path) ? Dir.glob(File.join(path, safe_pattern)) : []
       end
+      matches.sort.take(max_files_per_path)
     end
 
     # Finds the first existing file under a logical Rails path.
@@ -208,6 +213,11 @@ module RailsAiBridge
     end
 
     private
+
+    def max_files_per_path
+      configured = RailsAiBridge.configuration&.max_files_per_path
+      configured.nil? ? 2000 : Integer(configured)
+    end
 
     def configured_paths_for(logical_path)
       configured_paths = @app.paths[logical_path]
