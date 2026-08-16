@@ -62,6 +62,28 @@ RSpec.describe RailsAiBridge::Config::Introspection do
     it 'raises on unknown preset' do
       expect { introspection.preset = :unknown }.to raise_error(ArgumentError, /Unknown preset/)
     end
+
+    it 'assigns nil without raising and does not change introspectors' do
+      introspection.preset = :full
+      previous = introspection.introspectors.dup
+
+      expect { introspection.preset = nil }.not_to raise_error
+      expect(introspection.preset).to be_nil
+      expect(introspection.introspectors).to eq(previous)
+    end
+
+    it 'assigns :regulated' do
+      introspection.preset = :regulated
+      expect(introspection.preset).to eq(:regulated)
+      expect(introspection.introspectors).to eq(RailsAiBridge::Configuration::PRESETS[:regulated])
+    end
+
+    it 'assigns :standard' do
+      introspection.preset = :full
+      introspection.preset = :standard
+      expect(introspection.preset).to eq(:standard)
+      expect(introspection.introspectors).to eq(RailsAiBridge::Configuration::PRESETS[:standard])
+    end
   end
 
   describe '#effective_introspectors' do

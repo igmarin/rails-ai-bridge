@@ -11,8 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Inherited controller filters** (#190) — `rails_get_controllers` lists `before_action` / `after_action` filters from the controller and its ancestors. Filters whose `only` / `except` do not apply to any action are omitted. `detail: summary` stays at filter names; `standard` / `full` include the defining class. ActionFilter `only`/`except` conditions are parsed on Rails 7.1+.
 - **MCP exclusion parity spec** (#186) — `spec/lib/rails_ai_bridge/mcp/exclusion_parity_spec.rb` fails when `Server::TOOLS` or resource templates grow without a policy entry, and asserts `excluded_models`, `excluded_tables`, `:regulated`, and `disabled_introspection_categories` do not leak omitted names through listing tools or `rails://` resources. Composite `rails_get_context` is a listing-surface policy row, invoked only when that tool is already in `Server::TOOLS` (#181).
-- **`rails_explain_symbol` MCP tool** (#192) — optional in-process explanation of a `symbol` or `query` from a **local** CodeGraph index (`.codegraph/`). Runs `codegraph explore` with a timeout and argv arrays (no shell, no network). Missing index or CLI failure returns setup instructions (`codegraph init` / `codegraph index`) instead of raising. Always registered so doc-parity stays a single tool list.
-- **`rails_get_context` MCP tool** (#181) — in-process composite for one model, controller, or feature (table + model + routes + controller actions/filters + cheap related tests). Reuses `[VERIFIED]` / `[INFERRED]` tags from #187. No HTTP; provider fan-out stays on a different name.
+- **`rails_explain_symbol` MCP tool** (#192) — optional in-process explanation of a `symbol` or `query` from a **local** CodeGraph index (`.codegraph/`). Runs `codegraph explore` with a timeout and argv arrays (no shell, no network). Missing index or CLI failure returns setup instructions (`codegraph init` / `codegraph index`) instead of raising. Always registered so doc-parity stays a single tool list. Built-in MCP tools: **19**.
+- **`rails_get_context` MCP tool** (#181) — in-process composite for one model, controller, or feature (table + model + routes + controller actions/filters + cheap related tests). Reuses `[VERIFIED]` / `[INFERRED]` tags from #187. No HTTP; provider fan-out stays on a different name. Built-in MCP tools: **19**.
 - **Confidence tags on schema and model MCP tools** (#187) — `rails_get_schema` and `rails_get_model_details` markdown now marks facts as `[VERIFIED]` (live ActiveRecord reflection or rubydex/Prism) or `[INFERRED]` (source-regex macros and static schema parses). Missing sections are omitted rather than tagged empty.
 - **Shared anti-hallucination rules in compact assistant files** (#188) — compact Claude, Cursor, Copilot, Codex, Gemini, and `AGENTS.md` output now include a short verify-before-write block from `SharedAssistantGuidance`. Disable with `config.output.anti_hallucination_rules = false` (default: on).
 - **`rails_get_routes` URL helpers and required params** (#191) — named routes now include the Rails path helper (from the route set's declared name, e.g. `post_path`) and required parameter names (from Journey `required_parts`). Unnamed routes are left without a helper. Summary stays a compact per-controller overview (counts plus one sample helper); standard/full list helpers and required params (paginated).
@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`Config::Introspection#preset=` accepts `nil`** — `preset = nil` now sets `@preset` to `nil` and leaves `introspectors` unchanged, so around-hooks can restore an unset preset. Named presets (`:standard`, `:regulated`, `:full`) are unchanged.
 - **MCP `fetch_section` honored disabled introspectors** (#186) — `Introspector#selected_introspectors` now intersects `only:` with `effective_introspectors`, so `:regulated` and `disabled_introspection_categories` cannot be bypassed by `rails_get_schema` / `rails://schema`.
 - **Excluded association names no longer leak via model details** (#186) — associations, generated accessors, and rubydex `similar_models` that name an excluded model or table are omitted from MCP output.
 - **`similar_models` honors `excluded_tables`** (#186) — rubydex sibling names such as `PatientRecord` are dropped when only `patient_records` is excluded (`ExclusionHelper.excluded_class_or_table?`).
@@ -37,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **HTTP MCP auth defaults documented more clearly** — README and SECURITY.md now lead with: HTTP MCP is unauthenticated unless you set a token or `require_http_auth`; bind to `127.0.0.1` unless you add auth. Default remains `require_http_auth = false`.
 - **`ViewFileAnalyzer` symlink escape** (#185) — existing view files are resolved with `File.realpath` and compared against the realpath of every configured `app/views` root (including custom Rails paths). A symlink under views that points outside every root now raises `SecurityError` instead of emitting the target file contents.
 
 ## [4.2.0] - 2026-08-13
