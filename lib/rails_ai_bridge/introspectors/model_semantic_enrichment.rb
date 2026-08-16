@@ -51,7 +51,7 @@ module RailsAiBridge
         related = ModelSemanticEnrichment.send(:collect_related_models, adapter, name)
         related.delete(name)
 
-        result = related.to_a.sort.first(10)
+        result = related.to_a.sort.reject { |related_name| excluded_related_model?(related_name) }.first(10)
         result.empty? ? nil : result
       rescue StandardError
         nil
@@ -81,6 +81,22 @@ module RailsAiBridge
         score
       rescue StandardError
         nil
+      end
+
+      # @param name [String]
+      # @return [Boolean]
+      def excluded_related_model?(name)
+        token = name.to_s
+        excluded_models_from_config.any? do |excluded|
+          token == excluded || token.start_with?("#{excluded}::")
+        end
+      end
+
+      # @return [Array<String>]
+      def excluded_models_from_config
+        return [] unless config.respond_to?(:excluded_models)
+
+        Array(config.excluded_models)
       end
     end
   end

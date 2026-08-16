@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **MCP exclusion parity spec** (#186) — `spec/lib/rails_ai_bridge/mcp/exclusion_parity_spec.rb` fails when `Server::TOOLS` or resource templates grow without a policy entry, and asserts `excluded_models`, `excluded_tables`, `:regulated`, and `disabled_introspection_categories` do not leak omitted names through listing tools or `rails://` resources. Composite `rails_get_context` is allowlisted until #181.
+
+### Fixed
+
+- **MCP `fetch_section` honored disabled introspectors** (#186) — `Introspector#selected_introspectors` now intersects `only:` with `effective_introspectors`, so `:regulated` and `disabled_introspection_categories` cannot be bypassed by `rails_get_schema` / `rails://schema`.
+- **Excluded association names no longer leak via model details** (#186) — associations, generated accessors, and rubydex `similar_models` that name an excluded model or table are omitted from MCP output.
+
 ## [4.2.0] - 2026-08-13
 
 ### Added
