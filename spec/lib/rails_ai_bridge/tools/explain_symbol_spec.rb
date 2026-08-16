@@ -121,12 +121,45 @@ RSpec.describe RailsAiBridge::Tools::ExplainSymbol::CliExplorer do
       status = instance_double(Process::Status, success?: true)
       expect(Open3).to receive(:capture3) do |*args, **opts|
         expect(args.first).to be_a(Hash)
-        expect(args[1..]).to eq(['codegraph', '--no-color', 'explore', '--path', '/tmp/app', 'User'])
+        expect(args[1..]).to eq(['codegraph', '--no-color', 'explore', '--path', '/tmp/app', '--', 'User'])
         expect(opts[:chdir]).to eq('/tmp/app')
         ['# User', '', status]
       end
 
       expect(explorer.explore('User')).to eq('# User')
+    end
+
+    it 'does not let a flag-like query override --path' do
+      status = instance_double(Process::Status, success?: true)
+      captured = nil
+      allow(Open3).to receive(:capture3) do |*args, **|
+        captured = args[1..]
+        ['ok', '', status]
+      end
+
+      explorer.explore('-p /')
+
+      expect(captured).to eq(['codegraph', '--no-color', 'explore', '--path', '/tmp/app', '--', '-p /'])
+      expect(captured).not_to include('/')
+      dashdash = captured.index('--')
+      expect(dashdash).not_to be_nil
+      expect(captured[dashdash + 1]).to eq('-p /')
+      expect(captured[0...dashdash]).to include('--path', '/tmp/app')
+    end
+
+    it 'treats --path=/tmp as the explore operand after --' do
+      status = instance_double(Process::Status, success?: true)
+      captured = nil
+      allow(Open3).to receive(:capture3) do |*args, **|
+        captured = args[1..]
+        ['ok', '', status]
+      end
+
+      explorer.explore('--path=/tmp')
+
+      expect(captured).to eq(
+        ['codegraph', '--no-color', 'explore', '--path', '/tmp/app', '--', '--path=/tmp']
+      )
     end
 
     it 'raises ExploreError when the command fails' do

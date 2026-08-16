@@ -46,7 +46,8 @@ module RailsAiBridge
         # @param query [String]
         # @return [Array<String>] argv for Open3 (never a single shell string)
         def command_for(query)
-          ['codegraph', '--no-color', 'explore', '--path', @root, query.to_s]
+          # `--` keeps flag-like queries (`-p /`, `--path=/tmp`) from overriding --path.
+          ['codegraph', '--no-color', 'explore', '--path', @root, '--', query.to_s]
         end
 
         # Environment flags that keep the CLI from coloring output or sending telemetry.
