@@ -90,7 +90,7 @@ Compact files are ordered for usefulness: primary domain models, busy endpoints,
 - MCP tools are **read-only**. They inspect Rails structure; they do not write files or mutate the database.
 - `database_stats` is **opt-in** because it queries PostgreSQL table statistics.
 - Generated assistant context avoids credential values and suppresses secret-bearing config paths such as `.env*`, Rails credentials, `master.key`, private key material, and custom `config/secrets` or `config/private` files.
-- HTTP MCP should stay bound to `127.0.0.1` unless you add authentication and network controls. See [docs/mcp-security.md](docs/mcp-security.md).
+- HTTP MCP is unauthenticated unless you set a token or `require_http_auth`. Bind to `127.0.0.1` unless you add auth. See [docs/mcp-security.md](docs/mcp-security.md).
 
 ---
 
@@ -400,6 +400,11 @@ Codex reads `AGENTS.md` at the repository root. MCP can be configured in `.codex
 
 ### HTTP transport (alternative for all clients)
 
+HTTP MCP is unauthenticated unless you set a token (`http_mcp_token` /
+`RAILS_AI_BRIDGE_MCP_TOKEN`, or a resolver/JWT decoder) or
+`require_http_auth`. Bind to `127.0.0.1` unless you add auth. The default
+remains `require_http_auth = false`.
+
 If stdio MCP fails (usually a Ruby version manager PATH issue), start the HTTP server instead:
 
 ```bash
@@ -417,7 +422,7 @@ RailsAiBridge.configure do |config|
 end
 ```
 
-Point your AI client to `http://localhost:3000/mcp` (or whichever port your Rails server uses) using transport type `SSE`. Keep the endpoint bound to localhost unless you add authentication. See [docs/mcp-security.md](docs/mcp-security.md) for production hardening.
+Point your AI client to `http://127.0.0.1:3000/mcp` (or whichever port your Rails server uses) using transport type `SSE`. See [docs/mcp-security.md](docs/mcp-security.md) and [SECURITY.md](SECURITY.md) for production hardening.
 
 ### Claude Desktop (standalone app)
 

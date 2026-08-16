@@ -106,11 +106,8 @@ RSpec.describe 'MCP exclusion parity' do
     RailsAiBridge::ContextProvider.reset!
     example.run
   ensure
-    if original[:preset]
-      config.preset = original[:preset]
-    else
-      config.introspectors = original[:introspectors]
-    end
+    config.introspectors = original[:introspectors]
+    config.preset = original[:preset]
     config.excluded_models = original[:excluded_models]
     config.excluded_tables = original[:excluded_tables]
     config.disabled_introspection_categories = original[:disabled_categories]
