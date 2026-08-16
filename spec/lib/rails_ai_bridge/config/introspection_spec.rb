@@ -33,6 +33,10 @@ RSpec.describe RailsAiBridge::Config::Introspection do
     expect(introspection.cache_ttl).to eq(30)
   end
 
+  it 'defaults max_files_per_path to 2000' do
+    expect(introspection.max_files_per_path).to eq(2000)
+  end
+
   it 'defaults expose_credentials_key_names to false' do
     expect(introspection.expose_credentials_key_names).to be(false)
   end

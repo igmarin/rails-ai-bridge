@@ -106,6 +106,46 @@ RSpec.describe RailsAiBridge::PathResolver do
     )
   end
 
+  context 'when max_files_per_path is 3' do
+    around do |example|
+      original = RailsAiBridge.configuration.max_files_per_path
+      RailsAiBridge.configuration.max_files_per_path = 3
+      example.run
+    ensure
+      RailsAiBridge.configuration.max_files_per_path = original
+    end
+
+    before do
+      %w[zebra.rb alpha.rb mid.rb].each do |name|
+        File.write(models_dir.join(name), "class #{name.delete_suffix('.rb').capitalize}; end")
+      end
+    end
+
+    it 'truncates glob_for results after a stable sort' do
+      paths = resolver.glob_for('app/models', '**/*.rb')
+      expected = [
+        models_dir.join('alpha.rb').to_s,
+        models_dir.join('billing/account.rb').to_s,
+        models_dir.join('mid.rb').to_s
+      ]
+
+      expect(paths.size).to eq(3)
+      expect(paths).to eq(expected)
+    end
+
+    it 'truncates files_for results after a stable sort' do
+      paths = resolver.files_for('app/models', extension: 'rb')
+      expected = [
+        models_dir.join('alpha.rb').to_s,
+        models_dir.join('billing/account.rb').to_s,
+        models_dir.join('mid.rb').to_s
+      ]
+
+      expect(paths.size).to eq(3)
+      expect(paths).to eq(expected)
+    end
+  end
+
   it 'rejects traversal in relative file lookups' do
     expect { resolver.existing_file_for('app/models', '../secrets.yml') }.to raise_error(
       ArgumentError,
