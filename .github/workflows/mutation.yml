@@ -43,6 +43,9 @@ jobs:
             RailsAiBridge::Tools::GetRoutes \
             RailsAiBridge::Tools::GetModelDetails \
             RailsAiBridge::Tools::ListRegistry \
+            RailsAiBridge::Tools::SearchCode::Validator \
+            RailsAiBridge::ViewFileAnalyzer \
+            RailsAiBridge::ExclusionHelper \
             RailsAiBridge::Serializers::Providers::CodexSerializer \
             2>&1 | tee mutant_output.txt
 
@@ -55,5 +58,5 @@ jobs:
           tail -20 mutant_output.txt >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Note:** This job is advisory (non-blocking) initially." >> $GITHUB_STEP_SUMMARY
-          echo "Target: >80% mutation coverage on registry/tools." >> $GITHUB_STEP_SUMMARY
+          echo "**Note:** This job is advisory (non-blocking). Subjects include path/security-sensitive code; no hard score yet." >> $GITHUB_STEP_SUMMARY
+          echo "Target: expand subjects first, then consider >80% mutation coverage." >> $GITHUB_STEP_SUMMARY
