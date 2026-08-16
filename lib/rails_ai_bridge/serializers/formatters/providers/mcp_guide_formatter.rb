@@ -55,6 +55,7 @@ module RailsAiBridge
             - `rails_get_gems` — notable gems categorized by function (auth, background jobs, etc.)
             - `rails_get_conventions` — architecture patterns, directory structure, config files
             - `rails_search_code(pattern:"regex", file_type:"rb", max_results:20)` — ripgrep search
+            - `rails_explain_symbol(query:"User")` — local CodeGraph symbol explanation (requires `.codegraph/`)
           MARKDOWN
         end
       end

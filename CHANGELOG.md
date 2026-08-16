@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Skunk CI gate ratcheted to 20 and made blocking** (#183) — measured 4.2/4.3 SkunkScore averages were 15.93, 15.97, 15.96, 16.18, 15.89 (mean ≈ 15.99). Threshold 20 leaves ~25% headroom above the worst sample. The skunk job still runs rspec first for coverage. Perf stays advisory (`continue-on-error`). Mutation stays advisory but now also targets `Tools::SearchCode::Validator`, `ViewFileAnalyzer`, and `ExclusionHelper`.
 ### Added
 
 - **MCP exclusion parity spec** (#186) — `spec/lib/rails_ai_bridge/mcp/exclusion_parity_spec.rb` fails when `Server::TOOLS` or resource templates grow without a policy entry, and asserts `excluded_models`, `excluded_tables`, `:regulated`, and `disabled_introspection_categories` do not leak omitted names through listing tools or `rails://` resources. Composite `rails_get_context` is a listing-surface policy row, invoked only when that tool is already in `Server::TOOLS` (#181).
@@ -17,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Excluded association names no longer leak via model details** (#186) — associations, generated accessors, and rubydex `similar_models` that name an excluded model or table are omitted from MCP output.
 - **`similar_models` honors `excluded_tables`** (#186) — rubydex sibling names such as `PatientRecord` are dropped when only `patient_records` is excluded (`ExclusionHelper.excluded_class_or_table?`).
 - **Routes and controllers honor model/table exclusions** (#186) — `RouteIntrospector` and `ControllerIntrospector` omit `/users` and `UsersController` when `User`/`users` are excluded. Conventions stay a non-inventory surface (`:does_not_list_models_or_tables`).
+- **`rails_explain_symbol` MCP tool** (#192) — optional in-process explanation of a `symbol` or `query` from a **local** CodeGraph index (`.codegraph/`). Runs `codegraph explore` with a timeout and argv arrays (no shell, no network). Missing index or CLI failure returns setup instructions (`codegraph init` / `codegraph index`) instead of raising. Always registered so doc-parity stays a single tool list. Tool count: 17 → 18 on this branch (merge with #181 will make 19).
 - **`rails_get_context` MCP tool** (#181) — in-process composite for one model, controller, or feature (table + model + routes + controller actions/filters + cheap related tests). Reuses `[VERIFIED]` / `[INFERRED]` tags from #187. No HTTP; provider fan-out stays on a different name. Tool count 17 → 18.
 - **Confidence tags on schema and model MCP tools** (#187) — `rails_get_schema` and `rails_get_model_details` markdown now marks facts as `[VERIFIED]` (live ActiveRecord reflection or rubydex/Prism) or `[INFERRED]` (source-regex macros and static schema parses). Missing sections are omitted rather than tagged empty.
 - **Shared anti-hallucination rules in compact assistant files** (#188) — compact Claude, Cursor, Copilot, Codex, Gemini, and `AGENTS.md` output now include a short verify-before-write block from `SharedAssistantGuidance`. Disable with `config.output.anti_hallucination_rules = false` (default: on).

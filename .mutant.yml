@@ -13,6 +13,9 @@
 # Subject expressions are passed on the CLI to target critical paths:
 #   RailsAiBridge::Registry            — registry resolution
 #   RailsAiBridge::Tools               — MCP tools
+#   RailsAiBridge::Tools::SearchCode::Validator
+#   RailsAiBridge::ViewFileAnalyzer
+#   RailsAiBridge::ExclusionHelper
 #   RailsAiBridge::Serializers         — output serializers
 usage: opensource
 integration: rspec
