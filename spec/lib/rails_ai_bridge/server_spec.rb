@@ -37,8 +37,8 @@ RSpec.describe RailsAiBridge::Server do
   end
 
   describe 'TOOLS constant' do
-    it 'includes all 17 built-in tools' do
-      expect(RailsAiBridge::Server::TOOLS.length).to eq(17)
+    it 'includes all 18 built-in tools' do
+      expect(RailsAiBridge::Server::TOOLS.length).to eq(18)
     end
 
     it 'includes the registry tool classes' do

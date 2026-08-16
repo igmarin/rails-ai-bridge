@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`rails_explain_symbol` MCP tool** (#192) — optional in-process explanation of a `symbol` or `query` from a **local** CodeGraph index (`.codegraph/`). Runs `codegraph explore` with a timeout and argv arrays (no shell, no network). Missing index or CLI failure returns setup instructions (`codegraph init` / `codegraph index`) instead of raising. Always registered so doc-parity stays a single tool list. Tool count: 17 → 18 on this branch (merge with #181 will make 19).
+
 ## [4.2.0] - 2026-08-13
 
 ### Added

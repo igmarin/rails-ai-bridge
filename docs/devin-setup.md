@@ -94,6 +94,7 @@ Once connected, Devin has access to these tools:
 | `rails_get_gems` | Gemfile dependencies and their versions |
 | `rails_search_code` | Full-text search across the codebase |
 | `rails_search_semantic` | Semantic code search by concept |
+| `rails_explain_symbol` | Local CodeGraph explanation for a symbol or query |
 | `rails_get_conventions` | Project coding conventions and patterns |
 | `rails_get_controllers` | Controller actions and before-actions |
 | `rails_get_config` | Application configuration values |

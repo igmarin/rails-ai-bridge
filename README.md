@@ -159,7 +159,7 @@ Optional: `gem install rails-ai-bridge` installs the gem into your Ruby environm
 | Zero config | Yes — Railtie + install generator | No — per-project `projects.yml` | No |
 | Token optimization | Yes — compact files + `detail:"summary"` workflow | Varies | No |
 | Codex-oriented repo files | Yes — `AGENTS.md`, `.codex/README.md` | No | DIY |
-| Live MCP tools | Yes — 17 read-only `rails_*` tools (extensible) | Yes | No |
+| Live MCP tools | Yes — 18 read-only `rails_*` tools (extensible) | Yes | No |
 | Auto-introspection | Yes — up to **27** domains (`:full`) | No — server points at projects you configure | DIY |
 
 *Comparison reflects typical documented setups; verify against each project before treating any row as absolute.*
@@ -251,7 +251,7 @@ This keeps context focused and avoids unnecessary token usage while still allowi
 
 ## MCP Tools
 
-The gem exposes **17 built-in tools** via MCP that AI clients call on-demand (hosts can append more via `config.additional_tools`):
+The gem exposes **18 built-in tools** via MCP that AI clients call on-demand (hosts can append more via `config.additional_tools`):
 
 | Tool | What it returns |
 |------|----------------|
@@ -266,6 +266,7 @@ The gem exposes **17 built-in tools** via MCP that AI clients call on-demand (ho
 | `rails_search_code` | Ripgrep (or Ruby) search under `Rails.root` with allowlisted extensions, pattern size cap, and optional wall-clock timeout |
 | `rails_get_view` | View layouts, templates, partials; optional per-file detail under the configured `app/views` path |
 | `rails_search_semantic` | Semantic code search using rubydex — find declarations by name with types, locations, and relationships |
+| `rails_explain_symbol` | Local CodeGraph explanation for a `symbol` or `query` when `.codegraph/` exists; otherwise setup instructions |
 | `rails_get_stimulus` | Stimulus controllers: targets, values, actions, outlets (requires `:stimulus` introspector) |
 | `rails_list_registry` | Skill pack catalog — list skills, agents, or active packs; requires `config/rails_ai_bridge/registry.json` |
 | `rails_resolve_skill` | Full content of a named skill or agent from the registry (priority ordering + deprecation redirects); optional `pack=` pin and `type=agent` |

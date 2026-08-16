@@ -279,7 +279,7 @@ end
 
 ## MCP Tools — Full Reference
 
-All **11 built-in tools** are **read-only** and **idempotent** — they never modify your application or database. Hosts can append more via `config.additional_tools`.
+All **18 built-in tools** are **read-only** and **idempotent** — they never modify your application or database. Hosts can append more via `config.additional_tools`.
 
 ### rails_get_schema
 
@@ -504,6 +504,19 @@ rails_search_semantic(query: "Service", max_results: 30)
 ```
 
 **Notable:** Results include ancestors, descendants, and inline definitions when available, making this a richer alternative to `rails_search_code` for understanding code structure and relationships.
+
+### rails_explain_symbol
+
+Explains a Ruby/Rails symbol from a **local** CodeGraph index (`.codegraph/` under `Rails.root`). Runs `codegraph explore` in-process with a timeout. Never contacts a network service.
+
+**Parameters:**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `query` | string | Symbol or natural-language question (e.g. `User`, `User#save`). Preferred when both are sent. |
+| `symbol` | string | Alias for `query`. |
+
+If `.codegraph/` is missing or `codegraph` fails, the tool returns setup instructions (`codegraph init` / `codegraph index`) instead of raising.
 
 ### Rubydex configuration reference
 

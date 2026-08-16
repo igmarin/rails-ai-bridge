@@ -46,6 +46,7 @@ Params: controller, detail
 - `rails_get_gems` — categorized gem analysis
 - `rails_get_conventions` — architecture patterns
 - `rails_search_code(pattern:"regex", file_type:"rb", max_results:20)` — codebase search
+- `rails_explain_symbol(query:"User")` — local CodeGraph symbol explanation (requires `.codegraph/`)
 }
         end
       end
