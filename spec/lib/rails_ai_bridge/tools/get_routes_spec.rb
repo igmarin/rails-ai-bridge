@@ -55,9 +55,9 @@ RSpec.describe RailsAiBridge::Tools::GetRoutes do
 
       it 'returns a detailed markdown table of routes' do
         expect(content).to include('# Routes Full Detail (4 total)')
-        expect(content).to include('| Verb | Path | Controller#Action | Name |')
-        expect(content).to include('| GET | `/posts` | posts#index | posts |')
-        expect(content).to include('| POST | `/posts` | posts#create | - |')
+        expect(content).to include('| Verb | Path | Controller#Action | Helper | Params |')
+        expect(content).to include('| GET | `/posts` | posts#index | - | - |')
+        expect(content).to include('| POST | `/posts` | posts#create | - | - |')
       end
     end
 
@@ -124,6 +124,61 @@ RSpec.describe RailsAiBridge::Tools::GetRoutes do
         parsed = JSON.parse(content)
         expect(parsed['controllers'].keys).to eq(['posts'])
         expect(parsed['controllers']['posts'].size).to eq(2)
+      end
+    end
+
+    context 'when routes include helpers and required params from the route set' do
+      let(:routes_data) do
+        {
+          total_routes: 3,
+          api_namespaces: [],
+          by_controller: {
+            'posts' => [
+              { verb: 'GET', path: '/posts/:id', action: 'show', name: 'post', helper: 'post_path',
+                required_params: ['id'] }
+            ],
+            'users' => [
+              { verb: 'GET', path: '/legacy-ping', action: 'index' },
+              { verb: 'GET', path: '/me', action: 'show', name: 'profile', helper: 'profile_path' }
+            ]
+          }
+        }
+      end
+
+      context "with detail: 'summary'" do
+        let(:params) { { detail: 'summary' } }
+
+        it 'lists verb, path, and helper name without required params' do
+          expect(content).to include('GET `/posts/:id` `post_path`')
+          expect(content).to include('GET `/me` `profile_path`')
+          expect(content).not_to include('required_params')
+        end
+      end
+
+      context "with detail: 'standard'" do
+        let(:params) { { detail: 'standard' } }
+
+        it 'includes helper and required params for a named route' do
+          expect(content).to include('`GET` `/posts/:id` → show (`post_path`, id)')
+        end
+
+        it 'does not invent a helper for an unnamed route' do
+          expect(content).to include('`GET` `/legacy-ping` → index')
+          expect(content).not_to include('legacy_ping_path')
+          expect(content).not_to include('legacy-ping_path')
+        end
+      end
+
+      context "with detail: 'full'" do
+        let(:params) { { detail: 'full' } }
+
+        it 'includes helper and required params for a named route' do
+          expect(content).to include('| GET | `/posts/:id` | posts#show | post_path | id |')
+        end
+
+        it 'leaves the helper blank for an unnamed route' do
+          expect(content).to include('| GET | `/legacy-ping` | users#index | - | - |')
+        end
       end
     end
   end

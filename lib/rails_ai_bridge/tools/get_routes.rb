@@ -6,7 +6,7 @@ module RailsAiBridge
     class GetRoutes < BaseTool
       tool_name 'rails_get_routes'
       description 'Get all routes for the Rails app, optionally filtered by controller. Shows HTTP verb, path, controller#action, ' \
-                  'and route name. Supports detail levels and pagination.'
+                  'Rails URL helper (when the route set defines one), and required params. Supports detail levels and pagination.'
 
       input_schema(
         properties: {
@@ -17,7 +17,8 @@ module RailsAiBridge
           detail: {
             type: 'string',
             enum: %w[summary standard full],
-            description: 'Detail level. summary: route counts per controller. standard: paths and actions (default). full: everything including names and constraints.'
+            description: 'Detail level. summary: verb + path + helper name. standard: paths, helpers, and required params ' \
+                         '(default). full: table including helpers and required params.'
           },
           limit: {
             type: 'integer',
@@ -109,6 +110,7 @@ module RailsAiBridge
             actions = @by_controller[ctrl]
             verbs = actions.map { |r| r[:verb] }.tally.map { |v, c| "#{c} #{v}" }.join(', ')
             lines << "- **#{ctrl}** — #{actions.size} routes (#{verbs})"
+            actions.each { |route| lines << "  - #{compact_route_line(route)}" }
           end
           lines << '' << "API namespaces: #{@routes[:api_namespaces].join(', ')}" if @routes[:api_namespaces]&.any?
           lines << '' << '_Use `controller:"name"` to see routes for a specific controller._'
@@ -129,7 +131,7 @@ module RailsAiBridge
               next if count <= @offset
               break if count > @offset + limit
 
-              ctrl_lines << "- `#{r[:verb]}` `#{r[:path]}` → #{r[:action]}"
+              ctrl_lines << "- `#{r[:verb]}` `#{r[:path]}` → #{r[:action]}#{standard_route_suffix(r)}"
             end
             next unless ctrl_lines.any?
 
@@ -146,8 +148,8 @@ module RailsAiBridge
           limit = @limit.to_i
           limit = 200 if limit <= 0
           lines = ["# Routes Full Detail (#{route_count} total)", '']
-          lines << '| Verb | Path | Controller#Action | Name |'
-          lines << '|------|------|-------------------|------|'
+          lines << '| Verb | Path | Controller#Action | Helper | Params |'
+          lines << '|------|------|-------------------|--------|--------|'
           count = 0
           @by_controller.sort.each do |ctrl, actions|
             actions.each do |r|
@@ -155,12 +157,44 @@ module RailsAiBridge
               next if count <= @offset
               break if count > @offset + limit
 
-              lines << "| #{r[:verb]} | `#{r[:path]}` | #{ctrl}##{r[:action]} | #{r[:name] || '-'} |"
+              lines << full_route_row(ctrl, r)
             end
           end
           lines << '' << "## API namespaces: #{@routes[:api_namespaces].join(', ')}" if @routes[:api_namespaces]&.any?
           lines << next_offset_hint(limit) if next_page?(limit)
           lines.join("\n")
+        end
+
+        # Compact summary line: verb + path + helper name (no required params).
+        #
+        # @param route [Hash] presented route
+        # @return [String]
+        def compact_route_line(route)
+          parts = [route[:verb], "`#{route[:path]}`"]
+          parts << "`#{route[:helper]}`" if route[:helper]
+          parts.join(' ')
+        end
+
+        # @param route [Hash] presented route
+        # @return [String] helper and required params suffix, or empty string
+        def standard_route_suffix(route)
+          helper = route[:helper]
+          return '' if helper.blank?
+
+          params = Array(route[:required_params])
+          suffix = " (`#{helper}`"
+          suffix += ", #{params.join(', ')}" if params.any?
+          "#{suffix})"
+        end
+
+        # @param controller [String] controller path
+        # @param route [Hash] presented route
+        # @return [String] markdown table row
+        def full_route_row(controller, route)
+          helper = route[:helper].presence || '-'
+          params = Array(route[:required_params])
+          params_cell = params.any? ? params.join(', ') : '-'
+          "| #{route[:verb]} | `#{route[:path]}` | #{controller}##{route[:action]} | #{helper} | #{params_cell} |"
         end
 
         # @param limit [Integer] maximum route rows requested for the current page
