@@ -943,4 +943,42 @@ RSpec.describe RailsAiBridge::Registry::DefaultGitRunner do
         .to raise_error(RuntimeError) { |e| expect(e.message).not_to include('Merge conflict') }
     end
   end
+
+  describe '#current_commit' do
+    it 'returns the stripped HEAD commit SHA on success' do
+      allow(Open3).to receive(:capture3)
+        .with('git', 'rev-parse', 'HEAD', chdir: '/tmp/local-pack')
+        .and_return(["abc123def456\n", '', succeeding_status])
+
+      expect(runner.current_commit('/tmp/local-pack')).to eq('abc123def456')
+    end
+
+    it 'raises RuntimeError when git rev-parse exits non-zero' do
+      allow(Open3).to receive(:capture3)
+        .with('git', 'rev-parse', 'HEAD', chdir: '/tmp/local-pack')
+        .and_return(['', 'not a git repository', failing_status])
+
+      expect { runner.current_commit('/tmp/local-pack') }
+        .to raise_error(RuntimeError, 'git rev-parse failed')
+    end
+
+    it 'does not embed raw stderr in the error message' do
+      allow(Open3).to receive(:capture3)
+        .with('git', 'rev-parse', 'HEAD', chdir: '/tmp/local-pack')
+        .and_return(['', 'fatal: not a git repository', failing_status])
+
+      expect { runner.current_commit('/tmp/local-pack') }
+        .to raise_error(RuntimeError) { |e| expect(e.message).not_to include('not a git repository') }
+    end
+
+    it 'does not log stderr when Rails.logger is nil' do
+      allow(Open3).to receive(:capture3)
+        .with('git', 'rev-parse', 'HEAD', chdir: '/tmp/local-pack')
+        .and_return(['', 'fatal: bad ref', failing_status])
+      allow(Rails).to receive(:logger).and_return(nil)
+
+      expect { runner.current_commit('/tmp/local-pack') }
+        .to raise_error(RuntimeError, 'git rev-parse failed')
+    end
+  end
 end

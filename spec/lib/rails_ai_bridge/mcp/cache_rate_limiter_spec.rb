@@ -74,5 +74,32 @@ RSpec.describe RailsAiBridge::Mcp::CacheRateLimiter do
       expect(limiter.allow?('1.2.3.4')).to be true
       expect(limiter.allow?('1.2.3.4')).to be true
     end
+
+    it 'falls back to write+increment when store.increment returns nil' do
+      store = double('cache')
+      allow(store).to receive(:respond_to?).with(:increment).and_return(true)
+      # First increment returns nil, triggering fallback_increment
+      allow(store).to receive(:increment).with('rab:rl:1.2.3.4', 1, expires_in: 60).and_return(nil)
+      # fallback_increment path: write then increment
+      allow(store).to receive(:write).with('rab:rl:1.2.3.4', 0, expires_in: 60, unless_exist: true)
+      allow(store).to receive(:increment).with('rab:rl:1.2.3.4', 1).and_return(1)
+
+      limiter = described_class.new(max_requests: 2, window_seconds: 60, cache: store)
+
+      expect(limiter.allow?('1.2.3.4')).to be true
+      expect(store).to have_received(:write).with('rab:rl:1.2.3.4', 0, expires_in: 60, unless_exist: true)
+    end
+
+    it 'returns 1 when fallback_increment itself raises' do
+      store = double('cache')
+      allow(store).to receive(:respond_to?).with(:increment).and_return(true)
+      allow(store).to receive(:increment).with('rab:rl:1.2.3.4', 1, expires_in: 60).and_raise(StandardError, 'redis down')
+      allow(store).to receive(:write).and_raise(StandardError, 'redis down')
+
+      limiter = described_class.new(max_requests: 2, window_seconds: 60, cache: store)
+
+      # When both increment and fallback fail, it returns 1 (allowing the request)
+      expect(limiter.allow?('1.2.3.4')).to be true
+    end
   end
 end

@@ -49,6 +49,15 @@ module RailsAiBridge
     # @api private
     REQUEST_RESOLVER_KEY = :rails_ai_bridge_request_resolver
 
+    # Sentinel stored in the thread-local to mark the request scope as active
+    # before the first resolver is built. Using a non-nil sentinel (instead of
+    # +nil+) ensures +Thread.current.key?+ returns true, which +request_active?+
+    # relies on — +Thread.current.key?+ returns false for keys explicitly set
+    # to +nil+.
+    #
+    # @api private
+    REQUEST_ACTIVE_SENTINEL = Object.new.freeze
+
     # Module-level resolver cache (one per process, lazy-initialized on first use).
     #
     # @api private
@@ -83,7 +92,7 @@ module RailsAiBridge
     # @return [Object] the block result
     def self.with_request_resolver
       previous = Thread.current[REQUEST_RESOLVER_KEY]
-      Thread.current[REQUEST_RESOLVER_KEY] = nil
+      Thread.current[REQUEST_RESOLVER_KEY] = REQUEST_ACTIVE_SENTINEL
       yield
     ensure
       Thread.current[REQUEST_RESOLVER_KEY] = previous
@@ -122,13 +131,15 @@ module RailsAiBridge
 
     # @api private
     def self.request_resolver?
-      !Thread.current[REQUEST_RESOLVER_KEY].nil?
+      value = Thread.current[REQUEST_RESOLVER_KEY]
+      !value.nil? && !value.equal?(REQUEST_ACTIVE_SENTINEL)
     end
     private_class_method :request_resolver?
 
     # @api private
     def self.request_resolver
-      Thread.current[REQUEST_RESOLVER_KEY]
+      value = Thread.current[REQUEST_RESOLVER_KEY]
+      value.equal?(REQUEST_ACTIVE_SENTINEL) ? nil : value
     end
     private_class_method :request_resolver
 
