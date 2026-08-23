@@ -23,3 +23,5 @@ end
 # Mutation testing requires Ruby >= 3.3.
 # mutant-rspec is installed via the mutation workflow's Gemfile-mutation, not here,
 # to avoid breaking bundle resolution on Ruby 3.2 CI matrix.
+
+gem 'yard', '~> 0.9', group: :development
