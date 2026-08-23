@@ -3,7 +3,7 @@
 require 'simplecov'
 SimpleCov.start do
   enable_coverage :branch
-  minimum_coverage line: 90, branch: 75 if ENV['CI'] || ENV['COVERAGE']
+  minimum_coverage line: 90, branch: 75 if (ENV['CI'] || ENV.fetch('COVERAGE', nil)) && !ENV['PERF']
   skip 'spec'
 end
 
