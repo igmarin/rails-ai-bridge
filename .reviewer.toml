@@ -1,0 +1,13 @@
+provider = "deepseek"
+model = "deepseek-v4-pro"
+max_tokens = 16384
+temperature = 0.1
+llm_timeout_secs = 240
+
+# Custom review prompt at .github/review-prompt.md
+# Loaded automatically via --prompt-file in CI and pre-commit hook.
+
+# Local mode: review staged changes (git diff --cached) by default.
+# To review the full branch against origin/main (same as a PR would):
+#   rs-guard --base origin/main
+# Or set diff_base here and override with --base "" for staged-only.

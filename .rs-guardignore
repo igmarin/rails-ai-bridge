@@ -1,0 +1,26 @@
+# rs-guard ignore file — paths excluded from AI code review
+# Gitignore-style syntax. v1.8.0+ feature.
+
+# Generated coverage data
+coverage/
+
+# Combustion dummy app fixtures (not reviewable source)
+spec/internal/
+
+# Generated graph/code intelligence data
+graphify-out/
+.codegraph/
+
+# Built gems
+*.gem
+
+# Bundler
+vendor/bundle/
+
+# Documentation output
+.yardoc/
+doc/
+
+# Temporary files
+*.tmp
+*.log
