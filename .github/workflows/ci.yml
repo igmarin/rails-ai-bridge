@@ -31,6 +31,7 @@ jobs:
 
     env:
       RAILS_VERSION: ${{ matrix.rails }}
+      COVERAGE: "1"
 
     steps:
       - uses: actions/checkout@v7
@@ -65,6 +66,57 @@ jobs:
 
       - name: RuboCop
         run: bundle exec rubocop --parallel
+
+      - name: Reek
+        run: bundle exec rake quality:reek
+
+      - name: YARD documentation coverage
+        run: bundle exec rake docs:yard
+
+  quality:
+    needs: [test]
+    runs-on: ubuntu-latest
+    env:
+      RAILS_VERSION: "8.1"
+      COVERAGE: "1"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Run full suite for quality metrics
+        run: bundle exec rspec
+
+      - name: Collect quality metrics
+        run: |
+          bundle exec reek lib/ --format json > reek.json
+          bundle exec yard stats --list-undoc > yard.txt 2>&1
+          bundle exec ruby -rjson -e '
+            resultset = JSON.parse(File.read("coverage/.resultset.json"))
+            coverage_data = resultset.values.first&.fetch("coverage", {})
+            coverage = (coverage_data || {}).values
+            lines = coverage.flat_map { |file| file.fetch("lines") }.compact
+            branches = coverage.flat_map { |file| file.fetch("branches", {}).values.flat_map(&:values) }
+            line_percent = lines.count { |count| count.to_i.positive? }.fdiv(lines.size) * 100
+            branch_percent = branches.count { |count| count.to_i.positive? }.fdiv(branches.size) * 100
+            reek = JSON.parse(File.read("reek.json"))
+            yard = File.read("yard.txt")[/([0-9]+(?:\.[0-9]+)?)% documented/, 1]
+            summary = [
+              "## Quality metrics",
+              "- Line coverage: %.2f%%" % line_percent,
+              "- Branch coverage: %.2f%%" % branch_percent,
+              "- Reek warnings: %d" % reek.size,
+              "- YARD documentation: %s%%" % (yard || "unavailable")
+            ]
+            puts summary.join("\\n")
+            File.open(ENV.fetch("GITHUB_STEP_SUMMARY", "quality-summary.md"), "a") { |file| file.puts(summary.join("\\n")) }
+          '
 
   perf:
     needs: [test]
