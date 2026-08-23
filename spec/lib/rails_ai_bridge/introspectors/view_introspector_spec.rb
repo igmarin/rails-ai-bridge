@@ -149,5 +149,79 @@ RSpec.describe RailsAiBridge::Introspectors::ViewIntrospector do
         expect(custom_result[:view_components]).to eq(['summary_component'])
       end
     end
+
+    context 'with haml, slim, and jbuilder templates' do
+      let(:views_dir) { Rails.root.join('app/views') }
+      let(:extra_templates) do
+        {
+          'posts/show.html.haml' => '%h= @post.title',
+          'posts/index.json.jbuilder' => 'json.(@posts, :id, :title)',
+          'posts/edit.html.slim' => 'h1 Edit'
+        }
+      end
+
+      before do
+        FileUtils.mkdir_p(views_dir.join('posts'))
+        extra_templates.each do |path, content|
+          File.write(views_dir.join(path), content)
+        end
+      end
+
+      after do
+        extra_templates.each_key { |path| FileUtils.rm_f(views_dir.join(path)) }
+      end
+
+      it 'detects haml, slim, and jbuilder template engines' do
+        engines = result[:template_engines]
+        expect(engines).to include('erb', 'haml', 'slim', 'jbuilder')
+      end
+    end
+
+    context 'with application partials' do
+      let(:views_dir) { Rails.root.join('app/views') }
+      let(:app_partial) { views_dir.join('application/_nav.html.erb') }
+
+      before do
+        FileUtils.mkdir_p(views_dir.join('application'))
+        File.write(app_partial, '<nav>Menu</nav>')
+      end
+
+      after { FileUtils.rm_f(app_partial) }
+
+      it 'groups application partials as shared' do
+        expect(result[:partials][:shared]).to include('_nav.html.erb')
+      end
+    end
+
+    context 'with unreadable helper file' do
+      let(:helpers_dir) { Rails.root.join('app/helpers') }
+      let(:bad_helper) { helpers_dir.join('bad_helper.rb') }
+
+      before do
+        File.write(bad_helper, 'module BadHelper; end')
+        allow(File).to receive(:read).and_call_original
+        allow(File).to receive(:read).with(bad_helper.to_s).and_raise(StandardError, 'read error')
+      end
+
+      after do
+        allow(File).to receive(:read).and_call_original
+        FileUtils.rm_f(bad_helper)
+      end
+
+      it 'skips unreadable helper files' do
+        helper_files = result[:helpers].pluck(:file)
+        expect(helper_files).not_to include('bad_helper.rb')
+      end
+    end
+
+    context 'when an extract method raises' do
+      let(:result) { introspector.call }
+
+      before { allow(introspector).to receive(:extract_layouts).and_raise(StandardError, 'extract boom') }
+
+      it 'returns error hash' do
+        expect(result[:error]).to eq('extract boom')
+      end
+    end
   end
 end

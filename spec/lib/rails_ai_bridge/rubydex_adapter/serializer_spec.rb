@@ -202,4 +202,95 @@ RSpec.describe RailsAiBridge::RubydexAdapter::Serializer do
       expect(result).to eq('declaration')
     end
   end
+
+  describe '.relativize_path' do
+    it 'returns path unchanged when root is nil' do
+      expect(described_class.relativize_path('/some/path', nil)).to eq('/some/path')
+    end
+
+    it 'returns path unchanged when path does not start with root' do
+      expect(described_class.relativize_path('/other/path', '/tmp/test_root')).to eq('/other/path')
+    end
+
+    it 'strips root prefix when path starts with root' do
+      expect(described_class.relativize_path('/tmp/test_root/app/models/user.rb', '/tmp/test_root')).to eq('app/models/user.rb')
+    end
+  end
+
+  describe '.format_location edge cases' do
+    it 'returns to_s when location has no path' do
+      loc = double('loc', to_s: 'string-loc', respond_to?: false)
+      allow(loc).to receive(:respond_to?).with(:path).and_return(true)
+      allow(loc).to receive(:path).and_return(nil)
+
+      expect(described_class.format_location(loc, '/tmp/test_root')).to eq('string-loc')
+    end
+  end
+
+  describe '#detailed_declaration_to_hash with nil relations' do
+    let(:decl) do
+      double(
+        'decl',
+        name: 'Empty',
+        class: double(name: 'Rubydex::ClassDeclaration'),
+        respond_to?: false
+      )
+    end
+
+    before do
+      allow(decl).to receive(:respond_to?).with(:unqualified_name).and_return(false)
+      allow(decl).to receive(:respond_to?).with(:definitions).and_return(false)
+      allow(decl).to receive(:respond_to?).with(:ancestors).and_return(false)
+      allow(decl).to receive(:respond_to?).with(:descendants).and_return(false)
+      allow(decl).to receive(:respond_to?).with(:owner).and_return(true)
+      allow(decl).to receive(:owner).and_return(nil)
+    end
+
+    it 'compacts away nil definitions, ancestors, descendants, and owner' do
+      result = serializer.detailed_declaration_to_hash(decl)
+
+      expect(result).not_to have_key(:definitions)
+      expect(result).not_to have_key(:ancestors)
+      expect(result).not_to have_key(:descendants)
+      expect(result).not_to have_key(:owner)
+      expect(result[:name]).to eq('Empty')
+      expect(result[:type]).to eq('class')
+    end
+  end
+
+  describe '#definition_to_hash with deprecated false' do
+    let(:defn) do
+      double('defn', name: 'safe_method', respond_to?: false)
+    end
+
+    before do
+      allow(defn).to receive(:respond_to?).with(:location).and_return(false)
+      allow(defn).to receive(:respond_to?).with(:comments).and_return(false)
+      allow(defn).to receive(:respond_to?).with(:deprecated?).and_return(true)
+      allow(defn).to receive(:deprecated?).and_return(false)
+    end
+
+    it 'omits deprecated when false' do
+      result = serializer.definition_to_hash(defn)
+      expect(result).not_to have_key(:deprecated)
+    end
+  end
+
+  describe '#definition_to_hash with comments blank' do
+    let(:defn) do
+      double('defn', name: 'method', respond_to?: false)
+    end
+
+    before do
+      allow(defn).to receive(:respond_to?).with(:location).and_return(false)
+      allow(defn).to receive(:respond_to?).with(:comments).and_return(true)
+      allow(defn).to receive(:comments).and_return('')
+      allow(defn).to receive(:respond_to?).with(:deprecated?).and_return(false)
+    end
+
+    it 'omits comments when blank' do
+      result = serializer.definition_to_hash(defn)
+      expect(result).not_to have_key(:comments)
+    end
+  end
 end

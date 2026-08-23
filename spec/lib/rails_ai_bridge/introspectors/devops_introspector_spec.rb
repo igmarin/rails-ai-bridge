@@ -108,4 +108,138 @@ RSpec.describe RailsAiBridge::Introspectors::DevOpsIntrospector do
       end
     end
   end
+
+  describe '#call with custom app root' do
+    let(:app_root) { Pathname.new(Dir.mktmpdir('devops')) }
+    let(:custom_app) { double('Rails::Application', root: app_root) }
+    let(:introspector) { described_class.new(custom_app) }
+    let(:result) { introspector.call }
+
+    after { FileUtils.rm_rf(app_root) }
+
+    context 'with kamal deploy config' do
+      before { FileUtils.mkdir_p(app_root.join('config')); File.write(app_root.join('config/deploy.yml'), 'service: app') }
+
+      it 'detects kamal as deployment tool' do
+        expect(result[:deployment]).to eq('kamal')
+      end
+    end
+
+    context 'with Capfile' do
+      before { File.write(app_root.join('Capfile'), "require 'capistrano/setup'") }
+
+      it 'detects capistrano as deployment tool' do
+        expect(result[:deployment]).to eq('capistrano')
+      end
+    end
+
+    context 'with app.json (heroku)' do
+      before { File.write(app_root.join('app.json'), '{"name": "app"}') }
+
+      it 'detects heroku as deployment tool' do
+        expect(result[:deployment]).to eq('heroku')
+      end
+    end
+
+    context 'with Procfile (heroku)' do
+      before { File.write(app_root.join('Procfile'), 'web: bundle exec puma') }
+
+      it 'detects heroku as deployment tool from Procfile' do
+        expect(result[:deployment]).to eq('heroku')
+      end
+    end
+
+    context 'with Procfile.dev' do
+      before { File.write(app_root.join('Procfile.dev'), "web: puma\njs: yarn build") }
+
+      it 'parses Procfile.dev entries' do
+        files = result[:procfile].map { |p| p[:file] }
+        expect(files).to include('Procfile.dev')
+      end
+    end
+
+    context 'with Procfile with comments and empty lines' do
+      before do
+        File.write(app_root.join('Procfile'), <<~PROCFILE)
+          # This is a comment
+
+          web: bundle exec puma
+        PROCFILE
+      end
+
+      it 'skips comments and empty lines' do
+        entries = result[:procfile].flat_map { |p| p[:entries] }
+        expect(entries.size).to eq(1)
+        expect(entries.first[:name]).to eq('web')
+      end
+    end
+
+    context 'with Procfile with malformed line' do
+      before { File.write(app_root.join('Procfile'), 'just-a-line-without-colon') }
+
+      it 'skips lines without colon' do
+        entries = result[:procfile].flat_map { |p| p[:entries] }
+        expect(entries).to eq([])
+      end
+    end
+
+    context 'with empty Procfile' do
+      before { File.write(app_root.join('Procfile'), '') }
+
+      it 'returns empty procfile array' do
+        expect(result[:procfile]).to eq([])
+      end
+    end
+
+    context 'with puma.rb but no recognizable config' do
+      before do
+        FileUtils.mkdir_p(app_root.join('config'))
+        File.write(app_root.join('config/puma.rb'), '# just a comment')
+      end
+
+      it 'returns nil for puma when no config extracted' do
+        expect(result[:puma]).to be_nil
+      end
+    end
+
+    context 'with Dockerfile with single FROM' do
+      before do
+        File.write(app_root.join('Dockerfile'), 'FROM ruby:3.3-slim')
+        File.write(app_root.join('docker-compose.yml'), 'version: 3')
+      end
+
+      it 'detects single-stage build and compose file' do
+        expect(result[:docker][:multi_stage]).to be false
+        expect(result[:docker][:compose]).to be true
+      end
+    end
+
+    context 'with no routes.rb' do
+      it 'returns nil for health_check' do
+        expect(result[:health_check]).to be_nil
+      end
+    end
+
+    context 'with routes.rb without health check' do
+      before do
+        FileUtils.mkdir_p(app_root.join('config'))
+        File.write(app_root.join('config/routes.rb'), 'Rails.application.routes.draw { resources :posts }')
+      end
+
+      it 'returns nil for health_check when no health route' do
+        expect(result[:health_check]).to be_nil
+      end
+    end
+  end
+
+  describe '#call when app.root raises' do
+    let(:bad_app) { double('Rails::Application') }
+    let(:result) { described_class.new(bad_app).call }
+
+    before { allow(bad_app).to receive(:root).and_raise(StandardError, 'root boom') }
+
+    it 'returns error hash' do
+      expect(result[:error]).to eq('root boom')
+    end
+  end
 end

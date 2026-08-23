@@ -96,4 +96,78 @@ RSpec.describe RailsAiBridge::Introspectors::EngineIntrospector do
       expect(result[:error]).to be_nil
     end
   end
+
+  describe '#call with no routes.rb' do
+    let(:app_root) { Pathname.new(Dir.mktmpdir('no-routes')) }
+    let(:custom_app) { double('Rails::Application', root: app_root) }
+    let(:result) { described_class.new(custom_app).call }
+
+    after { FileUtils.rm_rf(app_root) }
+
+    it 'returns empty array for mounted_engines when routes.rb does not exist' do
+      expect(result[:mounted_engines]).to eq([])
+    end
+  end
+
+  describe '#call with mount without path (fallback regex)' do
+    let(:app_root) { Pathname.new(Dir.mktmpdir('engine-fallback')) }
+    let(:routes_path) { app_root.join('config/routes.rb') }
+    let(:custom_app) { double('Rails::Application', root: app_root) }
+    let(:result) { described_class.new(custom_app).call }
+
+    before do
+      FileUtils.mkdir_p(app_root.join('config'))
+      File.write(routes_path, <<~RUBY)
+        Rails.application.routes.draw do
+          mount Sidekiq::Web
+          resources :posts
+        end
+      RUBY
+    end
+
+    after { FileUtils.rm_rf(app_root) }
+
+    it 'discovers engines via fallback regex with unknown path' do
+      sidekiq = result[:mounted_engines].find { |e| e[:engine] == 'Sidekiq::Web' }
+      expect(sidekiq).not_to be_nil
+      expect(sidekiq[:path]).to eq('unknown')
+      expect(sidekiq[:category]).to eq('admin')
+    end
+  end
+
+  describe '#call with unknown engine (not in KNOWN_ENGINES)' do
+    let(:app_root) { Pathname.new(Dir.mktmpdir('engine-unknown')) }
+    let(:routes_path) { app_root.join('config/routes.rb') }
+    let(:custom_app) { double('Rails::Application', root: app_root) }
+    let(:result) { described_class.new(custom_app).call }
+
+    before do
+      FileUtils.mkdir_p(app_root.join('config'))
+      File.write(routes_path, <<~RUBY)
+        Rails.application.routes.draw do
+          mount SomeCustom::Engine => "/custom"
+        end
+      RUBY
+    end
+
+    after { FileUtils.rm_rf(app_root) }
+
+    it 'includes engine without category or description' do
+      engine = result[:mounted_engines].find { |e| e[:engine] == 'SomeCustom::Engine' }
+      expect(engine).not_to be_nil
+      expect(engine).not_to have_key(:category)
+      expect(engine).not_to have_key(:description)
+    end
+  end
+
+  describe '#call when app.root raises' do
+    let(:bad_app) { double('Rails::Application') }
+    let(:result) { described_class.new(bad_app).call }
+
+    before { allow(bad_app).to receive(:root).and_raise(StandardError, 'root boom') }
+
+    it 'returns error hash' do
+      expect(result[:error]).to eq('root boom')
+    end
+  end
 end

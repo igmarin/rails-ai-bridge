@@ -154,5 +154,93 @@ RSpec.describe RailsAiBridge::Introspectors::AuthIntrospector do
         )
       end
     end
+
+    context 'with rack-cors gem and cors initializer' do
+      let(:lockfile) { Rails.root.join('Gemfile.lock').to_s }
+      let(:cors_init) { Rails.root.join('config/initializers/cors.rb').to_s }
+      let(:original_content) { File.exist?(lockfile) ? File.read(lockfile) : nil }
+
+      before do
+        File.write(lockfile, "    rack-cors (2.0.0)\n") unless File.exist?(lockfile)
+        FileUtils.mkdir_p(File.dirname(cors_init))
+        File.write(cors_init, '# CORS config')
+      end
+
+      after do
+        if original_content
+          File.write(lockfile, original_content)
+        else
+          FileUtils.rm_f(lockfile)
+        end
+        FileUtils.rm_f(cors_init)
+      end
+
+      it 'detects CORS as configured' do
+        expect(result[:security][:cors]).to eq({ configured: true })
+      end
+    end
+
+    context 'with rack-cors gem but no cors initializer' do
+      let(:lockfile) { Rails.root.join('Gemfile.lock').to_s }
+      let(:original_content) { File.exist?(lockfile) ? File.read(lockfile) : nil }
+
+      before do
+        File.write(lockfile, "    rack-cors (2.0.0)\n") unless File.exist?(lockfile)
+      end
+
+      after do
+        if original_content
+          File.write(lockfile, original_content)
+        else
+          FileUtils.rm_f(lockfile)
+        end
+      end
+
+      it 'detects CORS as not configured' do
+        expect(result[:security][:cors]).to eq({ configured: false })
+      end
+    end
+
+    context 'when detect_authentication raises' do
+      before { allow(introspector).to receive(:detect_authentication).and_raise(StandardError, 'auth boom') }
+
+      it 'returns error hash' do
+        expect(result[:error]).to eq('auth boom')
+      end
+    end
+  end
+
+  describe 'private methods' do
+    describe '#gem_present?' do
+      it 'returns false when Gemfile.lock does not exist' do
+        allow(introspector).to receive(:root).and_return('/nonexistent')
+        expect(introspector.send(:gem_present?, 'rack-cors')).to be false
+      end
+
+      it 'returns false on file read error' do
+        lockfile = Rails.root.join('Gemfile.lock').to_s
+        allow(File).to receive(:exist?).and_call_original
+        allow(File).to receive(:exist?).with(lockfile).and_return(true)
+        allow(File).to receive(:read).and_call_original
+        allow(File).to receive(:read).with(lockfile).and_raise(StandardError, 'read error')
+        expect(introspector.send(:gem_present?, 'rack-cors')).to be false
+      ensure
+        allow(File).to receive(:read).and_call_original
+      end
+    end
+
+    describe '#scan_models_for error handling' do
+      it 'returns empty array on error' do
+        allow(introspector.path_resolver).to receive(:files_for).and_raise(StandardError, 'files error')
+        expect(introspector.send(:scan_models_for, /devise/)).to eq([])
+      end
+    end
+
+    describe '#policy_names error handling' do
+      it 'returns empty array on error' do
+        allow(introspector.path_resolver).to receive(:files_for).and_raise(StandardError, 'policies error')
+        expect(introspector.send(:policy_names)).to eq([])
+      end
+    end
   end
 end

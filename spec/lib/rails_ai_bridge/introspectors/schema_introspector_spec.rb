@@ -148,5 +148,63 @@ RSpec.describe RailsAiBridge::Introspectors::SchemaIntrospector do
         expect(error).to include('structure.sql')
       end
     end
+
+    context 'when static schema parse raises' do
+      before do
+        allow(introspector).to receive(:active_record_connected?).and_return(false)
+        allow(introspector).to receive(:schema_file_path).and_return('/nonexistent/schema.rb')
+        allow(introspector).to receive(:structure_sql_path).and_return('/nonexistent/structure.sql')
+        allow(File).to receive(:exist?).and_call_original
+        allow(File).to receive(:exist?).with('/nonexistent/schema.rb').and_return(true)
+        allow(File).to receive(:read).and_call_original
+        allow(File).to receive(:read).with('/nonexistent/schema.rb').and_raise(StandardError, 'read error')
+      end
+
+      after { allow(File).to receive(:read).and_call_original }
+
+      it 'returns error hash with read failure message' do
+        result = introspector.call
+        expect(result[:error]).to include('Failed to read schema file')
+        expect(result[:error]).to include('read error')
+      end
+    end
+  end
+
+  describe 'private methods' do
+    describe '#adapter_name' do
+      it 'returns unknown on error' do
+        allow(ActiveRecord::Base).to receive(:connection).and_raise(StandardError)
+        expect(introspector.send(:adapter_name)).to eq('unknown')
+      end
+    end
+
+    describe '#extract_foreign_keys' do
+      it 'returns empty array on error' do
+        allow(ActiveRecord::Base).to receive(:connection).and_raise(StandardError, 'fk not supported')
+        expect(introspector.send(:extract_foreign_keys, 'users')).to eq([])
+      end
+    end
+
+    describe '#current_schema_version' do
+      it 'returns nil when schema file does not exist' do
+        allow(introspector).to receive(:schema_file_path).and_return('/nonexistent/schema.rb')
+        expect(introspector.send(:current_schema_version)).to be_nil
+      end
+
+      it 'returns nil when no version match found' do
+        allow(introspector).to receive(:schema_file_path).and_return('/tmp/test_schema.rb')
+        File.write('/tmp/test_schema.rb', 'no version here')
+        expect(introspector.send(:current_schema_version)).to be_nil
+      ensure
+        File.delete('/tmp/test_schema.rb') if File.exist?('/tmp/test_schema.rb')
+      end
+    end
+
+    describe '#active_record_connected?' do
+      it 'returns false on StandardError' do
+        allow(ActiveRecord::Base).to receive(:connected?).and_raise(StandardError)
+        expect(introspector.send(:active_record_connected?)).to be false
+      end
+    end
   end
 end

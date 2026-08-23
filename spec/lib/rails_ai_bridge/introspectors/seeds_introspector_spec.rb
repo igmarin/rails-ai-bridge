@@ -68,4 +68,67 @@ RSpec.describe RailsAiBridge::Introspectors::SeedsIntrospector do
       expect(result[:error]).to be_nil
     end
   end
+
+  describe '#call with no seeds.rb' do
+    let(:introspector) { described_class.new(app) }
+    let(:result) { introspector.call }
+
+    after do
+      FileUtils.rm_f(File.join(db_dir, 'seeds.rb'))
+      FileUtils.rm_rf(File.join(db_dir, 'seeds'))
+    end
+
+    it 'returns nil for seeds_file when db/seeds.rb does not exist' do
+      FileUtils.rm_f(File.join(db_dir, 'seeds.rb'))
+      FileUtils.rm_rf(File.join(db_dir, 'seeds'))
+      expect(result[:seeds_file]).to be_nil
+    end
+
+    it 'returns empty array for seed_files when db/seeds/ does not exist' do
+      FileUtils.rm_f(File.join(db_dir, 'seeds.rb'))
+      FileUtils.rm_rf(File.join(db_dir, 'seeds'))
+      expect(result[:seed_files]).to eq([])
+    end
+
+    it 'returns empty array for models_seeded when no seed files exist' do
+      FileUtils.rm_f(File.join(db_dir, 'seeds.rb'))
+      FileUtils.rm_rf(File.join(db_dir, 'seeds'))
+      expect(result[:models_seeded]).to eq([])
+    end
+  end
+
+  describe '#call with upsert, insert_all, and factory_bot' do
+    let(:result) { introspector.call }
+
+    before do
+      File.write(File.join(db_dir, 'seeds.rb'), <<~RUBY)
+        User.upsert(name: "Admin")
+        Post.insert_all([{ title: "Test" }])
+        FactoryBot.create(:user)
+      RUBY
+    end
+
+    after do
+      FileUtils.rm_f(File.join(db_dir, 'seeds.rb'))
+      FileUtils.rm_rf(File.join(db_dir, 'seeds'))
+    end
+
+    it 'detects upsert, insert_all, and factory_bot usage' do
+      seeds = result[:seeds_file]
+      expect(seeds[:uses_upsert]).to be true
+      expect(seeds[:uses_insert_all]).to be true
+      expect(seeds[:uses_factory_bot]).to be true
+    end
+  end
+
+  describe '#call when app.root raises' do
+    let(:bad_app) { double('Rails::Application') }
+    let(:result) { described_class.new(bad_app).call }
+
+    before { allow(bad_app).to receive(:root).and_raise(StandardError, 'root boom') }
+
+    it 'returns error hash' do
+      expect(result[:error]).to eq('root boom')
+    end
+  end
 end

@@ -280,4 +280,107 @@ RSpec.describe RailsAiBridge::RubydexAdapter::IncrementalIndexer do
       expect(result.errors.first).to include('boom')
     end
   end
+
+  describe 'private methods' do
+    let(:indexer) { described_class.new }
+
+    describe '#reindex_file' do
+      let(:graph) { double('Graph') }
+      let(:path) { File.join(root, 'test.rb') }
+
+      before do
+        File.write(path, 'class Test; end')
+        allow(graph).to receive(:respond_to?).with(:delete_document).and_return(true)
+        allow(graph).to receive(:respond_to?).with(:index_source).and_return(true)
+        allow(graph).to receive(:document).with(path).and_return(nil)
+        allow(graph).to receive(:delete_document)
+        allow(graph).to receive(:index_source)
+      end
+
+      it 'skips delete_document when document is nil' do
+        indexer.send(:reindex_file, graph, path)
+        expect(graph).not_to have_received(:delete_document)
+        expect(graph).to have_received(:index_source)
+      end
+
+      it 'rescues Errno::ENOENT when file is deleted during reindex' do
+        allow(File).to receive(:read).and_raise(Errno::ENOENT)
+        expect { indexer.send(:reindex_file, graph, path) }.not_to raise_error
+      end
+
+      it 'rescues ArgumentError on bad encoding' do
+        allow(File).to receive(:read).and_raise(ArgumentError, 'invalid byte sequence')
+        expect { indexer.send(:reindex_file, graph, path) }.not_to raise_error
+      end
+    end
+
+    describe '#remove_file' do
+      it 'is a no-op when graph does not support delete_document' do
+        graph = double('Graph')
+        allow(graph).to receive(:respond_to?).with(:delete_document).and_return(false)
+        indexer.send(:remove_file, graph, '/path/to/file.rb')
+      end
+
+      it 'calls delete_document when supported' do
+        graph = double('Graph')
+        allow(graph).to receive(:respond_to?).with(:delete_document).and_return(true)
+        expect(graph).to receive(:delete_document).with('/path/to/file.rb')
+        indexer.send(:remove_file, graph, '/path/to/file.rb')
+      end
+    end
+
+    describe '#file_mtime' do
+      it 'returns nil for non-existent file' do
+        expect(indexer.send(:file_mtime, '/nonexistent/path.rb')).to be_nil
+      end
+    end
+
+    describe '#threshold_exceeded?' do
+      it 'returns true when total is zero and changed is positive' do
+        expect(indexer.send(:threshold_exceeded?, 1, 0, 0.3)).to be true
+      end
+
+      it 'returns false when total is zero and changed is zero' do
+        expect(indexer.send(:threshold_exceeded?, 0, 0, 0.3)).to be false
+      end
+    end
+
+    describe '#persist_mtimes error handling' do
+      it 'rescues errors during persist' do
+        allow(FileUtils).to receive(:mkdir_p).and_raise(StandardError, 'mkdir failed')
+        expect { indexer.send(:persist_mtimes, {}, '/some/path') }.not_to raise_error
+      end
+    end
+
+    describe '#load_mtimes' do
+      it 'returns empty hash when index_path is nil' do
+        expect(indexer.send(:load_mtimes, nil)).to eq({})
+      end
+
+      it 'returns empty hash when mtimes file does not exist' do
+        expect(indexer.send(:load_mtimes, root)).to eq({})
+      end
+
+      it 'rescues errors during load' do
+        path = File.join(root, 'mtimes.json')
+        File.write(path, 'invalid json')
+        expect(indexer.send(:load_mtimes, root)).to eq({})
+      end
+    end
+
+    describe '#deserialize_mtimes' do
+      it 'handles nil values in JSON' do
+        content = JSON.dump({ 'file.rb' => nil })
+        result = indexer.send(:deserialize_mtimes, content)
+        expect(result['file.rb']).to be_nil
+      end
+    end
+
+    describe '#serialize_mtimes' do
+      it 'handles nil mtime values' do
+        result = indexer.send(:serialize_mtimes, { 'file.rb' => nil })
+        expect(result['file.rb']).to be_nil
+      end
+    end
+  end
 end

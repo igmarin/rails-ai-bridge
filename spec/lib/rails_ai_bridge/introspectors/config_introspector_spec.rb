@@ -124,5 +124,342 @@ RSpec.describe RailsAiBridge::Introspectors::ConfigIntrospector do
         expect(described_class.new(custom_app).call[:current_attributes]).to include('Current')
       end
     end
+
+    context 'with cache_store as an Array' do
+      let(:custom_config) do
+        double('ApplicationConfig', cache_store: [:redis_cache, 'redis://localhost'],
+               session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC')
+      end
+      let(:custom_app) do
+        double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
+               paths: { 'app/models' => [] }, config: custom_config,
+               middleware: ActionDispatch::MiddlewareStack.new,
+               credentials: double('Credentials', config: {}))
+      end
+
+      after { FileUtils.rm_rf(custom_app.root) }
+
+      it 'returns the first element as the cache store name' do
+        expect(described_class.new(custom_app).call[:cache_store]).to eq('redis_cache')
+      end
+    end
+
+    context 'with cache_store as a non-Symbol non-Array object' do
+      let(:store_obj) { Object.new }
+      let(:custom_config) do
+        double('ApplicationConfig', cache_store: store_obj,
+               session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC')
+      end
+      let(:custom_app) do
+        double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
+               paths: { 'app/models' => [] }, config: custom_config,
+               middleware: ActionDispatch::MiddlewareStack.new,
+               credentials: double('Credentials', config: {}))
+      end
+
+      after { FileUtils.rm_rf(custom_app.root) }
+
+      it 'returns the class name of the store object' do
+        expect(described_class.new(custom_app).call[:cache_store]).to eq(store_obj.class.name)
+      end
+    end
+
+    context 'when cache_store raises an error' do
+      let(:custom_config) do
+        double('ApplicationConfig', time_zone: 'UTC',
+               session_store: ActionDispatch::Session::CookieStore)
+      end
+      let(:custom_app) do
+        double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
+               paths: { 'app/models' => [] }, config: custom_config,
+               middleware: ActionDispatch::MiddlewareStack.new,
+               credentials: double('Credentials', config: {}))
+      end
+
+      before do
+        allow(custom_config).to receive(:cache_store).and_raise(StandardError, 'boom')
+        allow(custom_config).to receive(:respond_to?).with(:active_job).and_return(false)
+        allow(custom_config).to receive(:respond_to?).with(:action_cable).and_return(false)
+      end
+
+      after { FileUtils.rm_rf(custom_app.root) }
+
+      it 'returns unknown for cache_store' do
+        expect(described_class.new(custom_app).call[:cache_store]).to eq('unknown')
+      end
+    end
+
+    context 'when session_store is nil' do
+      let(:custom_config) do
+        double('ApplicationConfig', cache_store: :memory_store,
+               session_store: nil, time_zone: 'UTC')
+      end
+      let(:custom_app) do
+        double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
+               paths: { 'app/models' => [] }, config: custom_config,
+               middleware: ActionDispatch::MiddlewareStack.new,
+               credentials: double('Credentials', config: {}))
+      end
+
+      after { FileUtils.rm_rf(custom_app.root) }
+
+      it 'returns nil for session_store' do
+        expect(described_class.new(custom_app).call[:session_store]).to be_nil
+      end
+    end
+
+    context 'when session_store raises an error' do
+      let(:custom_config) do
+        double('ApplicationConfig', cache_store: :memory_store, time_zone: 'UTC')
+      end
+      let(:custom_app) do
+        double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
+               paths: { 'app/models' => [] }, config: custom_config,
+               middleware: ActionDispatch::MiddlewareStack.new,
+               credentials: double('Credentials', config: {}))
+      end
+
+      before do
+        allow(custom_config).to receive(:session_store).and_raise(StandardError, 'boom')
+        allow(custom_config).to receive(:respond_to?).with(:active_job).and_return(false)
+        allow(custom_config).to receive(:respond_to?).with(:action_cable).and_return(false)
+      end
+
+      after { FileUtils.rm_rf(custom_app.root) }
+
+      it 'returns unknown for session_store' do
+        expect(described_class.new(custom_app).call[:session_store]).to eq('unknown')
+      end
+    end
+
+    context 'when app does not respond to active_job' do
+      let(:custom_config) do
+        double('ApplicationConfig', cache_store: :memory_store,
+               session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC')
+      end
+      let(:custom_app) do
+        double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
+               paths: { 'app/models' => [] }, config: custom_config,
+               middleware: ActionDispatch::MiddlewareStack.new,
+               credentials: double('Credentials', config: {}))
+      end
+
+      before do
+        allow(custom_config).to receive(:respond_to?).with(:active_job).and_return(false)
+        allow(custom_config).to receive(:respond_to?).with(:action_cable).and_return(false)
+      end
+
+      after { FileUtils.rm_rf(custom_app.root) }
+
+      it 'returns unknown for queue_adapter' do
+        expect(described_class.new(custom_app).call[:queue_adapter]).to eq('unknown')
+      end
+    end
+
+    context 'when queue_adapter is a Symbol' do
+      let(:active_job_config) { double('ActiveJobConfig', queue_adapter: :sidekiq) }
+      let(:custom_config) do
+        double('ApplicationConfig', cache_store: :memory_store,
+               session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC',
+               active_job: active_job_config)
+      end
+      let(:custom_app) do
+        double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
+               paths: { 'app/models' => [] }, config: custom_config,
+               middleware: ActionDispatch::MiddlewareStack.new,
+               credentials: double('Credentials', config: {}))
+      end
+
+      before do
+        allow(custom_config).to receive(:respond_to?).with(:active_job).and_return(true)
+        allow(custom_config).to receive(:respond_to?).with(:action_cable).and_return(false)
+      end
+
+      after { FileUtils.rm_rf(custom_app.root) }
+
+      it 'returns the symbol as a string' do
+        expect(described_class.new(custom_app).call[:queue_adapter]).to eq('sidekiq')
+      end
+    end
+
+    context 'when app does not respond to action_cable' do
+      let(:active_job_config) { double('ActiveJobConfig', queue_adapter: :sidekiq) }
+      let(:custom_config) do
+        double('ApplicationConfig', cache_store: :memory_store,
+               session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC',
+               active_job: active_job_config)
+      end
+      let(:custom_app) do
+        double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
+               paths: { 'app/models' => [] }, config: custom_config,
+               middleware: ActionDispatch::MiddlewareStack.new,
+               credentials: double('Credentials', config: {}))
+      end
+
+      before do
+        allow(custom_config).to receive(:respond_to?).with(:active_job).and_return(true)
+        allow(custom_config).to receive(:respond_to?).with(:action_cable).and_return(false)
+      end
+
+      after { FileUtils.rm_rf(custom_app.root) }
+
+      it 'returns unknown for cable_adapter' do
+        expect(described_class.new(custom_app).call[:cable_adapter]).to eq('unknown')
+      end
+    end
+
+    context 'when cable_adapter is a Symbol' do
+      let(:active_job_config) { double('ActiveJobConfig', queue_adapter: :sidekiq) }
+      let(:cable_config) { double('CableConfig', adapter: :redis) }
+      let(:custom_config) do
+        double('ApplicationConfig', cache_store: :memory_store,
+               session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC',
+               active_job: active_job_config, action_cable: cable_config)
+      end
+      let(:custom_app) do
+        double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
+               paths: { 'app/models' => [] }, config: custom_config,
+               middleware: ActionDispatch::MiddlewareStack.new,
+               credentials: double('Credentials', config: {}))
+      end
+
+      before do
+        allow(custom_config).to receive(:respond_to?).with(:active_job).and_return(true)
+        allow(custom_config).to receive(:respond_to?).with(:action_cable).and_return(true)
+      end
+
+      after { FileUtils.rm_rf(custom_app.root) }
+
+      it 'returns the symbol as a string' do
+        expect(described_class.new(custom_app).call[:cable_adapter]).to eq('redis')
+      end
+    end
+
+    context 'when middleware raises an error' do
+      let(:custom_config) do
+        double('ApplicationConfig', cache_store: :memory_store,
+               session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC')
+      end
+      let(:custom_app) do
+        double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
+               paths: { 'app/models' => [] }, config: custom_config,
+               middleware: ActionDispatch::MiddlewareStack.new,
+               credentials: double('Credentials', config: {}))
+      end
+
+      before do
+        allow(custom_app).to receive(:middleware).and_raise(StandardError, 'boom')
+        allow(custom_config).to receive(:respond_to?).with(:active_job).and_return(false)
+        allow(custom_config).to receive(:respond_to?).with(:action_cable).and_return(false)
+      end
+
+      after { FileUtils.rm_rf(custom_app.root) }
+
+      it 'returns empty array for middleware_stack' do
+        expect(described_class.new(custom_app).call[:middleware_stack]).to eq([])
+      end
+    end
+
+    context 'when config/initializers does not exist' do
+      let(:app_root) { Pathname.new(Dir.mktmpdir('no-init')) }
+      let(:custom_config) do
+        double('ApplicationConfig', cache_store: :memory_store,
+               session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC')
+      end
+      let(:custom_app) do
+        double('Rails::Application', root: app_root,
+               paths: { 'app/models' => [] }, config: custom_config,
+               middleware: ActionDispatch::MiddlewareStack.new,
+               credentials: double('Credentials', config: {}))
+      end
+
+      before do
+        allow(custom_config).to receive(:respond_to?).with(:active_job).and_return(false)
+        allow(custom_config).to receive(:respond_to?).with(:action_cable).and_return(false)
+      end
+
+      after { FileUtils.rm_rf(app_root) }
+
+      it 'returns empty array for initializers' do
+        expect(described_class.new(custom_app).call[:initializers]).to eq([])
+      end
+    end
+
+    context 'when credentials do not respond to config' do
+      let(:custom_config) do
+        double('ApplicationConfig', cache_store: :memory_store,
+               session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC')
+      end
+      let(:custom_app) do
+        double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
+               paths: { 'app/models' => [] }, config: custom_config,
+               middleware: ActionDispatch::MiddlewareStack.new,
+               credentials: double('Credentials'))
+      end
+
+      before do
+        allow(custom_config).to receive(:respond_to?).with(:active_job).and_return(false)
+        allow(custom_config).to receive(:respond_to?).with(:action_cable).and_return(false)
+        RailsAiBridge.configuration.expose_credentials_key_names = true
+      end
+
+      after { FileUtils.rm_rf(custom_app.root) }
+
+      it 'returns empty array for credentials_keys' do
+        expect(described_class.new(custom_app).call[:credentials_keys]).to eq([])
+      end
+    end
+
+    context 'when credentials raise an error' do
+      let(:custom_config) do
+        double('ApplicationConfig', cache_store: :memory_store,
+               session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC')
+      end
+      let(:custom_app) do
+        double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
+               paths: { 'app/models' => [] }, config: custom_config,
+               middleware: ActionDispatch::MiddlewareStack.new,
+               credentials: double('Credentials'))
+      end
+
+      before do
+        allow(custom_config).to receive(:respond_to?).with(:active_job).and_return(false)
+        allow(custom_config).to receive(:respond_to?).with(:action_cable).and_return(false)
+        allow(custom_app).to receive(:credentials).and_raise(StandardError, 'boom')
+        RailsAiBridge.configuration.expose_credentials_key_names = true
+      end
+
+      after { FileUtils.rm_rf(custom_app.root) }
+
+      it 'returns empty array for credentials_keys on error' do
+        expect(described_class.new(custom_app).call[:credentials_keys]).to eq([])
+      end
+    end
+
+    context 'when app.config.time_zone raises an error' do
+      let(:app_root) { Pathname.new(Dir.mktmpdir) }
+      let(:custom_config) do
+        double('ApplicationConfig', cache_store: :memory_store,
+               session_store: ActionDispatch::Session::CookieStore)
+      end
+      let(:custom_app) do
+        double('Rails::Application', root: app_root,
+               paths: { 'app/models' => [] }, config: custom_config,
+               middleware: ActionDispatch::MiddlewareStack.new,
+               credentials: double('Credentials', config: {}))
+      end
+
+      before do
+        allow(custom_config).to receive(:time_zone).and_raise(StandardError, 'tz boom')
+        allow(custom_config).to receive(:respond_to?).with(:active_job).and_return(false)
+        allow(custom_config).to receive(:respond_to?).with(:action_cable).and_return(false)
+      end
+
+      after { FileUtils.rm_rf(app_root) }
+
+      it 'returns error hash' do
+        expect(described_class.new(custom_app).call[:error]).to eq('tz boom')
+      end
+    end
   end
 end
