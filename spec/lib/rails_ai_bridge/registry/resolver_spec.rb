@@ -29,7 +29,7 @@ RSpec.describe RailsAiBridge::Registry::Resolver do
       File.write(agent_path, content[:content])
     end
 
-    tile_skills = skills.transform_keys { |k| k.gsub('_', '-') }.transform_values do |content|
+    tile_skills = skills.transform_keys { |k| k.tr('_', '-') }.transform_values do |content|
       RailsAiBridge::Registry::SkillEntry.new(
         path: "skills/#{content[:path]}.md",
         description: content[:description],
@@ -37,7 +37,7 @@ RSpec.describe RailsAiBridge::Registry::Resolver do
       )
     end
 
-    tile_agents = agents.transform_keys { |k| k.gsub('_', '-') }.transform_values do |content|
+    tile_agents = agents.transform_keys { |k| k.tr('_', '-') }.transform_values do |content|
       RailsAiBridge::Registry::AgentEntry.new(
         path: "agents/#{content[:path]}.md",
         description: content[:description],

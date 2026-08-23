@@ -162,7 +162,7 @@ module RailsAiBridge
 
       def extract_view_components
         @path_resolver.files_for('app/components', extension: 'rb').filter_map do |path|
-          logical_relative_path(path, logical_path: 'app/components').sub(/\.rb\z/, '')
+          logical_relative_path(path, logical_path: 'app/components').delete_suffix('.rb')
         end.sort
       end
 

@@ -6,6 +6,9 @@ module RailsAiBridge
     class StimulusIntrospector
       attr_reader :app
 
+      BUILTIN_METHODS = %w[constructor connect disconnect initialize if else for while switch catch
+                           function].freeze
+
       # Initializes the Stimulus introspector and path resolver.
       #
       # @param app [Rails::Application] host Rails application
@@ -69,10 +72,7 @@ module RailsAiBridge
 
       def extract_actions(content)
         content.scan(/^\s+(?:async\s+)?(\w+)\s*\([^)]*\)\s*\{/).flatten
-               .reject do |m|
-          %w[constructor connect disconnect initialize if else for while switch catch
-             function].include?(m)
-        end
+               .reject { |m| BUILTIN_METHODS.include?(m) }
       end
 
       def extract_outlets(content)

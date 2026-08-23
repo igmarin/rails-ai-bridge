@@ -136,8 +136,7 @@ module RailsAiBridge
       # @return [Hash{String => Integer}] namespace to count mapping
       def namespace_distribution(declarations)
         declarations
-          .map { |d| d[:name].to_s.split('::').first }
-          .compact
+          .filter_map { |d| d[:name].to_s.split('::').first }
           .reject(&:empty?)
           .tally
           .sort_by { |_, count| -count }

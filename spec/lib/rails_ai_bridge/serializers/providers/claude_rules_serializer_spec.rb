@@ -24,7 +24,7 @@ RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer do
       },
       routes: {
         total_routes: 7,
-        by_controller: { 'users' => 7.times.map { { verb: 'GET', action: 'index' } } }
+        by_controller: { 'users' => Array.new(7) { { verb: 'GET', action: 'index' } } }
       },
       non_ar_models: {
         non_ar_models: [
@@ -219,8 +219,8 @@ RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer do
         routes: {
           total_routes: 18,
           by_controller: {
-            'profiles' => 9.times.map { { verb: 'GET', action: 'show' } },
-            'users' => 2.times.map { { verb: 'GET', action: 'index' } }
+            'profiles' => Array.new(9) { { verb: 'GET', action: 'show' } },
+            'users' => Array.new(2) { { verb: 'GET', action: 'index' } }
           }
         },
         database_stats: {

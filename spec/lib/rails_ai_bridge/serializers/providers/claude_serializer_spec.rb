@@ -10,8 +10,8 @@ RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeSerializer do
     it 'generates ≤150 lines for a large app' do
       models = 200.times.to_h do |i|
         ["Model#{i}", {
-          associations: 5.times.map { |j| { type: 'has_many', name: "rel_#{j}" } },
-          validations: 3.times.map { |j| { kind: 'presence', attributes: ["attr_#{j}"] } },
+          associations: Array.new(5) { |j| { type: 'has_many', name: "rel_#{j}" } },
+          validations: Array.new(3) { |j| { kind: 'presence', attributes: ["attr_#{j}"] } },
           table_name: "model_#{i}s"
         }]
       end
@@ -57,10 +57,10 @@ RSpec.describe RailsAiBridge::Serializers::Providers::ClaudeSerializer do
       models = {
         'AardvarkModel' => { associations: [], validations: [], callbacks: [], scopes: [] },
         'ZebraModel' => {
-          associations: 10.times.map { |j| { type: 'has_many', name: "rel_#{j}" } },
-          validations: 5.times.map { |j| { kind: 'presence', attributes: ["attr_#{j}"] } },
-          callbacks: 3.times.map { |j| { name: "cb_#{j}" } },
-          scopes: 2.times.map { |j| "scope_#{j}" }
+          associations: Array.new(10) { |j| { type: 'has_many', name: "rel_#{j}" } },
+          validations: Array.new(5) { |j| { kind: 'presence', attributes: ["attr_#{j}"] } },
+          callbacks: Array.new(3) { |j| { name: "cb_#{j}" } },
+          scopes: Array.new(2) { |j| "scope_#{j}" }
         }
       }
 

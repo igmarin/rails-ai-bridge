@@ -28,12 +28,12 @@ module RailsAiBridge
       # @param config [Config::Registry] current registry configuration
       # @yieldreturn [Registry::Resolver, nil] freshly built resolver, or nil if manifest is missing
       # @return [Registry::Resolver, nil]
-      def fetch(config, &build_block)
+      def fetch(config)
         @mutex.synchronize do
           if @entry && !expired?(config)
             @entry
           else
-            result = build_block.call
+            result = yield
             if result
               @entry    = result
               @built_at = @clock.call

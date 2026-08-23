@@ -128,7 +128,7 @@ module RailsAiBridge
 
           token = normalize(name)
           controllers.keys.find do |ctrl|
-            snake = ctrl.to_s.underscore.sub(/_controller\z/, '')
+            snake = ctrl.to_s.underscore.delete_suffix('_controller')
             snake == token || snake.pluralize == token || snake.singularize == token
           end
         end
@@ -199,7 +199,7 @@ module RailsAiBridge
         def controller_route_token(controller_name)
           return if controller_name.blank?
 
-          controller_name.to_s.underscore.sub(/_controller\z/, '')
+          controller_name.to_s.underscore.delete_suffix('_controller')
         end
 
         def model_payload(name)

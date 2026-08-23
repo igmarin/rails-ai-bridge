@@ -36,14 +36,14 @@ module RailsAiBridge
         {
           exists: true,
           lines: content.lines.count,
-          uses_find_or_create: content.match?(/find_or_create_by/),
+          uses_find_or_create: content.include?('find_or_create_by'),
           uses_create: content.match?(/\.create[!(]?/),
-          uses_upsert: content.match?(/\.upsert/),
-          uses_insert_all: content.match?(/\.insert_all/),
-          uses_faker: content.match?(/Faker::/),
-          uses_factory_bot: content.match?(/FactoryBot/),
+          uses_upsert: content.include?('.upsert'),
+          uses_insert_all: content.include?('.insert_all'),
+          uses_faker: content.include?('Faker::'),
+          uses_factory_bot: content.include?('FactoryBot'),
           loads_directory: content.match?(/Dir\[|Dir\.glob|load.*seeds/),
-          environment_conditional: content.match?(/Rails\.env/)
+          environment_conditional: content.include?('Rails.env')
         }
       rescue StandardError => error
         { exists: false, error: error.message }

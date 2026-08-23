@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **RuboCop Performance plugin enabled** — `rubocop-performance` (~> 1.27) added as an explicit development dependency and loaded as a RuboCop plugin. 77 offenses autocorrected (TimesMap, StringInclude, MapCompact, DeleteSuffix/DeletePrefix, StringReplacement, RedundantBlockCall). 4 CollectionLiteralInLoop offenses fixed by extracting immutable literals to constants. `rubocop-rails` constraint tightened to `~> 2.37`.
+- **Ruby 4.0 canary in CI** — CI matrix includes a non-blocking Ruby 4.0 / Rails 8.1 canary job to catch compatibility issues early without blocking the pipeline.
+
 ## [4.3.0] - 2026-08-16
 
 ### Added

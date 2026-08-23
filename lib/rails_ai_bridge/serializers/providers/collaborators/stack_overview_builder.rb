@@ -77,13 +77,15 @@ module RailsAiBridge
                 @context = context
               end
 
+              HOT_BUCKETS = %w[large hot].freeze
+
               # @return [Array<String>] up to three large/hot table names
               def hot_table_names
                 return [] unless stats_available?
 
                 Array(stats[:tables]).filter_map do |row|
                   bucket = row[:size_bucket] || ContextSummary.database_size_bucket(row[:approximate_rows])
-                  row[:table] if %w[large hot].include?(bucket)
+                  row[:table] if HOT_BUCKETS.include?(bucket)
                 end.first(3)
               end
 

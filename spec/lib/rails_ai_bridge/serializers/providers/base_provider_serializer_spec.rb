@@ -196,7 +196,7 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
     it 'sorts models by relevance' do
       models = {
         'Simple' => { associations: [], validations: [], table_name: 'simples', enums: {} },
-        'Complex' => { associations: 10.times.map { |j| { type: 'has_many', name: "r#{j}" } }, validations: [], table_name: 'complexes', enums: {} }
+        'Complex' => { associations: Array.new(10) { |j| { type: 'has_many', name: "r#{j}" } }, validations: [], table_name: 'complexes', enums: {} }
       }
       ctx = base_context.merge(models: models)
       s = described_class.new(ctx, config: config)
@@ -289,7 +289,7 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
     end
 
     it 'caps patterns at 8' do
-      patterns = 15.times.map { |i| "Pattern#{i}" }
+      patterns = Array.new(15) { |i| "Pattern#{i}" }
       ctx = base_context.merge(conventions: { architecture: [], patterns: patterns, config_files: [] })
       s = described_class.new(ctx, config: config)
       output = s.render_architecture.join("\n")
@@ -336,7 +336,7 @@ RSpec.describe RailsAiBridge::Serializers::Providers::BaseProviderSerializer do
     end
 
     it 'caps at 5 config files' do
-      files = 10.times.map { |i| "config/file#{i}.yml" }
+      files = Array.new(10) { |i| "config/file#{i}.yml" }
       ctx = base_context.merge(conventions: { architecture: [], patterns: [], config_files: files })
       s = described_class.new(ctx, config: config)
       output = s.render_key_config_files.join("\n")

@@ -2,6 +2,10 @@
 
 require 'fileutils'
 
+module RailsAiBridge
+  STATUS_ICONS = { pass: '✅', warn: '⚠️ ', fail: '❌' }.freeze
+end
+
 unless defined?(ASSISTANT_TABLE)
   ASSISTANT_TABLE = <<~TABLE
     AI Assistant       Bridge File                           Command
@@ -258,7 +262,7 @@ namespace :ai do
     result = RailsAiBridge::Doctor.new.run
 
     result[:checks].each do |check|
-      icon = { pass: '✅', warn: '⚠️ ', fail: '❌' }[check.status]
+      icon = RailsAiBridge::STATUS_ICONS[check.status]
       puts "  #{icon} #{check.name}: #{check.message}"
       puts "     Fix: #{check.fix}" if check.fix
     end
@@ -279,7 +283,7 @@ namespace :ai do
     any_failed = false
 
     result[:checks].each do |check|
-      icon = { pass: '✅', warn: '⚠️ ', fail: '❌' }[check.status]
+      icon = RailsAiBridge::STATUS_ICONS[check.status]
       puts "  #{icon} #{check.name}: #{check.message}"
       puts "     Fix: #{check.fix}" if check.fix
       any_failed ||= (check.status == :fail)

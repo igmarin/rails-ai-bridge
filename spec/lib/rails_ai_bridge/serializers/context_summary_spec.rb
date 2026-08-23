@@ -82,7 +82,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextSummary do
       supporting = {
         table_name: 'aardvarks',
         semantic_tier: 'supporting',
-        associations: 6.times.map { {} },
+        associations: Array.new(6) { {} },
         validations: []
       }
 
@@ -99,7 +99,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextSummary do
         scopes: []
       }
       context = {
-        routes: { by_controller: { 'orders' => 5.times.map { {} } } },
+        routes: { by_controller: { 'orders' => Array.new(5) { {} } } },
         migrations: {
           recent: [{ version: recent_version, filename: "#{recent_version}_add_status_to_orders.rb" }]
         }
@@ -318,8 +318,8 @@ RSpec.describe RailsAiBridge::Serializers::ContextSummary do
       context = {
         routes: {
           by_controller: {
-            'profiles' => 7.times.map { |i| { verb: 'GET', action: "show#{i}" } },
-            'users' => 3.times.map { |i| { verb: 'POST', action: "create#{i}" } }
+            'profiles' => Array.new(7) { |i| { verb: 'GET', action: "show#{i}" } },
+            'users' => Array.new(3) { |i| { verb: 'POST', action: "create#{i}" } }
           }
         }
       }

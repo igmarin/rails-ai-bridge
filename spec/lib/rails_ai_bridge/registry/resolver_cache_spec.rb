@@ -98,7 +98,7 @@ RSpec.describe RailsAiBridge::Registry::ResolverCache do
     it 'allows concurrent fetches without raising' do
       builds = Concurrent::AtomicFixnum.new(0)
 
-      threads = 10.times.map do
+      threads = Array.new(10) do
         Thread.new do
           cache.fetch(config) do
             builds.increment

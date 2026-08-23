@@ -217,8 +217,7 @@ module RailsAiBridge
         model.ancestors
              .select { |mod| mod.is_a?(Module) && !mod.is_a?(Class) }
              .reject { |mod| mod.name&.start_with?('ActiveRecord', 'ActiveModel', 'ActiveSupport') }
-             .map(&:name)
-             .compact
+             .filter_map(&:name)
       end
 
       def extract_source_macros(model)

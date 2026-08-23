@@ -86,8 +86,8 @@ RSpec.describe RailsAiBridge::Serializers::Providers::CopilotSerializer do
       models = {
         'AardvarkModel' => { associations: [], validations: [] },
         'ZebraModel' => {
-          associations: 8.times.map { |j| { type: 'has_many', name: "rel_#{j}" } },
-          validations: 4.times.map { |j| { kind: 'presence', attributes: ["attr_#{j}"] } }
+          associations: Array.new(8) { |j| { type: 'has_many', name: "rel_#{j}" } },
+          validations: Array.new(4) { |j| { kind: 'presence', attributes: ["attr_#{j}"] } }
         }
       }
 
