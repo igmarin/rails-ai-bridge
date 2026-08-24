@@ -22,6 +22,7 @@ end
 Combustion::Database.setup
 
 require 'rails_ai_bridge'
+require 'active_support/testing/time_helpers'
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|
@@ -31,6 +32,8 @@ RSpec.configure do |config|
   config.mock_with :rspec do |mocks|
     mocks.verify_partial_doubles = true
   end
+
+  config.include ActiveSupport::Testing::TimeHelpers
 
   config.shared_context_metadata_behavior = :apply_to_host_groups
   config.filter_run_when_matching :focus

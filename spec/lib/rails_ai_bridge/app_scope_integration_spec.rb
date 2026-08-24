@@ -33,7 +33,7 @@ RSpec.describe 'AppScope consumer integration' do
   describe 'ContextProvider.fetch' do
     it 'passes the scoped app to Introspector' do
       introspector = instance_double(RailsAiBridge::Introspector, call: {})
-      allow(RailsAiBridge::Introspector).to receive(:new).with(fake_app).and_return(introspector)
+      expect(RailsAiBridge::Introspector).to receive(:new).with(fake_app).and_return(introspector)
 
       RailsAiBridge::AppScope.with_app(fake_app) do
         RailsAiBridge::ContextProvider.reset!
@@ -45,7 +45,7 @@ RSpec.describe 'AppScope consumer integration' do
   describe 'ContextProvider.fetch_section' do
     it 'passes the scoped app to Introspector' do
       introspector = instance_double(RailsAiBridge::Introspector, call: { models: {} })
-      allow(RailsAiBridge::Introspector).to receive(:new).with(fake_app).and_return(introspector)
+      expect(RailsAiBridge::Introspector).to receive(:new).with(fake_app).and_return(introspector)
       allow(introspector).to receive(:call).with(only: [:models]).and_return({ models: {} })
 
       RailsAiBridge::AppScope.with_app(fake_app) do
@@ -89,7 +89,7 @@ RSpec.describe 'AppScope consumer integration' do
   describe 'RailsAiBridge.introspect' do
     it 'passes the scoped app to Introspector' do
       introspector = instance_double(RailsAiBridge::Introspector, call: {})
-      allow(RailsAiBridge::Introspector).to receive(:new).with(fake_app).and_return(introspector)
+      expect(RailsAiBridge::Introspector).to receive(:new).with(fake_app).and_return(introspector)
 
       RailsAiBridge::AppScope.with_app(fake_app) do
         RailsAiBridge.introspect

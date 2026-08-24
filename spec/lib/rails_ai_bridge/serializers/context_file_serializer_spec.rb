@@ -277,13 +277,15 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
       it 'keeps the embedded timestamp when opting in with an unchanged fingerprint' do
         Dir.mktmpdir do |dir|
           allow(RailsAiBridge::Fingerprinter).to receive(:source_fingerprint).and_return('a1b2c3d4e5f6')
-          generate(dir)
-          embedded = RailsAiBridge::FreshnessHeader.extract_timestamp(File.read(claude_path(dir)))
+          travel_to(Time.utc(2026, 1, 1, 12, 0, 0)) do
+            generate(dir)
+            embedded = RailsAiBridge::FreshnessHeader.extract_timestamp(File.read(claude_path(dir)))
 
-          generate(dir, managed_region: true)
+            generate(dir, managed_region: true)
 
-          region = RailsAiBridge::Serializers::ManagedRegion.extract(File.read(claude_path(dir)))
-          expect(RailsAiBridge::FreshnessHeader.extract_timestamp(region)).to eq(embedded)
+            region = RailsAiBridge::Serializers::ManagedRegion.extract(File.read(claude_path(dir)))
+            expect(RailsAiBridge::FreshnessHeader.extract_timestamp(region)).to eq(embedded)
+          end
         end
       end
 

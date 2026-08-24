@@ -120,5 +120,17 @@ RSpec.describe RailsAiBridge::ContextProvider do
       expect(key).to include('MyApp::Application')
       expect(key).to include(Rails.env.to_s)
     end
+
+    it 'cache key isolates same-class apps with different roots' do
+      app1 = double('App1', class: double(name: 'Rails::Application'), root: '/srv/app1')
+      app2 = double('App2', class: double(name: 'Rails::Application'), root: '/srv/app2')
+
+      key1 = described_class.send(:cache_key, app1)
+      key2 = described_class.send(:cache_key, app2)
+
+      expect(key1).not_to eq(key2)
+      expect(key1).to include('/srv/app1')
+      expect(key2).to include('/srv/app2')
+    end
   end
 end

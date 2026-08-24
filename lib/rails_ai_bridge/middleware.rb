@@ -9,7 +9,7 @@ module RailsAiBridge
   class Middleware
     def initialize(app)
       @app = app
-      @mcp_transport = nil
+      @transport = nil
       @mutex = Mutex.new
     end
 

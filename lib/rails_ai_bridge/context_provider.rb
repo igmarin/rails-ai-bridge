@@ -111,7 +111,8 @@ module RailsAiBridge
       end
 
       def cache_key(app)
-        "#{app.class.name}:#{defined?(Rails) && Rails.respond_to?(:env) ? Rails.env : 'development'}"
+        root = app.respond_to?(:root) ? app.root.to_s : ''
+        "#{app.class.name}:#{root}:#{defined?(Rails) && Rails.respond_to?(:env) ? Rails.env : 'development'}"
       end
 
       def metadata_key?(section_name)

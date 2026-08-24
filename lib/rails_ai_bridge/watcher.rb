@@ -13,7 +13,7 @@ module RailsAiBridge
     # @return [Rails::Application] host application
     attr_reader :app
 
-    # @param app [Rails::Application, nil] defaults to +Rails.application+
+    # @param app [Rails::Application, nil] defaults to {AppScope.current_app}
     def initialize(app = nil)
       @app = app || AppScope.current_app
       @regenerator = BridgeRegenerator.new(@app)
