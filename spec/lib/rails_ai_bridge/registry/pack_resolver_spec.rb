@@ -238,6 +238,59 @@ RSpec.describe RailsAiBridge::Registry::PackResolver do
       end
     end
 
+    context 'when Hanami framework is detected' do
+      it 'auto-detects and loads the hanami pack' do
+        packs = {
+          'hanami' => RailsAiBridge::Registry::PackDefinition.new(
+            source: 'dummy/hanami',
+            tile: 'directory.json',
+            always_loaded: false,
+            depends_on: [],
+            ref: nil
+          )
+        }
+
+        manifest = RailsAiBridge::Registry::RegistryManifest.new(
+          version: '1.0.0',
+          packs: packs,
+          default_stack: []
+        )
+
+        allow(mock_git_runner).to receive(:clone_repo) do |_url, dest|
+          FileUtils.mkdir_p(dest)
+          create_mock_tile(dest, name: 'hanami')
+        end
+        allow(mock_git_runner).to receive(:pull_repo)
+        allow(RailsAiBridge::Registry::PackDetector).to receive(:detect)
+          .and_return([RailsAiBridge::Registry::DetectedFramework::Hanami])
+
+        service = described_class.new(source_resolver)
+        resolver = service.resolve(manifest, nil, nil)
+
+        expect(resolver.active_packs.first.name).to eq('hanami')
+      end
+    end
+
+    context 'when an unknown framework is detected' do
+      it 'does not load any framework pack but still loads explicit packs' do
+        packs = {
+          'core' => build_pack('core')
+        }
+        manifest = RailsAiBridge::Registry::RegistryManifest.new(
+          version: '1.0.0', packs: packs, default_stack: []
+        )
+        stub_pack_clones
+        allow(RailsAiBridge::Registry::PackDetector).to receive(:detect)
+          .and_return([double('UnknownFramework')])
+
+        service = described_class.new(source_resolver)
+        resolver = service.resolve(manifest, ['core'], nil)
+
+        # Unknown framework does not match Rails or Hanami, so only explicit packs load
+        expect(resolver.active_packs.map(&:name)).to contain_exactly('core')
+      end
+    end
+
     context 'when local registries are provided' do
       it 'loads local registries with priority 0' do
         local_dir = Dir.mktmpdir
@@ -466,6 +519,65 @@ RSpec.describe RailsAiBridge::Registry::PackResolver do
 
         expect { service.resolve(manifest, ['core'], nil) }.not_to output.to_stderr
       end
+
+      it 'skips verification entirely when no lockfile is provided' do
+        packs = {
+          'core' => build_pack('core')
+        }
+        manifest = RailsAiBridge::Registry::RegistryManifest.new(
+          version: '1.0.0', packs: packs, default_stack: []
+        )
+        stub_pack_clones
+
+        # No lockfile passed to constructor
+        service = described_class.new(source_resolver, RailsAiBridge::Registry::PackDetector, nil)
+
+        result = service.resolve(manifest, ['core'], nil)
+        expect(result.active_packs.map(&:name)).to contain_exactly('core')
+      end
+
+      it 'skips a pack that has no lockfile entry' do
+        packs = {
+          'core' => build_pack('core')
+        }
+        manifest = RailsAiBridge::Registry::RegistryManifest.new(
+          version: '1.0.0', packs: packs, default_stack: []
+        )
+        stub_pack_clones
+        allow(source_resolver).to receive(:current_commit).and_return('sha1')
+
+        # Lockfile with no entry for 'core'
+        lockfile = RailsAiBridge::Registry::Lockfile.new({})
+
+        RailsAiBridge.configuration.registry.lockfile_verification = :strict
+        service = described_class.new(source_resolver, RailsAiBridge::Registry::PackDetector, lockfile)
+
+        result = service.resolve(manifest, ['core'], nil)
+        expect(result.active_packs.map(&:name)).to contain_exactly('core')
+      end
+
+      it 'passes when the resolved commit matches the lockfile entry' do
+        packs = {
+          'core' => build_pack('core')
+        }
+        manifest = RailsAiBridge::Registry::RegistryManifest.new(
+          version: '1.0.0', packs: packs, default_stack: []
+        )
+        stub_pack_clones
+        allow(source_resolver).to receive(:current_commit).and_return('matching-sha')
+
+        lockfile = RailsAiBridge::Registry::Lockfile.new(
+          'core' => RailsAiBridge::Registry::Lockfile::Entry.new(
+            pack_name: 'core', source: 'dummy/core', ref: nil, commit_sha: 'matching-sha'
+          )
+        )
+
+        RailsAiBridge.configuration.registry.lockfile_verification = :strict
+        service = described_class.new(source_resolver, RailsAiBridge::Registry::PackDetector, lockfile)
+
+        result = service.resolve(manifest, ['core'], nil)
+        expect(result.active_packs.map(&:name)).to contain_exactly('core')
+      end
     end
 
     context 'error handling' do
@@ -491,6 +603,27 @@ RSpec.describe RailsAiBridge::Registry::PackResolver do
           # Don't create directory.json to trigger read error
         end
         allow(mock_git_runner).to receive(:pull_repo)
+
+        service = described_class.new(source_resolver)
+
+        expect { service.resolve(manifest, ['core'], nil) }
+          .to raise_error(/Failed to read tile manifest for pack 'core'/)
+      end
+
+      it 'does not raise when Rails.logger is nil and tile manifest is missing' do
+        packs = {
+          'core' => build_pack('core')
+        }
+        manifest = RailsAiBridge::Registry::RegistryManifest.new(
+          version: '1.0.0', packs: packs, default_stack: []
+        )
+
+        allow(mock_git_runner).to receive(:clone_repo) do |_url, dest|
+          FileUtils.mkdir_p(dest)
+          # Don't create directory.json to trigger read error
+        end
+        allow(mock_git_runner).to receive(:pull_repo)
+        allow(Rails).to receive(:logger).and_return(nil)
 
         service = described_class.new(source_resolver)
 
@@ -764,6 +897,27 @@ RSpec.describe RailsAiBridge::Registry::PackResolver do
             .to output(/depends on 'ghost'/).to_stderr
 
           expect(resolver.active_packs.map(&:name)).to contain_exactly('app')
+        end
+      end
+
+      context 'when a local registry pack is active but not in manifest.packs' do
+        it 'handles the nil gracefully during dependency expansion' do
+          local_dir = Dir.mktmpdir
+          create_mock_tile(local_dir, name: 'local-pack')
+
+          packs = { 'app' => build_pack('app') }
+          manifest = RailsAiBridge::Registry::RegistryManifest.new(
+            version: '1.0.0', packs: packs, default_stack: []
+          )
+          stub_pack_clones
+
+          resolver = described_class.new(source_resolver).resolve(manifest, nil, [local_dir])
+
+          # Local pack name is derived from path hash, not from tile name
+          expect(resolver.active_packs.length).to eq(1)
+          expect(resolver.active_packs.first.name).to start_with('local_')
+        ensure
+          FileUtils.rm_rf(local_dir)
         end
       end
     end

@@ -69,6 +69,13 @@ RSpec.describe RailsAiBridge::Services::FileManagementService do
       expect(result.failure?).to be(true)
       expect(result.errors).to eq(['Operation cannot be nil'])
     end
+
+    it 'returns failure for an unsupported operation' do
+      result = described_class.call(:bogus, path: test_file)
+
+      expect(result.failure?).to be(true)
+      expect(result.errors.first).to include('Unsupported operation')
+    end
   end
 
   describe '#call' do
@@ -231,6 +238,31 @@ RSpec.describe RailsAiBridge::Services::FileManagementService do
 
       delete_result = described_class.call(:delete, path: path)
       expect(delete_result).to be_a(RailsAiBridge::Service::Result)
+    end
+  end
+
+  describe 'default_allowed_base_dir fallback' do
+    it 'falls back to Dir.pwd when Rails.root is nil' do
+      allow(Rails).to receive(:root).and_return(nil)
+      service = described_class.new
+      Dir.mktmpdir do |dir|
+        allow(Dir).to receive(:pwd).and_return(dir)
+        result = service.call(:write, path: 'fallback_test.txt', content: 'ok')
+
+        expect(result.success?).to be(true)
+        expect(File.exist?(File.join(dir, 'fallback_test.txt'))).to be(true)
+      end
+    end
+  end
+
+  describe 'file_exists? with unexpected error' do
+    it 'returns a failure result for non-Security/ENOENT errors' do
+      allow(File).to receive(:realpath).and_raise(Errno::EACCES, 'permission denied')
+
+      result = described_class.call(:exist?, path: test_file)
+
+      expect(result.failure?).to be(true)
+      expect(result.errors.first).to include('permission denied')
     end
   end
 end

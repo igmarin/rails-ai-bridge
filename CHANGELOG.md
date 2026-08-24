@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Request-scoped resolver memoization** — `Registry#with_request_resolver` and `request_active?` now use a frozen sentinel object instead of relying on `Thread.current[REQUEST_RESOLVER_KEY]` being `nil`. Previously `request_resolver?` checked `!Thread.current[REQUEST_RESOLVER_KEY].nil?`, which returned `false` for an active but unbuilt resolver. A sentinel distinguishes "active, not built" from "not active."
+
+### Added
+
+- **Branch coverage improvements** — 20 files raised to 90%+ branch coverage with focused RSpec tests covering previously uncovered branches.
+
 ## [4.3.0] - 2026-08-16
 
 ### Added

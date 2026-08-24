@@ -65,5 +65,21 @@ RSpec.describe RailsAiBridge::Doctor do
         expect(check.status).to be_in(%i[pass warn fail])
       end
     end
+
+    it 'counts :fail checks as 0 in the readiness score' do
+      fail_check = RailsAiBridge::Doctor::Check.new(name: 'Fail', status: :fail, message: 'failed', fix: nil)
+      pass_check = RailsAiBridge::Doctor::Check.new(name: 'Pass', status: :pass, message: 'ok', fix: nil)
+      allow(RailsAiBridge::Doctor::Checkers::SchemaChecker).to receive(:new).and_return(
+        instance_double(RailsAiBridge::Doctor::Checkers::SchemaChecker, call: fail_check)
+      )
+      allow(RailsAiBridge::Doctor::Checkers::ModelsChecker).to receive(:new).and_return(
+        instance_double(RailsAiBridge::Doctor::Checkers::ModelsChecker, call: pass_check)
+      )
+
+      score = doctor.run[:score]
+
+      # 1 fail (0) + 1 pass (10) + 15 others (all pass = 150) = 160 / 170 = 94
+      expect(score).to be < 100
+    end
   end
 end

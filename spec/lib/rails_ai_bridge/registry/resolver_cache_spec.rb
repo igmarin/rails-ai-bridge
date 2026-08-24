@@ -94,6 +94,17 @@ RSpec.describe RailsAiBridge::Registry::ResolverCache do
     end
   end
 
+  describe 'expired? when built_at is nil but entry exists' do
+    it 'returns true (treats as expired)' do
+      cache.fetch(config) { resolver_a }
+      # Simulate a state where @entry is set but @built_at is nil
+      cache.instance_variable_set(:@built_at, nil)
+
+      result = cache.fetch(config) { resolver_b }
+      expect(result).to eq(resolver_b)
+    end
+  end
+
   describe 'thread safety' do
     it 'allows concurrent fetches without raising' do
       builds = Concurrent::AtomicFixnum.new(0)

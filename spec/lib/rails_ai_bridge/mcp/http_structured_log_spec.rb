@@ -61,5 +61,13 @@ RSpec.describe RailsAiBridge::Mcp::HttpStructuredLog do
         skipped: nil
       )
     end
+
+    it 'falls back to a stdout logger when Rails.logger is nil' do
+      RailsAiBridge.configuration.mcp.http_log_json = true
+      allow(Rails).to receive(:logger).and_return(nil)
+
+      expect { described_class.emit(request: request, event: :handled, http_status: 200) }
+        .to output(/rails_ai_bridge\.mcp\.http/).to_stdout
+    end
   end
 end

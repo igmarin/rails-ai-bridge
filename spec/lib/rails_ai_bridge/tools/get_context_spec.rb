@@ -399,5 +399,13 @@ RSpec.describe RailsAiBridge::Tools::GetContext do
       end
     end
   end
+
+  describe '.app_root' do
+    it 'returns nil when Rails.application is nil' do
+      allow(described_class).to receive(:rails_app).and_return(nil)
+
+      expect(described_class.app_root).to be_nil
+    end
+  end
 end
 # rubocop:enable RSpec/MultipleMemoizedHelpers

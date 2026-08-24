@@ -97,12 +97,10 @@ module RailsAiBridge
       # @param value [Integer, #to_i] pull refresh interval in seconds; 0 pulls on every rebuild
       # @raise [ArgumentError] if value cannot be coerced to a non-negative integer
       def git_pull_ttl=(value)
-        int = Integer(value)
+        int = coerce_integer(value, 'git_pull_ttl')
         raise ArgumentError, "git_pull_ttl must be >= 0, got #{int}" if int.negative?
 
         @git_pull_ttl = int
-      rescue ArgumentError, TypeError
-        raise ArgumentError, "git_pull_ttl must be a non-negative integer, got #{value.inspect}"
       end
 
       # Sets the git operation timeout.
@@ -114,12 +112,10 @@ module RailsAiBridge
       # @param value [Integer, #to_i] timeout in seconds
       # @raise [ArgumentError] if value cannot be coerced to a positive integer
       def git_timeout=(value)
-        int = Integer(value)
+        int = coerce_integer(value, 'git_timeout', 'positive integer')
         raise ArgumentError, "git_timeout must be >= 1, got #{int}" unless int >= 1
 
         @git_timeout = int
-      rescue ArgumentError, TypeError
-        raise ArgumentError, "git_timeout must be a positive integer, got #{value.inspect}"
       end
 
       # Sets the in-memory resolver cache TTL.
@@ -131,12 +127,10 @@ module RailsAiBridge
       # @param value [Integer, #to_i] cache TTL in seconds; 0 disables caching
       # @raise [ArgumentError] if value cannot be coerced to a non-negative integer
       def resolver_ttl=(value)
-        int = Integer(value)
+        int = coerce_integer(value, 'resolver_ttl')
         raise ArgumentError, "resolver_ttl must be >= 0, got #{int}" if int.negative?
 
         @resolver_ttl = int
-      rescue ArgumentError, TypeError
-        raise ArgumentError, "resolver_ttl must be a non-negative integer, got #{value.inspect}"
       end
 
       def initialize
@@ -150,6 +144,25 @@ module RailsAiBridge
         @lockfile_path = DEFAULT_LOCKFILE_PATH
         @lockfile_verification = :strict
         @auto_load_dependencies = false
+      end
+
+      private
+
+      # Coerces +value+ to an Integer via +Integer()+, raising a consistent
+      # +ArgumentError+ when the value cannot be coerced.
+      #
+      # Extracted from the individual setters so the +rescue+ only catches
+      # coercion failures — not the range-validation raises that follow.
+      #
+      # @param value [Object] value to coerce
+      # @param field [String] field name for the error message
+      # @param requirement [String] requirement label for the error message
+      # @return [Integer]
+      # @raise [ArgumentError] if +value+ cannot be coerced to an Integer
+      def coerce_integer(value, field, requirement = 'non-negative integer')
+        Integer(value)
+      rescue ArgumentError, TypeError
+        raise ArgumentError, "#{field} must be a #{requirement}, got #{value.inspect}"
       end
     end
   end
