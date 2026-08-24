@@ -3,7 +3,7 @@
 require 'spec_helper'
 
 # Composite tool fixtures need model/schema/controller/route/test snapshots.
-# rubocop:disable RSpec/MultipleMemoizedHelpers
+# rubocop:disable-next RSpec/MultipleMemoizedHelpers
 RSpec.describe RailsAiBridge::Tools::GetContext do
   let(:response) { described_class.call(**params) }
   let(:content) { response.content.first[:text] }
@@ -494,4 +494,3 @@ RSpec.describe RailsAiBridge::Tools::GetContext do
     end
   end
 end
-# rubocop:enable RSpec/MultipleMemoizedHelpers
