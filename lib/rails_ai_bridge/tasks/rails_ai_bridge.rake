@@ -2,10 +2,6 @@
 
 require 'fileutils'
 
-module RailsAiBridge
-  STATUS_ICONS = { pass: '✅', warn: '⚠️ ', fail: '❌' }.freeze
-end
-
 unless defined?(ASSISTANT_TABLE)
   ASSISTANT_TABLE = <<~TABLE
     AI Assistant       Bridge File                           Command
@@ -21,6 +17,8 @@ unless defined?(ASSISTANT_TABLE)
 end
 
 module RailsAiBridge
+  STATUS_ICONS = { pass: '✅', warn: '⚠️ ', fail: '❌' }.freeze
+
   # Helper methods for Rake tasks — extracted here to avoid polluting global Object.
   module RakeHelpers
     TRUTHY_ENV_VALUES = %w[1 true yes y].freeze unless defined?(TRUTHY_ENV_VALUES)
