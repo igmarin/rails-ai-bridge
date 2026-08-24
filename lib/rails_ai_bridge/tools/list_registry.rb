@@ -120,8 +120,8 @@ module RailsAiBridge
         # @return [String] markdown string
         def format
           case @type
-          when 'skills'  then format_catalog(@resolver.list_skills,   noun: 'Skill')
-          when 'agents'  then format_catalog(@resolver.list_agents,   noun: 'Agent')
+          when 'skills'  then format_catalog(@resolver.list_skills, noun: 'Skill')
+          when 'agents'  then format_catalog(@resolver.list_agents, noun: 'Agent')
           when 'packs'   then format_packs(@resolver.active_packs)
           end
         end
