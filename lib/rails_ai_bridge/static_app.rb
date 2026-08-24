@@ -72,6 +72,13 @@ module RailsAiBridge
       nil
     end
 
+    # Non-bang counterpart for {#eager_load!}. Also a no-op in static mode.
+    #
+    # @return [nil]
+    def eager_load
+      nil
+    end
+
     # Returns conventional Rails paths rooted at the static app root.
     #
     # @return [Hash{String => Array<String>}]
