@@ -186,6 +186,43 @@ RSpec.describe RailsAiBridge::Registry::RakePresenter do
     end
   end
 
+  describe '#initialize' do
+    it 'raises ArgumentError when resolver is nil' do
+      expect { described_class.new(nil) }.to raise_error(ArgumentError, /RakePresenter requires a resolver/)
+    end
+  end
+
+  describe '.require_resolver!' do
+    context 'when build_resolver returns nil' do
+      before do
+        allow(RailsAiBridge::Registry).to receive(:build_resolver).and_return(nil)
+        allow(RailsAiBridge.configuration.registry).to receive(:registry_manifest_path).and_return('/missing/registry.json')
+      end
+
+      it 'warns with the no-manifest message and exits' do
+        expect(described_class).to receive(:warn).with(/No registry manifest found/)
+        expect(described_class).to receive(:exit).with(1)
+
+        described_class.require_resolver!
+      end
+    end
+
+    context 'when build_resolver returns a resolver' do
+      let(:resolver) { instance_double(RailsAiBridge::Registry::Resolver) }
+
+      before do
+        allow(RailsAiBridge::Registry).to receive(:build_resolver).and_return(resolver)
+      end
+
+      it 'returns the resolver without exiting' do
+        expect(described_class).not_to receive(:exit)
+
+        result = described_class.require_resolver!
+        expect(result).to eq(resolver)
+      end
+    end
+  end
+
   describe '#skills_json' do
     let(:tile) do
       RailsAiBridge::Registry::TileManifest.new(

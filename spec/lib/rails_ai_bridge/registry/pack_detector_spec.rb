@@ -216,6 +216,11 @@ RSpec.describe RailsAiBridge::Registry::PackDetector do
         result = described_class.detect_in_path('/tmp/../etc')
         expect(result).to be_empty
       end
+
+      it 'returns empty array for a relative path that cleanpaths to ..' do
+        result = described_class.detect_in_path('foo/../..')
+        expect(result).to be_empty
+      end
     end
   end
 
