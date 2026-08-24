@@ -17,6 +17,8 @@ unless defined?(ASSISTANT_TABLE)
 end
 
 module RailsAiBridge
+  STATUS_ICONS = { pass: '✅', warn: '⚠️ ', fail: '❌' }.freeze
+
   # Helper methods for Rake tasks — extracted here to avoid polluting global Object.
   module RakeHelpers
     TRUTHY_ENV_VALUES = %w[1 true yes y].freeze unless defined?(TRUTHY_ENV_VALUES)
@@ -258,7 +260,7 @@ namespace :ai do
     result = RailsAiBridge::Doctor.new.run
 
     result[:checks].each do |check|
-      icon = { pass: '✅', warn: '⚠️ ', fail: '❌' }[check.status]
+      icon = RailsAiBridge::STATUS_ICONS[check.status]
       puts "  #{icon} #{check.name}: #{check.message}"
       puts "     Fix: #{check.fix}" if check.fix
     end
@@ -279,7 +281,7 @@ namespace :ai do
     any_failed = false
 
     result[:checks].each do |check|
-      icon = { pass: '✅', warn: '⚠️ ', fail: '❌' }[check.status]
+      icon = RailsAiBridge::STATUS_ICONS[check.status]
       puts "  #{icon} #{check.name}: #{check.message}"
       puts "     Fix: #{check.fix}" if check.fix
       any_failed ||= (check.status == :fail)

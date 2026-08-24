@@ -20,7 +20,7 @@ module RailsAiBridge
 
       # @return [String] full markdown document
       def call
-        section_classes.map { |klass| klass.new(context).call }.compact.join("\n\n")
+        section_classes.filter_map { |klass| klass.new(context).call }.join("\n\n")
       end
 
       private

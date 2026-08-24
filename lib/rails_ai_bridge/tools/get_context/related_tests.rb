@@ -37,7 +37,7 @@ module RailsAiBridge
             @resolution[:table_name],
             controller_token,
             @resolution[:requested_feature]
-          ].compact.map { |name| name.to_s.underscore.sub(/_controller\z/, '') }.uniq
+          ].compact.map { |name| name.to_s.underscore.delete_suffix('_controller') }.uniq
 
           sources.filter_map do |token|
             next unless safe_token?(token)
@@ -54,7 +54,7 @@ module RailsAiBridge
           name = @resolution[:controller_name]
           return if name.blank?
 
-          name.to_s.underscore.sub(/_controller\z/, '')
+          name.to_s.underscore.delete_suffix('_controller')
         end
 
         def paths_for(singular, plural)

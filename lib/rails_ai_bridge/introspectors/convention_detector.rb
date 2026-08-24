@@ -92,10 +92,10 @@ module RailsAiBridge
           patterns << 'state_machine' if content.match?(/aasm|state_machine|workflow/)
           patterns << 'multi_tenancy' if content.match?(/acts_as_tenant|apartment/)
           patterns << 'searchable' if content.match?(/searchkick|pg_search|ransack/)
-          patterns << 'taggable' if content.match?(/acts_as_taggable/)
+          patterns << 'taggable' if content.include?('acts_as_taggable')
           patterns << 'sluggable' if content.match?(/friendly_id|sluggable/)
           patterns << 'nested_set' if content.match?(/acts_as_nested_set|ancestry|closure_tree/)
-          patterns << 'current_attributes' if content.match?(/< ActiveSupport::CurrentAttributes/)
+          patterns << 'current_attributes' if content.include?('< ActiveSupport::CurrentAttributes')
           patterns << 'encrypted_attributes' if content.match?(/\bencrypts\s+:/)
           patterns << 'normalizations' if content.match?(/\bnormalizes\s+:/)
         end

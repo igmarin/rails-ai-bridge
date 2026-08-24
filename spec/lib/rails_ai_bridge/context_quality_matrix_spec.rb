@@ -11,8 +11,8 @@ RSpec.describe 'rails-ai-bridge context quality matrix' do
         {
           table_name: options.fetch(:table) { name.underscore.pluralize },
           semantic_tier: options.fetch(:tier, 'supporting'),
-          associations: options.fetch(:associations, 0).times.map { |index| { type: 'has_many', name: "rel_#{index}" } },
-          validations: options.fetch(:validations, 0).times.map { |index| { kind: 'presence', attributes: ["attr_#{index}"] } }
+          associations: Array.new(options.fetch(:associations, 0)) { |index| { type: 'has_many', name: "rel_#{index}" } },
+          validations: Array.new(options.fetch(:validations, 0)) { |index| { kind: 'presence', attributes: ["attr_#{index}"] } }
         }
       ]
     end
@@ -67,25 +67,25 @@ RSpec.describe 'rails-ai-bridge context quality matrix' do
     {
       standard_crud: base_context.call(
         models: [model_entry.call('User', tier: 'core_entity', associations: 3), model_entry.call('Post', associations: 2)].to_h,
-        routes: { 'users' => 7.times.map { {} }, 'posts' => 7.times.map { {} } },
+        routes: { 'users' => Array.new(7) { {} }, 'posts' => Array.new(7) { {} } },
         controllers: { 'UsersController' => { actions: %w[index show] } }
       ),
       large_schema: base_context.call(
         models: large_models,
-        routes: { 'accounts' => 9.times.map { {} }, 'reports' => 4.times.map { {} } }
+        routes: { 'accounts' => Array.new(9) { {} }, 'reports' => Array.new(4) { {} } }
       ),
       api_only: base_context.call(
         models: [model_entry.call('ApiToken', tier: 'core_entity', associations: 1)].to_h,
-        routes: { 'api/v1/tokens' => 5.times.map { {} } },
+        routes: { 'api/v1/tokens' => Array.new(5) { {} } },
         controllers: { 'Api::V1::TokensController' => { actions: %w[index create] } }
       ),
       hotwire: base_context.call(
         models: [model_entry.call('Message', tier: 'core_entity', associations: 2)].to_h,
-        routes: { 'messages' => 8.times.map { {} } }
+        routes: { 'messages' => Array.new(8) { {} } }
       ).merge(views: { templates: 12, partials: 9 }, stimulus: { controllers: 4 }),
       engine_style: base_context.call(
         models: [model_entry.call('Billing::Subscription', tier: 'core_entity', associations: 3)].to_h,
-        routes: { 'billing/subscriptions' => 6.times.map { {} } },
+        routes: { 'billing/subscriptions' => Array.new(6) { {} } },
         route_metadata: { mounted_engines: [{ engine: 'Billing::Engine', path: '/billing' }] }
       ),
       regulated: base_context.call(

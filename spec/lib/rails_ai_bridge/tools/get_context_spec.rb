@@ -350,8 +350,8 @@ RSpec.describe RailsAiBridge::Tools::GetContext do
 
     context "with detail: 'summary'" do
       let(:models_data) do
-        associations = 40.times.map { |i| { name: "assoc_#{i}", type: 'has_many', source: :reflection } }
-        validations = 20.times.map { |i| { kind: 'presence', attributes: ["field_#{i}"], options: {} } }
+        associations = Array.new(40) { |i| { name: "assoc_#{i}", type: 'has_many', source: :reflection } }
+        validations = Array.new(20) { |i| { kind: 'presence', attributes: ["field_#{i}"], options: {} } }
         {
           'User' => {
             table_name: 'users',
@@ -363,7 +363,7 @@ RSpec.describe RailsAiBridge::Tools::GetContext do
       end
 
       let(:schema_data) do
-        columns = 80.times.map { |i| { name: "col_#{i}", type: 'string', null: true, default: nil } }
+        columns = Array.new(80) { |i| { name: "col_#{i}", type: 'string', null: true, default: nil } }
         {
           adapter: 'SQLite',
           source: :live,

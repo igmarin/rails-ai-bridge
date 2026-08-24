@@ -72,7 +72,7 @@ module RailsAiBridge
     # @param name [String]
     # @return [String]
     def classify_base(name)
-      name.to_s.demodulize.sub(/Controller\z/, '').singularize.camelize
+      name.to_s.demodulize.delete_suffix('Controller').singularize.camelize
     end
 
     # Table-name candidates for a class or route/controller token.
@@ -81,7 +81,7 @@ module RailsAiBridge
     # @return [Array<String>]
     def class_stems(token)
       pieces = [token, token.split('::').last].compact
-      pieces << pieces.last.to_s.sub(/Controller\z/, '')
+      pieces << pieces.last.to_s.delete_suffix('Controller')
       pieces.flat_map do |piece|
         next [] if piece.empty?
 

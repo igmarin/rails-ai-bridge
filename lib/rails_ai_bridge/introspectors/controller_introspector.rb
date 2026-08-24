@@ -92,8 +92,7 @@ module RailsAiBridge
           mod.name&.start_with?('ActionController', 'ActionDispatch', 'ActiveSupport',
                                 'AbstractController')
         end
-          .map(&:name)
-          .compact
+          .filter_map(&:name)
       rescue StandardError
         []
       end

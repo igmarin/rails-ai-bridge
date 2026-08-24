@@ -139,7 +139,7 @@ module PerfBaseline
 
   # @api private
   def self.benchmark_average
-    samples = (WARMUP_ITERATIONS + MEASURED_ITERATIONS).times.map do
+    samples = Array.new(WARMUP_ITERATIONS + MEASURED_ITERATIONS) do
       started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       yield
       Process.clock_gettime(Process::CLOCK_MONOTONIC) - started

@@ -158,7 +158,7 @@ RSpec.describe RailsAiBridge::Tools::GetRoutes do
       context "with detail: 'summary' on a large route set" do
         let(:routes_data) do
           by_controller = 40.times.to_h do |controller|
-            ["controller_#{controller.to_s.rjust(2, '0')}", 8.times.map do |action|
+            ["controller_#{controller.to_s.rjust(2, '0')}", Array.new(8) do |action|
               {
                 verb: 'GET',
                 path: "/controller_#{controller}/action_#{action}",

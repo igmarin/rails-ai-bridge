@@ -81,8 +81,7 @@ module RailsAiBridge
         files.map do |file|
           path_resolver
             .logical_file_path(file, logical_path: 'app/serializers')
-            .delete_prefix('app/serializers/')
-            .sub(/\.rb\z/, '')
+            .delete_prefix('app/serializers/').delete_suffix('.rb')
             .camelize
         end.sort
       end

@@ -9,7 +9,7 @@ RSpec.describe RailsAiBridge::Tools::GetSchema do
     before do
       tables = 50.times.to_h do |i|
         ["table_#{i.to_s.rjust(3, '0')}", {
-          columns: 10.times.map { |j| { name: "col_#{j}", type: 'string', null: true } },
+          columns: Array.new(10) { |j| { name: "col_#{j}", type: 'string', null: true } },
           indexes: [{ name: "idx_#{i}", columns: ['col_0'], unique: false }],
           foreign_keys: []
         }]

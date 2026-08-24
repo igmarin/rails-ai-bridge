@@ -6,7 +6,7 @@ RSpec.describe 'MCP large payload stability' do
   let(:large_schema) do
     tables = 80.times.to_h do |index|
       ["table_#{index.to_s.rjust(3, '0')}", {
-        columns: 25.times.map { |column| { name: "column_#{column}", type: 'string', null: true } },
+        columns: Array.new(25) { |column| { name: "column_#{column}", type: 'string', null: true } },
         indexes: [{ name: "index_table_#{index}_on_column_0", columns: ['column_0'], unique: false }],
         foreign_keys: []
       }]
@@ -17,7 +17,7 @@ RSpec.describe 'MCP large payload stability' do
 
   let(:large_routes) do
     by_controller = 40.times.to_h do |controller|
-      ["controller_#{controller.to_s.rjust(2, '0')}", 8.times.map do |action|
+      ["controller_#{controller.to_s.rjust(2, '0')}", Array.new(8) do |action|
         {
           verb: 'GET',
           path: "/controller_#{controller}/action_#{action}",

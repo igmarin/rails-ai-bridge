@@ -261,7 +261,7 @@ module RailsAiBridge
           controllers.keys.sort_by { |name| controller_sort_key(name, routes_by_ctrl) }.first(25).each do |name|
             info = controllers[name]
             # Derive route key: "UsersController" → "users", "Admin::UsersController" → "admin/users"
-            route_key = name.gsub(/Controller\z/, '').underscore
+            route_key = name.delete_suffix('Controller').underscore
             routes = routes_by_ctrl[route_key] || []
 
             if routes.any?
@@ -281,7 +281,7 @@ module RailsAiBridge
         end
 
         def controller_sort_key(name, routes_by_ctrl)
-          clean_name = name.gsub(/Controller\z/, '').underscore
+          clean_name = name.delete_suffix('Controller').underscore
           [-Array(routes_by_ctrl[clean_name]).size, name]
         end
 

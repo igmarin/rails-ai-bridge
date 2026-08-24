@@ -83,11 +83,11 @@ module RailsAiBridge
         end
 
         def normalize_partial_matcher(partial)
-          partial.to_s.sub(%r{\A/+}, '').sub(/\A_/, '')
+          partial.to_s.sub(%r{\A/+}, '').delete_prefix('_')
         end
 
         def partial_match?(name, matcher)
-          normalized = name.to_s.sub(/\A_/, '')
+          normalized = name.to_s.delete_prefix('_')
           normalized.include?(matcher) || name.include?(matcher)
         end
       end

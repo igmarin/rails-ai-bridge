@@ -113,10 +113,10 @@ RSpec.describe RailsAiBridge::Serializers::Providers::CursorRulesSerializer do
       'AardvarkModel' => { associations: [], validations: [], callbacks: [], scopes: [],
                            table_name: 'aardvark_models' },
       'ZebraModel' => {
-        associations: 10.times.map { |j| { type: 'has_many', name: "rel_#{j}" } },
-        validations: 5.times.map { |j| { kind: 'presence', attributes: ["attr_#{j}"] } },
-        callbacks: 3.times.map { |j| { name: "cb_#{j}" } },
-        scopes: 2.times.map { "scope_#{j}" },
+        associations: Array.new(10) { |j| { type: 'has_many', name: "rel_#{j}" } },
+        validations: Array.new(5) { |j| { kind: 'presence', attributes: ["attr_#{j}"] } },
+        callbacks: Array.new(3) { |j| { name: "cb_#{j}" } },
+        scopes: Array.new(2) { |j| "scope_#{j}" },
         table_name: 'zebra_models'
       }
     }
