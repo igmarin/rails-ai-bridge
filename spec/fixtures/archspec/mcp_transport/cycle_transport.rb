@@ -2,7 +2,7 @@
 
 # Cycle leg 2: mcp_transport references runtime_context, closing the cycle.
 module FixtureTransport
-  module ServerTarget
+  class ServerTarget
     def self.uses_runtime
       FixtureRuntime
     end

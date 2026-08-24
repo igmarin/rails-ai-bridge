@@ -36,6 +36,7 @@ component :runtime_context, in: %w[
   lib/rails_ai_bridge/assistant_formats_preference.rb
   lib/rails_ai_bridge/cache_warmer.rb
   lib/rails_ai_bridge/context_provider.rb
+  lib/rails_ai_bridge/database_size.rb
   lib/rails_ai_bridge/doctor.rb
   lib/rails_ai_bridge/doctor/**/*.rb
   lib/rails_ai_bridge/engine.rb
