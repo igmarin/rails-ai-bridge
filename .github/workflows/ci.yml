@@ -76,6 +76,9 @@ jobs:
       - name: Reek
         run: bundle exec rake quality:reek
 
+      - name: ArchSpec architecture check
+        run: bundle exec archspec check
+
       - name: YARD documentation coverage
         run: bundle exec rake docs:yard
 

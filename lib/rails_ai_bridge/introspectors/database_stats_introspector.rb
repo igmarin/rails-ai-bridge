@@ -37,7 +37,7 @@ module RailsAiBridge
           {
             table: row['table_name'],
             approximate_rows: approximate_rows,
-            size_bucket: Serializers::ContextSummary.database_size_bucket(approximate_rows)
+            size_bucket: DatabaseSize.bucket(approximate_rows)
           }
         end
 

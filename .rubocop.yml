@@ -14,6 +14,7 @@ AllCops:
 Naming/FileName:
   Exclude:
     - "lib/rails-ai-bridge.rb"
+    - "Archspec.rb"
 Naming/RescuedExceptionsVariableName:
   PreferredName: error
 Style/Documentation:

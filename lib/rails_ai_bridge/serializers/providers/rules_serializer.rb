@@ -9,6 +9,7 @@ module RailsAiBridge
       class RulesSerializer < BaseProviderSerializer
         # @param context [Hash] The introspection context.
         # @param config [RailsAiBridge::Configuration] The configuration object.
+        # archspec:disable-next-line dependencies.forbid -- FP: RailsAiBridge is the reopened gem namespace; .configuration accessor is not a cross-component dependency
         def initialize(context, config: RailsAiBridge.configuration)
           super
         end

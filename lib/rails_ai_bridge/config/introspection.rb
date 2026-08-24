@@ -168,6 +168,7 @@ module RailsAiBridge
       def excluded_table?(table_name)
         return false if table_name.nil? || table_name.to_s.empty?
 
+        # archspec:disable-next-line dependencies.no_cycles -- FP cycle: config->runtime_context is real but the return edge is a namespace-reopening false positive
         @excluded_tables.any? { |pat| ExclusionHelper.table_pattern_match?(pat.to_s, table_name.to_s) }
       end
     end

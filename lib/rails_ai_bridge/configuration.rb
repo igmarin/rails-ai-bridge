@@ -139,6 +139,7 @@ module RailsAiBridge
     #
     # @return [Boolean]
     def rubydex_available?
+      # archspec:disable-next-line dependencies.no_cycles -- FP cycle: config->rubydex is real but the return edge is a namespace-reopening false positive
       rubydex_enabled && RubydexAdapter.available?
     end
 

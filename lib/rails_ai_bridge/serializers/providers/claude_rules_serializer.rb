@@ -141,6 +141,7 @@ module RailsAiBridge
 
         # @return [Integer, nil] cap per tier, or +nil+ when all names should be listed (+:full+ context mode).
         def semantic_tier_names_cap
+          # archspec:disable-next-line dependencies.forbid -- FP: RailsAiBridge is the reopened gem namespace; .configuration accessor is not a cross-component dependency
           return nil if RailsAiBridge.configuration.context_mode == :full
 
           SEMANTIC_TIER_LIST_CAP

@@ -123,7 +123,11 @@ module RailsAiBridge
     #
     # @param config [RailsAiBridge::Config::Registry] registry configuration
     # @return [Resolver, nil] wired resolver, or nil if manifest file is missing
+    # archspec:disable dependencies.forbid -- FP: RailsAiBridge namespace accessor, not a cross-component dependency
+    # archspec:disable dependencies.no_cycles -- FP: cycle from namespace reopening, not a real cross-component cycle
     def self.build_resolver(config = RailsAiBridge.configuration.registry)
+      # archspec:enable dependencies.forbid
+      # archspec:enable dependencies.no_cycles
       return request_resolver if request_resolver?
 
       resolver = resolver_cache.fetch(config) { build_resolver_uncached(config) }
@@ -163,6 +167,7 @@ module RailsAiBridge
     # @param config [RailsAiBridge::Config::Registry] registry configuration
     # @return [void]
     # @raise [ArgumentError] when the manifest file does not exist
+    # archspec:disable-next-line dependencies.forbid -- FP: RailsAiBridge is the reopened gem namespace; .configuration accessor is not a cross-component dependency
     def self.write_lockfile(config = RailsAiBridge.configuration.registry)
       manifest_path = config.registry_manifest_path
       raise ArgumentError, "Registry manifest not found at #{manifest_path}" unless File.exist?(manifest_path)

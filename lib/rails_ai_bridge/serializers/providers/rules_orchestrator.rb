@@ -11,6 +11,7 @@ module RailsAiBridge
       class RulesOrchestrator < RailsAiBridge::Serializers::Providers::Base
         # @param context [Hash] The introspection context containing application data.
         # @param config [RailsAiBridge::Configuration] The configuration object.
+        # archspec:disable-next-line dependencies.forbid -- FP: RailsAiBridge is the reopened gem namespace; .configuration accessor is not a cross-component dependency
         def initialize(context:, config: RailsAiBridge.configuration)
           super(context: context)
           @config = config

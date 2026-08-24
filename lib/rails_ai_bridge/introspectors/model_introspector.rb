@@ -19,6 +19,7 @@ module RailsAiBridge
       # @param [Object] app - The Rails application instance to introspect.
       def initialize(app)
         @app    = app
+        # archspec:disable-next-line dependencies.forbid -- FP: RailsAiBridge is the reopened gem namespace; .configuration accessor is not a cross-component dependency
         @config = RailsAiBridge.configuration
         @path_resolver = PathResolver.new(app)
       end

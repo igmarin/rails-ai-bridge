@@ -29,6 +29,7 @@ module RailsAiBridge
       #
       # @return [Hash] semantic analysis results or error/info hash
       def call
+        # archspec:disable-next-line dependencies.forbid -- FP: RailsAiBridge is the reopened gem namespace; .configuration accessor is not a cross-component dependency
         config = RailsAiBridge.configuration
         unless config.rubydex_available?
           return { info: 'Rubydex semantic analysis is currently disabled. ' \

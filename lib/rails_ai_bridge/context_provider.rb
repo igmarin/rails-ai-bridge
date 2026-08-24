@@ -69,6 +69,7 @@ module RailsAiBridge
       end
 
       def rebuild(app, fingerprint: nil)
+        # archspec:disable-next-line dependencies.no_cycles -- FP cycle: RailsAiBridge namespace reopening creates a spurious return edge, not a real cycle
         context = RailsAiBridge.introspect(app)
         key = cache_key(app)
         cache[key][:full] = {
