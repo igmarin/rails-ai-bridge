@@ -118,7 +118,10 @@ RSpec.describe RailsAiBridge::Introspectors::DevOpsIntrospector do
     after { FileUtils.rm_rf(app_root) }
 
     context 'with kamal deploy config' do
-      before { FileUtils.mkdir_p(app_root.join('config')); File.write(app_root.join('config/deploy.yml'), 'service: app') }
+      before do
+        FileUtils.mkdir_p(app_root.join('config'))
+        File.write(app_root.join('config/deploy.yml'), 'service: app')
+      end
 
       it 'detects kamal as deployment tool' do
         expect(result[:deployment]).to eq('kamal')
@@ -153,7 +156,7 @@ RSpec.describe RailsAiBridge::Introspectors::DevOpsIntrospector do
       before { File.write(app_root.join('Procfile.dev'), "web: puma\njs: yarn build") }
 
       it 'parses Procfile.dev entries' do
-        files = result[:procfile].map { |p| p[:file] }
+        files = result[:procfile].pluck(:file)
         expect(files).to include('Procfile.dev')
       end
     end

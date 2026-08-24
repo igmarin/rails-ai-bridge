@@ -205,14 +205,12 @@ RSpec.describe RailsAiBridge::Introspectors::SemanticIntrospector do
               { definitions: [1, 2, 3], ancestors: %w[A B], descendants: %w[X Y] }
             when 'ColdClass'
               { definitions: [1], ancestors: [], descendants: [] }
-            else
-              nil
             end
           end
 
           result = introspector.call
           hotspots = result[:complexity_hotspots]
-          names = hotspots.map { |h| h[:name] }
+          names = hotspots.pluck(:name)
           expect(names).to include('HotClass')
           expect(names).not_to include('ColdClass')
           expect(names).not_to include('NilDetailClass')

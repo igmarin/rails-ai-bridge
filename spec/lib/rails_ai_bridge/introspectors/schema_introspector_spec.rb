@@ -151,9 +151,7 @@ RSpec.describe RailsAiBridge::Introspectors::SchemaIntrospector do
 
     context 'when static schema parse raises' do
       before do
-        allow(introspector).to receive(:active_record_connected?).and_return(false)
-        allow(introspector).to receive(:schema_file_path).and_return('/nonexistent/schema.rb')
-        allow(introspector).to receive(:structure_sql_path).and_return('/nonexistent/structure.sql')
+        allow(introspector).to receive_messages(active_record_connected?: false, schema_file_path: '/nonexistent/schema.rb', structure_sql_path: '/nonexistent/structure.sql')
         allow(File).to receive(:exist?).and_call_original
         allow(File).to receive(:exist?).with('/nonexistent/schema.rb').and_return(true)
         allow(File).to receive(:read).and_call_original
@@ -196,7 +194,7 @@ RSpec.describe RailsAiBridge::Introspectors::SchemaIntrospector do
         File.write('/tmp/test_schema.rb', 'no version here')
         expect(introspector.send(:current_schema_version)).to be_nil
       ensure
-        File.delete('/tmp/test_schema.rb') if File.exist?('/tmp/test_schema.rb')
+        FileUtils.rm_f('/tmp/test_schema.rb')
       end
     end
 

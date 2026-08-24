@@ -193,6 +193,15 @@ RSpec.describe RailsAiBridge::Introspectors::ActiveStorageIntrospector do
     end
 
     context 'with directory in direct_upload scan' do
+      let(:views_dir) { Rails.root.join('app/views') }
+      let(:subdir) { views_dir.join('subdir') }
+
+      before do
+        FileUtils.mkdir_p(subdir)
+      end
+
+      after { FileUtils.rm_rf(subdir) }
+
       it 'skips directories in direct upload scan' do
         expect(result[:direct_upload]).to be false
       end

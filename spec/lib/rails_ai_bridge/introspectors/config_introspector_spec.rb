@@ -128,13 +128,13 @@ RSpec.describe RailsAiBridge::Introspectors::ConfigIntrospector do
     context 'with cache_store as an Array' do
       let(:custom_config) do
         double('ApplicationConfig', cache_store: [:redis_cache, 'redis://localhost'],
-               session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC')
+                                    session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC')
       end
       let(:custom_app) do
         double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
-               paths: { 'app/models' => [] }, config: custom_config,
-               middleware: ActionDispatch::MiddlewareStack.new,
-               credentials: double('Credentials', config: {}))
+                                     paths: { 'app/models' => [] }, config: custom_config,
+                                     middleware: ActionDispatch::MiddlewareStack.new,
+                                     credentials: double('Credentials', config: {}))
       end
 
       after { FileUtils.rm_rf(custom_app.root) }
@@ -148,13 +148,13 @@ RSpec.describe RailsAiBridge::Introspectors::ConfigIntrospector do
       let(:store_obj) { Object.new }
       let(:custom_config) do
         double('ApplicationConfig', cache_store: store_obj,
-               session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC')
+                                    session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC')
       end
       let(:custom_app) do
         double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
-               paths: { 'app/models' => [] }, config: custom_config,
-               middleware: ActionDispatch::MiddlewareStack.new,
-               credentials: double('Credentials', config: {}))
+                                     paths: { 'app/models' => [] }, config: custom_config,
+                                     middleware: ActionDispatch::MiddlewareStack.new,
+                                     credentials: double('Credentials', config: {}))
       end
 
       after { FileUtils.rm_rf(custom_app.root) }
@@ -167,13 +167,13 @@ RSpec.describe RailsAiBridge::Introspectors::ConfigIntrospector do
     context 'when cache_store raises an error' do
       let(:custom_config) do
         double('ApplicationConfig', time_zone: 'UTC',
-               session_store: ActionDispatch::Session::CookieStore)
+                                    session_store: ActionDispatch::Session::CookieStore)
       end
       let(:custom_app) do
         double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
-               paths: { 'app/models' => [] }, config: custom_config,
-               middleware: ActionDispatch::MiddlewareStack.new,
-               credentials: double('Credentials', config: {}))
+                                     paths: { 'app/models' => [] }, config: custom_config,
+                                     middleware: ActionDispatch::MiddlewareStack.new,
+                                     credentials: double('Credentials', config: {}))
       end
 
       before do
@@ -192,13 +192,13 @@ RSpec.describe RailsAiBridge::Introspectors::ConfigIntrospector do
     context 'when session_store is nil' do
       let(:custom_config) do
         double('ApplicationConfig', cache_store: :memory_store,
-               session_store: nil, time_zone: 'UTC')
+                                    session_store: nil, time_zone: 'UTC')
       end
       let(:custom_app) do
         double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
-               paths: { 'app/models' => [] }, config: custom_config,
-               middleware: ActionDispatch::MiddlewareStack.new,
-               credentials: double('Credentials', config: {}))
+                                     paths: { 'app/models' => [] }, config: custom_config,
+                                     middleware: ActionDispatch::MiddlewareStack.new,
+                                     credentials: double('Credentials', config: {}))
       end
 
       after { FileUtils.rm_rf(custom_app.root) }
@@ -214,9 +214,9 @@ RSpec.describe RailsAiBridge::Introspectors::ConfigIntrospector do
       end
       let(:custom_app) do
         double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
-               paths: { 'app/models' => [] }, config: custom_config,
-               middleware: ActionDispatch::MiddlewareStack.new,
-               credentials: double('Credentials', config: {}))
+                                     paths: { 'app/models' => [] }, config: custom_config,
+                                     middleware: ActionDispatch::MiddlewareStack.new,
+                                     credentials: double('Credentials', config: {}))
       end
 
       before do
@@ -235,13 +235,13 @@ RSpec.describe RailsAiBridge::Introspectors::ConfigIntrospector do
     context 'when app does not respond to active_job' do
       let(:custom_config) do
         double('ApplicationConfig', cache_store: :memory_store,
-               session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC')
+                                    session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC')
       end
       let(:custom_app) do
         double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
-               paths: { 'app/models' => [] }, config: custom_config,
-               middleware: ActionDispatch::MiddlewareStack.new,
-               credentials: double('Credentials', config: {}))
+                                     paths: { 'app/models' => [] }, config: custom_config,
+                                     middleware: ActionDispatch::MiddlewareStack.new,
+                                     credentials: double('Credentials', config: {}))
       end
 
       before do
@@ -260,14 +260,14 @@ RSpec.describe RailsAiBridge::Introspectors::ConfigIntrospector do
       let(:active_job_config) { double('ActiveJobConfig', queue_adapter: :sidekiq) }
       let(:custom_config) do
         double('ApplicationConfig', cache_store: :memory_store,
-               session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC',
-               active_job: active_job_config)
+                                    session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC',
+                                    active_job: active_job_config)
       end
       let(:custom_app) do
         double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
-               paths: { 'app/models' => [] }, config: custom_config,
-               middleware: ActionDispatch::MiddlewareStack.new,
-               credentials: double('Credentials', config: {}))
+                                     paths: { 'app/models' => [] }, config: custom_config,
+                                     middleware: ActionDispatch::MiddlewareStack.new,
+                                     credentials: double('Credentials', config: {}))
       end
 
       before do
@@ -286,14 +286,14 @@ RSpec.describe RailsAiBridge::Introspectors::ConfigIntrospector do
       let(:active_job_config) { double('ActiveJobConfig', queue_adapter: :sidekiq) }
       let(:custom_config) do
         double('ApplicationConfig', cache_store: :memory_store,
-               session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC',
-               active_job: active_job_config)
+                                    session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC',
+                                    active_job: active_job_config)
       end
       let(:custom_app) do
         double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
-               paths: { 'app/models' => [] }, config: custom_config,
-               middleware: ActionDispatch::MiddlewareStack.new,
-               credentials: double('Credentials', config: {}))
+                                     paths: { 'app/models' => [] }, config: custom_config,
+                                     middleware: ActionDispatch::MiddlewareStack.new,
+                                     credentials: double('Credentials', config: {}))
       end
 
       before do
@@ -313,14 +313,14 @@ RSpec.describe RailsAiBridge::Introspectors::ConfigIntrospector do
       let(:cable_config) { double('CableConfig', adapter: :redis) }
       let(:custom_config) do
         double('ApplicationConfig', cache_store: :memory_store,
-               session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC',
-               active_job: active_job_config, action_cable: cable_config)
+                                    session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC',
+                                    active_job: active_job_config, action_cable: cable_config)
       end
       let(:custom_app) do
         double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
-               paths: { 'app/models' => [] }, config: custom_config,
-               middleware: ActionDispatch::MiddlewareStack.new,
-               credentials: double('Credentials', config: {}))
+                                     paths: { 'app/models' => [] }, config: custom_config,
+                                     middleware: ActionDispatch::MiddlewareStack.new,
+                                     credentials: double('Credentials', config: {}))
       end
 
       before do
@@ -338,13 +338,13 @@ RSpec.describe RailsAiBridge::Introspectors::ConfigIntrospector do
     context 'when middleware raises an error' do
       let(:custom_config) do
         double('ApplicationConfig', cache_store: :memory_store,
-               session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC')
+                                    session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC')
       end
       let(:custom_app) do
         double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
-               paths: { 'app/models' => [] }, config: custom_config,
-               middleware: ActionDispatch::MiddlewareStack.new,
-               credentials: double('Credentials', config: {}))
+                                     paths: { 'app/models' => [] }, config: custom_config,
+                                     middleware: ActionDispatch::MiddlewareStack.new,
+                                     credentials: double('Credentials', config: {}))
       end
 
       before do
@@ -364,13 +364,13 @@ RSpec.describe RailsAiBridge::Introspectors::ConfigIntrospector do
       let(:app_root) { Pathname.new(Dir.mktmpdir('no-init')) }
       let(:custom_config) do
         double('ApplicationConfig', cache_store: :memory_store,
-               session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC')
+                                    session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC')
       end
       let(:custom_app) do
         double('Rails::Application', root: app_root,
-               paths: { 'app/models' => [] }, config: custom_config,
-               middleware: ActionDispatch::MiddlewareStack.new,
-               credentials: double('Credentials', config: {}))
+                                     paths: { 'app/models' => [] }, config: custom_config,
+                                     middleware: ActionDispatch::MiddlewareStack.new,
+                                     credentials: double('Credentials', config: {}))
       end
 
       before do
@@ -388,13 +388,13 @@ RSpec.describe RailsAiBridge::Introspectors::ConfigIntrospector do
     context 'when credentials do not respond to config' do
       let(:custom_config) do
         double('ApplicationConfig', cache_store: :memory_store,
-               session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC')
+                                    session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC')
       end
       let(:custom_app) do
         double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
-               paths: { 'app/models' => [] }, config: custom_config,
-               middleware: ActionDispatch::MiddlewareStack.new,
-               credentials: double('Credentials'))
+                                     paths: { 'app/models' => [] }, config: custom_config,
+                                     middleware: ActionDispatch::MiddlewareStack.new,
+                                     credentials: double('Credentials'))
       end
 
       before do
@@ -413,13 +413,13 @@ RSpec.describe RailsAiBridge::Introspectors::ConfigIntrospector do
     context 'when credentials raise an error' do
       let(:custom_config) do
         double('ApplicationConfig', cache_store: :memory_store,
-               session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC')
+                                    session_store: ActionDispatch::Session::CookieStore, time_zone: 'UTC')
       end
       let(:custom_app) do
         double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
-               paths: { 'app/models' => [] }, config: custom_config,
-               middleware: ActionDispatch::MiddlewareStack.new,
-               credentials: double('Credentials'))
+                                     paths: { 'app/models' => [] }, config: custom_config,
+                                     middleware: ActionDispatch::MiddlewareStack.new,
+                                     credentials: double('Credentials'))
       end
 
       before do
@@ -440,13 +440,13 @@ RSpec.describe RailsAiBridge::Introspectors::ConfigIntrospector do
       let(:app_root) { Pathname.new(Dir.mktmpdir) }
       let(:custom_config) do
         double('ApplicationConfig', cache_store: :memory_store,
-               session_store: ActionDispatch::Session::CookieStore)
+                                    session_store: ActionDispatch::Session::CookieStore)
       end
       let(:custom_app) do
         double('Rails::Application', root: app_root,
-               paths: { 'app/models' => [] }, config: custom_config,
-               middleware: ActionDispatch::MiddlewareStack.new,
-               credentials: double('Credentials', config: {}))
+                                     paths: { 'app/models' => [] }, config: custom_config,
+                                     middleware: ActionDispatch::MiddlewareStack.new,
+                                     credentials: double('Credentials', config: {}))
       end
 
       before do

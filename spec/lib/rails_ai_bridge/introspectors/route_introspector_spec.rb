@@ -105,13 +105,13 @@ RSpec.describe RailsAiBridge::Introspectors::RouteIntrospector do
                               defaults: { controller: 'tests', action: 'show' },
                               constraints: { id: /\d+/ })
       allow(route).to receive(:respond_to?).with(:required_parts).and_return(true)
-      allow(route).to receive(:required_parts).and_return([:id])
       allow(route).to receive(:respond_to?).with(:internal?).and_return(false)
       path = double('Path', spec: '/tests/:id(.:format)')
-      allow(route).to receive(:path).and_return(path)
+      allow(route).to receive_messages(required_parts: [:id], path: path)
 
       result = parser.new(route).to_h
-      expect(result[:constraints]).to eq('{id: /\d+/}')
+      # Accept both Ruby 3.4+ "{id: /\d+/}" and older "{:id=>/\d+/}" inspect formats
+      expect(result[:constraints]).to match(%r{\{(?::id=>|id: )/\\d\+/\}})
     end
 
     it 'returns nil constraints when empty' do

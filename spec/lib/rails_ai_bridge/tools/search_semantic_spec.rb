@@ -95,7 +95,7 @@ RSpec.describe RailsAiBridge::Tools::SearchSemantic do
       end
 
       it 'normalizes negative max_results to default' do
-        allow(mock_adapter).to receive(:search)
+        expect(mock_adapter).to receive(:search)
           .with('User', max_results: 20)
           .and_return([])
 
@@ -103,7 +103,7 @@ RSpec.describe RailsAiBridge::Tools::SearchSemantic do
       end
 
       it 'normalizes zero max_results to default' do
-        allow(mock_adapter).to receive(:search)
+        expect(mock_adapter).to receive(:search)
           .with('User', max_results: 20)
           .and_return([])
 

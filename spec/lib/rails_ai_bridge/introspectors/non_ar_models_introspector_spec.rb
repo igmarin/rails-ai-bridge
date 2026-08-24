@@ -235,8 +235,8 @@ RSpec.describe RailsAiBridge::Introspectors::NonArModelsIntrospector do
       allow(introspector).to receive(:safe_to_process?).and_raise(StandardError, 'processing error')
 
       entries = {}
-      context = RailsAiBridge::Introspectors::NonArModelsIntrospector
-        .const_get(:CollectionContext).new(models_root: '/fake/root', rows: entries)
+      context = described_class
+                .const_get(:CollectionContext).new(models_root: '/fake/root', rows: entries)
 
       expect { introspector.send(:collect_entry, bad_klass, context) }.not_to raise_error
     end

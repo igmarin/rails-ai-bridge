@@ -46,8 +46,8 @@ RSpec.describe RailsAiBridge::Introspectors::ConventionDetector do
     let(:app_root) { Pathname.new(Dir.mktmpdir('conventions')) }
     let(:custom_app) do
       double('Rails::Application', root: app_root,
-             config: double('Config', api_only: true),
-             paths: {})
+                                   config: double('Config', api_only: true),
+                                   paths: {})
     end
     let(:introspector) { described_class.new(custom_app) }
     let(:result) { introspector.call }

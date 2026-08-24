@@ -182,11 +182,18 @@ RSpec.describe RailsAiBridge::Introspector do
     end
 
     it 'includes additional_introspectors keys in allowed set' do
-      custom = Class.new { def initialize(_app); end; def call = {}; }
+      custom = Class.new do
+        def initialize(_app); end
+
+        def call = {}
+      end
+      saved = RailsAiBridge.configuration.additional_introspectors.dup
       RailsAiBridge.configuration.additional_introspectors[:my_custom] = custom
 
       result = introspector.selected_introspectors([:my_custom])
       expect(result).to include(:my_custom)
+    ensure
+      RailsAiBridge.configuration.additional_introspectors.replace(saved)
     end
   end
 
@@ -197,10 +204,17 @@ RSpec.describe RailsAiBridge::Introspector do
     end
 
     it 'resolves additional_introspectors before builtins' do
-      custom = Class.new { def initialize(_app); end; def call = {}; }
+      custom = Class.new do
+        def initialize(_app); end
+
+        def call = {}
+      end
+      saved = RailsAiBridge.configuration.additional_introspectors.dup
       RailsAiBridge.configuration.additional_introspectors[:custom] = custom
 
       expect(introspector.resolve_introspector(:custom)).to be_a(custom)
+    ensure
+      RailsAiBridge.configuration.additional_introspectors.replace(saved)
     end
   end
 

@@ -200,7 +200,7 @@ RSpec.describe RailsAiBridge::Introspectors::JobIntrospector do
       end
 
       it 'excludes framework jobs' do
-        names = result[:jobs].map { |j| j[:name] }
+        names = result[:jobs].pluck(:name)
         expect(names).to eq(['ProcessOrderJob'])
       end
     end
@@ -220,7 +220,7 @@ RSpec.describe RailsAiBridge::Introspectors::JobIntrospector do
       end
 
       it 'excludes mailers with no actions' do
-        names = result[:mailers].map { |m| m[:name] }
+        names = result[:mailers].pluck(:name)
         expect(names).not_to include('EmptyMailer')
       end
     end
@@ -243,7 +243,7 @@ RSpec.describe RailsAiBridge::Introspectors::JobIntrospector do
       end
 
       it 'excludes ApplicationCable::Channel' do
-        names = result[:channels].map { |c| c[:name] }
+        names = result[:channels].pluck(:name)
         expect(names).to eq(['ChatChannel'])
       end
     end

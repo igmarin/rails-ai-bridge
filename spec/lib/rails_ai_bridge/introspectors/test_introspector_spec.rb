@@ -320,7 +320,7 @@ RSpec.describe RailsAiBridge::Introspectors::TestIntrospector do
         FileUtils.mkdir_p(circleci_dir)
         File.write(File.join(circleci_dir, 'config.yml'), 'version: 2')
         File.write(gitlab_file, "stages:\n  - test")
-        File.write(travis_file, "language: ruby")
+        File.write(travis_file, 'language: ruby')
       end
 
       after do

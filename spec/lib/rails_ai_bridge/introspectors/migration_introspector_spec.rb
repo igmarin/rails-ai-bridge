@@ -121,7 +121,7 @@ RSpec.describe RailsAiBridge::Introspectors::MigrationIntrospector do
 
     it 'detects pending migrations after schema version' do
       pending = result[:pending]
-      pending_versions = pending.map { |m| m[:version] }
+      pending_versions = pending.pluck(:version)
       expect(pending_versions).to include('20240320090000')
       expect(pending_versions).not_to include('20240101120000')
     end
@@ -136,6 +136,7 @@ RSpec.describe RailsAiBridge::Introspectors::MigrationIntrospector do
       original_schema
       FileUtils.rm_f(schema_path)
     end
+
     after do
       if original_schema
         File.write(schema_path, original_schema)

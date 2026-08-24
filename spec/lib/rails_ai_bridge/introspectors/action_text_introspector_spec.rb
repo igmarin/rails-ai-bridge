@@ -76,7 +76,7 @@ RSpec.describe RailsAiBridge::Introspectors::ActionTextIntrospector do
     context 'when extract_rich_text_fields raises an error' do
       let(:custom_app) do
         double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
-               paths: { 'app/models' => [] })
+                                     paths: { 'app/models' => [] })
       end
 
       before do
