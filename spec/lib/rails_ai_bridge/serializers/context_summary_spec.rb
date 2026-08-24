@@ -107,6 +107,31 @@ RSpec.describe RailsAiBridge::Serializers::ContextSummary do
 
       expect(described_class.model_relevance_score(data, name: 'Order', context: context)).to be >= 9
     end
+
+    it 'returns 0 when data is not a Hash' do
+      expect(described_class.model_relevance_score(nil, name: 'User', context: {})).to eq(0)
+    end
+
+    it 'handles nil name with route density lookup' do
+      data = { table_name: 'posts', associations: [], validations: [] }
+      context = { routes: { by_controller: { 'posts' => [{}] } } }
+      # nil name skips name-based bonuses; table_name match + 1 route = base score
+      expect(described_class.model_relevance_score(data, name: nil, context: context)).to eq(21)
+    end
+
+    it 'adds bonus score for hot and large database size buckets' do
+      hot_context = { database_stats: { tables: [{ table: 'users', size_bucket: 'hot' }] } }
+      large_context = { database_stats: { tables: [{ table: 'posts', size_bucket: 'large' }] } }
+      hot_data = { table_name: 'users', associations: [], validations: [] }
+      large_data = { table_name: 'posts', associations: [], validations: [] }
+
+      hot_score = described_class.model_relevance_score(hot_data, name: 'User', context: hot_context)
+      large_score = described_class.model_relevance_score(large_data, name: 'Post', context: large_context)
+      base_score = described_class.model_relevance_score({ table_name: 'x', associations: [], validations: [] },
+                                                         name: 'X', context: {})
+      expect(hot_score - base_score).to eq(12)
+      expect(large_score - base_score).to eq(8)
+    end
   end
 
   describe '.models_by_relevance' do
@@ -118,6 +143,22 @@ RSpec.describe RailsAiBridge::Serializers::ContextSummary do
       }
 
       expect(described_class.models_by_relevance(models).map(&:first)).to eq(%w[Account Bee Zebra])
+    end
+
+    it 'returns empty array when models is not a Hash' do
+      expect(described_class.models_by_relevance(nil)).to eq([])
+      expect(described_class.models_by_relevance([])).to eq([])
+    end
+  end
+
+  describe '.route_target_controller_count' do
+    it 'returns nil when routes has an error' do
+      context = { routes: { error: 'DB unavailable' } }
+      expect(described_class.route_target_controller_count(context)).to be_nil
+    end
+
+    it 'returns nil when routes is not a Hash' do
+      expect(described_class.route_target_controller_count({})).to be_nil
     end
   end
 
@@ -285,6 +326,11 @@ RSpec.describe RailsAiBridge::Serializers::ContextSummary do
 
     it 'returns false when recent is empty' do
       expect(described_class.recently_migrated?('users', { recent: [] })).to be false
+    end
+
+    it 'returns false when version string is shorter than 8 characters' do
+      migrations = { recent: [{ version: '12345', filename: '12345_create_users.rb' }] }
+      expect(described_class.recently_migrated?('users', migrations)).to be false
     end
   end
 
