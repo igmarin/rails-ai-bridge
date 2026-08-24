@@ -137,4 +137,16 @@ RSpec.describe RailsAiBridge::Doctor::Checkers::RegistryChecker do
       end
     end
   end
+
+  describe '#resolver_reason' do
+    it 'returns an empty string when resolver is not nil' do
+      resolver = instance_double(RailsAiBridge::Registry::Resolver)
+
+      expect(checker.send(:resolver_reason, resolver)).to eq('')
+    end
+
+    it 'returns a reason string when resolver is nil' do
+      expect(checker.send(:resolver_reason, nil)).to include('manifest missing')
+    end
+  end
 end

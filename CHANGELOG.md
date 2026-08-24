@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **RuboCop Performance plugin enabled** — `rubocop-performance` (~> 1.27) added as an explicit development dependency and loaded as a RuboCop plugin. 77 offenses autocorrected (TimesMap, StringInclude, MapCompact, DeleteSuffix/DeletePrefix, StringReplacement, RedundantBlockCall). 4 CollectionLiteralInLoop offenses fixed by extracting immutable literals to constants. `rubocop-rails` constraint tightened to `~> 2.37`.
 - **Ruby 4.0 canary in CI** — CI matrix includes a non-blocking Ruby 4.0 / Rails 8.1 canary job to catch compatibility issues early without blocking the pipeline.
+### Fixed
+
+- **Request-scoped resolver memoization** — `Registry#with_request_resolver` and `request_active?` now use a frozen sentinel object instead of relying on `Thread.current[REQUEST_RESOLVER_KEY]` being `nil`. Previously `request_resolver?` checked `!Thread.current[REQUEST_RESOLVER_KEY].nil?`, which returned `false` for an active but unbuilt resolver. A sentinel distinguishes "active, not built" from "not active."
+
+### Added
+
+- **Branch coverage improvements** — 20 files raised to 90%+ branch coverage with focused RSpec tests covering previously uncovered branches.
 
 ## [4.3.0] - 2026-08-16
 

@@ -206,6 +206,24 @@ RSpec.describe RailsAiBridge::Mcp::Authenticator do
     end
   end
 
+  describe '.strategy_name' do
+    it 'returns the last segment of the class name' do
+      strategy = RailsAiBridge::Mcp::Auth::Strategies::BearerToken.new(static_token_provider: -> { 'x' })
+
+      expect(described_class.strategy_name(strategy)).to eq('BearerToken')
+    end
+
+    it 'returns "unknown" for an anonymous strategy class' do
+      anonymous = Class.new(RailsAiBridge::Mcp::Auth::BaseStrategy) do
+        def authenticate(_request)
+          RailsAiBridge::Mcp::AuthResult.ok(nil)
+        end
+      end
+
+      expect(described_class.strategy_name(anonymous.new)).to eq('unknown')
+    end
+  end
+
   describe 'resolve_strategy visibility' do
     it 'is private and not callable from outside' do
       expect(described_class.private_methods).to include(:resolve_strategy)

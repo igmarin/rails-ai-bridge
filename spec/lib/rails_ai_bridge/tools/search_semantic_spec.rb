@@ -95,11 +95,80 @@ RSpec.describe RailsAiBridge::Tools::SearchSemantic do
       end
 
       it 'normalizes negative max_results to default' do
-        allow(mock_adapter).to receive(:search)
+        expect(mock_adapter).to receive(:search)
           .with('User', max_results: 20)
           .and_return([])
 
         described_class.call(query: 'User', max_results: -5)
+      end
+
+      it 'normalizes zero max_results to default' do
+        expect(mock_adapter).to receive(:search)
+          .with('User', max_results: 20)
+          .and_return([])
+
+        described_class.call(query: 'User', max_results: 0)
+      end
+
+      it 'includes path in no results message' do
+        allow(mock_adapter).to receive(:file_declarations)
+          .with('app/models')
+          .and_return([])
+
+        response = described_class.call(query: 'User', path: 'app/models')
+        text = response.content.first[:text]
+        expect(text).to include("No declarations found matching 'User' in app/models")
+      end
+
+      it 'formats results with owner, ancestors, descendants, and definitions' do
+        allow(mock_adapter).to receive(:search)
+          .with('User', max_results: 20)
+          .and_return([
+                        {
+                          name: 'User',
+                          type: 'class',
+                          location: 'app/models/user.rb',
+                          owner: 'ApplicationRecord',
+                          ancestors: %w[ActiveRecord::Base Comparable],
+                          descendants: %w[AdminUser GuestUser],
+                          definitions: [
+                            { name: 'save', location: 'app/models/user.rb:10' },
+                            { name: 'validate' }
+                          ]
+                        }
+                      ])
+
+        response = described_class.call(query: 'User')
+        text = response.content.first[:text]
+        expect(text).to include('**Owner:** `ApplicationRecord`')
+        expect(text).to include('**Ancestors:** ActiveRecord::Base, Comparable')
+        expect(text).to include('**Descendants:** AdminUser, GuestUser')
+        expect(text).to include('**Definitions:**')
+        expect(text).to include('`save` (`app/models/user.rb:10`)')
+        expect(text).to include('`validate`')
+      end
+
+      it 'handles results with nil type and nil name' do
+        allow(mock_adapter).to receive(:search)
+          .with('Unknown', max_results: 20)
+          .and_return([{ name: nil, type: nil, location: nil }])
+
+        response = described_class.call(query: 'Unknown')
+        text = response.content.first[:text]
+        # name falls back to 'unknown'; type badge is omitted; location line is omitted
+        expect(text).to match(/^### unknown\s*$/)     # name+type fallback: header is '### unknown' with no [type] badge
+        expect(text).not_to include('[null]')         # no literal null badge leaks through
+        expect(text).not_to include('**Location:**')  # location fallback: line omitted
+      end
+
+      it 'includes path in results header' do
+        allow(mock_adapter).to receive(:file_declarations)
+          .with('app/models')
+          .and_return([{ name: 'User', type: 'class', location: 'app/models/user.rb' }])
+
+        response = described_class.call(query: 'user', path: 'app/models')
+        text = response.content.first[:text]
+        expect(text).to include("Semantic Search Results for 'user' in app/models")
       end
     end
   end

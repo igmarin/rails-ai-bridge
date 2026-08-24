@@ -143,6 +143,95 @@ RSpec.describe RailsAiBridge::Config::Registry do
       expect(config.local_registry_paths).to eq([])
     end
   end
+
+  describe '#git_pull_ttl=' do
+    it 'sets a valid non-negative integer' do
+      config = described_class.new
+      config.git_pull_ttl = 3600
+
+      expect(config.git_pull_ttl).to eq(3600)
+    end
+
+    it 'allows zero (pull on every rebuild)' do
+      config = described_class.new
+      config.git_pull_ttl = 0
+
+      expect(config.git_pull_ttl).to eq(0)
+    end
+
+    it 'raises ArgumentError for a negative value' do
+      config = described_class.new
+
+      expect { config.git_pull_ttl = -1 }.to raise_error(ArgumentError, /git_pull_ttl must be >= 0/)
+    end
+
+    it 'raises ArgumentError for a non-integer value' do
+      config = described_class.new
+
+      expect { config.git_pull_ttl = 'abc' }.to raise_error(ArgumentError, /non-negative integer/)
+    end
+
+    it 'raises ArgumentError for nil' do
+      config = described_class.new
+
+      expect { config.git_pull_ttl = nil }.to raise_error(ArgumentError, /non-negative integer/)
+    end
+  end
+
+  describe '#git_timeout=' do
+    it 'sets a valid positive integer' do
+      config = described_class.new
+      config.git_timeout = 60
+
+      expect(config.git_timeout).to eq(60)
+    end
+
+    it 'raises ArgumentError for zero' do
+      config = described_class.new
+
+      expect { config.git_timeout = 0 }.to raise_error(ArgumentError, /git_timeout must be >= 1/)
+    end
+
+    it 'raises ArgumentError for a negative value' do
+      config = described_class.new
+
+      expect { config.git_timeout = -5 }.to raise_error(ArgumentError, /git_timeout must be >= 1/)
+    end
+
+    it 'raises ArgumentError for a non-integer value' do
+      config = described_class.new
+
+      expect { config.git_timeout = 'fast' }.to raise_error(ArgumentError, /positive integer/)
+    end
+  end
+
+  describe '#resolver_ttl=' do
+    it 'sets a valid non-negative integer' do
+      config = described_class.new
+      config.resolver_ttl = 900
+
+      expect(config.resolver_ttl).to eq(900)
+    end
+
+    it 'allows zero (disables caching)' do
+      config = described_class.new
+      config.resolver_ttl = 0
+
+      expect(config.resolver_ttl).to eq(0)
+    end
+
+    it 'raises ArgumentError for a negative value' do
+      config = described_class.new
+
+      expect { config.resolver_ttl = -1 }.to raise_error(ArgumentError, /resolver_ttl must be >= 0/)
+    end
+
+    it 'raises ArgumentError for a non-integer value' do
+      config = described_class.new
+
+      expect { config.resolver_ttl = Object.new }.to raise_error(ArgumentError, /non-negative integer/)
+    end
+  end
 end
 
 RSpec.describe RailsAiBridge::Configuration do

@@ -129,5 +129,123 @@ RSpec.describe RailsAiBridge::Introspectors::JobIntrospector do
         expect(result).to eq({ jobs: [], mailers: [], channels: [] })
       end
     end
+
+    context 'when ActiveJob is not defined' do
+      before { hide_const('ActiveJob::Base') }
+
+      it 'returns empty jobs array' do
+        expect(result[:jobs]).to eq([])
+      end
+    end
+
+    context 'when ActionMailer is not defined' do
+      before { hide_const('ActionMailer::Base') }
+
+      it 'returns empty mailers array' do
+        expect(result[:mailers]).to eq([])
+      end
+    end
+
+    context 'when ActionCable is not defined' do
+      before { hide_const('ActionCable::Channel::Base') }
+
+      it 'returns empty channels array' do
+        expect(result[:channels]).to eq([])
+      end
+    end
+
+    context 'with framework jobs filtered out' do
+      before do
+        framework_job = Class.new(ActiveJob::Base) do
+          def self.name
+            'ActionMailer::MailDeliveryJob'
+          end
+
+          def self.queue_name
+            'mailers'
+          end
+        end
+        turbo_job = Class.new(ActiveJob::Base) do
+          def self.name
+            'Turbo::Streams::BroadcastStreamJob'
+          end
+
+          def self.queue_name
+            'default'
+          end
+        end
+        sentry_job = Class.new(ActiveJob::Base) do
+          def self.name
+            'Sentry::SendEventJob'
+          end
+
+          def self.queue_name
+            'default'
+          end
+        end
+        app_job = Class.new(ActiveJob::Base) do
+          def self.name
+            'ProcessOrderJob'
+          end
+
+          def self.queue_name
+            'default'
+          end
+
+          def self.priority
+            nil
+          end
+        end
+        allow(ActiveJob::Base).to receive(:descendants).and_return([framework_job, turbo_job, sentry_job, app_job])
+      end
+
+      it 'excludes framework jobs' do
+        names = result[:jobs].pluck(:name)
+        expect(names).to eq(['ProcessOrderJob'])
+      end
+    end
+
+    context 'with mailer having no instance methods' do
+      before do
+        empty_mailer = Class.new(ActionMailer::Base) do
+          def self.name
+            'EmptyMailer'
+          end
+
+          def self.delivery_method
+            :test
+          end
+        end
+        allow(ActionMailer::Base).to receive(:descendants).and_return([empty_mailer])
+      end
+
+      it 'excludes mailers with no actions' do
+        names = result[:mailers].pluck(:name)
+        expect(names).not_to include('EmptyMailer')
+      end
+    end
+
+    context 'with ApplicationCable::Channel filtered out' do
+      before do
+        app_channel = Class.new(ActionCable::Channel::Base) do
+          def self.name
+            'ApplicationCable::Channel'
+          end
+        end
+        real_channel = Class.new(ActionCable::Channel::Base) do
+          def self.name
+            'ChatChannel'
+          end
+
+          def subscribed; end
+        end
+        allow(ActionCable::Channel::Base).to receive(:descendants).and_return([app_channel, real_channel])
+      end
+
+      it 'excludes ApplicationCable::Channel' do
+        names = result[:channels].pluck(:name)
+        expect(names).to eq(['ChatChannel'])
+      end
+    end
   end
 end

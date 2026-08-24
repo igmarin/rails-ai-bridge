@@ -87,4 +87,139 @@ RSpec.describe RailsAiBridge::Introspectors::MiddlewareIntrospector do
       expect(result[:error]).to be_nil
     end
   end
+
+  describe '#call with no app/middleware directory' do
+    let(:result) { introspector.call }
+
+    before { FileUtils.rm_rf(middleware_dir) }
+
+    it 'returns empty custom_middleware array' do
+      expect(result[:custom_middleware]).to eq([])
+    end
+  end
+
+  describe '#call with middleware patterns' do
+    let(:result) { introspector.call }
+
+    before do
+      File.write(File.join(middleware_dir, 'auth_middleware.rb'), <<~RUBY)
+        class AuthMiddleware
+          def initialize(app)
+            @app = app
+          end
+
+          def call(env)
+            token = env['HTTP_AUTHORIZATION']
+            @app.call(env)
+          end
+        end
+      RUBY
+
+      File.write(File.join(middleware_dir, 'cors_middleware.rb'), <<~RUBY)
+        class CorsMiddleware
+          def initialize(app)
+            @app = app
+          end
+
+          def call(env)
+            headers = { 'Access-Control-Allow-Origin' => '*' }
+            @app.call(env)
+          end
+        end
+      RUBY
+
+      File.write(File.join(middleware_dir, 'rate_limiter.rb'), <<~RUBY)
+        class RateLimiter
+          def initialize(app)
+            @app = app
+          end
+
+          def call(env)
+            @app.call(env)
+          end
+        end
+      RUBY
+
+      File.write(File.join(middleware_dir, 'cache_middleware.rb'), <<~RUBY)
+        class CacheMiddleware
+          def initialize(app)
+            @app = app
+          end
+
+          def call(env)
+            etag = env['HTTP_IF_NONE_MATCH']
+            @app.call(env)
+          end
+        end
+      RUBY
+
+      File.write(File.join(middleware_dir, 'error_handler.rb'), <<~RUBY)
+        class ErrorHandler
+          def initialize(app)
+            @app = app
+          end
+
+          def call(env)
+            @app.call(env)
+          rescue StandardError => e
+            [500, {}, ['error']]
+          end
+        end
+      RUBY
+    end
+
+    it 'detects authentication pattern' do
+      auth = result[:custom_middleware].find { |m| m[:class_name] == 'AuthMiddleware' }
+      expect(auth[:detected_patterns]).to include('authentication')
+    end
+
+    it 'detects cors pattern' do
+      cors = result[:custom_middleware].find { |m| m[:class_name] == 'CorsMiddleware' }
+      expect(cors[:detected_patterns]).to include('cors')
+    end
+
+    it 'detects rate_limiting pattern' do
+      rate = result[:custom_middleware].find { |m| m[:class_name] == 'RateLimiter' }
+      expect(rate[:detected_patterns]).to include('rate_limiting')
+    end
+
+    it 'detects caching pattern' do
+      cache = result[:custom_middleware].find { |m| m[:class_name] == 'CacheMiddleware' }
+      expect(cache[:detected_patterns]).to include('caching')
+    end
+
+    it 'detects error_handling pattern' do
+      err = result[:custom_middleware].find { |m| m[:class_name] == 'ErrorHandler' }
+      expect(err[:detected_patterns]).to include('error_handling')
+    end
+  end
+
+  describe '#call with unreadable middleware file' do
+    let(:bad_file) { File.join(middleware_dir, 'bad_middleware.rb') }
+    let(:result) { introspector.call }
+
+    before do
+      File.write(bad_file, 'class BadMiddleware; end')
+      allow(File).to receive(:read).and_call_original
+      allow(File).to receive(:read).with(bad_file).and_raise(StandardError, 'read error')
+    end
+
+    after { allow(File).to receive(:read).and_call_original }
+
+    it 'includes error entry for unreadable middleware' do
+      bad = result[:custom_middleware].find { |m| m[:file] == 'app/middleware/bad_middleware.rb' }
+      expect(bad[:error]).to eq('read error')
+    end
+  end
+
+  describe '#call when app.root raises' do
+    let(:bad_app) { double('Rails::Application') }
+    let(:result) { described_class.new(bad_app).call }
+
+    before { allow(bad_app).to receive(:root).and_raise(StandardError, 'root boom') }
+
+    it 'returns error hash' do
+      expect(result[:error]).to eq('root boom')
+    end
+  end
 end

@@ -37,6 +37,13 @@ RSpec.describe RailsAiBridge::CacheWarmer do
 
       expect { described_class.warm(app) }.not_to raise_error
     end
+
+    it 'does not raise when Rails.logger is nil' do
+      allow(RailsAiBridge::ContextProvider).to receive(:fetch).and_raise(StandardError, 'boom')
+      allow(Rails).to receive(:logger).and_return(nil)
+
+      expect { described_class.warm(app) }.not_to raise_error
+    end
   end
 
   describe '.warm_sections' do

@@ -128,4 +128,48 @@ RSpec.describe RailsAiBridge::Tools::SearchCode do
       described_class.remove_instance_variable(:@ripgrep_available) if described_class.instance_variable_defined?(:@ripgrep_available)
     end
   end
+
+  describe '.normalize_max_results' do
+    it 'defaults to 30 for zero' do
+      expect(described_class.normalize_max_results(0)).to eq(30)
+    end
+
+    it 'defaults to 30 for negative values' do
+      expect(described_class.normalize_max_results(-5)).to eq(30)
+    end
+
+    it 'defaults to 30 for nil' do
+      expect(described_class.normalize_max_results(nil)).to eq(30)
+    end
+
+    it 'preserves valid values within the cap' do
+      expect(described_class.normalize_max_results(50)).to eq(50)
+    end
+
+    it 'caps at MAX_RESULTS_CAP' do
+      expect(described_class.normalize_max_results(500)).to eq(described_class::MAX_RESULTS_CAP)
+    end
+  end
+
+  describe '.with_search_timeout' do
+    it 'yields immediately when timeout is 0' do
+      saved = RailsAiBridge.configuration.search_code_timeout_seconds
+      RailsAiBridge.configuration.search_code_timeout_seconds = 0
+      expect(Timeout).not_to receive(:timeout)
+      result = described_class.with_search_timeout { 'done' }
+      expect(result).to eq('done')
+    ensure
+      RailsAiBridge.configuration.search_code_timeout_seconds = saved
+    end
+
+    it 'yields immediately when timeout is negative' do
+      saved = RailsAiBridge.configuration.search_code_timeout_seconds
+      RailsAiBridge.configuration.search_code_timeout_seconds = -1
+      expect(Timeout).not_to receive(:timeout)
+      result = described_class.with_search_timeout { 'done' }
+      expect(result).to eq('done')
+    ensure
+      RailsAiBridge.configuration.search_code_timeout_seconds = saved
+    end
+  end
 end

@@ -163,4 +163,51 @@ RSpec.describe RailsAiBridge::Doctor::Checkers::BridgeFreshnessChecker do
       end
     end
   end
+
+  describe 'initialization with explicit formats' do
+    it 'accepts a specific format symbol instead of :all' do
+      checker = described_class.new(app, formats: :claude)
+
+      content = "<!-- Generated at: 2026-04-03T14:22:00Z | Source fingerprint: a1b2c3d4e5f6 -->\n# Title"
+      File.write(File.join(output_dir, 'CLAUDE.md'), content)
+
+      result = checker.call
+      expect(result.status).to eq(:pass)
+    end
+
+    it 'accepts an array of formats' do
+      checker = described_class.new(app, formats: %i[claude codex])
+
+      content = "<!-- Generated at: 2026-04-03T14:22:00Z | Source fingerprint: a1b2c3d4e5f6 -->\n# Title"
+      File.write(File.join(output_dir, 'CLAUDE.md'), content)
+      File.write(File.join(output_dir, 'AGENTS.md'), content)
+
+      result = checker.call
+      expect(result.status).to eq(:pass)
+    end
+  end
+
+  describe 'when source fingerprint computation fails' do
+    before do
+      allow(RailsAiBridge::Fingerprinter).to receive(:source_fingerprint).with(app).and_raise(StandardError, 'fingerprint error')
+    end
+
+    it 'returns a warn check from safe_source_fingerprint' do
+      result = checker.call
+      expect(result.status).to eq(:warn)
+      expect(result.message).to include('Failed to compute source fingerprint')
+    end
+  end
+
+  describe 'scan_files with an unknown format' do
+    it 'skips formats not in FORMAT_MAP without error' do
+      checker = described_class.new(app, formats: %i[claude unknown_format])
+
+      content = "<!-- Generated at: 2026-04-03T14:22:00Z | Source fingerprint: a1b2c3d4e5f6 -->\n# Title"
+      File.write(File.join(output_dir, 'CLAUDE.md'), content)
+
+      result = checker.call
+      expect(result.status).to eq(:pass)
+    end
+  end
 end

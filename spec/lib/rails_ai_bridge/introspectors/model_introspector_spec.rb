@@ -113,6 +113,72 @@ RSpec.describe RailsAiBridge::Introspectors::ModelIntrospector do
     end
   end
 
+  describe '#call with excluded_models configured' do
+    subject(:result) { described_class.new(Rails.application).call }
+
+    let!(:saved_excluded) { RailsAiBridge.configuration.excluded_models.dup }
+
+    before do
+      RailsAiBridge.configuration.excluded_models << 'User'
+    end
+
+    after { RailsAiBridge.configuration.excluded_models.replace(saved_excluded) }
+
+    it 'omits excluded models by name' do
+      expect(result).not_to have_key('User')
+      expect(result).to have_key('Post')
+    end
+  end
+
+  describe 'error handling in #call' do
+    it 'captures per-model errors as { error: } hashes' do
+      bad_model = double('BadModel', name: 'BadModel', table_name: 'bad_models',
+                                     abstract_class?: false, ancestors: [],
+                                     validators: [], defined_enums: {})
+      allow(bad_model).to receive(:respond_to?).with(:defined_enums).and_return(true)
+      allow(introspector).to receive(:discover_models).and_return([bad_model])
+      allow(introspector).to receive(:extract_model_details).and_raise(StandardError, 'model boom')
+
+      result = introspector.call
+      expect(result['BadModel']).to eq({ error: 'model boom' })
+    end
+  end
+
+  describe 'extract_scopes edge cases' do
+    it 'returns empty array when source path is nil' do
+      model = double('Model', name: 'Nonexistent')
+      expect(introspector.send(:extract_scopes, model)).to eq([])
+    end
+
+    it 'returns empty array on file read error' do
+      model = double('Model', name: 'User')
+      allow(introspector).to receive(:model_source_path).and_return('/fake/path.rb')
+      allow(File).to receive(:exist?).and_call_original
+      allow(File).to receive(:exist?).with('/fake/path.rb').and_return(true)
+      allow(File).to receive(:read).and_call_original
+      allow(File).to receive(:read).with('/fake/path.rb').and_raise(StandardError, 'read error')
+      expect(introspector.send(:extract_scopes, model)).to eq([])
+    end
+  end
+
+  describe 'extract_enums edge cases' do
+    it 'returns empty hash when model does not respond to defined_enums' do
+      model = double('Model')
+      allow(model).to receive(:respond_to?).with(:defined_enums).and_return(false)
+      expect(introspector.send(:extract_enums, model)).to eq({})
+    end
+  end
+
+  describe 'sanitize_options' do
+    it 'rejects Proc and Regexp values and stringifies the rest' do
+      options = { if: -> { true }, unless: /admin/, message: 'hello', allow_nil: true }
+      result = introspector.send(:sanitize_options, options)
+      expect(result).to eq({ message: 'hello', allow_nil: 'true' })
+      expect(result).not_to have_key(:if)
+      expect(result).not_to have_key(:unless)
+    end
+  end
+
   describe '#extract_source_macros (private)' do
     let(:fixture_model) { Rails.root.join('app/models/employee.rb').to_s }
     let(:fake_model) { double(name: 'Employee') }

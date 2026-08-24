@@ -266,5 +266,94 @@ RSpec.describe RailsAiBridge::Registry do
         expect(described_class.send(:request_resolver?)).to be(false)
       end
     end
+
+    it 'marks the request scope as active inside the block' do
+      described_class.with_request_resolver do
+        expect(described_class.send(:request_active?)).to be(true)
+      end
+    end
+
+    it 'stores the resolver in the request scope so later calls reuse it' do
+      Dir.mktmpdir do |dir|
+        manifest_path = File.join(dir, 'registry.json')
+        File.write(manifest_path, JSON.generate(version: '1.0.0', packs: {}, default_stack: []))
+        config.registry_manifest_path = manifest_path
+        config.skill_packs = nil
+        config.local_registry_paths = []
+        allow(RailsAiBridge::Registry::PackDetector).to receive(:detect).and_return([])
+
+        described_class.invalidate_resolver_cache!
+
+        described_class.with_request_resolver do
+          described_class.build_resolver(config)
+          expect(described_class.send(:request_resolver?)).to be(true)
+        end
+      end
+    end
+
+    it 'returns nil from request_resolver before the first build (sentinel active)' do
+      described_class.with_request_resolver do
+        expect(described_class.send(:request_resolver)).to be_nil
+        expect(described_class.send(:request_resolver?)).to be(false)
+      end
+    end
+  end
+
+  describe '.write_lockfile' do
+    let(:config) { RailsAiBridge::Config::Registry.new }
+
+    it 'raises ArgumentError when the manifest file does not exist' do
+      config.registry_manifest_path = '/nonexistent/path/registry.json'
+
+      expect { described_class.write_lockfile(config) }.to raise_error(ArgumentError, /Registry manifest not found/)
+    end
+
+    it 'writes the lockfile when the manifest exists' do
+      Dir.mktmpdir do |dir|
+        manifest_path = File.join(dir, 'registry.json')
+        lockfile_path = File.join(dir, 'registry.lock')
+        cache_dir = File.join(dir, 'cache')
+        File.write(manifest_path, JSON.generate(version: '1.0.0', packs: {}, default_stack: []))
+
+        config.registry_manifest_path = manifest_path
+        config.lockfile_path = lockfile_path
+        config.skill_cache_dir = cache_dir
+
+        allow(RailsAiBridge::Registry::Lockfile).to receive(:write).and_return(nil)
+
+        described_class.write_lockfile(config)
+
+        expect(RailsAiBridge::Registry::Lockfile).to have_received(:write).with(
+          lockfile_path,
+          anything,
+          anything
+        )
+      end
+    end
+  end
+
+  describe '.build_resolver_uncached when Rails.logger is nil' do
+    let(:config) { RailsAiBridge::Config::Registry.new }
+
+    it 'logs nothing and returns nil without raising' do
+      Dir.mktmpdir do |dir|
+        manifest_path = File.join(dir, 'registry.json')
+        File.write(manifest_path, JSON.generate(version: '1.0.0', packs: {}, default_stack: []))
+        config.registry_manifest_path = manifest_path
+        config.skill_packs = nil
+        config.local_registry_paths = []
+
+        allow(RailsAiBridge::Registry::PackDetector).to receive(:detect).and_return([])
+        allow(RailsAiBridge::Registry::PackResolver).to receive(:new).and_raise(
+          RailsAiBridge::Registry::SkillSourceResolver::ResolutionError, 'boom'
+        )
+        allow(Rails).to receive(:logger).and_return(nil)
+
+        described_class.invalidate_resolver_cache!
+
+        expect { described_class.build_resolver(config) }.not_to raise_error
+        expect(described_class.build_resolver(config)).to be_nil
+      end
+    end
   end
 end
