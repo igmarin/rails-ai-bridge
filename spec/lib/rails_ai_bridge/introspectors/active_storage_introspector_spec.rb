@@ -156,7 +156,7 @@ RSpec.describe RailsAiBridge::Introspectors::ActiveStorageIntrospector do
 
     context 'with unreadable storage.yml' do
       let(:storage_path) { Rails.root.join('config/storage.yml').to_s }
-      let(:original_content) { File.exist?(storage_path) ? File.read(storage_path) : nil }
+      let!(:original_content) { File.exist?(storage_path) ? File.read(storage_path) : nil }
 
       before do
         File.write(storage_path, 'invalid: yaml: content: [') unless File.exist?(storage_path)
@@ -179,13 +179,17 @@ RSpec.describe RailsAiBridge::Introspectors::ActiveStorageIntrospector do
     context 'with direct_upload in javascript file' do
       let(:js_dir) { Rails.root.join('app/javascript') }
       let(:js_file) { js_dir.join('upload.js') }
+      let!(:dir_existed) { File.directory?(js_dir) }
 
       before do
         FileUtils.mkdir_p(js_dir)
         File.write(js_file, 'const upload = new DirectUpload(file, url)')
       end
 
-      after { FileUtils.rm_rf(js_dir) }
+      after do
+        FileUtils.rm_f(js_file)
+        FileUtils.rmdir(js_dir) if !dir_existed && File.directory?(js_dir)
+      end
 
       it 'detects direct upload from javascript' do
         expect(result[:direct_upload]).to be true
