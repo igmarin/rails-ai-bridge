@@ -156,9 +156,9 @@ RSpec.describe RailsAiBridge::Tools::SearchSemantic do
         response = described_class.call(query: 'Unknown')
         text = response.content.first[:text]
         # name falls back to 'unknown'; type badge is omitted; location line is omitted
-        expect(text).to include('### unknown')
-        expect(text).not_to include('[null]')
-        expect(text).not_to include('**Location:**')
+        expect(text).to match(/^### unknown\s*$/)     # name+type fallback: header is '### unknown' with no [type] badge
+        expect(text).not_to include('[null]')         # no literal null badge leaks through
+        expect(text).not_to include('**Location:**')  # location fallback: line omitted
       end
 
       it 'includes path in results header' do
