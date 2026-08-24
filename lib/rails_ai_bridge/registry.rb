@@ -50,11 +50,11 @@ module RailsAiBridge
     REQUEST_RESOLVER_KEY = :rails_ai_bridge_request_resolver
 
     # Sentinel stored in the thread-local to mark the request scope as active
-    # before the first resolver is built. Using a non-nil sentinel (instead of
-    # +nil+) ensures +request_resolver?+ can distinguish "active, not built"
-    # from "not active." Previously +request_resolver?+ checked
-    # +!Thread.current[REQUEST_RESOLVER_KEY].nil?+, which returned +false+
-    # for an active but unbuilt resolver because the value was +nil+.
+    # before the first resolver is built. The non-nil sentinel allows
+    # +request_active?+ (which checks +Thread.current.key?+) to distinguish
+    # an active, not-yet-built scope from an inactive one. Both
+    # +request_resolver?+ and +request_resolver+ treat the sentinel the same
+    # as +nil+: no resolver has been built yet.
     #
     # @api private
     REQUEST_ACTIVE_SENTINEL = Object.new.freeze
