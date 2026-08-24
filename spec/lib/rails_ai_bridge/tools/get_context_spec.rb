@@ -203,6 +203,92 @@ RSpec.describe RailsAiBridge::Tools::GetContext do
       end
     end
 
+    context 'when explicit model overrides feature' do
+      let(:params) { { model: 'User', feature: 'posts' } }
+
+      it 'uses the explicit model, not the feature' do
+        expect(content).to include('User')
+        expect(content).to include('users')
+        expect(content).not_to include('## Context: Post')
+      end
+    end
+
+    context 'when explicit controller overrides feature' do
+      let(:params) { { controller: 'UsersController', feature: 'posts' } }
+
+      it 'uses the explicit controller, not the feature' do
+        expect(content).to include('UsersController')
+        expect(content).to include('/users')
+        expect(content).not_to include('## Context: Post')
+      end
+    end
+
+    context 'when both model and controller are explicit' do
+      let(:params) { { model: 'User', controller: 'PostsController' } }
+
+      it 'resolves both without inferring across them' do
+        expect(content).to include('User')
+        expect(content).to include('PostsController')
+        expect(content).to include('/posts')
+      end
+    end
+
+    context 'when feature name is ambiguous between models' do
+      let(:models_data) do
+        {
+          'User' => { table_name: 'users', associations: [], validations: [] },
+          'UserProfile' => { table_name: 'user_profiles', associations: [], validations: [] }
+        }
+      end
+      let(:schema_data) do
+        {
+          adapter: 'SQLite', source: :live,
+          tables: { 'users' => { columns: [{ name: 'id', type: 'integer' }] },
+                    'user_profiles' => { columns: [{ name: 'id', type: 'integer' }] } }
+        }
+      end
+      let(:params) { { feature: 'user' } }
+
+      it 'resolves the exact match, not the longer name' do
+        expect(content).to include('User')
+        expect(content).not_to include('UserProfile')
+      end
+    end
+
+    context 'with test path caps at standard detail' do
+      let(:params) { { model: 'User', detail: 'standard' } }
+
+      before do
+        FileUtils.mkdir_p(app_root.join('spec/models'))
+        File.write(app_root.join('spec/models/user_spec.rb'), '# user spec')
+        FileUtils.mkdir_p(app_root.join('spec/requests'))
+        15.times { |i| File.write(app_root.join("spec/requests/users_#{i}_spec.rb"), '# spec') }
+      end
+
+      it 'caps related tests at 10 for standard detail' do
+        expect(content).to include('## Related tests')
+        test_lines = content.lines.select { |l| l.start_with?('- `spec/') }
+        expect(test_lines.size).to be <= 10
+      end
+    end
+
+    context 'with test path caps at full detail' do
+      let(:params) { { model: 'User', detail: 'full' } }
+
+      before do
+        FileUtils.mkdir_p(app_root.join('spec/models'))
+        File.write(app_root.join('spec/models/user_spec.rb'), '# user spec')
+        FileUtils.mkdir_p(app_root.join('spec/requests'))
+        25.times { |i| File.write(app_root.join("spec/requests/users_#{i}_spec.rb"), '# spec') }
+      end
+
+      it 'caps related tests at 20 for full detail' do
+        expect(content).to include('## Related tests')
+        test_lines = content.lines.select { |l| l.start_with?('- `spec/') }
+        expect(test_lines.size).to be <= 20
+      end
+    end
+
     context 'when the name does not resolve' do
       let(:params) { { model: 'Missing' } }
 

@@ -53,14 +53,7 @@ module RailsAiBridge
       def self.call(model: nil, controller: nil, feature: nil, detail: 'summary', _server_context: nil)
         return text_response(MISSING_INPUT_MESSAGE) if blank_name?(model) && blank_name?(controller) && blank_name?(feature)
 
-        snapshots = {
-          models: section_if_enabled(:models),
-          schema: section_if_enabled(:schema),
-          controllers: section_if_enabled(:controllers),
-          routes: section_if_enabled(:routes),
-          tests: section_if_enabled(:tests)
-        }
-
+        snapshots = build_snapshots
         resolution = Resolver.new(
           model: model,
           controller: controller,
@@ -69,15 +62,36 @@ module RailsAiBridge
           config: config
         ).call
 
-        markdown = Composer.new(
+        text_response(render(resolution:, snapshots:, detail: detail.to_s))
+      end
+
+      # Builds the snapshot hash from enabled introspector sections.
+      # @return [Hash{Symbol => Object, nil}]
+      def self.build_snapshots
+        {
+          models: section_if_enabled(:models),
+          schema: section_if_enabled(:schema),
+          controllers: section_if_enabled(:controllers),
+          routes: section_if_enabled(:routes),
+          tests: section_if_enabled(:tests)
+        }
+      end
+      private_class_method :build_snapshots
+
+      # Renders a resolution hash to markdown via Composer and RelatedTests.
+      # @param resolution [Hash] output of {Resolver#call}
+      # @param snapshots [Hash{Symbol => Object, nil}]
+      # @param detail [String]
+      # @return [String] markdown body
+      def self.render(resolution:, snapshots:, detail:)
+        Composer.new(
           resolution: resolution,
           snapshots: snapshots,
-          detail: detail.to_s,
+          detail: detail,
           test_paths: RelatedTests.new(root: app_root, resolution: resolution).paths
         ).call
-
-        text_response(markdown)
       end
+      private_class_method :render
 
       # Host application root used for cheap related-test path checks.
       #
