@@ -9,8 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **`git_timeout` validation error message** — the coercion error now correctly says "positive integer" instead of "non-negative integer", matching the `>= 1` requirement. The private `coerce_integer` helper accepts a per-field requirement label.
-- **Request-scoped resolver memoization** — `Registry#with_request_resolver` and `request_active?` now use a frozen sentinel object instead of relying on `Thread.current.key?`, which returned `false` for keys explicitly set to `nil`. This fixes request-scoped memoization breaking when the resolver was explicitly set to `nil`.
+- **Request-scoped resolver memoization** — `Registry#with_request_resolver` and `request_active?` now use a frozen sentinel object instead of relying on `Thread.current[REQUEST_RESOLVER_KEY]` being `nil`. Previously `request_resolver?` checked `!Thread.current[REQUEST_RESOLVER_KEY].nil?`, which returned `false` for an active but unbuilt resolver. A sentinel distinguishes "active, not built" from "not active."
 
 ### Added
 

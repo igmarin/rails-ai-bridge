@@ -245,11 +245,13 @@ RSpec.describe RailsAiBridge::Services::FileManagementService do
     it 'falls back to Dir.pwd when Rails.root is nil' do
       allow(Rails).to receive(:root).and_return(nil)
       service = described_class.new
-      # Dir.pwd is the project root; writing a relative tmp file should work
-      result = service.call(:write, path: 'tmp/fallback_test.txt', content: 'ok')
+      Dir.mktmpdir do |dir|
+        allow(Dir).to receive(:pwd).and_return(dir)
+        result = service.call(:write, path: 'fallback_test.txt', content: 'ok')
 
-      expect(result.success?).to be(true)
-      FileUtils.rm_f(File.join(Dir.pwd, 'tmp/fallback_test.txt'))
+        expect(result.success?).to be(true)
+        expect(File.exist?(File.join(dir, 'fallback_test.txt'))).to be(true)
+      end
     end
   end
 

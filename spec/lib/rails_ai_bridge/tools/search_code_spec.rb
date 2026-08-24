@@ -155,6 +155,7 @@ RSpec.describe RailsAiBridge::Tools::SearchCode do
     it 'yields immediately when timeout is 0' do
       saved = RailsAiBridge.configuration.search_code_timeout_seconds
       RailsAiBridge.configuration.search_code_timeout_seconds = 0
+      expect(Timeout).not_to receive(:timeout)
       result = described_class.with_search_timeout { 'done' }
       expect(result).to eq('done')
     ensure
@@ -164,6 +165,7 @@ RSpec.describe RailsAiBridge::Tools::SearchCode do
     it 'yields immediately when timeout is negative' do
       saved = RailsAiBridge.configuration.search_code_timeout_seconds
       RailsAiBridge.configuration.search_code_timeout_seconds = -1
+      expect(Timeout).not_to receive(:timeout)
       result = described_class.with_search_timeout { 'done' }
       expect(result).to eq('done')
     ensure

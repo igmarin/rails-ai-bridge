@@ -88,6 +88,7 @@ RSpec.describe RailsAiBridge::Mcp::CacheRateLimiter do
 
       expect(limiter.allow?('1.2.3.4')).to be true
       expect(store).to have_received(:write).with('rab:rl:1.2.3.4', 0, expires_in: 60, unless_exist: true)
+      expect(store).to have_received(:increment).with('rab:rl:1.2.3.4', 1)
     end
 
     it 'returns 1 when fallback_increment itself raises' do
