@@ -158,21 +158,26 @@ RSpec.describe RailsAiBridge::Introspectors::AuthIntrospector do
     context 'with rack-cors gem and cors initializer' do
       let(:lockfile) { Rails.root.join('Gemfile.lock').to_s }
       let(:cors_init) { Rails.root.join('config/initializers/cors.rb').to_s }
-      let(:original_content) { File.exist?(lockfile) ? File.read(lockfile) : nil }
+      let!(:original_lockfile) { File.exist?(lockfile) ? File.read(lockfile) : nil }
+      let!(:original_cors) { File.exist?(cors_init) ? File.read(cors_init) : nil }
 
       before do
-        File.write(lockfile, "    rack-cors (2.0.0)\n") unless File.exist?(lockfile)
+        File.write(lockfile, "    rack-cors (2.0.0)\n")
         FileUtils.mkdir_p(File.dirname(cors_init))
         File.write(cors_init, '# CORS config')
       end
 
       after do
-        if original_content
-          File.write(lockfile, original_content)
+        if original_lockfile
+          File.write(lockfile, original_lockfile)
         else
           FileUtils.rm_f(lockfile)
         end
-        FileUtils.rm_f(cors_init)
+        if original_cors
+          File.write(cors_init, original_cors)
+        else
+          FileUtils.rm_f(cors_init)
+        end
       end
 
       it 'detects CORS as configured' do
@@ -182,10 +187,10 @@ RSpec.describe RailsAiBridge::Introspectors::AuthIntrospector do
 
     context 'with rack-cors gem but no cors initializer' do
       let(:lockfile) { Rails.root.join('Gemfile.lock').to_s }
-      let(:original_content) { File.exist?(lockfile) ? File.read(lockfile) : nil }
+      let!(:original_content) { File.exist?(lockfile) ? File.read(lockfile) : nil }
 
       before do
-        File.write(lockfile, "    rack-cors (2.0.0)\n") unless File.exist?(lockfile)
+        File.write(lockfile, "    rack-cors (2.0.0)\n")
       end
 
       after do

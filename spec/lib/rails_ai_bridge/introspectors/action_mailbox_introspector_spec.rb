@@ -23,6 +23,7 @@ RSpec.describe RailsAiBridge::Introspectors::ActionMailboxIntrospector do
     context 'with a mailbox file' do
       let(:mailboxes_dir) { Rails.root.join('app/mailboxes').to_s }
       let(:mailbox_file) { File.join(mailboxes_dir, 'forwards_mailbox.rb') }
+      let!(:dir_existed) { File.directory?(mailboxes_dir) }
 
       before do
         FileUtils.mkdir_p(mailboxes_dir)
@@ -37,7 +38,10 @@ RSpec.describe RailsAiBridge::Introspectors::ActionMailboxIntrospector do
         RUBY
       end
 
-      after { FileUtils.rm_f(mailbox_file) }
+      after do
+        FileUtils.rm_f(mailbox_file)
+        FileUtils.rmdir(mailboxes_dir) if !dir_existed && File.directory?(mailboxes_dir) && Dir.empty?(mailboxes_dir)
+      end
 
       it 'discovers mailbox classes' do
         expect(result[:mailboxes].size).to eq(1)
@@ -52,6 +56,7 @@ RSpec.describe RailsAiBridge::Introspectors::ActionMailboxIntrospector do
 
     context 'with application_mailbox.rb and a mailbox without routing' do
       let(:mailboxes_dir) { Rails.root.join('app/mailboxes').to_s }
+      let!(:dir_existed) { File.directory?(mailboxes_dir) }
 
       before do
         FileUtils.mkdir_p(mailboxes_dir)
@@ -62,6 +67,7 @@ RSpec.describe RailsAiBridge::Introspectors::ActionMailboxIntrospector do
       after do
         FileUtils.rm_f(File.join(mailboxes_dir, 'application_mailbox.rb'))
         FileUtils.rm_f(File.join(mailboxes_dir, 'bounces_mailbox.rb'))
+        FileUtils.rmdir(mailboxes_dir) if !dir_existed && File.directory?(mailboxes_dir) && Dir.empty?(mailboxes_dir)
       end
 
       it 'skips application_mailbox.rb' do

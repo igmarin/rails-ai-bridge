@@ -116,8 +116,13 @@ RSpec.describe RailsAiBridge::Introspectors::ModelIntrospector do
   describe '#call with excluded_models configured' do
     subject(:result) { described_class.new(Rails.application).call }
 
-    before { RailsAiBridge.configuration.excluded_models << 'User' }
-    after { RailsAiBridge.configuration.excluded_models.delete('User') }
+    let!(:saved_excluded) { RailsAiBridge.configuration.excluded_models.dup }
+
+    before do
+      RailsAiBridge.configuration.excluded_models << 'User'
+    end
+
+    after { RailsAiBridge.configuration.excluded_models.replace(saved_excluded) }
 
     it 'omits excluded models by name' do
       expect(result).not_to have_key('User')

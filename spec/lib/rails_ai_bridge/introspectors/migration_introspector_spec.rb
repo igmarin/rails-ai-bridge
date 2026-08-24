@@ -87,6 +87,8 @@ RSpec.describe RailsAiBridge::Introspectors::MigrationIntrospector do
     let(:result) { introspector.call }
 
     before { FileUtils.rm_rf(migrate_dir) }
+    # Clean up migration files created by the outer before hook
+    after { FileUtils.rm_rf(migrate_dir) }
 
     it 'returns total of 0' do
       expect(result[:total]).to eq(0)

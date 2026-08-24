@@ -413,6 +413,7 @@ RSpec.describe RailsAiBridge::Introspectors::Schema::StaticStructureSqlParser do
     end
 
     it 'handles a partition child whose parent is excluded' do
+      original_excluded = config.excluded_tables.dup
       config.excluded_tables << 'events'
       content = <<~DDL
         CREATE TABLE public.events (
@@ -428,7 +429,7 @@ RSpec.describe RailsAiBridge::Introspectors::Schema::StaticStructureSqlParser do
       tables = parse(content)[:tables]
       expect(tables).to have_key('events_q1')
     ensure
-      config.excluded_tables.clear
+      config.excluded_tables.replace(original_excluded)
     end
   end
 

@@ -190,11 +190,14 @@ RSpec.describe RailsAiBridge::Introspectors::SchemaIntrospector do
       end
 
       it 'returns nil when no version match found' do
-        allow(introspector).to receive(:schema_file_path).and_return('/tmp/test_schema.rb')
-        File.write('/tmp/test_schema.rb', 'no version here')
+        file = Tempfile.new(['test_schema', '.rb'])
+        file.write('no version here')
+        file.close
+        allow(introspector).to receive(:schema_file_path).and_return(file.path)
         expect(introspector.send(:current_schema_version)).to be_nil
       ensure
-        FileUtils.rm_f('/tmp/test_schema.rb')
+        file&.close
+        file&.unlink
       end
     end
 

@@ -210,9 +210,9 @@ RSpec.describe RailsAiBridge::Introspector do
         def call = {}
       end
       saved = RailsAiBridge.configuration.additional_introspectors.dup
-      RailsAiBridge.configuration.additional_introspectors[:custom] = custom
+      RailsAiBridge.configuration.additional_introspectors[:schema] = custom
 
-      expect(introspector.resolve_introspector(:custom)).to be_a(custom)
+      expect(introspector.resolve_introspector(:schema)).to be_a(custom)
     ensure
       RailsAiBridge.configuration.additional_introspectors.replace(saved)
     end

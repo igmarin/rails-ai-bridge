@@ -39,7 +39,8 @@ RSpec.describe RailsAiBridge::Introspectors::StimulusIntrospector do
       end
 
       after do
-        FileUtils.rm_rf(Rails.root.join('app/javascript').to_s)
+        FileUtils.rm_f(File.join(controllers_dir, 'hello_controller.js'))
+        FileUtils.rmdir(controllers_dir) if File.directory?(controllers_dir) && Dir.empty?(controllers_dir)
       end
 
       it 'discovers controllers' do
@@ -101,7 +102,8 @@ RSpec.describe RailsAiBridge::Introspectors::StimulusIntrospector do
       end
 
       after do
-        FileUtils.rm_rf(Rails.root.join('app/javascript').to_s)
+        FileUtils.rm_f(File.join(controllers_dir, 'search_controller.js'))
+        FileUtils.rmdir(controllers_dir) if File.directory?(controllers_dir) && Dir.empty?(controllers_dir)
       end
 
       it 'extracts async methods as actions' do
@@ -129,7 +131,8 @@ RSpec.describe RailsAiBridge::Introspectors::StimulusIntrospector do
       end
 
       after do
-        FileUtils.rm_rf(Rails.root.join('app/javascript').to_s)
+        FileUtils.rm_f(bad_file)
+        FileUtils.rmdir(controllers_dir) if File.directory?(controllers_dir) && Dir.empty?(controllers_dir)
       end
 
       it 'returns an error entry for the broken controller' do
@@ -157,7 +160,8 @@ RSpec.describe RailsAiBridge::Introspectors::StimulusIntrospector do
       end
 
       after do
-        FileUtils.rm_rf(Rails.root.join('app/javascript').to_s)
+        FileUtils.rm_f(File.join(controllers_dir, 'minimal_controller.js'))
+        FileUtils.rmdir(controllers_dir) if File.directory?(controllers_dir) && Dir.empty?(controllers_dir)
       end
 
       it 'returns empty arrays and hashes for missing static declarations' do
@@ -206,7 +210,8 @@ RSpec.describe RailsAiBridge::Introspectors::StimulusIntrospector do
       end
 
       after do
-        FileUtils.rm_rf(Rails.root.join('app/javascript').to_s)
+        FileUtils.rm_f(File.join(controllers_dir, 'ts_controller.ts'))
+        FileUtils.rmdir(controllers_dir) if File.directory?(controllers_dir) && Dir.empty?(controllers_dir)
       end
 
       it 'discovers and parses TypeScript controllers' do
