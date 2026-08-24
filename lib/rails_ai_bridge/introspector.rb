@@ -16,6 +16,7 @@ module RailsAiBridge
   #
   # @example Running a subset of introspectors
   #   context = RailsAiBridge::Introspector.new(app).call(only: %i[schema routes])
+  # :reek:RepeatedConditional -- static_mode? guards in build_metadata/run_single/run_parallel are the cleanest way to branch on app type
   class Introspector
     # @return [Rails::Application] the host application passed at construction
     attr_reader :app
@@ -157,11 +158,32 @@ module RailsAiBridge
       {
         app_name: app_name,
         ruby_version: RUBY_VERSION,
-        rails_version: Rails.version,
-        environment: Rails.env,
-        generated_at: Time.current.iso8601,
-        generator: "rails-ai-bridge v#{RailsAiBridge::VERSION}"
+        rails_version: static_mode? ? detect_rails_version_from_gemfile : Rails.version,
+        environment: static_mode? ? 'static' : Rails.env.to_s,
+        generated_at: (static_mode? ? Time.now.utc : Time.current).iso8601,
+        generator: "rails-ai-bridge v#{RailsAiBridge::VERSION}",
+        static_mode: static_mode?
       }
+    end
+
+    # Detects the Rails version from the app's Gemfile.lock without booting.
+    #
+    # @return [String, nil]
+    # :reek:FeatureEnvy -- lockfile is a Pathname, method is short
+    def detect_rails_version_from_gemfile
+      lockfile = app.root.join('Gemfile.lock')
+      return nil unless lockfile.exist?
+
+      lockfile.read.match(/^\s+rails\s+\(([\d.]+)/)&.captures&.first
+    rescue StandardError
+      nil
+    end
+
+    # Returns true when the app is a {StaticApp} (no Rails boot).
+    #
+    # @return [Boolean]
+    def static_mode?
+      @static_mode ||= app.is_a?(RailsAiBridge::StaticApp)
     end
 
     # Runs introspectors one at a time, each wrapped by {TimedRunner}.
@@ -183,11 +205,23 @@ module RailsAiBridge
     #
     # @param name [Symbol]
     # @return [Object] introspector result or +{ error: String }+ on failure
+    # :reek:TooManyStatements -- static guard adds one branch, still readable
     def run_single(name)
+      return static_unavailable_result(name) if static_mode? && !StaticApp.static_available?(name)
+
       klass = resolve_introspector_class(name)
       timed = TimedRunner.call(klass, app)
       Rails.logger.debug { "[rails-ai-bridge] #{name} introspection completed in #{timed[:duration_ms]}ms" }
       timed[:result]
+    end
+
+    # Returns an honest "not available" result for boot-required
+    # introspectors when running in static mode.
+    #
+    # @param name [Symbol]
+    # @return [Hash{Symbol => String}]
+    def static_unavailable_result(name)
+      { error: "#{name} is not available without boot — use StaticApp only for static-capable sections" }
     end
 
     # Delegates concurrent execution to {ParallelRunner}.
@@ -195,6 +229,8 @@ module RailsAiBridge
     # @param names [Array<Symbol>]
     # @return [Hash{Symbol => Object}]
     def run_parallel(names)
+      return run_sequential(names) if static_mode?
+
       introspector_map = names.index_with { |name| resolve_introspector_class(name) }
       ParallelRunner.call(introspector_map, app)
     end
