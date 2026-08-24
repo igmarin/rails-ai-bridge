@@ -53,14 +53,15 @@ RSpec.describe RailsAiBridge::BootManager do
     end
 
     it 'returns a structured result with success: true when boot succeeds' do
-      # Pre-load the fixture so constantize can find it
-      load File.join(bootable_root, 'config', 'application.rb')
       allow(described_class).to receive(:require).and_return(true)
+      fake_app = double('App')
+      allow(fake_app).to receive(:initialize!)
+      allow(Rails).to receive(:application).and_return(fake_app)
 
       result = described_class.boot(bootable_root, timeout: 5)
 
       expect(result[:success]).to be(true)
-      expect(result[:app]).to eq(BootFixture::Application)
+      expect(result[:app]).to eq(fake_app)
     end
 
     it 'returns a structured result with success: false when boot fails' do

@@ -61,7 +61,7 @@ RSpec.describe 'Static mode introspection' do
       RUBY
 
       RailsAiBridge::AppScope.with_app(static_app) do
-        result = RailsAiBridge.introspect(static_app, only: %i[schema])
+        result = RailsAiBridge.introspect(only: %i[schema])
         expect(result[:schema]).to have_key(:tables)
         expect(result[:schema][:tables]).to have_key('posts')
       end

@@ -63,15 +63,15 @@ module RailsAiBridge
       def boot(root, timeout: DEFAULT_TIMEOUT)
         root = Pathname.new(root)
         original_stdout = $stdout
+        original_dir = Dir.pwd
         $stdout = $stderr
         result = { stdout_quarantined: true, success: false, app: nil, error: nil, error_class: nil }
 
         begin
+          Dir.chdir(root)
           Timeout.timeout(timeout) do
-            require 'bundler/setup'
             require File.join(root, 'config', 'application')
-            app_name = root.basename.to_s.classify
-            app = app_name.constantize::Application
+            app = Rails.application
             app.initialize!
             result[:success] = true
             result[:app] = app
@@ -82,6 +82,7 @@ module RailsAiBridge
           result[:error_class] = error.class.name
         ensure
           $stdout = original_stdout
+          Dir.chdir(original_dir)
         end
 
         result

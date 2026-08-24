@@ -174,9 +174,19 @@ module RailsAiBridge
       lockfile = app.root.join('Gemfile.lock')
       return nil unless lockfile.exist?
 
-      lockfile.read.match(/^\s+rails\s+\(([\d.]+)/)&.captures&.first
+      lockfile.read.match(/^\s+rails\s+\(([^)]+)\)/)&.captures&.first
     rescue StandardError
       nil
+    end
+
+    # Returns a logger that is safe in both booted and static mode.
+    # In static mode, Rails.logger may not be available.
+    #
+    # @return [Logger, nil]
+    # :reek:ManualDispatch -- checking Rails.respond_to? is the safe way to guard static mode
+    # :reek:UtilityFunction -- intentional: no instance state needed, just a safe accessor
+    def logger
+      defined?(Rails) && Rails.respond_to?(:logger) ? Rails.logger : nil
     end
 
     # Returns true when the app is a {StaticApp} (no Rails boot).
@@ -211,7 +221,7 @@ module RailsAiBridge
 
       klass = resolve_introspector_class(name)
       timed = TimedRunner.call(klass, app)
-      Rails.logger.debug { "[rails-ai-bridge] #{name} introspection completed in #{timed[:duration_ms]}ms" }
+      logger&.debug { "[rails-ai-bridge] #{name} introspection completed in #{timed[:duration_ms]}ms" }
       timed[:result]
     end
 
