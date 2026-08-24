@@ -42,7 +42,7 @@ module RailsAiBridge
     # @param only [Array<Symbol>, nil] optional subset of introspector keys to run
     # @return [Hash] introspection payload with enabled sections
     def introspect(app = nil, only: nil)
-      app ||= Rails.application
+      app ||= AppScope.current_app
       Introspector.new(app).call(only: only)
     end
 
@@ -62,7 +62,7 @@ module RailsAiBridge
     def generate_context(app = nil, **options)
       validate_generate_context_options!(options)
 
-      app ||= Rails.application
+      app ||= AppScope.current_app
       build_context_serializer(introspect(app), options).call
     end
 
@@ -73,7 +73,7 @@ module RailsAiBridge
     # @return [void]
     # @raise [RailsAiBridge::ConfigurationError] when HTTP transport is unsafe in production
     def start_mcp_server(app = nil, transport: :stdio)
-      app ||= Rails.application
+      app ||= AppScope.current_app
       Server.new(app, transport: transport).start
     end
 

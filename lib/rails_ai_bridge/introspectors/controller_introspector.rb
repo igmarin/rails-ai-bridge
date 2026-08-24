@@ -36,7 +36,7 @@ module RailsAiBridge
       private
 
       def eager_load_controllers!
-        Rails.application.eager_load! unless Rails.application.config.eager_load
+        @app.eager_load! unless @app.config.eager_load
       rescue StandardError
         nil
       end

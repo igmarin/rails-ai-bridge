@@ -31,7 +31,7 @@ module RailsAiBridge
     # @param app [Rails::Application, nil] application to inspect
     # @return [void]
     def initialize(app = nil)
-      @app = app || Rails.application
+      @app = app || AppScope.current_app
     end
 
     # Runs all diagnostic checks and computes a readiness score.

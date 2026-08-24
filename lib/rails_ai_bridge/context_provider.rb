@@ -13,7 +13,8 @@ module RailsAiBridge
       #
       # @param app [Rails::Application] application to introspect
       # @return [Hash] introspection payload
-      def fetch(app = Rails.application)
+      def fetch(app = nil)
+        app ||= AppScope.current_app
         mutex.synchronize do
           cached = cache[cache_key(app)]
           return rebuild(app) unless cached[:full]
@@ -31,7 +32,8 @@ module RailsAiBridge
       # @param section [Symbol] introspector key to retrieve
       # @param app [Rails::Application] application to introspect
       # @return [Object, nil] requested section payload
-      def fetch_section(section, app = Rails.application)
+      def fetch_section(section, app = nil)
+        app ||= AppScope.current_app
         mutex.synchronize do
           key = cache_key(app)
           cached = cache[key]

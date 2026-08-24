@@ -15,7 +15,7 @@ module RailsAiBridge
 
     # @param app [Rails::Application, nil] defaults to +Rails.application+
     def initialize(app = nil)
-      @app = app || Rails.application
+      @app = app || AppScope.current_app
       @regenerator = BridgeRegenerator.new(@app)
     end
 

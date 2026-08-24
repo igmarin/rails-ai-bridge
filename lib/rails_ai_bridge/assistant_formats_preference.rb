@@ -27,9 +27,10 @@ module RailsAiBridge
       #
       # @return [Pathname, nil] +nil+ when +Rails.application+ is unavailable
       def config_path
-        return nil unless defined?(Rails) && Rails.application
+        app = AppScope.current_app
+        return nil unless app
 
-        Rails.root.join(RELATIVE_PATH)
+        app.root.join(RELATIVE_PATH)
       end
 
       # Returns the subset of formats requested for the default +rails ai:bridge+ task.

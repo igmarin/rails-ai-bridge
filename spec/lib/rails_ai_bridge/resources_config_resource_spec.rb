@@ -100,13 +100,15 @@ RSpec.describe RailsAiBridge::Resources do
         FileUtils.mkdir_p(File.join(dir, 'app/views/users'))
         File.write(File.join(dir, 'app/views/users/index.html.erb'), "<%= render 'form' %>")
 
-        allow(Rails).to receive(:root).and_return(Pathname.new(dir))
+        fake_app = instance_double(Rails::Application, root: Pathname.new(dir),
+                                                       paths: { 'app/views' => [File.join(dir, 'app/views')] })
+        RailsAiBridge::AppScope.with_app(fake_app) do
+          rows = described_class.send(:handle_read, { uri: 'rails://views/users/index.html.erb' })
+          json = JSON.parse(rows.first[:text])
 
-        rows = described_class.send(:handle_read, { uri: 'rails://views/users/index.html.erb' })
-        json = JSON.parse(rows.first[:text])
-
-        expect(json['path']).to eq('users/index.html.erb')
-        expect(json['renders']).to include('form')
+          expect(json['path']).to eq('users/index.html.erb')
+          expect(json['renders']).to include('form')
+        end
       end
     end
 
@@ -117,16 +119,15 @@ RSpec.describe RailsAiBridge::Resources do
         FileUtils.mkdir_p(views_root.join('reports'))
         File.write(views_root.join('reports/show.html.erb'), "<%= render 'summary' %>")
 
-        allow(Rails).to receive_messages(
-          application: double(root:, paths: { 'app/views' => [views_root.to_s] }),
-          root:
-        )
+        fake_app = instance_double(Rails::Application, root: root,
+                                                       paths: { 'app/views' => [views_root.to_s] })
+        RailsAiBridge::AppScope.with_app(fake_app) do
+          rows = described_class.send(:handle_read, { uri: 'rails://views/reports/show.html.erb' })
+          json = JSON.parse(rows.first[:text])
 
-        rows = described_class.send(:handle_read, { uri: 'rails://views/reports/show.html.erb' })
-        json = JSON.parse(rows.first[:text])
-
-        expect(json['path']).to eq('reports/show.html.erb')
-        expect(json['renders']).to include('summary')
+          expect(json['path']).to eq('reports/show.html.erb')
+          expect(json['renders']).to include('summary')
+        end
       end
     end
 

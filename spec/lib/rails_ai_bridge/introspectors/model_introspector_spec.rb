@@ -308,7 +308,8 @@ RSpec.describe RailsAiBridge::Introspectors::ModelIntrospector do
         root_path = Dir.mktmpdir('rails-ai-bridge-model-paths')
         root = Pathname.new(root_path)
         models_dir = root.join('domain/models')
-        app = double('Rails::Application', root:, paths: { 'app/models' => [models_dir.to_s] })
+        app = double('Rails::Application', root:, paths: { 'app/models' => [models_dir.to_s] },
+                                           config: double('Rails::Configuration', eager_load: true), eager_load!: nil)
 
         {
           root_path:,

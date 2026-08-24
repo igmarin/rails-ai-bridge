@@ -29,7 +29,7 @@ module RailsAiBridge
     def transport
       @mutex.synchronize do
         @transport ||= begin
-          server = Server.new(Rails.application, transport: :http).build
+          server = Server.new(AppScope.current_app, transport: :http).build
           MCP::Server::Transports::StreamableHTTPTransport.new(server)
         end
       end
