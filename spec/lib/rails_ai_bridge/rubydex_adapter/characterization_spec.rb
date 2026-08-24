@@ -27,6 +27,7 @@ RSpec.describe 'Rubydex 0.3 graph API contract' do
   after do
     RailsAiBridge::RubydexAdapter.reset!
     RailsAiBridge::RubydexAdapter.reset_availability!
+    remove_stub_rubydex_module
   end
 
   # ---- Graph construction ----
@@ -447,6 +448,13 @@ RSpec.describe 'Rubydex 0.3 graph API contract' do
 
     Object.const_set(:Rubydex, Module.new)
     Rubydex.const_set(:Graph, Class.new)
+  end
+
+  def remove_stub_rubydex_module
+    return unless defined?(Rubydex)
+
+    Rubydex.send(:remove_const, :Graph) if Rubydex.const_defined?(:Graph, false)
+    Object.send(:remove_const, :Rubydex)
   end
 
   def stub_rubydex_graph(mock_graph)

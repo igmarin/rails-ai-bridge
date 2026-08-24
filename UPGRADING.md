@@ -36,7 +36,7 @@ Source: [v0.3.0...v0.4.0](https://github.com/Shopify/rubydex/compare/v0.3.0...v0
 - Fix `extend self` in anonymous modules (#1001)
 - Linearize ancestors for implicitly created namespaces (#1005)
 
-### Migration steps
+### Rubydex migration steps
 
 1. **Update the gemspec constraint** from `~> 0.3.0` to `~> 0.4.0` (after Aug 28).
 2. **Run `bundle update rubydex`** and verify the installed version is 0.4.x.
@@ -56,7 +56,7 @@ Source: [v0.3.0...v0.4.0](https://github.com/Shopify/rubydex/compare/v0.3.0...v0
 7. **Smoke-test `rails_search_semantic` tool** — this is the primary
    user-facing consumer of the Rubydex adapter.
 
-### Characterization specs
+### Rubydex characterization specs
 
 The following spec files pin current behavior to catch regressions:
 - `spec/lib/rails_ai_bridge/rubydex_adapter/characterization_spec.rb` —
@@ -119,7 +119,7 @@ Source: [CHANGELOG.md](https://github.com/modelcontextprotocol/ruby-sdk/blob/mai
 - **Added:** Server tool annotations exposed on `MCP::Client::Tool` (#445)
 - **Fixed:** Explicit tool response content preserved (#469)
 
-### Migration steps
+### MCP migration steps
 
 1. **Update the gemspec constraint** from `>= 1.0, < 2.0` to `>= 1.3, < 2.0`
    (after Aug 29).
@@ -144,7 +144,7 @@ Source: [CHANGELOG.md](https://github.com/modelcontextprotocol/ruby-sdk/blob/mai
 7. **Smoke-test stdio and HTTP transports** — start `rails ai:serve` and
    verify tool calls and resource reads work end-to-end.
 
-### Characterization specs
+### MCP characterization specs
 
 The following spec files pin current protocol behavior:
 - `spec/lib/rails_ai_bridge/mcp/protocol_characterization_spec.rb` —

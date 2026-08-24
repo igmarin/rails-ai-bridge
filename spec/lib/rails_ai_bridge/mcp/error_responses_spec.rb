@@ -18,6 +18,10 @@ RSpec.describe 'MCP error responses and bounds (SDK 1.3.0)' do
     saved_authorize = RailsAiBridge.configuration.mcp.authorize
     saved_rate_limiter = RailsAiBridge.configuration.mcp.rate_limiter
     saved_max_reqs = RailsAiBridge.configuration.mcp.rate_limit_max_requests
+    saved_token_resolver = RailsAiBridge.configuration.mcp_token_resolver
+    saved_jwt_decoder = RailsAiBridge.configuration.mcp_jwt_decoder
+    saved_rate_limit_window = RailsAiBridge.configuration.mcp.rate_limit_window_seconds
+    saved_cors_origins = RailsAiBridge.configuration.mcp.cors_origins
     example.run
   ensure
     RailsAiBridge.configuration.http_mcp_token = saved_token
@@ -25,6 +29,10 @@ RSpec.describe 'MCP error responses and bounds (SDK 1.3.0)' do
     RailsAiBridge.configuration.mcp.authorize = saved_authorize
     RailsAiBridge.configuration.mcp.rate_limiter = saved_rate_limiter
     RailsAiBridge.configuration.mcp.rate_limit_max_requests = saved_max_reqs
+    RailsAiBridge.configuration.mcp_token_resolver = saved_token_resolver
+    RailsAiBridge.configuration.mcp_jwt_decoder = saved_jwt_decoder
+    RailsAiBridge.configuration.mcp.rate_limit_window_seconds = saved_rate_limit_window
+    RailsAiBridge.configuration.mcp.cors_origins = saved_cors_origins
   end
 
   before do
