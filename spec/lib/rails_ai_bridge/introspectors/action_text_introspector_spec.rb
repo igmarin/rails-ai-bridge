@@ -72,5 +72,24 @@ RSpec.describe RailsAiBridge::Introspectors::ActionTextIntrospector do
         )
       end
     end
+
+    context 'when extract_rich_text_fields raises an error' do
+      let(:custom_app) do
+        double('Rails::Application', root: Pathname.new(Dir.mktmpdir),
+                                     paths: { 'app/models' => [] })
+      end
+
+      before do
+        resolver = instance_double(RailsAiBridge::PathResolver)
+        allow(RailsAiBridge::PathResolver).to receive(:new).and_return(resolver)
+        allow(resolver).to receive(:files_for).and_raise(StandardError, 'boom')
+      end
+
+      after { FileUtils.rm_rf(custom_app.root) }
+
+      it 'returns empty array for rich_text_fields on error' do
+        expect(described_class.new(custom_app).call[:rich_text_fields]).to eq([])
+      end
+    end
   end
 end

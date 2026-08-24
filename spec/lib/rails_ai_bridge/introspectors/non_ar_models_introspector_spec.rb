@@ -190,4 +190,103 @@ RSpec.describe RailsAiBridge::Introspectors::NonArModelsIntrospector do
       expect(introspector.instance_variable_get(:@root)).to eq('/path/to/app')
     end
   end
+
+  describe '#sanitize_error_message' do
+    it 'returns default message when input is nil' do
+      expect(introspector.sanitize_error_message(nil)).to eq('Introspection failed')
+    end
+
+    it 'returns default message when input is empty' do
+      expect(introspector.sanitize_error_message('')).to eq('Introspection failed')
+    end
+
+    it 'returns sanitized message unchanged when under 200 chars' do
+      expect(introspector.sanitize_error_message('short error')).to eq('short error')
+    end
+  end
+
+  describe '#safe_to_process? (private)' do
+    it 'returns false for class with blank name' do
+      klass = Class.new
+      allow(klass).to receive(:name).and_return(nil)
+      expect(introspector.send(:safe_to_process?, klass)).to be false
+    end
+
+    it 'returns false for class with dot in name' do
+      klass = double('Class', name: 'Foo.Bar')
+      expect(introspector.send(:safe_to_process?, klass)).to be false
+    end
+
+    it 'returns false for class with invalid name pattern' do
+      klass = double('Class', name: 'lower_case')
+      expect(introspector.send(:safe_to_process?, klass)).to be false
+    end
+
+    it 'returns true for valid non-AR class' do
+      klass = double('Class', name: 'MyService')
+      allow(klass).to receive(:<).with(ActiveRecord::Base).and_return(false)
+      expect(introspector.send(:safe_to_process?, klass)).to be true
+    end
+  end
+
+  describe '#collect_entry error handling (private)' do
+    it 'logs error and continues when collect_entry raises' do
+      bad_klass = double('BadClass', name: 'BadClass')
+      allow(introspector).to receive(:safe_to_process?).and_raise(StandardError, 'processing error')
+
+      entries = {}
+      context = described_class
+                .const_get(:CollectionContext).new(models_root: '/fake/root', rows: entries)
+
+      expect { introspector.send(:collect_entry, bad_klass, context) }.not_to raise_error
+    end
+  end
+
+  describe '#record_if_non_ar_model (private)' do
+    it 'skips classes with blank name' do
+      klass = double('Class', name: nil)
+      context = double('CollectionContext')
+      expect(introspector.send(:record_if_non_ar_model, klass, context)).to be_nil
+    end
+
+    it 'skips classes with dot in name' do
+      klass = double('Class', name: 'Foo.Bar')
+      context = double('CollectionContext')
+      expect(introspector.send(:record_if_non_ar_model, klass, context)).to be_nil
+    end
+
+    it 'skips classes with invalid name pattern' do
+      klass = double('Class', name: 'invalid_name')
+      context = double('CollectionContext')
+      expect(introspector.send(:record_if_non_ar_model, klass, context)).to be_nil
+    end
+
+    it 'skips when const_source_location returns nil' do
+      klass = double('Class', name: 'NonexistentClass')
+      allow(klass).to receive(:<).with(ActiveRecord::Base).and_return(false)
+      allow(Object).to receive(:const_source_location).with('NonexistentClass').and_return([])
+      context = double('CollectionContext', models_root: '/fake', rows: {})
+      expect(introspector.send(:record_if_non_ar_model, klass, context)).to be_nil
+    end
+
+    it 'skips when path does not start with models_root' do
+      klass = double('Class', name: 'OutsideClass')
+      allow(klass).to receive(:<).with(ActiveRecord::Base).and_return(false)
+      allow(Object).to receive(:const_source_location).with('OutsideClass').and_return(['/other/path/file.rb'])
+      context = double('CollectionContext', models_root: '/app/models', rows: {})
+      expect(introspector.send(:record_if_non_ar_model, klass, context)).to be_nil
+    end
+  end
+
+  describe '#safe_const_source_location (private)' do
+    it 'returns nil on ArgumentError' do
+      allow(Object).to receive(:const_source_location).and_raise(ArgumentError)
+      expect(introspector.send(:safe_const_source_location, 'Foo')).to be_nil
+    end
+
+    it 'returns nil on NameError' do
+      allow(Object).to receive(:const_source_location).and_raise(NameError)
+      expect(introspector.send(:safe_const_source_location, 'Foo')).to be_nil
+    end
+  end
 end

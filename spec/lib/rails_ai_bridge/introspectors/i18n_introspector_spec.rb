@@ -62,5 +62,45 @@ RSpec.describe RailsAiBridge::Introspectors::I18nIntrospector do
         expect(bad_file[:parse_error]).to be true
       end
     end
+
+    context 'with a .rb locale file' do
+      let(:rb_locale) { Rails.root.join('config/locales/custom.rb').to_s }
+
+      before { File.write(rb_locale, "I18n.backend.store_translations(:en, hello: 'Hi')") }
+      after { FileUtils.rm_f(rb_locale) }
+
+      it 'includes .rb locale files without key_count' do
+        rb_file = result[:locale_files].find { |f| f[:file] == 'custom.rb' }
+        expect(rb_file).not_to be_nil
+        expect(rb_file).not_to have_key(:key_count)
+      end
+    end
+  end
+
+  describe '#call with no config/locales directory' do
+    let(:app_root) { Pathname.new(Dir.mktmpdir('no-locales')) }
+    let(:custom_app) { double('Rails::Application', root: app_root) }
+    let(:result) { described_class.new(custom_app).call }
+
+    after { FileUtils.rm_rf(app_root) }
+
+    it 'returns empty array for locale_files' do
+      expect(result[:locale_files]).to eq([])
+    end
+
+    it 'returns 0 for total_locale_files' do
+      expect(result[:total_locale_files]).to eq(0)
+    end
+  end
+
+  describe '#call when app.root raises' do
+    let(:bad_app) { double('Rails::Application') }
+    let(:result) { described_class.new(bad_app).call }
+
+    before { allow(bad_app).to receive(:root).and_raise(StandardError, 'root boom') }
+
+    it 'returns error hash' do
+      expect(result[:error]).to eq('root boom')
+    end
   end
 end

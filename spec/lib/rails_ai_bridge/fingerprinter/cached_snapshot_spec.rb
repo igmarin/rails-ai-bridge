@@ -98,4 +98,24 @@ RSpec.describe RailsAiBridge::Fingerprinter::CachedSnapshot do
       expect(RailsAiBridge::Fingerprinter).to have_received(:snapshot).twice
     end
   end
+
+  describe 'effective_ttl from configuration' do
+    it 'uses configuration snapshot_ttl when set' do
+      original_ttl = RailsAiBridge.configuration.snapshot_ttl
+      RailsAiBridge.configuration.snapshot_ttl = 100
+      allow(RailsAiBridge::Fingerprinter).to receive(:snapshot).with(app).and_return(fingerprint_a)
+
+      described_class.fetch(app)
+
+      cache = described_class.instance_variable_get(:@cache)
+      entry = cache.values.first
+      # Even after subtracting default TTL (5), the entry should still be valid
+      entry[:fetched_at] -= 10
+      result = described_class.fetch(app)
+      expect(result).to eq(fingerprint_a)
+      expect(RailsAiBridge::Fingerprinter).to have_received(:snapshot).once
+    ensure
+      RailsAiBridge.configuration.snapshot_ttl = original_ttl
+    end
+  end
 end

@@ -305,6 +305,132 @@ RSpec.describe RailsAiBridge::Introspectors::Schema::StaticStructureSqlParser do
       DDL
       expect(parse(content)[:tables]['users'][:foreign_keys]).to be_empty
     end
+
+    it 'captures ON UPDATE referential action' do
+      content = <<~DDL
+        CREATE TABLE public.posts (
+            id bigint NOT NULL,
+            user_id bigint
+        );
+        CREATE TABLE public.users (
+            id bigint NOT NULL
+        );
+        ALTER TABLE ONLY public.posts
+            ADD CONSTRAINT fk_rails_abc123 FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE SET NULL;
+      DDL
+      fk = parse(content)[:tables]['posts'][:foreign_keys].first
+      expect(fk[:on_update]).to eq('SET NULL')
+      expect(fk).not_to have_key(:on_delete)
+    end
+
+    it 'captures both ON DELETE and ON UPDATE' do
+      content = <<~DDL
+        CREATE TABLE public.posts (
+            id bigint NOT NULL,
+            user_id bigint
+        );
+        CREATE TABLE public.users (
+            id bigint NOT NULL
+        );
+        ALTER TABLE ONLY public.posts
+            ADD CONSTRAINT fk_rails_abc123 FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE ON UPDATE SET NULL;
+      DDL
+      fk = parse(content)[:tables]['posts'][:foreign_keys].first
+      expect(fk[:on_delete]).to eq('CASCADE')
+      expect(fk[:on_update]).to eq('SET NULL')
+    end
+
+    it 'handles composite foreign keys by keeping the first column' do
+      content = <<~DDL
+        CREATE TABLE public.tags (
+            id bigint NOT NULL
+        );
+        CREATE TABLE public.taggings (
+            id bigint NOT NULL,
+            tag_id bigint,
+            post_id bigint
+        );
+        ALTER TABLE ONLY public.taggings
+            ADD CONSTRAINT fk_tagging FOREIGN KEY (tag_id, post_id) REFERENCES public.tags(id, post_id);
+      DDL
+      fk = parse(content)[:tables]['taggings'][:foreign_keys].first
+      expect(fk[:column]).to eq('tag_id')
+      expect(fk[:primary_key]).to eq('id')
+    end
+  end
+
+  describe 'column type normalization edge cases' do
+    it 'strips trailing NULL to leave the bare type' do
+      content = "CREATE TABLE public.users (\n    email character varying NULL\n);\n"
+      col = parse(content)[:tables]['users'][:columns].first
+      expect(col[:type]).to eq('character varying')
+    end
+
+    it 'strips trailing comma from the last column' do
+      content = "CREATE TABLE public.users (\n    email character varying,\n);\n"
+      col = parse(content)[:tables]['users'][:columns].first
+      expect(col[:type]).to eq('character varying')
+    end
+
+    it 'handles DEFAULT with complex expression' do
+      content = "CREATE TABLE public.users (\n    status integer DEFAULT 1 NOT NULL\n);\n"
+      col = parse(content)[:tables]['users'][:columns].first
+      expect(col[:type]).to eq('integer')
+    end
+  end
+
+  describe 'partition edge cases' do
+    it 'handles a child with inline column list and PARTITION OF on same line as closing paren' do
+      content = <<~DDL
+        CREATE TABLE public.events (
+            id bigint NOT NULL
+        )
+        PARTITION BY RANGE (id);
+
+        CREATE TABLE public.events_q1 (
+            id bigint NOT NULL
+        ) PARTITION OF public.events
+        FOR VALUES FROM (1) TO (100);
+      DDL
+
+      child = parse(content)[:tables]['events_q1']
+      expect(child[:partition_of]).to eq('events')
+      expect(child[:columns].pluck(:name)).to include('id')
+    end
+
+    it 'handles a DEFAULT partition with trailing semicolon' do
+      content = <<~DDL
+        CREATE TABLE public.events (
+            id bigint NOT NULL
+        )
+        PARTITION BY RANGE (id);
+
+        CREATE TABLE public.events_default PARTITION OF public.events DEFAULT;
+      DDL
+
+      child = parse(content)[:tables]['events_default']
+      expect(child[:partition_bound]).to match(/\ADEFAULT\b/i)
+    end
+
+    it 'handles a partition child whose parent is excluded' do
+      original_excluded = config.excluded_tables.dup
+      config.excluded_tables << 'events'
+      content = <<~DDL
+        CREATE TABLE public.events (
+            id bigint NOT NULL
+        )
+        PARTITION BY RANGE (id);
+
+        CREATE TABLE public.events_q1 PARTITION OF public.events
+        FOR VALUES FROM (1) TO (100);
+      DDL
+
+      # Parent is excluded; child should still be parsed but with empty columns
+      tables = parse(content)[:tables]
+      expect(tables).to have_key('events_q1')
+    ensure
+      config.excluded_tables.replace(original_excluded)
+    end
   end
 
   # ---------------------------------------------------------------------------

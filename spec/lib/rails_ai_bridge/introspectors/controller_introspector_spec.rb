@@ -194,5 +194,131 @@ RSpec.describe RailsAiBridge::Introspectors::ControllerIntrospector do
         expect(details[:respond_to_formats]).to eq(['json'])
       end
     end
+
+    context 'when ActionController is not defined' do
+      before { hide_const('ActionController::Base') }
+
+      it 'returns empty controllers hash' do
+        expect(result[:controllers]).to eq({})
+      end
+    end
+
+    context 'when a controller raises during extraction' do
+      before do
+        allow(introspector).to receive(:extract_controller_details).and_raise(StandardError, 'ctrl boom')
+        allow(Rails.logger).to receive(:debug)
+      end
+
+      it 'captures per-controller errors' do
+        expect(result[:controllers].values).to all(include(error: 'ctrl boom'))
+      end
+    end
+
+    context 'when call raises at top level' do
+      before { allow(introspector).to receive(:eager_load_controllers!).and_raise(StandardError, 'eager boom') }
+
+      it 'returns error hash' do
+        expect(result[:error]).to eq('eager boom')
+      end
+    end
+  end
+
+  describe 'private methods' do
+    describe '#extract_strong_params' do
+      it 'returns empty array for nil source' do
+        expect(introspector.send(:extract_strong_params, nil)).to eq([])
+      end
+
+      it 'finds params methods' do
+        source = "def user_params\n  params.require(:user)\nend\ndef post_params\nend\n"
+        expect(introspector.send(:extract_strong_params, source)).to contain_exactly('user_params', 'post_params')
+      end
+    end
+
+    describe '#extract_respond_to' do
+      it 'returns empty array for nil source' do
+        expect(introspector.send(:extract_respond_to, nil)).to eq([])
+      end
+
+      it 'returns empty array when no respond_to block' do
+        expect(introspector.send(:extract_respond_to, 'def index; end')).to eq([])
+      end
+    end
+
+    describe '#read_source' do
+      it 'returns nil when source path is nil' do
+        ctrl = double('Ctrl', name: 'Nonexistent')
+        allow(introspector).to receive(:source_path).and_return(nil)
+        expect(introspector.send(:read_source, ctrl)).to be_nil
+      end
+
+      it 'returns nil when file does not exist' do
+        ctrl = double('Ctrl', name: 'Nonexistent')
+        allow(introspector).to receive(:source_path).and_return('/nonexistent.rb')
+        expect(introspector.send(:read_source, ctrl)).to be_nil
+      end
+
+      it 'returns nil on file read error' do
+        ctrl = double('Ctrl', name: 'Bad')
+        path = '/tmp/test_ctrl_read.rb'
+        File.write(path, 'class Bad; end')
+        allow(introspector).to receive(:source_path).and_return(path)
+        allow(File).to receive(:read).and_call_original
+        allow(File).to receive(:read).with(path).and_raise(StandardError, 'read error')
+        expect(introspector.send(:read_source, ctrl)).to be_nil
+      ensure
+        allow(File).to receive(:read).and_call_original
+        FileUtils.rm_f(path)
+      end
+    end
+
+    describe '#extract_actions error handling' do
+      it 'returns empty array on error' do
+        ctrl = double('Ctrl')
+        allow(ctrl).to receive(:action_methods).and_raise(StandardError, 'actions error')
+        expect(introspector.send(:extract_actions, ctrl)).to eq([])
+      end
+    end
+
+    describe '#extract_concerns error handling' do
+      it 'returns empty array on error' do
+        ctrl = double('Ctrl')
+        allow(ctrl).to receive(:ancestors).and_raise(StandardError, 'concerns error')
+        expect(introspector.send(:extract_concerns, ctrl)).to eq([])
+      end
+    end
+
+    describe '#api_controller?' do
+      it 'returns false when ActionController::API is not defined' do
+        ctrl = double('Ctrl')
+        hide_const('ActionController::API')
+        expect(introspector.send(:api_controller?, ctrl)).to be false
+      end
+    end
+
+    describe '#eager_load_controllers!' do
+      it 'does not call eager_load! when config.eager_load is true' do
+        allow(Rails.application.config).to receive(:eager_load).and_return(true)
+        allow(Rails.application).to receive(:eager_load!)
+        expect(Rails.application).not_to receive(:eager_load!)
+        introspector.send(:eager_load_controllers!)
+      end
+
+      it 'rescues errors from eager_load!' do
+        allow(Rails.application.config).to receive(:eager_load).and_return(false)
+        allow(Rails.application).to receive(:eager_load!).and_raise(StandardError, 'load error')
+        expect { introspector.send(:eager_load_controllers!) }.not_to raise_error
+      end
+    end
+
+    describe '#discover_controllers without ActionController::API' do
+      it 'still discovers controllers when API is not defined' do
+        # Ensure PostsController is loaded
+        expect(PostsController.name).to eq('PostsController')
+        hide_const('ActionController::API')
+        controllers = introspector.send(:discover_controllers)
+        expect(controllers).to include(PostsController)
+      end
+    end
   end
 end

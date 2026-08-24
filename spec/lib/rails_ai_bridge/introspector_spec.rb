@@ -163,4 +163,65 @@ RSpec.describe RailsAiBridge::Introspector do
       end
     end
   end
+
+  describe '#selected_introspectors' do
+    it 'returns all effective introspectors when only is nil' do
+      expect(introspector.selected_introspectors(nil)).to eq(RailsAiBridge.configuration.effective_introspectors)
+    end
+
+    it 'filters to only requested introspectors that are in the allowed set' do
+      allowed = RailsAiBridge.configuration.effective_introspectors
+      target = allowed.first
+      result = introspector.selected_introspectors([target])
+      expect(result).to eq([target])
+    end
+
+    it 'returns empty array when only contains no allowed introspectors' do
+      result = introspector.selected_introspectors(%i[nonexistent fake])
+      expect(result).to eq([])
+    end
+
+    it 'includes additional_introspectors keys in allowed set' do
+      custom = Class.new do
+        def initialize(_app); end
+
+        def call = {}
+      end
+      saved = RailsAiBridge.configuration.additional_introspectors.dup
+      RailsAiBridge.configuration.additional_introspectors[:my_custom] = custom
+
+      result = introspector.selected_introspectors([:my_custom])
+      expect(result).to include(:my_custom)
+    ensure
+      RailsAiBridge.configuration.additional_introspectors.replace(saved)
+    end
+  end
+
+  describe '#resolve_introspector' do
+    it 'raises ConfigurationError for unknown introspector' do
+      expect { introspector.resolve_introspector(:nonexistent) }
+        .to raise_error(RailsAiBridge::ConfigurationError, /Unknown introspector/)
+    end
+
+    it 'resolves additional_introspectors before builtins' do
+      custom = Class.new do
+        def initialize(_app); end
+
+        def call = {}
+      end
+      saved = RailsAiBridge.configuration.additional_introspectors.dup
+      RailsAiBridge.configuration.additional_introspectors[:schema] = custom
+
+      expect(introspector.resolve_introspector(:schema)).to be_a(custom)
+    ensure
+      RailsAiBridge.configuration.additional_introspectors.replace(saved)
+    end
+  end
+
+  describe '#app_name' do
+    it 'returns the application module name' do
+      expect(introspector.app_name).to be_a(String)
+      expect(introspector.app_name).not_to be_empty
+    end
+  end
 end

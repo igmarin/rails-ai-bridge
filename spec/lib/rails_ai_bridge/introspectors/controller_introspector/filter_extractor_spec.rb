@@ -177,4 +177,137 @@ RSpec.describe RailsAiBridge::Introspectors::ControllerIntrospector::FilterExtra
         .not_to include('authenticate_user!')
     end
   end
+
+  describe 'private method edge cases' do
+    describe '#controller_actions' do
+      it 'returns empty array when controller does not respond to action_methods' do
+        ctrl = Object.new
+        extractor = described_class.new(ctrl)
+        expect(extractor.send(:controller_actions)).to eq([])
+      end
+
+      it 'returns empty array on error' do
+        ctrl = double('Ctrl')
+        allow(ctrl).to receive(:action_methods).and_raise(StandardError, 'actions error')
+        extractor = described_class.new(ctrl)
+        expect(extractor.send(:controller_actions)).to eq([])
+      end
+    end
+
+    describe '#controller_lineage' do
+      it 'returns only the controller when it is not a Class' do
+        ctrl = Object.new
+        extractor = described_class.new(ctrl)
+        expect(extractor.send(:controller_lineage)).to eq([ctrl])
+      end
+    end
+
+    describe '#safe_callbacks' do
+      it 'returns empty array on error' do
+        klass = double('Klass')
+        allow(klass).to receive(:_process_action_callbacks).and_raise(StandardError, 'callbacks error')
+        extractor = described_class.new(Object.new)
+        expect(extractor.send(:safe_callbacks, klass)).to eq([])
+      end
+    end
+
+    describe '#framework_controller?' do
+      it 'returns true for ActionController::Base' do
+        extractor = described_class.new(ApplicationController)
+        expect(extractor.send(:framework_controller?, ActionController::Base)).to be true
+      end
+
+      it 'returns true for nil name' do
+        anon = Class.new
+        extractor = described_class.new(ApplicationController)
+        expect(extractor.send(:framework_controller?, anon)).to be true
+      end
+
+      it 'returns false for user-defined controllers' do
+        extractor = described_class.new(ApplicationController)
+        expect(extractor.send(:framework_controller?, PostsController)).to be false
+      end
+    end
+
+    describe '#extract_action_conditions with nil' do
+      it 'returns empty array for nil conditions' do
+        extractor = described_class.new(ApplicationController)
+        expect(extractor.send(:extract_action_conditions, nil)).to eq([])
+      end
+    end
+
+    describe '#parse_action_condition with ActionFilter' do
+      it 'extracts actions from ActionFilter object' do
+        condition = double('ActionFilter')
+        allow(condition).to receive(:instance_variable_defined?).with(:@actions).and_return(true)
+        allow(condition).to receive(:instance_variable_get).with(:@actions).and_return(%i[index show])
+        extractor = described_class.new(ApplicationController)
+        expect(extractor.send(:parse_action_condition, condition)).to eq(%w[index show])
+      end
+
+      it 'returns nil when condition has no @actions and no action_name match' do
+        condition = double('Condition')
+        allow(condition).to receive(:instance_variable_defined?).with(:@actions).and_return(false)
+        allow(condition).to receive(:to_s).and_return('some_condition?')
+        extractor = described_class.new(ApplicationController)
+        expect(extractor.send(:parse_action_condition, condition)).to be_nil
+      end
+    end
+
+    describe '#included_in_effective_chain? with empty child chain' do
+      it 'returns true when child chain is empty' do
+        ctrl = Object.new
+        ctrl.define_singleton_method(:_process_action_callbacks) { [] }
+        extractor = described_class.new(ctrl)
+        callback = TestHelpers.build_callback(filter: :test_filter, kind: :before)
+        expect(extractor.send(:included_in_effective_chain?, callback)).to be true
+      end
+    end
+
+    describe '#inherited_into_child_chain? edge cases' do
+      it 'returns false when controller is not a Class' do
+        ctrl = Object.new
+        extractor = described_class.new(ctrl)
+        expect(extractor.send(:inherited_into_child_chain?)).to be false
+      end
+
+      it 'returns false when parent does not respond to _process_action_callbacks' do
+        ctrl = Class.new do
+          def self.name
+            'TestNoCallbacksParent'
+          end
+        end
+        extractor = described_class.new(ctrl)
+        expect(extractor.send(:inherited_into_child_chain?)).to be false
+      end
+
+      it 'returns false when parent chain is empty' do
+        parent = Class.new(ApplicationController) do
+          def self.name
+            'EmptyChainParent'
+          end
+        end
+        allow(parent).to receive(:_process_action_callbacks).and_return([])
+        ctrl = Class.new(parent) do
+          def self.name
+            'EmptyChainChild'
+          end
+        end
+        allow(ctrl).to receive(:_process_action_callbacks).and_return([])
+        extractor = described_class.new(ctrl)
+        expect(extractor.send(:inherited_into_child_chain?)).to be false
+      end
+    end
+
+    describe '#source_class_name with framework controller owner' do
+      it 'returns nil when the callback owner is a framework controller' do
+        extractor = described_class.new(ApplicationController)
+        # ActionController::Base is a framework controller
+        callback = TestHelpers.build_callback(filter: :test_filter, kind: :before)
+        allow(ActionController::Base).to receive(:_process_action_callbacks).and_return([callback])
+        result = extractor.send(:source_class_name, callback)
+        expect(result).to be_nil
+      end
+    end
+  end
 end

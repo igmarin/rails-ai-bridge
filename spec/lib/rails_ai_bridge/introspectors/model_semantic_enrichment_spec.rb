@@ -112,5 +112,40 @@ RSpec.describe RailsAiBridge::Introspectors::ModelSemanticEnrichment do
       allow(adapter).to receive(:get_declaration).and_raise(StandardError)
       expect(instance.send(:calculate_complexity_score, model)).to be_nil
     end
+
+    it 'calculates score with nil definitions, ancestors, and descendants' do
+      decl = { type: 'class' }
+      allow(adapter).to receive(:get_declaration).with('User').and_return(decl)
+      expect(instance.send(:calculate_complexity_score, model)).to eq(0)
+    end
+  end
+
+  describe '#extract_semantic_summary edge cases' do
+    it 'handles nil definitions, ancestors, and descendants' do
+      decl = { type: 'class' }
+      allow(adapter).to receive(:get_declaration).with('User').and_return(decl)
+      summary = instance.send(:extract_semantic_summary, model)
+      expect(summary).to eq('class with 0 definitions')
+    end
+
+    it 'includes ancestors when present' do
+      decl = { type: 'class', ancestors: ['ApplicationRecord'] }
+      allow(adapter).to receive(:get_declaration).with('User').and_return(decl)
+      summary = instance.send(:extract_semantic_summary, model)
+      expect(summary).to include('inherits from ApplicationRecord')
+    end
+  end
+
+  describe '#find_similar_models with many results' do
+    it 'caps at 10 results' do
+      many = (1..15).map { |i| "Model#{i}" }
+      allow(adapter).to receive(:ancestors).with('User').and_return(['ApplicationRecord'])
+      allow(adapter).to receive(:descendants).with('ApplicationRecord').and_return(['User'] + many)
+      allow(adapter).to receive(:descendants).with('User').and_return([])
+
+      result = instance.send(:find_similar_models, model)
+      expect(result).to be_an(Array)
+      expect(result.size).to eq(10)
+    end
   end
 end

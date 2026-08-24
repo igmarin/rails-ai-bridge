@@ -39,7 +39,8 @@ RSpec.describe RailsAiBridge::Introspectors::StimulusIntrospector do
       end
 
       after do
-        FileUtils.rm_rf(Rails.root.join('app/javascript').to_s)
+        FileUtils.rm_f(File.join(controllers_dir, 'hello_controller.js'))
+        FileUtils.rmdir(controllers_dir) if File.directory?(controllers_dir) && Dir.empty?(controllers_dir)
       end
 
       it 'discovers controllers' do
@@ -101,7 +102,8 @@ RSpec.describe RailsAiBridge::Introspectors::StimulusIntrospector do
       end
 
       after do
-        FileUtils.rm_rf(Rails.root.join('app/javascript').to_s)
+        FileUtils.rm_f(File.join(controllers_dir, 'search_controller.js'))
+        FileUtils.rmdir(controllers_dir) if File.directory?(controllers_dir) && Dir.empty?(controllers_dir)
       end
 
       it 'extracts async methods as actions' do
@@ -117,37 +119,109 @@ RSpec.describe RailsAiBridge::Introspectors::StimulusIntrospector do
       end
     end
 
-    context 'when app/javascript/controllers is configured to a custom directory' do
-      let(:custom_context) do
-        root_path = Dir.mktmpdir('rails-ai-bridge-stimulus-paths')
-        root = Pathname.new(root_path)
-        controllers_dir = root.join('frontend/controllers')
-        app = double('Rails::Application', root:, paths: { 'app/javascript/controllers' => [controllers_dir.to_s] })
-
-        { root_path:, controllers_dir:, introspector: described_class.new(app) }
-      end
-
-      after { FileUtils.rm_rf(custom_context[:root_path]) }
+    context 'when a controller file raises an error during parsing' do
+      let(:controllers_dir) { Rails.root.join('app/javascript/controllers').to_s }
+      let(:bad_file) { File.join(controllers_dir, 'broken_controller.js') }
 
       before do
-        FileUtils.mkdir_p(custom_context[:controllers_dir].join('admin'))
-        File.write(custom_context[:controllers_dir].join('admin/filter_controller.ts'), <<~TS)
-          export default class extends Controller {
-            static targets = ["query"]
+        FileUtils.mkdir_p(controllers_dir)
+        File.write(bad_file, 'valid content')
+        allow(File).to receive(:read).and_call_original
+        allow(File).to receive(:read).with(bad_file).and_raise(StandardError, 'read error')
+      end
 
-            apply() {
-              this.queryTarget.value = ""
+      after do
+        FileUtils.rm_f(bad_file)
+        FileUtils.rmdir(controllers_dir) if File.directory?(controllers_dir) && Dir.empty?(controllers_dir)
+      end
+
+      it 'returns an error entry for the broken controller' do
+        result = introspector.call
+        controller = result[:controllers].first
+        expect(controller[:name]).to eq('broken_controller.js')
+        expect(controller[:error]).to eq('read error')
+      end
+    end
+
+    context 'when a controller has no static targets/values/outlets/classes' do
+      let(:controllers_dir) { Rails.root.join('app/javascript/controllers').to_s }
+
+      before do
+        FileUtils.mkdir_p(controllers_dir)
+        File.write(File.join(controllers_dir, 'minimal_controller.js'), <<~JS)
+          import { Controller } from "@hotwired/stimulus"
+
+          export default class extends Controller {
+            connect() {
+              console.log("connected")
+            }
+          }
+        JS
+      end
+
+      after do
+        FileUtils.rm_f(File.join(controllers_dir, 'minimal_controller.js'))
+        FileUtils.rmdir(controllers_dir) if File.directory?(controllers_dir) && Dir.empty?(controllers_dir)
+      end
+
+      it 'returns empty arrays and hashes for missing static declarations' do
+        result = introspector.call
+        controller = result[:controllers].first
+        expect(controller[:targets]).to eq([])
+        expect(controller[:values]).to eq({})
+        expect(controller[:outlets]).to eq([])
+        expect(controller[:classes]).to eq([])
+      end
+
+      it 'does not include connect as an action' do
+        result = introspector.call
+        expect(result[:controllers].first[:actions]).not_to include('connect')
+      end
+    end
+
+    context 'when the glob raises an error' do
+      it 'returns an error hash' do
+        bad_resolver = double('PathResolver')
+        allow(bad_resolver).to receive(:glob_for).and_raise(StandardError, 'glob failure')
+        introspector = described_class.new(Rails.application)
+        introspector.instance_variable_set(:@path_resolver, bad_resolver)
+        result = introspector.call
+        expect(result[:error]).to eq('glob failure')
+      end
+    end
+
+    context 'with a TypeScript controller' do
+      let(:controllers_dir) { Rails.root.join('app/javascript/controllers').to_s }
+
+      before do
+        FileUtils.mkdir_p(controllers_dir)
+        File.write(File.join(controllers_dir, 'ts_controller.ts'), <<~TS)
+          import { Controller } from "@hotwired/stimulus"
+
+          export default class extends Controller {
+            static targets = ["input"]
+            static values = { name: String }
+
+            submit() {
+              this.inputTarget.value = ""
             }
           }
         TS
       end
 
-      it 'discovers controllers from the configured JavaScript controllers path' do
-        controllers = custom_context[:introspector].call[:controllers]
+      after do
+        FileUtils.rm_f(File.join(controllers_dir, 'ts_controller.ts'))
+        FileUtils.rmdir(controllers_dir) if File.directory?(controllers_dir) && Dir.empty?(controllers_dir)
+      end
 
-        expect(controllers).to include(
-          a_hash_including(name: 'admin-filter', file: 'admin/filter_controller.ts', targets: ['query'], actions: ['apply'])
-        )
+      it 'discovers and parses TypeScript controllers' do
+        result = introspector.call
+        controller = result[:controllers].first
+        expect(controller[:name]).to eq('ts')
+        expect(controller[:file]).to eq('ts_controller.ts')
+        expect(controller[:targets]).to eq(['input'])
+        expect(controller[:values]).to eq('name' => 'String')
+        expect(controller[:actions]).to include('submit')
       end
     end
   end
