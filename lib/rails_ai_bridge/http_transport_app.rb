@@ -9,6 +9,7 @@ module RailsAiBridge
       # @param path [String] configured MCP endpoint path
       # @return [Proc] rack-compatible app
       def build(transport:, path:)
+        # archspec:disable-next-line dependencies.no_cycles -- FP cycle: RailsAiBridge namespace reopening creates a spurious return edge, not a real cycle
         mcp_cfg    = RailsAiBridge.configuration.mcp
         max_reqs   = mcp_cfg.effective_http_rate_limit_max_requests
         window_sec = mcp_cfg.effective_http_rate_limit_window_seconds

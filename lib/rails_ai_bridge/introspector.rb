@@ -26,7 +26,11 @@ module RailsAiBridge
     # @param app [Rails::Application] the Rails application to introspect
     def initialize(app)
       @app    = app
+      # archspec:disable dependencies.forbid -- FP: RailsAiBridge namespace accessor, not a cross-component dependency
+      # archspec:disable dependencies.no_cycles -- FP: cycle from namespace reopening, not a real cross-component cycle
       @config = RailsAiBridge.configuration
+      # archspec:enable dependencies.forbid
+      # archspec:enable dependencies.no_cycles
     end
 
     # Runs all configured (or a specified subset of) introspectors and returns

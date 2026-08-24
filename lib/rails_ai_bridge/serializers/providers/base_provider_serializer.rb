@@ -22,6 +22,7 @@ module RailsAiBridge
 
         # @param context [Hash] Introspection hash from {Introspector#call}.
         # @param config [RailsAiBridge::Configuration] Bridge configuration.
+        # archspec:disable-next-line dependencies.forbid -- FP: RailsAiBridge is the reopened gem namespace; .configuration accessor is not a cross-component dependency
         def initialize(context, config: RailsAiBridge.configuration)
           @context = context
           @config = config

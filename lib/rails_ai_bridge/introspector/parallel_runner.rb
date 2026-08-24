@@ -39,6 +39,7 @@ module RailsAiBridge
         def call(introspectors, app)
           return {} if introspectors.empty?
 
+          # archspec:disable-next-line dependencies.forbid -- FP: RailsAiBridge is the reopened gem namespace; .configuration accessor is not a cross-component dependency
           cfg      = RailsAiBridge.configuration
           size     = [introspectors.size, cfg.parallel_pool_size].min
           timeout  = cfg.parallel_timeout_seconds

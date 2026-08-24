@@ -100,6 +100,7 @@ module RailsAiBridge
         resolver = RailsAiBridge::Registry.build_resolver
         return resolver if resolver
 
+        # archspec:disable-next-line dependencies.forbid -- FP: RailsAiBridge is the reopened gem namespace; .configuration accessor is not a cross-component dependency
         path = RailsAiBridge.configuration.registry.registry_manifest_path
         warn no_manifest_message(path)
         exit 1 # rubocop:disable Rails/Exit

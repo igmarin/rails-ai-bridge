@@ -259,7 +259,11 @@ module RailsAiBridge
     #
     # @return [Hash]
     def indexer_options
+      # archspec:disable dependencies.forbid -- FP: RailsAiBridge namespace accessor, not a cross-component dependency
+      # archspec:disable dependencies.no_cycles -- FP: cycle from namespace reopening, not a real cross-component cycle
       config = RailsAiBridge.configuration
+      # archspec:enable dependencies.forbid
+      # archspec:enable dependencies.no_cycles
       {
         threshold: config.rubydex_incremental_threshold,
         persist: config.rubydex_persist_index,

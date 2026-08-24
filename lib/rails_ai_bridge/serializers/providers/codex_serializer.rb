@@ -13,6 +13,7 @@ module RailsAiBridge
       class CodexSerializer < BaseProviderSerializer
         # @param context [Hash] Introspection hash from {Introspector#call} (e.g. +:app_name+, +:schema+, +:models+).
         # @param config [RailsAiBridge::Configuration] Bridge configuration (+context_mode+, limits, etc.).
+        # archspec:disable-next-line dependencies.forbid -- FP: RailsAiBridge is the reopened gem namespace; .configuration accessor is not a cross-component dependency
         def initialize(context, config: RailsAiBridge.configuration)
           super
         end

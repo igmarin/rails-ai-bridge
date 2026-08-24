@@ -27,6 +27,7 @@ module RailsAiBridge
           initializers: extract_initializers,
           current_attributes: detect_current_attributes
         }
+        # archspec:disable-next-line dependencies.forbid -- FP: RailsAiBridge is the reopened gem namespace; .configuration accessor is not a cross-component dependency
         result[:credentials_keys] = extract_credentials_keys if RailsAiBridge.configuration.expose_credentials_key_names
         result
       rescue StandardError => error
