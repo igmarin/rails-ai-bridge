@@ -63,18 +63,22 @@ module RailsAiBridge
       validate_generate_context_options!(options)
 
       app ||= AppScope.current_app
-      build_context_serializer(introspect(app), options).call
+      AppScope.with_app(app) do
+        build_context_serializer(introspect(app), options).call
+      end
     end
 
     # Start the MCP server programmatically
     #
-    # @param app [Rails::Application, nil] app to serve, defaults to Rails.application
+    # @param app [Rails::Application, nil] app to serve, defaults to {AppScope.current_app}
     # @param transport [Symbol] transport type (:stdio or :http)
     # @return [void]
     # @raise [RailsAiBridge::ConfigurationError] when HTTP transport is unsafe in production
     def start_mcp_server(app = nil, transport: :stdio)
       app ||= AppScope.current_app
-      Server.new(app, transport: transport).start
+      AppScope.with_app(app) do
+        Server.new(app, transport: transport).start
+      end
     end
 
     # Raises {ConfigurationError} if +auto_mount+ is enabled in production without explicit opt-in and token.

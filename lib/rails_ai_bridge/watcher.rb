@@ -14,8 +14,11 @@ module RailsAiBridge
     attr_reader :app
 
     # @param app [Rails::Application, nil] defaults to {AppScope.current_app}
+    # @raise [ArgumentError] when no application is available
     def initialize(app = nil)
       @app = app || AppScope.current_app
+      raise ArgumentError, 'No Rails application available — pass an app or set AppScope' unless @app
+
       @regenerator = BridgeRegenerator.new(@app)
     end
 

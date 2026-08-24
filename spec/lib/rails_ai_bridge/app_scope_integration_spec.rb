@@ -84,6 +84,12 @@ RSpec.describe 'AppScope consumer integration' do
       end
       expect(watcher.app).to eq(fake_app)
     end
+
+    it 'raises ArgumentError when no app is available' do
+      allow(RailsAiBridge::AppScope).to receive(:current_app).and_return(nil)
+
+      expect { RailsAiBridge::Watcher.new }.to raise_error(ArgumentError, /No Rails application available/)
+    end
   end
 
   describe 'RailsAiBridge.introspect' do
@@ -94,6 +100,19 @@ RSpec.describe 'AppScope consumer integration' do
       RailsAiBridge::AppScope.with_app(fake_app) do
         RailsAiBridge.introspect
       end
+    end
+  end
+
+  describe 'RailsAiBridge.generate_context' do
+    it 'wraps serialization in AppScope.with_app so serializers see the same app' do
+      introspector = instance_double(RailsAiBridge::Introspector, call: {})
+      allow(RailsAiBridge::Introspector).to receive(:new).with(fake_app).and_return(introspector)
+      serializer = instance_double(RailsAiBridge::Serializers::ContextFileSerializer, call: { written: [], skipped: [] })
+      allow(RailsAiBridge::Serializers::ContextFileSerializer).to receive(:new).and_return(serializer)
+
+      expect(RailsAiBridge::AppScope).to receive(:with_app).with(fake_app).and_call_original
+
+      RailsAiBridge.generate_context(fake_app)
     end
   end
 

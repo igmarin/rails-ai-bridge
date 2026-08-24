@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **AppScope runtime seam** — `RailsAiBridge::AppScope` provides a thread-local application scope (`with_app(app) { ... }` / `current_app`) so that CLI, tests, and standalone processes can scope a different app without hardcoding `Rails.application`. Defaults to `Rails.application` for backward compatibility. All MCP tools, `ContextProvider`, `Resources`, `CacheWarmer`, `Doctor`, `Watcher`, serializers, and the public API (`introspect`, `generate_context`, `start_mcp_server`) now resolve the app through `AppScope.current_app`.
+- **Watcher nil-app guard** — `Watcher#initialize` now raises `ArgumentError` when no application is available instead of storing `nil` and failing later with `NoMethodError` on `app.root`.
 
 ### Changed
 

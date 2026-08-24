@@ -26,6 +26,11 @@ module RailsAiBridge
 
     private
 
+    # The transport is memoized because it is expensive to create and bound to
+    # the process-wide application. In Rails-hosted mode, AppScope.current_app
+    # always resolves to Rails.application. In standalone mode, the CLI sets
+    # the scope before starting the server, so the first resolution is correct
+    # for the process lifetime.
     def transport
       @mutex.synchronize do
         @transport ||= begin
