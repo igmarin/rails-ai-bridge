@@ -9,9 +9,11 @@ module RailsAiBridge
     # annotations, and protocol compliance for free.
     class BaseTool < MCP::Tool
       class << self
-        # @return [Rails::Application] the host Rails application
+        # @return [Rails::Application] the host Rails application, resolved
+        #   through {AppScope} so CLI, tests, and standalone processes can
+        #   scope a different app without global leakage.
         def rails_app
-          Rails.application
+          AppScope.current_app
         end
 
         # @return [RailsAiBridge::Configuration] gem configuration

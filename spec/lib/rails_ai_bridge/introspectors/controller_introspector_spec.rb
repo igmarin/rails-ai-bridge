@@ -151,7 +151,8 @@ RSpec.describe RailsAiBridge::Introspectors::ControllerIntrospector do
         root = Pathname.new(root_path)
         controllers_dir = root.join('domain/controllers')
         constant_name = "CustomPathReports#{SecureRandom.hex(4).camelize}Controller"
-        app = double('Rails::Application', root:, paths: { 'app/controllers' => [controllers_dir.to_s] })
+        app = double('Rails::Application', root:, paths: { 'app/controllers' => [controllers_dir.to_s] },
+                                           config: double('Rails::Configuration', eager_load: true), eager_load!: nil)
 
         {
           root_path: root_path,

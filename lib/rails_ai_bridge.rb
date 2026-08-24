@@ -42,7 +42,7 @@ module RailsAiBridge
     # @param only [Array<Symbol>, nil] optional subset of introspector keys to run
     # @return [Hash] introspection payload with enabled sections
     def introspect(app = nil, only: nil)
-      app ||= Rails.application
+      app ||= AppScope.current_app
       Introspector.new(app).call(only: only)
     end
 
@@ -62,19 +62,23 @@ module RailsAiBridge
     def generate_context(app = nil, **options)
       validate_generate_context_options!(options)
 
-      app ||= Rails.application
-      build_context_serializer(introspect(app), options).call
+      app ||= AppScope.current_app
+      AppScope.with_app(app) do
+        build_context_serializer(introspect(app), options).call
+      end
     end
 
     # Start the MCP server programmatically
     #
-    # @param app [Rails::Application, nil] app to serve, defaults to Rails.application
+    # @param app [Rails::Application, nil] app to serve, defaults to {AppScope.current_app}
     # @param transport [Symbol] transport type (:stdio or :http)
     # @return [void]
     # @raise [RailsAiBridge::ConfigurationError] when HTTP transport is unsafe in production
     def start_mcp_server(app = nil, transport: :stdio)
-      app ||= Rails.application
-      Server.new(app, transport: transport).start
+      app ||= AppScope.current_app
+      AppScope.with_app(app) do
+        Server.new(app, transport: transport).start
+      end
     end
 
     # Raises {ConfigurationError} if +auto_mount+ is enabled in production without explicit opt-in and token.

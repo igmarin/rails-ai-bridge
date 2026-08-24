@@ -51,12 +51,12 @@ module RailsAiBridge
       def call
         formats = format == :all ? FORMAT_MAP.keys : Array(format)
         # archspec:disable-next-line dependencies.forbid -- FP: RailsAiBridge is the reopened gem namespace; .configuration accessor is not a cross-component dependency
-        output_dir = RailsAiBridge.configuration.output_dir_for(Rails.application)
+        output_dir = RailsAiBridge.configuration.output_dir_for(AppScope.current_app)
         written = []
         skipped = []
 
         timestamp_now = Time.now.utc.iso8601
-        fingerprint = Fingerprinter.source_fingerprint(Rails.application)
+        fingerprint = Fingerprinter.source_fingerprint(AppScope.current_app)
 
         formats.each do |fmt|
           process_format(fmt, output_dir, timestamp_now, fingerprint, written, skipped)

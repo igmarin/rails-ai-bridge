@@ -147,9 +147,10 @@ module RailsAiBridge
 
       # @return [String, nil] absolute path to overrides file if Rails app is available
       def resolved_assistant_overrides_path
-        return nil unless defined?(Rails) && Rails.application
+        app = AppScope.current_app
+        return nil unless app
 
-        base = Rails.application.root.to_s
+        base = app.root.to_s
         # archspec:disable-next-line dependencies.forbid -- FP: RailsAiBridge is the reopened gem namespace; .configuration accessor is not a cross-component dependency
         cfg = RailsAiBridge.configuration
         raw = cfg.assistant_overrides_path

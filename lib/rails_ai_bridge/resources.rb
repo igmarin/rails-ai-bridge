@@ -318,8 +318,12 @@ module RailsAiBridge
       # Handles security errors and missing files gracefully.
       # @param path [String] relative path to view file
       # @return [Hash] view analysis or error hash
+      # :reek:TooManyStatements -- nil guard adds one statement over threshold
       def read_view_resource(path)
-        ViewFileAnalyzer.call(root: Rails.root, app: Rails.application, relative_path: path)
+        app = AppScope.current_app
+        return { error: 'No Rails application available' } unless app
+
+        ViewFileAnalyzer.call(root: app.root, app: app, relative_path: path)
       rescue SecurityError => error
         { error: error.message }
       rescue Errno::ENOENT

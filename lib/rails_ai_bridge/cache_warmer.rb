@@ -13,7 +13,8 @@ module RailsAiBridge
       #
       # @param app [Rails::Application]
       # @return [void]
-      def warm(app = Rails.application)
+      def warm(app = nil)
+        app ||= AppScope.current_app
         ContextProvider.fetch(app)
       rescue StandardError => error
         log_warning("cache warming failed: #{error.message}")
@@ -24,7 +25,8 @@ module RailsAiBridge
       # @param sections [Array<Symbol>] introspector keys to warm
       # @param app [Rails::Application]
       # @return [void]
-      def warm_sections(sections, app = Rails.application)
+      def warm_sections(sections, app = nil)
+        app ||= AppScope.current_app
         sections.each do |section|
           ContextProvider.fetch_section(section, app)
         rescue StandardError => error
