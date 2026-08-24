@@ -27,12 +27,13 @@ jobs:
           - ruby: "3.2"
             rails: "8.1"
         include:
-          # Canary: Ruby 4.0 preview on newest Rails. Non-blocking.
+          # Ruby 4.0 compatibility canary on newest Rails. Non-blocking.
           - ruby: "4.0"
             rails: "8.1"
             canary: true
 
     name: Ruby ${{ matrix.ruby }} / Rails ${{ matrix.rails }}${{ matrix.canary && ' (canary)' || '' }}
+    continue-on-error: ${{ matrix.canary == true }}
 
     env:
       RAILS_VERSION: ${{ matrix.rails }}
@@ -51,7 +52,6 @@ jobs:
 
       - name: Run specs
         run: bundle exec rspec
-        continue-on-error: ${{ matrix.canary == true }}
 
       - name: Run RuboCop
         run: bundle exec rubocop --parallel
