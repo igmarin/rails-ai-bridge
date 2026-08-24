@@ -47,6 +47,22 @@ RSpec.describe 'Static mode introspection' do
 
       expect(result[:static_mode]).to be(true)
     end
+
+    it 'detects Rails version from Gemfile.lock including prerelease suffixes' do
+      File.write(root_path.join('Gemfile.lock'), <<~TEXT)
+        GEM
+          remote: https://rubygems.org/
+          specs:
+            rails (8.1.0.rc1)
+
+        DEPENDENCIES
+          rails (~> 8.1.0.rc1)
+      TEXT
+
+      result = RailsAiBridge::Introspector.new(static_app).call(only: %i[schema])
+
+      expect(result[:rails_version]).to eq('8.1.0.rc1')
+    end
   end
 
   describe 'RailsAiBridge.introspect with StaticApp via AppScope' do
