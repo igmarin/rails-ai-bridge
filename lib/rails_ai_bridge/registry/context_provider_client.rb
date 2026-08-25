@@ -66,6 +66,7 @@ module RailsAiBridge
       def close_transport(transport)
         transport&.close
       rescue StandardError
+        # Intentionally swallow close failures so the original result is preserved.
         nil
       end
 

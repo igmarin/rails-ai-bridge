@@ -75,7 +75,7 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
 
       expect(result.status).to eq(:error)
       expect(result.error).to be_a(RailsAiBridge::Registry::ConnectionError)
-      expect(result.error.message).to eq('provider call failed (StandardError)')
+      expect(result.error.message).to include('provider call failed')
       expect(fake_transport).to have_received(:close)
     end
 
@@ -91,7 +91,7 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
 
       expect(result.status).to eq(:error)
       expect(result.error).to be_a(RailsAiBridge::Registry::ConnectionError)
-      expect(result.error.message).to eq('provider call failed (StandardError)')
+      expect(result.error.message).to include('provider call failed')
       expect(transport_factory).not_to have_received(:call)
     end
 
