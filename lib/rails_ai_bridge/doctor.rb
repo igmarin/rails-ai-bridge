@@ -61,21 +61,26 @@ module RailsAiBridge
     # @return [Hash] diagnostic result with `:checks` and `:score`
     def run
       results = CHECKS.map { |name, checker_class| run_check(name, checker_class) }
-      if boot_result && !boot_result[:success]
-        results.unshift(
-          Check.new(
-            name: 'Rails boot',
-            status: :fail,
-            message: "Rails boot failed (#{boot_result[:error_class]})",
-            fix: nil
-          )
-        )
-      end
+      results.unshift(boot_failure_check) if boot_failed?
       score = compute_score(results)
       { checks: results, score: score }
     end
 
     private
+
+    def boot_failed?
+      boot_result && !boot_result[:success]
+    end
+
+    def boot_failure_check
+      error_class = boot_result[:error_class].presence || 'UnknownError'
+      Check.new(
+        name: 'Rails boot',
+        status: :fail,
+        message: "Rails boot failed (#{error_class})",
+        fix: nil
+      )
+    end
 
     def run_check(name, checker_class)
       unavailable_name = STATIC_UNAVAILABLE_CHECKS[name]

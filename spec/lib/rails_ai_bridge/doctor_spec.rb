@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+require 'fileutils'
+require 'tmpdir'
 
 RSpec.describe RailsAiBridge::Doctor do
   let(:doctor) { described_class.new(Rails.application) }
@@ -100,6 +102,16 @@ RSpec.describe RailsAiBridge::Doctor do
         status: :fail,
         message: 'Rails boot failed (ActiveRecord::ConnectionNotEstablished)'
       )
+    end
+
+    it 'reports an unknown boot error class safely' do
+      static_app = RailsAiBridge::StaticApp.new(static_root)
+      boot_result = { success: false, error: 'unexpected failure', error_class: nil }
+
+      current = described_class.new(static_app, boot_result: boot_result).run
+      boot_check = current[:checks].find { |check| check.name == 'Rails boot' }
+
+      expect(boot_check.message).to eq('Rails boot failed (UnknownError)')
     end
 
     it 'runs Doctor through boot and static fallback' do
