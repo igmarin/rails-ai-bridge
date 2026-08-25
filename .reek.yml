@@ -35,6 +35,11 @@ detectors:
     - RailsAiBridge::Config::Mcp#require_http_auth
     - RailsAiBridge::Config::Mcp#security_profile
     - RailsAiBridge::Config::Mcp#tool_result_cache_ttl
+    - RailsAiBridge::Config::ContextProviders#allow_private_networks
+    - RailsAiBridge::Config::ContextProviders#allowed_hosts
+    - RailsAiBridge::Config::ContextProviders#allowed_loopback_ports
+    - RailsAiBridge::Config::ContextProviders#auth_resolver
+    - RailsAiBridge::Config::ContextProviders#enabled
     - RailsAiBridge::Config::Output#anti_hallucination_rules
     - RailsAiBridge::Config::Output#assistant_overrides_path
     - RailsAiBridge::Config::Output#claude_max_lines
@@ -660,6 +665,7 @@ detectors:
     - RailsAiBridge::Server
   TooManyInstanceVariables:
     exclude:
+    - RailsAiBridge::Config::ContextProviders
     - RailsAiBridge::Config::Introspection
     - RailsAiBridge::Config::Mcp
     - RailsAiBridge::Config::Output
