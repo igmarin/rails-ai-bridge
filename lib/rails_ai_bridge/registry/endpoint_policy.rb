@@ -47,7 +47,7 @@ module RailsAiBridge
       #   addresses, or a failure result with a {PolicyError}
       def call(endpoint)
         uri = URI.parse(endpoint)
-        scheme = uri.scheme
+        scheme = uri.scheme.to_s.downcase
         raw_host = uri.host
 
         return failure("unsupported scheme #{scheme.inspect}") unless %w[https http].include?(scheme)
