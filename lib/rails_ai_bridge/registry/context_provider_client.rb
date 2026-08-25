@@ -11,7 +11,7 @@ module RailsAiBridge
       # Result of a single provider tool call.
       #
       # @!attribute status
-      #   @return [Symbol] one of :success, :partial_failure, :error
+      #   @return [Symbol] one of :success, :error
       # @!attribute content
       #   @return [Object, nil] normalized tool result content when successful
       # @!attribute provenance
@@ -57,8 +57,10 @@ module RailsAiBridge
           Result.new(status: :success, content: content, provenance: provenance_for(canonical_uri), error: nil)
         rescue RailsAiBridge::Registry::ContextProviderError => error
           Result.new(status: :error, error: error)
+        rescue Timeout::Error
+          Result.new(status: :error, error: RailsAiBridge::Registry::TimeoutError.new('provider call timed out'))
         rescue StandardError => error
-          Result.new(status: :error, error: ConnectionError.new("provider call failed (#{error.class})"))
+          Result.new(status: :error, error: RailsAiBridge::Registry::ConnectionError.new("provider call failed (#{error.class})"))
         ensure
           close_transport(transport)
         end

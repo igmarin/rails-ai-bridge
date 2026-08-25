@@ -169,7 +169,24 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
       result = policy.call('http://metadata.example.com/some-tool')
 
       expect(result).not_to be_success
-      expect(result.error.message).to eq('plain HTTP is only permitted for loopback or private endpoints')
+      expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
+      expect(result.error.message).to eq('endpoint is not permitted by policy')
+    end
+
+    it 'rejects HTTPS for a link-local address even when private networks are enabled' do
+      policy = described_class.new(
+        resolver: resolver,
+        allowed_hosts: ['metadata.example.com'],
+        allowed_loopback_ports: [3000, 9292],
+        allow_private_networks: true
+      )
+      allow(resolver).to receive(:getaddresses).with('metadata.example.com').and_return(['169.254.169.254'])
+
+      result = policy.call('https://metadata.example.com/some-tool')
+
+      expect(result).not_to be_success
+      expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
+      expect(result.error.message).to eq('endpoint is not permitted by policy')
     end
 
     context 'when the host is on the allowlist' do
@@ -291,7 +308,7 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
       expect(result.error.message).to eq('plain HTTP is only permitted for loopback or private endpoints')
     end
 
-    it 'rejects a host that resolves to a mix of public and private addresses over https' do
+    it 'allows a host that resolves to a mix of public and private addresses over https' do
       policy = described_class.new(
         resolver: resolver,
         allowed_hosts: ['mixed.example.com'],

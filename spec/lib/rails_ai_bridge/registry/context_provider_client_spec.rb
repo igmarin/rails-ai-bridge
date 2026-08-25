@@ -89,6 +89,17 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
       expect(fake_transport).to have_received(:close)
     end
 
+    it 'returns a timeout error when the transport raises Timeout::Error' do
+      allow(fake_transport).to receive(:tools).and_raise(Timeout::Error, 'read timeout')
+
+      result = client.call_tool('get_status', arguments: {})
+
+      expect(result.status).to eq(:error)
+      expect(result.error).to be_a(RailsAiBridge::Registry::TimeoutError)
+      expect(result.error.message).to eq('provider call timed out')
+      expect(fake_transport).to have_received(:close)
+    end
+
     it 'returns an authentication error when the auth resolver fails' do
       client = described_class.new(
         provider: provider,
@@ -159,6 +170,7 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
 
       expect(result.status).to eq(:success)
       expect(result.content).to eq({ 'status' => 'ok' })
+      expect(result.provenance).to eq('https://example.com')
       expect(transport_factory).to have_received(:call).with(
         URI.parse('https://example.com/mcp'),
         ['192.0.2.1'],

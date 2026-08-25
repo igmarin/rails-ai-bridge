@@ -132,7 +132,9 @@ module RailsAiBridge
 
           if ip.loopback?
             @allowed_loopback_ports.include?(uri.port)
-          elsif ip.private? || ip.link_local?
+          elsif ip.link_local?
+            false
+          elsif ip.private?
             @allow_private_networks
           else
             @allowed_hosts.include?(host)
