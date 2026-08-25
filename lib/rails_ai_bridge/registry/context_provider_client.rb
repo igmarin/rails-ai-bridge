@@ -40,15 +40,18 @@ module RailsAiBridge
       def call_tool(tool_name, arguments: {})
         endpoint = @provider.endpoint
         transport = nil
+        tool_label = tool_name.inspect
         begin
           policy_result = @policy.call(endpoint)
           return Result.new(status: :error, error: policy_result.error) unless policy_result.success?
+
+          return Result.new(status: :error, error: RemoteToolError.new("tool #{tool_label} is not declared in the provider manifest")) unless tool_declared?(tool_name)
 
           canonical_uri = policy_result.uri
           headers = resolve_auth(endpoint, canonical_uri)
           transport = @transport_factory.call(canonical_uri, policy_result.addresses, headers)
           remote_tool = find_tool(transport, tool_name)
-          return Result.new(status: :error, error: RemoteToolError.new("tool #{tool_name.inspect} is not allowed")) unless remote_tool
+          return Result.new(status: :error, error: RemoteToolError.new("tool #{tool_label} is not allowed")) unless remote_tool
 
           content = transport.call_tool(name: tool_name, arguments: arguments)
           Result.new(status: :success, content: content, provenance: provenance_for(canonical_uri), error: nil)
@@ -82,6 +85,12 @@ module RailsAiBridge
       rescue StandardError
         # Intentionally swallow close failures so the original result is preserved.
         nil
+      end
+
+      # @param tool_name [String]
+      # @return [Boolean] whether the tool is declared in the provider manifest
+      def tool_declared?(tool_name)
+        @provider.tools.any? { |spec| spec.name == tool_name }
       end
 
       # @param transport [#tools] the active transport

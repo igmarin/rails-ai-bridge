@@ -136,6 +136,18 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
       expect(result.content).to eq({ 'status' => 'ok' })
     end
 
+    it 'rejects a read-only tool that is not declared in the provider manifest' do
+      fake_tool = double('tool', name: 'undeclared_tool', read_only_hint: true, destructive_hint: false)
+      allow(fake_transport).to receive_messages(tools: [fake_tool], call_tool: { 'status' => 'ok' })
+
+      result = client.call_tool('undeclared_tool', arguments: {})
+
+      expect(result.status).to eq(:error)
+      expect(result.error).to be_a(RailsAiBridge::Registry::RemoteToolError)
+      expect(result.error.message).to include('undeclared_tool')
+      expect(transport_factory).not_to have_received(:call)
+    end
+
     it 'calls the remote tool and returns a success result' do
       fake_tool = double('tool', name: 'get_status', read_only_hint: true, destructive_hint: false)
       allow(fake_transport).to receive(:tools).and_return([fake_tool])
