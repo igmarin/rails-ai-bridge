@@ -70,7 +70,7 @@ module RailsAiBridge
         end
       rescue URI::Error
         failure('endpoint is not a valid URL')
-      rescue StandardError
+      rescue Resolv::ResolvError, SocketError, Timeout::Error, IPAddr::Error
         failure('endpoint could not be resolved')
       end
 
@@ -132,11 +132,11 @@ module RailsAiBridge
       end
 
       # @param ip [IPAddr]
-      # @return [Boolean] whether the address is loopback or an allowed private/link-local address
+      # @return [Boolean] whether the address is loopback or an allowed RFC1918 private address
       def local_address?(ip)
         return true if ip.loopback?
 
-        (ip.private? || ip.link_local?) && @allow_private_networks
+        ip.private? && @allow_private_networks
       end
     end
   end

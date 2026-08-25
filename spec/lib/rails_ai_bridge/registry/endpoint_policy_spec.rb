@@ -114,14 +114,45 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
       expect(result.error.message).to eq('endpoint could not be resolved')
     end
 
-    it 'returns a policy error when the resolver raises a generic StandardError' do
-      allow(resolver).to receive(:getaddresses).and_raise(StandardError.new('unexpected resolver failure'))
+    it 'returns a policy error when the resolver raises a timeout error' do
+      allow(resolver).to receive(:getaddresses).and_raise(Timeout::Error.new('resolver timed out'))
 
       result = policy.call('https://example.com/some-tool')
 
       expect(result).not_to be_success
       expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
       expect(result.error.message).to eq('endpoint could not be resolved')
+    end
+
+    it 'rejects an uppercase HTTP scheme for a public host' do
+      policy = described_class.new(
+        resolver: resolver,
+        allowed_hosts: ['example.com'],
+        allowed_loopback_ports: [3000, 9292],
+        allow_private_networks: false
+      )
+      allow(resolver).to receive(:getaddresses).with('example.com').and_return(['192.0.2.1'])
+
+      result = policy.call('HTTP://example.com/some-tool')
+
+      expect(result).not_to be_success
+      expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
+      expect(result.error.message).to eq('plain HTTP is only permitted for loopback or private endpoints')
+    end
+
+    it 'rejects plain HTTP for a link-local address even when private networks are enabled' do
+      policy = described_class.new(
+        resolver: resolver,
+        allowed_hosts: ['metadata.example.com'],
+        allowed_loopback_ports: [3000, 9292],
+        allow_private_networks: true
+      )
+      allow(resolver).to receive(:getaddresses).with('metadata.example.com').and_return(['169.254.169.254'])
+
+      result = policy.call('http://metadata.example.com/some-tool')
+
+      expect(result).not_to be_success
+      expect(result.error.message).to eq('plain HTTP is only permitted for loopback or private endpoints')
     end
 
     context 'when the host is on the allowlist' do
