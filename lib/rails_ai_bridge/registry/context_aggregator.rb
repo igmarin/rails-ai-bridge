@@ -110,6 +110,7 @@ module RailsAiBridge
       # @param provider [ContextProviderDefinition]
       # @param deadline [Float, nil] monotonic clock deadline; nil skips budget checks
       # @return [Hash] with :data and optional :error keys
+      # @api private
       def fetch_provider(name, provider, deadline:)
         validate_no_mapping_collisions!(provider)
         data = {}
