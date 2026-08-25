@@ -89,11 +89,11 @@ module RailsAiBridge
       # @param error [StandardError]
       # @return [void]
       def log_error(error)
-        logger = Rails.logger
+        logger = defined?(Rails) ? Rails.logger : nil
         return unless logger
 
         backtrace = error.backtrace
-        logger.error("#{error.class}: #{error.message}")
+        logger.error("#{error.class}: endpoint could not be resolved")
         logger.error(backtrace.first(5).join("\n")) if backtrace
       end
 
