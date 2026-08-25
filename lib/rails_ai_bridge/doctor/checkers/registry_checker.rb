@@ -229,7 +229,9 @@ module RailsAiBridge
             status: :error,
             content: nil,
             provenance: nil,
-            error: RailsAiBridge::Registry::ConnectionError.new("probe failed (#{error.class}): #{error.message}")
+            error: RailsAiBridge::Registry::ConnectionError.new(
+              "probe failed (#{error.class}): #{RailsAiBridge::Registry::MessageSanitizer.sanitize(error.message)}"
+            )
           )
         end
 

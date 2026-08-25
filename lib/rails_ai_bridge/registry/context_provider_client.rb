@@ -137,19 +137,10 @@ module RailsAiBridge
         "#{uri.scheme}://#{uri.host}"
       end
 
-      # Redacts URLs, paths, and credential-bearing patterns from error
-      # messages before they are included in returned ConnectionError
-      # messages. Prevents raw transport errors from leaking endpoints,
-      # query strings, or file paths into provider error results.
-      #
       # @param message [String] raw error message
-      # @return [String] sanitized message with URLs and paths replaced
+      # @return [String] sanitized message with URLs and paths redacted
       def sanitize_message(message)
-        message.to_s
-               .gsub(%r{https?://[^\s]+}i, '[redacted]')
-               .gsub(%r{(ssh|git|file|ftp|sftp|ws|wss)://[^\s]+}i, '[redacted]')
-               .gsub(/git@[^\s]+/, '[redacted]')
-               .gsub(%r{(?<=\s)/[A-Za-z][^\s]*}, '[redacted]')
+        RailsAiBridge::Registry::MessageSanitizer.sanitize(message)
       end
     end
   end
