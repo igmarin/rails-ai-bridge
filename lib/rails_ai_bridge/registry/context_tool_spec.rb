@@ -36,6 +36,13 @@ module RailsAiBridge
       # :reek:NilCheck -- value-object predicate over an optional attribute
       def mapped? = !field.nil?
 
+      # Returns the context field name the tool result is stored under.
+      # For simple tools this is the tool name; for mapped tools it is the
+      # declared field.
+      #
+      # @return [String]
+      def field_name = simple? ? name : field
+
       # @api private
       def self.from_mapped_json(hash)
         new(

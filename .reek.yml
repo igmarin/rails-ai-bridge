@@ -93,6 +93,7 @@ detectors:
     - RailsAiBridge::Mcp::HttpRateLimiter#initialize
     - RailsAiBridge::ModelSemanticClassifier#classify_with_payload
     - RailsAiBridge::ModelSemanticClassifier#classify_without_payload
+    - RailsAiBridge::Registry::ContextAggregator#aggregate_status
     - RailsAiBridge::Registry::ContextProviderClient#find_tool
     - RailsAiBridge::Registry::PackResolver#initialize
     - RailsAiBridge::Registry::SkillSourceResolver#initialize
@@ -183,6 +184,9 @@ detectors:
     - RailsAiBridge::Mcp::HttpRateLimiter#allow?
     - RailsAiBridge::Mcp::HttpStructuredLog#target_logger
     - RailsAiBridge::ModelSemanticClassifier#call
+    - RailsAiBridge::Registry::ContextAggregator#fetch_all
+    - RailsAiBridge::Registry::ContextAggregator#fetch_provider
+    - RailsAiBridge::Registry::ContextAggregator#fetch_tool
     - RailsAiBridge::Registry::Lockfile#generate
     - RailsAiBridge::Registry::PackResolver#collect_missing_dependencies
     - RailsAiBridge::Registry::PackResolver#gather_active_packs
@@ -317,6 +321,8 @@ detectors:
   FeatureEnvy:
     exclude:
     - RailsAiBridge::Config::Introspection#excluded_table?
+    - RailsAiBridge::Registry::ContextAggregator#fetch_tool
+    - RailsAiBridge::Registry::ContextAggregator#validate_no_mapping_collisions!
     - RailsAiBridge::Introspectors::ActionMailboxIntrospector#extract_mailboxes
     - RailsAiBridge::Introspectors::ActionTextIntrospector#extract_rich_text_fields
     - RailsAiBridge::Introspectors::ActiveStorageIntrospector#extract_attachments
@@ -534,6 +540,7 @@ detectors:
   MissingSafeMethod:
     exclude:
     - RailsAiBridge::AssistantFormatsPreference
+    - RailsAiBridge::Registry::ContextAggregator
     - RailsAiBridge::ContextProvider
     - RailsAiBridge::Fingerprinter::CachedSnapshot
     - RailsAiBridge::Introspectors::ControllerIntrospector
@@ -707,6 +714,9 @@ detectors:
   TooManyStatements:
     exclude:
     - initialize
+    - RailsAiBridge::Registry::ContextAggregator#fetch_all
+    - RailsAiBridge::Registry::ContextAggregator#fetch_one
+    - RailsAiBridge::Registry::ContextAggregator#fetch_provider
     - RailsAiBridge::Generators::HelpGenerator#show_commands
     - RailsAiBridge::Generators::CommandHelp#print_command_reference
     - RailsAiBridge::Generators::InstallGenerator#add_to_gitignore
@@ -1121,6 +1131,9 @@ detectors:
   UtilityFunction:
     exclude:
     - RailsAiBridge::Config::Registry#legacy_lockfile_path
+    - RailsAiBridge::Registry::ContextAggregator#elapsed_ms
+    - RailsAiBridge::Registry::ContextAggregator#error_result
+    - RailsAiBridge::Registry::ContextAggregator#monotonic_now
     - RailsAiBridge::Config::Registry#legacy_manifest_path
     - RailsAiBridge::Registry::ContextProviderClient#find_tool
     - RailsAiBridge::Registry::ContextProviderClient#provenance_for
