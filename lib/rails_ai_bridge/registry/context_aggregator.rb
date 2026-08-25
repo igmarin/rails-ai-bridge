@@ -56,13 +56,13 @@ module RailsAiBridge
         failed_optional = false
         failed_required = false
         start = monotonic_now
-        budget = @config.aggregation_budget_seconds
+        deadline = start + @config.aggregation_budget_seconds
 
         providers.each_with_index do |(name, provider), index|
           break if index >= @config.max_providers
-          break if elapsed_seconds(start) >= budget
+          break if monotonic_now >= deadline
 
-          outcome = fetch_provider(name, provider)
+          outcome = fetch_provider(name, provider, deadline:)
           error = outcome[:error]
           if error
             failures << error
@@ -91,7 +91,7 @@ module RailsAiBridge
         raise ArgumentError, "unknown provider: #{name}" unless provider
 
         start = monotonic_now
-        outcome = fetch_provider(name, provider)
+        outcome = fetch_provider(name, provider, deadline: nil)
         elapsed = elapsed_ms(start)
         error = outcome[:error]
         return error_result(error, elapsed) if error
@@ -108,14 +108,16 @@ module RailsAiBridge
 
       # @param name [String] provider name
       # @param provider [ContextProviderDefinition]
+      # @param deadline [Float, nil] monotonic clock deadline; nil skips budget checks
       # @return [Hash] with :data and optional :error keys
-      def fetch_provider(name, provider)
+      def fetch_provider(name, provider, deadline:)
         validate_no_mapping_collisions!(provider)
         data = {}
         client = @client_factory.call(provider)
 
         provider.tools.each_with_index do |tool_spec, index|
           break if index >= @config.max_tools_per_provider
+          break if deadline && monotonic_now >= deadline
 
           outcome = fetch_tool(name, client, tool_spec)
           return { data: nil, error: outcome[:error] } if outcome[:error]
@@ -133,8 +135,9 @@ module RailsAiBridge
       # @param tool_spec [ContextToolSpec]
       # @return [Hash] with :content or :error
       def fetch_tool(name, client, tool_spec)
-        result = @scope.fetch_or_store(name, tool_spec.name) do
-          client.call_tool(tool_spec.name, arguments: tool_spec.arguments || {})
+        arguments = tool_spec.arguments || {}
+        result = @scope.fetch_or_store(name, tool_spec.name, args_key: arguments) do
+          client.call_tool(tool_spec.name, arguments: arguments)
         end
         return { content: result.content } if result.status == :success
 
@@ -181,12 +184,6 @@ module RailsAiBridge
       # @return [Integer] elapsed milliseconds
       def elapsed_ms(start)
         ((monotonic_now - start) * 1000).to_i
-      end
-
-      # @param start [Float] monotonic clock start
-      # @return [Float] elapsed seconds
-      def elapsed_seconds(start)
-        monotonic_now - start
       end
     end
   end

@@ -14,13 +14,15 @@ module RailsAiBridge
       end
 
       # Returns the cached result for the given provider and tool, or yields
-      # the block and stores the result for subsequent lookups.
+      # the block and stores the result for subsequent lookups. The optional
+      # `args_key` distinguishes same-name tool calls with different arguments.
       #
       # @param provider_name [String] provider identity
       # @param tool_name [String] remote tool name
+      # @param args_key [Object, nil] stable representation of effective arguments
       # @return [Object] the cached or freshly fetched result
-      def fetch_or_store(provider_name, tool_name)
-        key = [provider_name, tool_name]
+      def fetch_or_store(provider_name, tool_name, args_key: nil)
+        key = [provider_name, tool_name, args_key]
         return @cache[key] if @cache.key?(key)
 
         @cache[key] = yield

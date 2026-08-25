@@ -185,6 +185,29 @@ RSpec.describe RailsAiBridge::Registry::ContextAggregator do
 
       expect(client).to have_received(:call_tool).once
     end
+
+    it 'distinguishes same-name tools with different arguments in the cache' do
+      provider_with_same_name = build_provider(
+        tools: [
+          RailsAiBridge::Registry::ContextToolSpec.new(name: 'get_data', field: 'alpha', arguments: { 'scope' => 'a' }),
+          RailsAiBridge::Registry::ContextToolSpec.new(name: 'get_data', field: 'beta', arguments: { 'scope' => 'b' })
+        ]
+      )
+      allow(manifest).to receive(:context_providers).and_return({ 'billing' => provider_with_same_name })
+
+      call_args = []
+      client = instance_double(RailsAiBridge::Registry::ContextProviderClient)
+      allow(client).to receive(:call_tool) do |_tool, arguments:|
+        call_args << arguments
+        success_result({ 'data' => arguments['scope'] })
+      end
+
+      agg = aggregator_with(->(_p) { client })
+      result = agg.fetch_one('billing')
+
+      expect(result.results).to eq({ 'alpha' => { 'data' => 'a' }, 'beta' => { 'data' => 'b' } })
+      expect(call_args).to eq([{ 'scope' => 'a' }, { 'scope' => 'b' }])
+    end
   end
 
   describe 'count caps' do
@@ -255,6 +278,32 @@ RSpec.describe RailsAiBridge::Registry::ContextAggregator do
       # 0.15s for provider 'a' leaves ~0.05s — not enough for another 0.15s call.
       # Provider 'b' is skipped due to budget exhaustion.
       expect(result.results.keys).to eq(['a'])
+    end
+
+    it 'stops tool dispatch within a provider when the budget expires' do
+      config.aggregation_budget_seconds = 0.1
+      multi_tool_provider = build_provider(
+        tools: [
+          RailsAiBridge::Registry::ContextToolSpec.new(name: 'tool_a', field: nil, arguments: nil),
+          RailsAiBridge::Registry::ContextToolSpec.new(name: 'tool_b', field: nil, arguments: nil)
+        ]
+      )
+      allow(manifest).to receive(:context_providers).and_return({ 'billing' => multi_tool_provider })
+
+      slow_client = instance_double(
+        RailsAiBridge::Registry::ContextProviderClient,
+        call_tool: nil
+      )
+      allow(slow_client).to receive(:call_tool) do
+        sleep(0.15)
+        success_result
+      end
+      agg = aggregator_with(->(_p) { slow_client })
+
+      result = agg.fetch_all
+
+      # tool_a takes 0.15s, exhausting the 0.1s budget. tool_b is skipped.
+      expect(result.results['billing'].keys).to eq(['tool_a'])
     end
   end
 end
