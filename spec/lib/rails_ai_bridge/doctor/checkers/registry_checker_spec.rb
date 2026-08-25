@@ -149,4 +149,147 @@ RSpec.describe RailsAiBridge::Doctor::Checkers::RegistryChecker do
       expect(checker.send(:resolver_reason, nil)).to include('manifest missing')
     end
   end
+
+  describe '#call with network: true' do
+    let(:manifest) do
+      instance_double(
+        RailsAiBridge::Registry::RegistryManifest,
+        context_providers: providers
+      )
+    end
+    let(:providers) { {} }
+
+    before do
+      allow(File).to receive(:exist?).with('/tmp/valid.json').and_return(true)
+      allow(File).to receive(:read).with('/tmp/valid.json').and_return('{}')
+      allow(RailsAiBridge::Registry::RegistryManifest).to receive_messages(from_file: manifest, validate!: {})
+      allow(RailsAiBridge::Registry).to receive(:build_resolver).and_return(instance_double(RailsAiBridge::Registry::Resolver))
+      allow(registry_config).to receive_messages(registry_manifest_path: '/tmp/valid.json', lockfile_path: nil)
+    end
+
+    def providers_config
+      RailsAiBridge.configuration.context_providers
+    end
+
+    def success_probe_result
+      RailsAiBridge::Registry::ContextProviderClient::Result.new(
+        status: :success, content: nil, provenance: 'https://example.com', error: nil
+      )
+    end
+
+    def error_probe_result(message = 'connection refused')
+      RailsAiBridge::Registry::ContextProviderClient::Result.new(
+        status: :error, content: nil, provenance: nil,
+        error: RailsAiBridge::Registry::ConnectionError.new(message)
+      )
+    end
+
+    context 'when context providers are disabled' do
+      before { allow(providers_config).to receive(:enabled).and_return(false) }
+
+      it 'skips network probe and reports providers disabled' do
+        result = checker.call(network: true)
+
+        expect(result.status).to eq(:pass)
+        expect(result.message).to include('providers are disabled')
+      end
+    end
+
+    context 'when context providers are enabled but manifest has no providers' do
+      before { allow(providers_config).to receive(:enabled).and_return(true) }
+
+      it 'skips network probe and reports no providers' do
+        result = checker.call(network: true)
+
+        expect(result.status).to eq(:pass)
+        expect(result.message).to include('no context providers')
+      end
+    end
+
+    context 'when all providers are reachable' do
+      let(:providers) do
+        {
+          'billing' => build_provider(optional: false),
+          'analytics' => build_provider(optional: true)
+        }
+      end
+
+      before do
+        allow(providers_config).to receive(:enabled).and_return(true)
+        allow(checker).to receive(:probe_provider).and_return(success_probe_result)
+      end
+
+      it 'returns pass with all providers reachable' do
+        result = checker.call(network: true)
+
+        expect(result.status).to eq(:pass)
+        expect(result.message).to include('reachable')
+      end
+    end
+
+    context 'when an optional provider is unreachable' do
+      let(:providers) do
+        {
+          'billing' => build_provider(optional: false),
+          'analytics' => build_provider(optional: true)
+        }
+      end
+
+      before do
+        allow(providers_config).to receive(:enabled).and_return(true)
+        allow(checker).to receive(:probe_provider) do |_name, provider|
+          provider.optional? ? error_probe_result : success_probe_result
+        end
+      end
+
+      it 'returns warn for optional provider failure' do
+        result = checker.call(network: true)
+
+        expect(result.status).to eq(:warn)
+        expect(result.message).to include('analytics')
+        expect(result.message).to include('connection refused')
+      end
+    end
+
+    context 'when a required provider is unreachable' do
+      let(:providers) do
+        { 'billing' => build_provider(optional: false) }
+      end
+
+      before do
+        allow(providers_config).to receive(:enabled).and_return(true)
+        allow(checker).to receive(:probe_provider).and_return(error_probe_result)
+      end
+
+      it 'returns fail for required provider failure' do
+        result = checker.call(network: true)
+
+        expect(result.status).to eq(:fail)
+        expect(result.message).to include('billing')
+        expect(result.message).to include('connection refused')
+      end
+    end
+
+    context 'when network: false (default)' do
+      before { allow(providers_config).to receive(:enabled).and_return(true) }
+
+      it 'does not probe providers' do
+        allow(checker).to receive(:probe_provider).and_raise('should not be called')
+
+        result = checker.call(network: false)
+
+        expect(result.status).to eq(:pass)
+        expect(result.message).to include('valid and resolvable')
+      end
+    end
+
+    def build_provider(optional: false)
+      RailsAiBridge::Registry::ContextProviderDefinition.new(
+        type: 'mcp',
+        endpoint: 'https://example.com/mcp',
+        optional: optional,
+        tools: []
+      )
+    end
+  end
 end

@@ -66,6 +66,33 @@ module RailsAiBridge
         end
       end
 
+      # Lightweight reachability probe: validates the endpoint, opens a
+      # transport, lists tools, and closes. Does not call any tool.
+      #
+      # @return [Result]
+      def probe
+        endpoint = @provider.endpoint
+        transport = nil
+        begin
+          policy_result = @policy.call(endpoint)
+          return Result.new(status: :error, error: policy_result.error) unless policy_result.success?
+
+          canonical_uri = policy_result.uri
+          headers = resolve_auth(endpoint, canonical_uri)
+          transport = @transport_factory.call(canonical_uri, policy_result.addresses, headers)
+          transport.tools
+          Result.new(status: :success, content: nil, provenance: provenance_for(canonical_uri), error: nil)
+        rescue RailsAiBridge::Registry::ContextProviderError => error
+          Result.new(status: :error, error: error)
+        rescue Timeout::Error
+          Result.new(status: :error, error: RailsAiBridge::Registry::TimeoutError.new('provider probe timed out'))
+        rescue StandardError => error
+          Result.new(status: :error, error: RailsAiBridge::Registry::ConnectionError.new("provider probe failed (#{error.class})"))
+        ensure
+          close_transport(transport)
+        end
+      end
+
       private
 
       # @param endpoint [String] the raw provider endpoint

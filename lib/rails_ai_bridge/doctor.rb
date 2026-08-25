@@ -35,25 +35,28 @@ module RailsAiBridge
     }.freeze
     private_constant :STATIC_UNAVAILABLE_CHECKS
 
-    attr_reader :app, :boot_result
+    attr_reader :app, :boot_result, :network
 
     # Boots an application and runs diagnostics, using static fallback on failure.
     #
     # @param root [String, Pathname] application root
     # @param timeout [Numeric] maximum boot duration in seconds
+    # @param network [Boolean] when true, enable network reachability checks
     # @return [Hash] diagnostic result with `:checks` and `:score`
-    def self.run_for(root, timeout: BootManager::DEFAULT_TIMEOUT)
+    def self.run_for(root, timeout: BootManager::DEFAULT_TIMEOUT, network: false)
       boot_result = BootManager.boot(root, timeout: timeout)
       app = boot_result[:success] ? boot_result[:app] : BootManager.static_fallback(root)
-      new(app, boot_result: boot_result).run
+      new(app, boot_result: boot_result, network: network).run
     end
 
     # @param app [Rails::Application, nil] application to inspect
     # @param boot_result [Hash, nil] structured result from {BootManager.boot}
+    # @param network [Boolean] when true, enable network reachability checks
     # @return [void]
-    def initialize(app = nil, boot_result: nil)
+    def initialize(app = nil, boot_result: nil, network: false)
       @app = app || AppScope.current_app
       @boot_result = boot_result
+      @network = network
     end
 
     # Runs all diagnostic checks and computes a readiness score.
@@ -84,6 +87,7 @@ module RailsAiBridge
 
     def run_check(name, checker_class)
       unavailable_name = STATIC_UNAVAILABLE_CHECKS[name]
+      return run_registry_check if name == :check_registry
       return checker_class.new(app).call unless app.is_a?(StaticApp) && unavailable_name
 
       Check.new(
@@ -92,6 +96,10 @@ module RailsAiBridge
         message: 'Not available without Rails boot',
         fix: nil
       )
+    end
+
+    def run_registry_check
+      Checkers::RegistryChecker.new(app).call(network: @network)
     end
 
     # Weighted score: +:pass+ 10, +:warn+ 5, other 0; scaled to 0–100.
