@@ -147,9 +147,9 @@ module RailsAiBridge
       def sanitize_message(message)
         message.to_s
                .gsub(%r{https?://[^\s]+}i, '[redacted]')
-               .gsub(%r{(ssh|git|file)://[^\s]+}i, '[redacted]')
+               .gsub(%r{(ssh|git|file|ftp|sftp|ws|wss)://[^\s]+}i, '[redacted]')
                .gsub(/git@[^\s]+/, '[redacted]')
-               .gsub(%r{/[^\s]+}, '[redacted]')
+               .gsub(%r{(?<=\s)/[A-Za-z][^\s]*}, '[redacted]')
       end
     end
   end

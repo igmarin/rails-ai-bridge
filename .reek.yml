@@ -328,6 +328,7 @@ detectors:
     - RailsAiBridge::Config::Introspection#excluded_table?
     - RailsAiBridge::Registry::ContextAggregator#fetch_tool
     - RailsAiBridge::Registry::ContextAggregator#validate_no_mapping_collisions!
+    - RailsAiBridge::Doctor::Checkers::RegistryChecker#probe_provider
     - RailsAiBridge::Introspectors::ActionMailboxIntrospector#extract_mailboxes
     - RailsAiBridge::Introspectors::ActionTextIntrospector#extract_rich_text_fields
     - RailsAiBridge::Introspectors::ActiveStorageIntrospector#extract_attachments

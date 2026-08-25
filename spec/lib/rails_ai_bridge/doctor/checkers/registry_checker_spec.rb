@@ -314,12 +314,13 @@ RSpec.describe RailsAiBridge::Doctor::Checkers::RegistryChecker do
         allow(checker).to receive(:build_probe_client).and_return(fake_client)
       end
 
-      it 'wraps the error in a ConnectionError' do
+      it 'wraps the error in a ConnectionError with message detail' do
         result = checker.call(network: true)
 
         expect(result.status).to eq(:fail)
         expect(result.message).to include('billing')
         expect(result.message).to include('probe failed')
+        expect(result.message).to include('undefined method')
       end
     end
 
