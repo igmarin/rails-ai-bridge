@@ -124,8 +124,15 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
       expect(result.error.message).to eq('endpoint could not be resolved')
     end
 
-    it 'returns a policy error when the resolver raises an unexpected StandardError' do
+    it 'returns a policy error and logs a sanitized message when the resolver raises unexpectedly' do
+      logger = instance_double(Logger)
+      allow(Rails).to receive(:logger).and_return(logger)
       allow(resolver).to receive(:getaddresses).and_raise(ArgumentError.new('unexpected resolver failure'))
+
+      expect(logger).to receive(:error) do |message|
+        expect(message).to start_with('ArgumentError: endpoint could not be resolved')
+        expect(message).not_to include('unexpected resolver failure')
+      end
 
       result = policy.call('https://example.com/some-tool')
 

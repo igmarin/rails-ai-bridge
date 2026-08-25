@@ -92,9 +92,10 @@ module RailsAiBridge
         logger = defined?(Rails) ? Rails.logger : nil
         return unless logger
 
+        lines = ["#{error.class}: endpoint could not be resolved"]
         backtrace = error.backtrace
-        logger.error("#{error.class}: endpoint could not be resolved")
-        logger.error(backtrace.first(5).join("\n")) if backtrace
+        lines.concat(backtrace.first(5)) if backtrace
+        logger.error(lines.join("\n"))
       end
 
       # @param message [String] safe, credential-free failure message
