@@ -38,18 +38,20 @@ module RailsAiBridge
       # @param arguments [Hash] tool arguments
       # @return [Result]
       def call_tool(tool_name, arguments: {})
-        policy_result = @policy.call(@provider.endpoint)
+        endpoint = @provider.endpoint
+        policy_result = @policy.call(endpoint)
         return Result.new(status: :error, error: policy_result.error) unless policy_result.success?
 
+        canonical_uri = policy_result.uri
         transport = nil
         begin
-          headers = @auth_resolver ? @auth_resolver.call(@provider.endpoint, policy_result.uri) : {}
-          transport = @transport_factory.call(policy_result.uri, policy_result.addresses, headers)
+          headers = @auth_resolver ? @auth_resolver.call(endpoint, canonical_uri) : {}
+          transport = @transport_factory.call(canonical_uri, policy_result.addresses, headers)
           remote_tool = find_tool(transport, tool_name)
           return Result.new(status: :error, error: RemoteToolError.new("tool #{tool_name.inspect} is not allowed")) unless remote_tool
 
           content = transport.call_tool(name: tool_name, arguments: arguments)
-          Result.new(status: :success, content: content, provenance: provenance_for(policy_result.uri), error: nil)
+          Result.new(status: :success, content: content, provenance: provenance_for(canonical_uri), error: nil)
         rescue RailsAiBridge::Registry::ContextProviderError => error
           Result.new(status: :error, error: error)
         rescue StandardError => error

@@ -35,7 +35,7 @@ module RailsAiBridge
       # @return [EndpointPolicy]
       def initialize(resolver:, allowed_hosts:, allowed_loopback_ports:, allow_private_networks:)
         @resolver = resolver
-        @allowed_hosts = allowed_hosts.map { |h| normalize_host(h.to_s) }.freeze
+        @allowed_hosts = allowed_hosts.map { |host| normalize_host(host.to_s) }.freeze
         @allowed_loopback_ports = allowed_loopback_ports.map(&:to_i).freeze
         @allow_private_networks = allow_private_networks
       end
@@ -47,19 +47,22 @@ module RailsAiBridge
       #   addresses, or a failure result with a {PolicyError}
       def call(endpoint)
         uri = URI.parse(endpoint)
+        scheme = uri.scheme
+        raw_host = uri.host
 
-        return failure("unsupported scheme #{uri.scheme.inspect}") unless %w[https http].include?(uri.scheme)
-        return failure('endpoint is missing a host') if uri.host.to_s.empty?
+        return failure("unsupported scheme #{scheme.inspect}") unless %w[https http].include?(scheme)
+        return failure('endpoint is missing a host') if raw_host.to_s.empty?
 
-        host = normalize_host(uri.host)
+        host = normalize_host(raw_host)
+        host_label = host.inspect
         raw_addresses = @resolver.getaddresses(host)
-        return failure("no addresses resolved for #{host.inspect}") if raw_addresses.empty?
+        return failure("no addresses resolved for #{host_label}") if raw_addresses.empty?
 
         approved = filter_addresses(raw_addresses, uri, host)
         if approved.any?
           Result.new(success: true, error: nil, uri: canonicalize(uri), addresses: approved)
         else
-          failure("endpoint #{host.inspect} is not permitted by policy")
+          failure("endpoint #{host_label} is not permitted by policy")
         end
       rescue URI::InvalidURIError
         failure('endpoint is not a valid URL')
@@ -84,12 +87,12 @@ module RailsAiBridge
       # @param uri [URI]
       # @return [URI]
       def canonicalize(uri)
-        uri.dup.tap do |u|
-          u.host = normalize_host(u.host)
+        uri.dup.tap do |canonical|
+          canonical.host = normalize_host(canonical.host)
           # Setting userinfo to an empty string drops both user and password
           # components from the canonical URL, preventing credential leakage.
-          u.userinfo = ''
-          u.fragment = nil
+          canonical.userinfo = ''
+          canonical.fragment = nil
         end
       end
 

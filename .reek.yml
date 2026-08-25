@@ -93,6 +93,7 @@ detectors:
     - RailsAiBridge::Mcp::HttpRateLimiter#initialize
     - RailsAiBridge::ModelSemanticClassifier#classify_with_payload
     - RailsAiBridge::ModelSemanticClassifier#classify_without_payload
+    - RailsAiBridge::Registry::ContextProviderClient#find_tool
     - RailsAiBridge::Registry::PackResolver#initialize
     - RailsAiBridge::Registry::SkillSourceResolver#initialize
     - RailsAiBridge::RubydexAdapter::IncrementalIndexer#build
@@ -347,6 +348,7 @@ detectors:
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#discover_databases
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#parse_database_yml
     - RailsAiBridge::Introspectors::NonArModelsIntrospector#record_if_non_ar_model
+    - RailsAiBridge::Registry::EndpointPolicy#canonicalize
     - RailsAiBridge::Introspectors::RouteIntrospector#detect_mounted_engines
     - RailsAiBridge::Introspectors::RouteIntrospector#excluded_route?
     - RailsAiBridge::Introspectors::RouteIntrospector#extract_routes
@@ -728,6 +730,9 @@ detectors:
     - RailsAiBridge::Instrumentation::InstrumentedTool#detect_server_context_param
     - RailsAiBridge::Introspector::ParallelRunner#call
     - RailsAiBridge::Introspector::ParallelRunner#resolve_future
+    - RailsAiBridge::Registry::ContextProviderClient#call_tool
+    - RailsAiBridge::Registry::EndpointPolicy#call
+    - RailsAiBridge::Registry::EndpointPolicy#filter_addresses
     - RailsAiBridge::Introspector::TimedRunner#self.call
     - RailsAiBridge::Introspector#selected_introspectors
     - RailsAiBridge::Introspectors::ActionMailboxIntrospector#extract_mailboxes
@@ -1115,6 +1120,10 @@ detectors:
     exclude:
     - RailsAiBridge::Config::Registry#legacy_lockfile_path
     - RailsAiBridge::Config::Registry#legacy_manifest_path
+    - RailsAiBridge::Registry::ContextProviderClient#find_tool
+    - RailsAiBridge::Registry::ContextProviderClient#provenance_for
+    - RailsAiBridge::Registry::EndpointPolicy#failure
+    - RailsAiBridge::Registry::EndpointPolicy#normalize_host
     - RailsAiBridge::Doctor::Checkers::BaseChecker#new_check
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#registry_config
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#resolver_reason
