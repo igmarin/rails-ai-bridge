@@ -1145,9 +1145,9 @@ detectors:
     - RailsAiBridge::Config::Registry#legacy_manifest_path
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#default_transport_factory
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#providers_config
-    - RailsAiBridge::Doctor::Checkers::RegistryChecker#sanitize_probe_error
     - RailsAiBridge::Registry::ContextProviderClient#find_tool
     - RailsAiBridge::Registry::ContextProviderClient#provenance_for
+    - RailsAiBridge::Registry::ContextProviderClient#sanitize_message
     - RailsAiBridge::Registry::EndpointPolicy#failure
     - RailsAiBridge::Registry::EndpointPolicy#log_error
     - RailsAiBridge::Registry::EndpointPolicy#normalize_host

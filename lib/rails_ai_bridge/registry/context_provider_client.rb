@@ -60,7 +60,7 @@ module RailsAiBridge
         rescue Timeout::Error
           Result.new(status: :error, error: RailsAiBridge::Registry::TimeoutError.new('provider call timed out'))
         rescue StandardError => error
-          Result.new(status: :error, error: RailsAiBridge::Registry::ConnectionError.new("provider call failed (#{error.class})"))
+          Result.new(status: :error, error: RailsAiBridge::Registry::ConnectionError.new("provider call failed (#{error.class}): #{sanitize_message(error.message)}"))
         ensure
           close_transport(transport)
         end
@@ -87,7 +87,7 @@ module RailsAiBridge
         rescue Timeout::Error
           Result.new(status: :error, error: RailsAiBridge::Registry::TimeoutError.new('provider probe timed out'))
         rescue StandardError => error
-          Result.new(status: :error, error: RailsAiBridge::Registry::ConnectionError.new("provider probe failed (#{error.class}): #{error.message}"))
+          Result.new(status: :error, error: RailsAiBridge::Registry::ConnectionError.new("provider probe failed (#{error.class}): #{sanitize_message(error.message)}"))
         ensure
           close_transport(transport)
         end
@@ -135,6 +135,21 @@ module RailsAiBridge
       # @return [String] a safe provenance label with no credentials
       def provenance_for(uri)
         "#{uri.scheme}://#{uri.host}"
+      end
+
+      # Redacts URLs, paths, and credential-bearing patterns from error
+      # messages before they are included in returned ConnectionError
+      # messages. Prevents raw transport errors from leaking endpoints,
+      # query strings, or file paths into provider error results.
+      #
+      # @param message [String] raw error message
+      # @return [String] sanitized message with URLs and paths replaced
+      def sanitize_message(message)
+        message.to_s
+               .gsub(%r{https?://[^\s]+}i, '[redacted]')
+               .gsub(%r{(ssh|git|file)://[^\s]+}i, '[redacted]')
+               .gsub(/git@[^\s]+/, '[redacted]')
+               .gsub(%r{/[^\s]+}, '[redacted]')
       end
     end
   end

@@ -239,5 +239,18 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
       expect(result.error).to be_a(RailsAiBridge::Registry::TimeoutError)
       expect(fake_transport).to have_received(:close)
     end
+
+    it 'redacts URLs and paths from error messages' do
+      allow(fake_transport).to receive(:tools)
+        .and_raise(StandardError, 'connection to https://secret.example.com/path?token=abc failed at /etc/secrets/config.yml')
+
+      result = client.probe
+
+      expect(result.status).to eq(:error)
+      expect(result.error.message).not_to include('secret.example.com')
+      expect(result.error.message).not_to include('token=abc')
+      expect(result.error.message).not_to include('/etc/secrets')
+      expect(result.error.message).to include('[redacted]')
+    end
   end
 end

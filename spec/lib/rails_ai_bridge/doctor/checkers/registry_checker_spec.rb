@@ -283,6 +283,46 @@ RSpec.describe RailsAiBridge::Doctor::Checkers::RegistryChecker do
       end
     end
 
+    context 'when probe_provider raises a ContextProviderError' do
+      let(:providers) { { 'billing' => build_provider(optional: false) } }
+
+      before do
+        allow(providers_config).to receive(:enabled).and_return(true)
+        fake_client = double('client')
+        allow(fake_client).to receive(:probe).and_raise(
+          RailsAiBridge::Registry::ConnectionError.new('connection refused')
+        )
+        allow(checker).to receive(:build_probe_client).and_return(fake_client)
+      end
+
+      it 'preserves the typed error category in the result' do
+        result = checker.call(network: true)
+
+        expect(result.status).to eq(:fail)
+        expect(result.message).to include('billing')
+        expect(result.message).to include('connection refused')
+      end
+    end
+
+    context 'when probe_provider raises a StandardError' do
+      let(:providers) { { 'billing' => build_provider(optional: false) } }
+
+      before do
+        allow(providers_config).to receive(:enabled).and_return(true)
+        fake_client = double('client')
+        allow(fake_client).to receive(:probe).and_raise(NoMethodError, 'undefined method for nil')
+        allow(checker).to receive(:build_probe_client).and_return(fake_client)
+      end
+
+      it 'wraps the error in a ConnectionError' do
+        result = checker.call(network: true)
+
+        expect(result.status).to eq(:fail)
+        expect(result.message).to include('billing')
+        expect(result.message).to include('probe failed')
+      end
+    end
+
     def build_provider(optional: false)
       RailsAiBridge::Registry::ContextProviderDefinition.new(
         type: 'mcp',
