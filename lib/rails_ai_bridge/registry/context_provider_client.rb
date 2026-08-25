@@ -41,7 +41,40 @@ module RailsAiBridge
         policy_result = @policy.call(@provider.endpoint)
         return Result.new(status: :error, error: policy_result.error) unless policy_result.success?
 
-        Result.new(status: :success, content: {}, provenance: @provider.endpoint, error: nil)
+        transport = nil
+        headers = @auth_resolver ? @auth_resolver.call(@provider.endpoint, policy_result.uri) : {}
+
+        begin
+          transport = @transport_factory.call(policy_result.uri, policy_result.addresses, headers)
+          remote_tool = find_tool(transport, tool_name)
+          return Result.new(status: :error, error: RemoteToolError.new("tool #{tool_name.inspect} is not allowed")) unless remote_tool
+
+          content = transport.call_tool(name: tool_name, arguments: arguments)
+          Result.new(status: :success, content: content, provenance: provenance_for(policy_result.uri), error: nil)
+        rescue RailsAiBridge::Registry::ContextProviderError => error
+          Result.new(status: :error, error: error)
+        rescue StandardError => error
+          Result.new(status: :error, error: ConnectionError.new("provider call failed: #{error.message}"))
+        ensure
+          transport&.close
+        end
+      end
+
+      private
+
+      # @param transport [#tools, #call_tool, #close] the active transport
+      # @param tool_name [String]
+      # @return [Object, nil] the remote tool metadata object, or nil if not allowed
+      def find_tool(transport, tool_name)
+        transport.tools.find do |tool|
+          tool.name == tool_name && tool.read_only_hint && !tool.destructive_hint
+        end
+      end
+
+      # @param uri [URI]
+      # @return [String] a safe provenance label with no credentials
+      def provenance_for(uri)
+        "#{uri.scheme}://#{uri.host}"
       end
     end
   end
