@@ -99,21 +99,21 @@ module RailsAiBridge
 
       def coerce_count(value, field)
         int = Integer(value)
-        raise ConfigurationError, "#{field} must be an integer >= 1, got #{int}" unless int >= 1
+        raise RailsAiBridge::ConfigurationError, "#{field} must be an integer >= 1, got #{int}" unless int >= 1
 
         int
       rescue ArgumentError, TypeError
-        raise ConfigurationError, "#{field} must be an integer >= 1, got #{value.inspect}"
+        raise RailsAiBridge::ConfigurationError, "#{field} must be an integer >= 1, got #{value.inspect}"
       end
 
       def coerce_timeout(value, field)
         number = Float(value)
-        raise ConfigurationError, "#{field} must be a finite positive number, got #{number}" unless number.finite?
-        raise ConfigurationError, "#{field} must be >= 0.1, got #{number}" unless number >= 0.1
+        raise RailsAiBridge::ConfigurationError, "#{field} must be a finite positive number, got #{number}" unless number.finite?
+        raise RailsAiBridge::ConfigurationError, "#{field} must be >= 0.1, got #{number}" unless number >= 0.1
 
         number
       rescue ArgumentError, TypeError
-        raise ConfigurationError, "#{field} must be a finite positive number, got #{value.inspect}"
+        raise RailsAiBridge::ConfigurationError, "#{field} must be a finite positive number, got #{value.inspect}"
       end
     end
   end

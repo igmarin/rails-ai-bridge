@@ -568,6 +568,16 @@ end
 | `registry.git_pull_ttl` | `86400` | Seconds between `git pull` refreshes per cached pack (24 h default). Set to `0` to pull on every resolver rebuild |
 | `registry.git_timeout` | `30` | Seconds before a git operation (clone, pull, checkout) is forcibly interrupted |
 | `registry.auto_load_dependencies` | `false` | Load declared `depends_on` packs transitively; circular chains warn but still load |
+| `context_providers.enabled` | `false` | Master switch for outbound context-provider traffic; must be explicitly enabled |
+| `context_providers.allowed_hosts` | `[]` | Exact hostnames allowed for provider endpoints (no wildcards or suffixes) |
+| `context_providers.allowed_loopback_ports` | `[3000, 9292]` | Allowed loopback ports for local development endpoints |
+| `context_providers.allow_private_networks` | `false` | Allow private/link-local destinations (development only) |
+| `context_providers.timeout_seconds` | `10` | Per-tool connect/read timeout in seconds |
+| `context_providers.aggregation_budget_seconds` | `30` | Total budget across all providers in one tool call |
+| `context_providers.max_response_bytes` | `1_048_576` | Maximum provider response body size in bytes before normalization |
+| `context_providers.max_providers` | `8` | Maximum providers to call in one invocation |
+| `context_providers.max_tools_per_provider` | `16` | Maximum tools to call per provider |
+| `context_providers.auth_resolver` | `nil` | Optional `->(provider_name, canonical_endpoint) { headers_hash }` for downstream auth |
 
 Other HTTP MCP knobs live only on the nested object, for example `RailsAiBridge.configuration.mcp.authorize`, `mcp.mode`, `mcp.security_profile`, and `mcp.require_auth_in_production` — see [docs/GUIDE.md](docs/GUIDE.md) and [docs/mcp-security.md](docs/mcp-security.md).
 </details>
