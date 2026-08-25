@@ -75,7 +75,54 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
 
       expect(result.status).to eq(:error)
       expect(result.error).to be_a(RailsAiBridge::Registry::ConnectionError)
+      expect(result.error.message).to eq('provider call failed')
       expect(fake_transport).to have_received(:close)
+    end
+
+    it 'returns a connection error when the auth resolver fails' do
+      client = described_class.new(
+        provider: provider,
+        policy: policy,
+        transport_factory: transport_factory,
+        auth_resolver: ->(_endpoint, _uri) { raise StandardError, 'auth failed' }
+      )
+
+      result = client.call_tool('get_status', arguments: {})
+
+      expect(result.status).to eq(:error)
+      expect(result.error).to be_a(RailsAiBridge::Registry::ConnectionError)
+      expect(transport_factory).not_to have_received(:call)
+    end
+
+    it 'passes resolved auth headers to the transport factory' do
+      auth_resolver = ->(_endpoint, _uri) { { 'Authorization' => 'Bearer token' } }
+      client = described_class.new(
+        provider: provider,
+        policy: policy,
+        transport_factory: transport_factory,
+        auth_resolver: auth_resolver
+      )
+      fake_tool = double('tool', name: 'get_status', read_only_hint: true, destructive_hint: false)
+      allow(fake_transport).to receive_messages(tools: [fake_tool], call_tool: {})
+
+      client.call_tool('get_status', arguments: {})
+
+      expect(transport_factory).to have_received(:call).with(
+        URI.parse('https://example.com/mcp'),
+        ['192.0.2.1'],
+        { 'Authorization' => 'Bearer token' }
+      )
+    end
+
+    it 'still returns the original result when transport close raises' do
+      fake_tool = double('tool', name: 'get_status', read_only_hint: true, destructive_hint: false)
+      allow(fake_transport).to receive_messages(tools: [fake_tool], call_tool: { 'status' => 'ok' })
+      allow(fake_transport).to receive(:close).and_raise(StandardError, 'close failed')
+
+      result = client.call_tool('get_status', arguments: {})
+
+      expect(result.status).to eq(:success)
+      expect(result.content).to eq({ 'status' => 'ok' })
     end
 
     it 'calls the remote tool and returns a success result' do

@@ -42,9 +42,8 @@ module RailsAiBridge
         return Result.new(status: :error, error: policy_result.error) unless policy_result.success?
 
         transport = nil
-        headers = @auth_resolver ? @auth_resolver.call(@provider.endpoint, policy_result.uri) : {}
-
         begin
+          headers = @auth_resolver ? @auth_resolver.call(@provider.endpoint, policy_result.uri) : {}
           transport = @transport_factory.call(policy_result.uri, policy_result.addresses, headers)
           remote_tool = find_tool(transport, tool_name)
           return Result.new(status: :error, error: RemoteToolError.new("tool #{tool_name.inspect} is not allowed")) unless remote_tool
@@ -53,16 +52,24 @@ module RailsAiBridge
           Result.new(status: :success, content: content, provenance: provenance_for(policy_result.uri), error: nil)
         rescue RailsAiBridge::Registry::ContextProviderError => error
           Result.new(status: :error, error: error)
-        rescue StandardError => error
-          Result.new(status: :error, error: ConnectionError.new("provider call failed: #{error.message}"))
+        rescue StandardError
+          Result.new(status: :error, error: ConnectionError.new('provider call failed'))
         ensure
-          transport&.close
+          close_transport(transport)
         end
       end
 
       private
 
-      # @param transport [#tools, #call_tool, #close] the active transport
+      # @param transport [Object, nil] the active transport
+      # @return [void]
+      def close_transport(transport)
+        transport&.close
+      rescue StandardError
+        # Intentionally swallow close failures so the original result is preserved.
+      end
+
+      # @param transport [#tools] the active transport
       # @param tool_name [String]
       # @return [Object, nil] the remote tool metadata object, or nil if not allowed
       def find_tool(transport, tool_name)
