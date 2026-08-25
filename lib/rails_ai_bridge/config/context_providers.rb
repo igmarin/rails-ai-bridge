@@ -97,6 +97,13 @@ module RailsAiBridge
 
       private
 
+      # Coerces a value to a positive Integer and raises a configuration error
+      # for invalid or non-positive values.
+      #
+      # @param value [Object] the value to coerce
+      # @param field [String] the configuration field name used in error messages
+      # @return [Integer] the validated integer
+      # @raise [RailsAiBridge::ConfigurationError] when the value is not an integer >= 1
       def coerce_count(value, field)
         int = Integer(value)
         raise RailsAiBridge::ConfigurationError, "#{field} must be an integer >= 1, got #{int}" unless int >= 1
@@ -106,6 +113,13 @@ module RailsAiBridge
         raise RailsAiBridge::ConfigurationError, "#{field} must be an integer >= 1, got #{value.inspect}"
       end
 
+      # Coerces a value to a finite, positive Float and raises a configuration
+      # error for invalid, non-finite, or too-small values.
+      #
+      # @param value [Object] the value to coerce
+      # @param field [String] the configuration field name used in error messages
+      # @return [Float] the validated number
+      # @raise [RailsAiBridge::ConfigurationError] when the value is not a finite number >= 0.1
       def coerce_timeout(value, field)
         number = Float(value)
         raise RailsAiBridge::ConfigurationError, "#{field} must be a finite positive number, got #{number}" unless number.finite?
