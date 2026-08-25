@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+require 'resolv'
 
 RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
   let(:resolver) { instance_double(Resolv::DNS) }
@@ -22,13 +23,6 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
   end
 
   describe '#call' do
-    it 'rejects an arbitrary public host when the allowlist is empty' do
-      result = policy.call('https://example.com/some-tool')
-
-      expect(result).not_to be_success
-      expect(result.error).to be_a(RailsAiBridge::Registry::ContextProviderError)
-    end
-
     it 'rejects an arbitrary public host not on the allowlist' do
       result = policy.call('https://example.com/some-tool')
 
@@ -43,11 +37,22 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
       expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
     end
 
-    it 'rejects an invalid URI' do
+    it 'rejects an invalid URI without echoing the raw input' do
       result = policy.call('not a url')
 
       expect(result).not_to be_success
       expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
+      expect(result.error.message).to eq('endpoint is not a valid URL')
+    end
+
+    it 'returns a policy error when DNS resolution fails' do
+      allow(resolver).to receive(:getaddresses).and_raise(Resolv::ResolvError.new('timeout'))
+
+      result = policy.call('https://example.com/some-tool')
+
+      expect(result).not_to be_success
+      expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
+      expect(result.error.message).to eq('endpoint could not be resolved')
     end
 
     context 'when the host is on the allowlist' do
@@ -70,6 +75,13 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
 
         expect(result).to be_success
         expect(result.uri.to_s).to eq('https://example.com/some-tool')
+      end
+
+      it 'normalizes mixed-case hosts' do
+        result = policy.call('https://EXAMPLE.COM/some-tool')
+
+        expect(result).to be_success
+        expect(result.uri.host).to eq('example.com')
       end
     end
 

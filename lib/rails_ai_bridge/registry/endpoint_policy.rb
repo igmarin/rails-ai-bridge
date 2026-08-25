@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'ipaddr'
+require 'resolv'
 require 'uri'
 
 module RailsAiBridge
@@ -34,7 +35,7 @@ module RailsAiBridge
       # @return [EndpointPolicy]
       def initialize(resolver:, allowed_hosts:, allowed_loopback_ports:, allow_private_networks:)
         @resolver = resolver
-        @allowed_hosts = allowed_hosts.map(&:to_s).freeze
+        @allowed_hosts = allowed_hosts.map { |h| normalize_host(h.to_s) }.freeze
         @allowed_loopback_ports = allowed_loopback_ports.map(&:to_i).freeze
         @allow_private_networks = allow_private_networks
       end
@@ -48,20 +49,22 @@ module RailsAiBridge
         uri = URI.parse(endpoint)
 
         return failure("unsupported scheme #{uri.scheme.inspect}") unless %w[https http].include?(uri.scheme)
+        return failure('endpoint is missing a host') if uri.host.to_s.empty?
 
-        return failure('endpoint is missing a host') if uri.host.blank?
+        host = normalize_host(uri.host)
+        raw_addresses = @resolver.getaddresses(host)
+        return failure("no addresses resolved for #{host.inspect}") if raw_addresses.empty?
 
-        raw_addresses = @resolver.getaddresses(uri.host)
-        return failure("no addresses resolved for #{uri.host.inspect}") if raw_addresses.empty?
-
-        approved = filter_addresses(raw_addresses, uri)
+        approved = filter_addresses(raw_addresses, uri, host)
         if approved.any?
           Result.new(success: true, error: nil, uri: canonicalize(uri), addresses: approved)
         else
-          failure("endpoint #{uri.host.inspect} is not permitted by policy")
+          failure("endpoint #{host.inspect} is not permitted by policy")
         end
-      rescue URI::InvalidURIError => error
-        failure("invalid endpoint: #{error.message}")
+      rescue URI::InvalidURIError
+        failure('endpoint is not a valid URL')
+      rescue Resolv::ResolvError, SocketError
+        failure('endpoint could not be resolved')
       end
 
       private
@@ -72,10 +75,17 @@ module RailsAiBridge
         Result.new(success: false, error: PolicyError.new(message), uri: nil, addresses: nil)
       end
 
+      # @param value [String]
+      # @return [String] downcased host with a trailing dot removed
+      def normalize_host(value)
+        value.to_s.downcase.delete_suffix('.')
+      end
+
       # @param uri [URI]
       # @return [URI]
       def canonicalize(uri)
         uri.dup.tap do |u|
+          u.host = normalize_host(u.host)
           u.user = nil
           u.password = nil
           u.fragment = nil
@@ -84,8 +94,9 @@ module RailsAiBridge
 
       # @param addresses [Array<String>] resolved IP strings
       # @param uri [URI]
+      # @param host [String] normalized host name
       # @return [Array<String>] the subset of addresses permitted by the policy
-      def filter_addresses(addresses, uri)
+      def filter_addresses(addresses, uri, host)
         addresses.filter do |raw|
           ip = IPAddr.new(raw)
 
@@ -94,7 +105,7 @@ module RailsAiBridge
           elsif ip.private? || ip.link_local?
             @allow_private_networks
           else
-            @allowed_hosts.include?(uri.host.to_s)
+            @allowed_hosts.include?(host)
           end
         rescue IPAddr::InvalidAddressError
           false
