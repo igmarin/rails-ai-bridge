@@ -226,6 +226,17 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
 
       expect(result.status).to eq(:error)
       expect(result.error).to be_a(RailsAiBridge::Registry::ConnectionError)
+      expect(result.error.message).to include('connection refused')
+      expect(fake_transport).to have_received(:close)
+    end
+
+    it 'returns a timeout error when the transport times out' do
+      allow(fake_transport).to receive(:tools).and_raise(Timeout::Error)
+
+      result = client.probe
+
+      expect(result.status).to eq(:error)
+      expect(result.error).to be_a(RailsAiBridge::Registry::TimeoutError)
       expect(fake_transport).to have_received(:close)
     end
   end

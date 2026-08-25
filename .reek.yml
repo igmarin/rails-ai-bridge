@@ -723,6 +723,7 @@ detectors:
     - RailsAiBridge::Registry::ContextAggregator#fetch_one
     - RailsAiBridge::Registry::ContextAggregator#fetch_provider
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#probe_all_providers
+    - RailsAiBridge::Doctor::Checkers::RegistryChecker#probe_provider
     - RailsAiBridge::Registry::ContextProviderClient#probe
     - RailsAiBridge::Generators::HelpGenerator#show_commands
     - RailsAiBridge::Generators::CommandHelp#print_command_reference
@@ -1144,6 +1145,7 @@ detectors:
     - RailsAiBridge::Config::Registry#legacy_manifest_path
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#default_transport_factory
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#providers_config
+    - RailsAiBridge::Doctor::Checkers::RegistryChecker#sanitize_probe_error
     - RailsAiBridge::Registry::ContextProviderClient#find_tool
     - RailsAiBridge::Registry::ContextProviderClient#provenance_for
     - RailsAiBridge::Registry::EndpointPolicy#failure

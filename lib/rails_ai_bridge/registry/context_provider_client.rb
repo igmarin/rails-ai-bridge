@@ -87,7 +87,7 @@ module RailsAiBridge
         rescue Timeout::Error
           Result.new(status: :error, error: RailsAiBridge::Registry::TimeoutError.new('provider probe timed out'))
         rescue StandardError => error
-          Result.new(status: :error, error: RailsAiBridge::Registry::ConnectionError.new("provider probe failed (#{error.class})"))
+          Result.new(status: :error, error: RailsAiBridge::Registry::ConnectionError.new("provider probe failed (#{error.class}): #{error.message}"))
         ensure
           close_transport(transport)
         end

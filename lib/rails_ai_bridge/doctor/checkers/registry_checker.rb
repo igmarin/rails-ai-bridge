@@ -217,13 +217,27 @@ module RailsAiBridge
         def probe_provider(_name, provider)
           client = build_probe_client(provider)
           client.probe
+        rescue RailsAiBridge::Registry::ContextProviderError => error
+          RailsAiBridge::Registry::ContextProviderClient::Result.new(
+            status: :error,
+            content: nil,
+            provenance: nil,
+            error: error
+          )
         rescue StandardError => error
           RailsAiBridge::Registry::ContextProviderClient::Result.new(
             status: :error,
             content: nil,
             provenance: nil,
-            error: RailsAiBridge::Registry::ConnectionError.new("probe failed (#{error.class})")
+            error: RailsAiBridge::Registry::ConnectionError.new(sanitize_probe_error(error))
           )
+        end
+
+        # @param error [StandardError]
+        # @return [String] sanitized error message with credentials and URLs redacted
+        def sanitize_probe_error(error)
+          detail = error.message.to_s.gsub(%r{(https?://|/)[^\s]*}, '[redacted]')
+          "probe failed (#{error.class}): #{detail}"
         end
 
         # @param provider [ContextProviderDefinition]
@@ -244,7 +258,10 @@ module RailsAiBridge
         end
 
         # @param uri [URI]
-        # @param addresses [Array<String>]
+        # @param addresses [Array<String>] policy-validated IP addresses; the MCP
+        #   SDK HTTP client does not support address pinning, so these are logged
+        #   but not enforced at the socket layer. ponytail: address pinning requires
+        #   a custom Faraday adapter; upgrade path is to inject one via config.
         # @param headers [Hash]
         # @return [Object] MCP transport
         def default_transport_factory(uri, _addresses, headers)
