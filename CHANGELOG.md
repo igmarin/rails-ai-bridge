@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Watcher nil-app guard** — `Watcher#initialize` now raises `ArgumentError` when no application is available instead of storing `nil` and failing later with `NoMethodError` on `app.root`.
 - **StaticApp** — `RailsAiBridge::StaticApp` provides a minimal app-like object (root, paths, config, eager_load!) for static-capable introspectors (schema, gems, tests, migrations, conventions) without booting Rails. Includes a capability map (`STATIC_CAPABLE` / `BOOT_REQUIRED`) so static mode reports unavailable sections honestly.
 - **BootManager** — `RailsAiBridge::BootManager` locates the app root, quarantines boot stdout to stderr, honors a configurable timeout, and returns a structured result for `StandardError`/`ScriptError` failures. Offers `static_fallback` for commands that permit it (`context`, `inspect`, `doctor`).
+- **Doctor boot diagnostics** — `Doctor.run_for` provides a programmatic boot-to-static-fallback path for standalone callers. It reports structured Rails boot failures, continues static-capable checks, and marks runtime-only checks as unavailable rather than presenting partial diagnostics as complete.
 - **Static-mode introspection** — `Introspector` detects `StaticApp` and returns `{ error: "not available without boot" }` for boot-required introspectors. Metadata includes `static_mode: true` and detects Rails version from `Gemfile.lock` without booting.
 
 ### Changed
@@ -21,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Ruby 4.0 canary in CI** — CI matrix includes a non-blocking Ruby 4.0 / Rails 8.1 canary job to catch compatibility issues early without blocking the pipeline.
 ### Fixed
 
+- **Unknown Doctor boot failures** — Boot diagnostics now report `UnknownError` when exception class metadata is absent instead of rendering an empty error class.
 - **Request-scoped resolver memoization** — `Registry#with_request_resolver` and `request_active?` now use a frozen sentinel object instead of relying on `Thread.current[REQUEST_RESOLVER_KEY]` being `nil`. Previously `request_resolver?` checked `!Thread.current[REQUEST_RESOLVER_KEY].nil?`, which returned `false` for an active but unbuilt resolver. A sentinel distinguishes "active, not built" from "not active."
 
 ### Added

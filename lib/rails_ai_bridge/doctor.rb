@@ -26,24 +26,73 @@ module RailsAiBridge
       check_registry: Checkers::RegistryChecker
     }.freeze
 
-    attr_reader :app
+    STATIC_UNAVAILABLE_CHECKS = {
+      check_models: 'Models',
+      check_routes: 'Routes',
+      check_controllers: 'Controllers',
+      check_views: 'Views',
+      check_i18n: 'I18n'
+    }.freeze
+    private_constant :STATIC_UNAVAILABLE_CHECKS
+
+    attr_reader :app, :boot_result
+
+    # Boots an application and runs diagnostics, using static fallback on failure.
+    #
+    # @param root [String, Pathname] application root
+    # @param timeout [Numeric] maximum boot duration in seconds
+    # @return [Hash] diagnostic result with `:checks` and `:score`
+    def self.run_for(root, timeout: BootManager::DEFAULT_TIMEOUT)
+      boot_result = BootManager.boot(root, timeout: timeout)
+      app = boot_result[:success] ? boot_result[:app] : BootManager.static_fallback(root)
+      new(app, boot_result: boot_result).run
+    end
 
     # @param app [Rails::Application, nil] application to inspect
+    # @param boot_result [Hash, nil] structured result from {BootManager.boot}
     # @return [void]
-    def initialize(app = nil)
+    def initialize(app = nil, boot_result: nil)
       @app = app || AppScope.current_app
+      @boot_result = boot_result
     end
 
     # Runs all diagnostic checks and computes a readiness score.
     #
     # @return [Hash] diagnostic result with `:checks` and `:score`
     def run
-      results = CHECKS.values.map { |checker_class| checker_class.new(app).call }
+      results = CHECKS.map { |name, checker_class| run_check(name, checker_class) }
+      results.unshift(boot_failure_check) if boot_failed?
       score = compute_score(results)
       { checks: results, score: score }
     end
 
     private
+
+    def boot_failed?
+      boot_result && !boot_result[:success]
+    end
+
+    def boot_failure_check
+      error_class = boot_result[:error_class].presence || 'UnknownError'
+      Check.new(
+        name: 'Rails boot',
+        status: :fail,
+        message: "Rails boot failed (#{error_class})",
+        fix: nil
+      )
+    end
+
+    def run_check(name, checker_class)
+      unavailable_name = STATIC_UNAVAILABLE_CHECKS[name]
+      return checker_class.new(app).call unless app.is_a?(StaticApp) && unavailable_name
+
+      Check.new(
+        name: unavailable_name,
+        status: :warn,
+        message: 'Not available without Rails boot',
+        fix: nil
+      )
+    end
 
     # Weighted score: +:pass+ 10, +:warn+ 5, other 0; scaled to 0–100.
     #
