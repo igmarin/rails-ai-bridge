@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **AppScope runtime seam** — `RailsAiBridge::AppScope` provides a thread-local application scope (`with_app(app) { ... }` / `current_app`) so that CLI, tests, and standalone processes can scope a different app without hardcoding `Rails.application`. Defaults to `Rails.application` for backward compatibility. All MCP tools, `ContextProvider`, `Resources`, `CacheWarmer`, `Doctor`, `Watcher`, serializers, and the public API (`introspect`, `generate_context`, `start_mcp_server`) now resolve the app through `AppScope.current_app`.
 - **Watcher nil-app guard** — `Watcher#initialize` now raises `ArgumentError` when no application is available instead of storing `nil` and failing later with `NoMethodError` on `app.root`.
+- **StaticApp** — `RailsAiBridge::StaticApp` provides a minimal app-like object (root, paths, config, eager_load!) for static-capable introspectors (schema, gems, tests, migrations, conventions) without booting Rails. Includes a capability map (`STATIC_CAPABLE` / `BOOT_REQUIRED`) so static mode reports unavailable sections honestly.
+- **BootManager** — `RailsAiBridge::BootManager` locates the app root, quarantines boot stdout to stderr, honors a configurable timeout, and returns a structured result for `StandardError`/`ScriptError` failures. Offers `static_fallback` for commands that permit it (`context`, `inspect`, `doctor`).
+- **Static-mode introspection** — `Introspector` detects `StaticApp` and returns `{ error: "not available without boot" }` for boot-required introspectors. Metadata includes `static_mode: true` and detects Rails version from `Gemfile.lock` without booting.
 
 ### Changed
 
