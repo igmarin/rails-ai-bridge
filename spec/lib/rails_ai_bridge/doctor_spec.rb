@@ -111,7 +111,11 @@ RSpec.describe RailsAiBridge::Doctor do
       current = described_class.new(static_app, boot_result: boot_result).run
       boot_check = current[:checks].find { |check| check.name == 'Rails boot' }
 
-      expect(boot_check.message).to eq('Rails boot failed (UnknownError)')
+      expect(boot_check).to have_attributes(
+        status: :fail,
+        message: 'Rails boot failed (UnknownError)',
+        fix: nil
+      )
     end
 
     it 'runs Doctor through boot and static fallback' do
