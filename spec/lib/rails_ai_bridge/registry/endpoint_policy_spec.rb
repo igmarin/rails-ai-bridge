@@ -4,8 +4,6 @@ require 'spec_helper'
 require 'resolv'
 
 RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
-  let(:resolver) { instance_double(Resolv::DNS) }
-
   subject(:policy) do
     described_class.new(
       resolver: resolver,
@@ -15,6 +13,7 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
     )
   end
 
+  let(:resolver) { instance_double(Resolv::DNS) }
   let(:allowed_hosts) { [] }
   let(:allow_private_networks) { false }
 
@@ -55,8 +54,18 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
       expect(result.error.message).to eq('endpoint could not be resolved')
     end
 
+    it 'returns a policy error when DNS resolution raises a socket error' do
+      allow(resolver).to receive(:getaddresses).and_raise(SocketError.new('getaddrinfo: nodename nor servname provided'))
+
+      result = policy.call('https://example.com/some-tool')
+
+      expect(result).not_to be_success
+      expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
+      expect(result.error.message).to eq('endpoint could not be resolved')
+    end
+
     context 'when the host is on the allowlist' do
-      let(:allowed_hosts) { ['example.com'] }
+      let(:allowed_hosts) { ['example.com.'] }
 
       before do
         allow(resolver).to receive(:getaddresses).with('example.com').and_return(['93.184.216.34'])
@@ -82,6 +91,13 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
 
         expect(result).to be_success
         expect(result.uri.host).to eq('example.com')
+      end
+
+      it 'treats a trailing dot on the endpoint host as equivalent to the allowlist entry' do
+        result = policy.call('https://example.com./some-tool')
+
+        expect(result).to be_success
+        expect(result.addresses).to eq(['93.184.216.34'])
       end
     end
 

@@ -86,8 +86,7 @@ module RailsAiBridge
       def canonicalize(uri)
         uri.dup.tap do |u|
           u.host = normalize_host(u.host)
-          u.user = nil
-          u.password = nil
+          u.userinfo = ''
           u.fragment = nil
         end
       end
