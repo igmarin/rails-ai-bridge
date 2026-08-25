@@ -97,7 +97,7 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
         let(:allowed_hosts) { ['example.com.'] }
 
         it 'treats a trailing dot on the allowlist entry as equivalent to the endpoint host' do
-          result = policy.call('https://example.com./some-tool')
+          result = policy.call('https://example.com/some-tool')
 
           expect(result).to be_success
           expect(result.addresses).to eq(['192.0.2.1'])
