@@ -571,7 +571,7 @@ end
 | `context_providers.enabled` | `false` | Master switch for outbound context-provider traffic; must be explicitly enabled |
 | `context_providers.allowed_hosts` | `[]` | Exact hostnames allowed for provider endpoints (no wildcards or suffixes) |
 | `context_providers.allowed_loopback_ports` | `[3000, 9292]` | Allowed loopback ports for local development endpoints |
-| `context_providers.allow_private_networks` | `false` | Allow private/link-local destinations (development only) |
+| `context_providers.allow_private_networks` | `false` | Allow RFC1918/ULA private destinations (development only); link-local and cloud-metadata addresses remain blocked |
 | `context_providers.timeout_seconds` | `10` | Per-tool connect/read timeout in seconds |
 | `context_providers.aggregation_budget_seconds` | `30` | Total budget across all providers in one tool call |
 | `context_providers.max_response_bytes` | `1_048_576` | Maximum provider response body size in bytes before normalization |

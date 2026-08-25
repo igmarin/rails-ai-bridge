@@ -45,3 +45,4 @@ LEAN-CTX.md
 graphify-out/
 repomix-output.xml
 repomix-output.md
+spec/fixtures/boot_apps/database_outage/log/
