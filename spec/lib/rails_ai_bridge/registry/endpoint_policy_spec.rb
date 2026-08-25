@@ -36,7 +36,7 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
       expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
     end
 
-    it 'accepts an uppercase HTTP scheme as HTTP' do
+    it 'accepts an uppercase HTTPS scheme as HTTP' do
       policy = described_class.new(
         resolver: resolver,
         allowed_hosts: ['example.com'],
@@ -46,6 +46,20 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
       allow(resolver).to receive(:getaddresses).with('example.com').and_return(['192.0.2.1'])
 
       result = policy.call('HTTPS://example.com/some-tool')
+
+      expect(result).to be_success
+    end
+
+    it 'accepts an uppercase HTTP scheme as HTTP' do
+      policy = described_class.new(
+        resolver: resolver,
+        allowed_hosts: ['example.com'],
+        allowed_loopback_ports: [3000, 9292],
+        allow_private_networks: false
+      )
+      allow(resolver).to receive(:getaddresses).with('example.com').and_return(['192.0.2.1'])
+
+      result = policy.call('HTTP://example.com/some-tool')
 
       expect(result).to be_success
     end
