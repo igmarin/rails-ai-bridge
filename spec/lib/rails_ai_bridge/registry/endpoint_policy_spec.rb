@@ -23,10 +23,13 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
 
   describe '#call' do
     it 'rejects an arbitrary public host not on the allowlist' do
+      allow(resolver).to receive(:getaddresses).with('example.com').and_return(['192.0.2.1'])
+
       result = policy.call('https://example.com/some-tool')
 
       expect(result).not_to be_success
       expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
+      expect(result.error.message).to eq('endpoint is not permitted by policy')
     end
 
     it 'rejects an unsupported scheme' do
@@ -36,7 +39,39 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
       expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
     end
 
-    it 'accepts an uppercase HTTPS scheme as HTTP' do
+    it 'rejects an endpoint containing credentials' do
+      result = policy.call('https://user:pass@example.com/some-tool')
+
+      expect(result).not_to be_success
+      expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
+      expect(result.error.message).to eq('endpoint must not include credentials')
+    end
+
+    it 'rejects a malformed URI' do
+      result = policy.call('https://example.com:badport/some-tool')
+
+      expect(result).not_to be_success
+      expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
+      expect(result.error.message).to eq('endpoint is not a valid URL')
+    end
+
+    it 'rejects plain HTTP for a public allowlisted host' do
+      policy = described_class.new(
+        resolver: resolver,
+        allowed_hosts: ['example.com'],
+        allowed_loopback_ports: [3000, 9292],
+        allow_private_networks: false
+      )
+      allow(resolver).to receive(:getaddresses).with('example.com').and_return(['192.0.2.1'])
+
+      result = policy.call('http://example.com/some-tool')
+
+      expect(result).not_to be_success
+      expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
+      expect(result.error.message).to eq('plain HTTP is only permitted for loopback or private endpoints')
+    end
+
+    it 'accepts an uppercase HTTPS scheme' do
       policy = described_class.new(
         resolver: resolver,
         allowed_hosts: ['example.com'],
@@ -48,20 +83,7 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
       result = policy.call('HTTPS://example.com/some-tool')
 
       expect(result).to be_success
-    end
-
-    it 'accepts an uppercase HTTP scheme as HTTP' do
-      policy = described_class.new(
-        resolver: resolver,
-        allowed_hosts: ['example.com'],
-        allowed_loopback_ports: [3000, 9292],
-        allow_private_networks: false
-      )
-      allow(resolver).to receive(:getaddresses).with('example.com').and_return(['192.0.2.1'])
-
-      result = policy.call('HTTP://example.com/some-tool')
-
-      expect(result).to be_success
+      expect(result.uri.scheme).to eq('https')
     end
 
     it 'rejects an invalid URI without echoing the raw input' do
@@ -92,6 +114,16 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
       expect(result.error.message).to eq('endpoint could not be resolved')
     end
 
+    it 'returns a policy error when the resolver raises a generic StandardError' do
+      allow(resolver).to receive(:getaddresses).and_raise(StandardError.new('unexpected resolver failure'))
+
+      result = policy.call('https://example.com/some-tool')
+
+      expect(result).not_to be_success
+      expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
+      expect(result.error.message).to eq('endpoint could not be resolved')
+    end
+
     context 'when the host is on the allowlist' do
       let(:allowed_hosts) { ['example.com'] }
 
@@ -107,11 +139,18 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
         expect(result.addresses).to eq(['192.0.2.1'])
       end
 
-      it 'strips userinfo and fragments from the canonical URI' do
-        result = policy.call('https://user:pass@example.com/some-tool#fragment')
+      it 'strips fragments from the canonical URI' do
+        result = policy.call('https://example.com/some-tool#fragment')
 
         expect(result).to be_success
         expect(result.uri.to_s).to eq('https://example.com/some-tool')
+      end
+
+      it 'rejects an endpoint containing credentials even when the host is allowed' do
+        result = policy.call('https://user:pass@example.com/some-tool')
+
+        expect(result).not_to be_success
+        expect(result.error.message).to eq('endpoint must not include credentials')
       end
 
       it 'normalizes mixed-case hosts' do
@@ -180,6 +219,43 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
         expect(result).not_to be_success
         expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
       end
+
+      it 'allows an http private address when private networks are enabled' do
+        result = policy.call('http://private.local/some-tool')
+
+        expect(result).to be_success
+        expect(result.addresses).to eq(['192.168.1.1'])
+      end
+    end
+
+    it 'rejects a host that resolves to a mix of public and private addresses over http' do
+      policy = described_class.new(
+        resolver: resolver,
+        allowed_hosts: ['mixed.example.com'],
+        allowed_loopback_ports: [3000, 9292],
+        allow_private_networks: true
+      )
+      allow(resolver).to receive(:getaddresses).with('mixed.example.com').and_return(%w[192.0.2.1 192.168.1.1])
+
+      result = policy.call('http://mixed.example.com/some-tool')
+
+      expect(result).not_to be_success
+      expect(result.error.message).to eq('plain HTTP is only permitted for loopback or private endpoints')
+    end
+
+    it 'rejects a host that resolves to a mix of public and private addresses over https' do
+      policy = described_class.new(
+        resolver: resolver,
+        allowed_hosts: ['mixed.example.com'],
+        allowed_loopback_ports: [3000, 9292],
+        allow_private_networks: true
+      )
+      allow(resolver).to receive(:getaddresses).with('mixed.example.com').and_return(%w[192.0.2.1 192.168.1.1])
+
+      result = policy.call('https://mixed.example.com/some-tool')
+
+      expect(result).to be_success
+      expect(result.addresses).to eq(%w[192.0.2.1 192.168.1.1])
     end
   end
 end

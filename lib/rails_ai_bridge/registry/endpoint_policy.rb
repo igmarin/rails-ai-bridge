@@ -47,6 +47,8 @@ module RailsAiBridge
       #   addresses, or a failure result with a {PolicyError}
       def call(endpoint)
         uri = URI.parse(endpoint)
+        return failure('endpoint must not include credentials') if uri.userinfo
+
         scheme = uri.scheme.to_s.downcase
         raw_host = uri.host
 
@@ -60,13 +62,15 @@ module RailsAiBridge
 
         approved = filter_addresses(raw_addresses, uri, host)
         if approved.any?
+          return failure('plain HTTP is only permitted for loopback or private endpoints') if scheme == 'http' && !plaintext_permitted?(approved)
+
           Result.new(success: true, error: nil, uri: canonicalize(uri), addresses: approved)
         else
-          failure("endpoint #{host_label} is not permitted by policy")
+          failure('endpoint is not permitted by policy')
         end
-      rescue URI::InvalidURIError
+      rescue URI::Error
         failure('endpoint is not a valid URL')
-      rescue Resolv::ResolvError, SocketError
+      rescue StandardError
         failure('endpoint could not be resolved')
       end
 
@@ -114,6 +118,25 @@ module RailsAiBridge
         rescue IPAddr::InvalidAddressError
           false
         end
+      end
+
+      # @param addresses [Array<String>] approved IP strings
+      # @return [Boolean] whether all addresses are safe for plain HTTP
+      def plaintext_permitted?(addresses)
+        addresses.all? do |raw|
+          ip = IPAddr.new(raw)
+          local_address?(ip)
+        rescue IPAddr::InvalidAddressError
+          false
+        end
+      end
+
+      # @param ip [IPAddr]
+      # @return [Boolean] whether the address is loopback or an allowed private/link-local address
+      def local_address?(ip)
+        return true if ip.loopback?
+
+        (ip.private? || ip.link_local?) && @allow_private_networks
       end
     end
   end

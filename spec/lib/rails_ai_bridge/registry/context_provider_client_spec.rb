@@ -40,6 +40,16 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
       )
     end
 
+    it 'returns a connection error when the endpoint policy raises' do
+      allow(policy).to receive(:call).with('https://example.com/mcp').and_raise(StandardError, 'policy crashed')
+
+      result = client.call_tool('get_status', arguments: {})
+
+      expect(result.status).to eq(:error)
+      expect(result.error).to be_a(RailsAiBridge::Registry::ConnectionError)
+      expect(transport_factory).not_to have_received(:call)
+    end
+
     it 'returns an error result when the endpoint policy rejects the URL' do
       allow(policy).to receive(:call).with('https://example.com/mcp').and_return(
         RailsAiBridge::Registry::EndpointPolicy::Result.new(
@@ -79,7 +89,7 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
       expect(fake_transport).to have_received(:close)
     end
 
-    it 'returns a connection error when the auth resolver fails' do
+    it 'returns an authentication error when the auth resolver fails' do
       client = described_class.new(
         provider: provider,
         policy: policy,
@@ -90,8 +100,8 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
       result = client.call_tool('get_status', arguments: {})
 
       expect(result.status).to eq(:error)
-      expect(result.error).to be_a(RailsAiBridge::Registry::ConnectionError)
-      expect(result.error.message).to start_with('provider call failed (StandardError)')
+      expect(result.error).to be_a(RailsAiBridge::Registry::AuthenticationError)
+      expect(result.error.message).to start_with('authentication resolution failed (StandardError)')
       expect(transport_factory).not_to have_received(:call)
     end
 

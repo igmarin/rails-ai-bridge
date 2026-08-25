@@ -349,6 +349,7 @@ detectors:
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#parse_database_yml
     - RailsAiBridge::Introspectors::NonArModelsIntrospector#record_if_non_ar_model
     - RailsAiBridge::Registry::EndpointPolicy#canonicalize
+    - RailsAiBridge::Registry::EndpointPolicy#local_address?
     - RailsAiBridge::Introspectors::RouteIntrospector#detect_mounted_engines
     - RailsAiBridge::Introspectors::RouteIntrospector#excluded_route?
     - RailsAiBridge::Introspectors::RouteIntrospector#extract_routes

@@ -39,13 +39,13 @@ module RailsAiBridge
       # @return [Result]
       def call_tool(tool_name, arguments: {})
         endpoint = @provider.endpoint
-        policy_result = @policy.call(endpoint)
-        return Result.new(status: :error, error: policy_result.error) unless policy_result.success?
-
-        canonical_uri = policy_result.uri
         transport = nil
         begin
-          headers = @auth_resolver ? @auth_resolver.call(endpoint, canonical_uri) : {}
+          policy_result = @policy.call(endpoint)
+          return Result.new(status: :error, error: policy_result.error) unless policy_result.success?
+
+          canonical_uri = policy_result.uri
+          headers = resolve_auth(endpoint, canonical_uri)
           transport = @transport_factory.call(canonical_uri, policy_result.addresses, headers)
           remote_tool = find_tool(transport, tool_name)
           return Result.new(status: :error, error: RemoteToolError.new("tool #{tool_name.inspect} is not allowed")) unless remote_tool
@@ -62,6 +62,18 @@ module RailsAiBridge
       end
 
       private
+
+      # @param endpoint [String] the raw provider endpoint
+      # @param uri [URI] the canonical, credential-free provider URI
+      # @return [Hash] auth headers for the transport call
+      # @raise [AuthenticationError] when the auth resolver raises
+      def resolve_auth(endpoint, uri)
+        return {} unless @auth_resolver
+
+        @auth_resolver.call(endpoint, uri)
+      rescue StandardError => error
+        raise AuthenticationError, "authentication resolution failed (#{error.class})"
+      end
 
       # @param transport [Object, nil] the active transport
       # @return [void]
