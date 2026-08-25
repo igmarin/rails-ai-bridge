@@ -28,7 +28,7 @@ module RailsAiBridge
 
       # Removes all cached entries.
       #
-      # @return [void]
+      # @return [Hash] the cleared cache
       delegate :clear, to: :@cache
     end
   end

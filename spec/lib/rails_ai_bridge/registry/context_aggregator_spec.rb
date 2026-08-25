@@ -175,18 +175,15 @@ RSpec.describe RailsAiBridge::Registry::ContextAggregator do
   end
 
   describe 'request-level memoization' do
-    it 'does not call the client twice for the same provider+tool within one scope' do
-      call_count = 0
-      factory = lambda do |_p|
-        call_count += 1
-        success_client
-      end
+    it 'does not call call_tool twice for the same provider+tool within one scope' do
+      client = success_client
+      factory = ->(_p) { client }
       agg = aggregator_with(factory)
 
       agg.fetch_one('billing')
       agg.fetch_one('billing')
 
-      expect(call_count).to eq(2)
+      expect(client).to have_received(:call_tool).once
     end
   end
 
