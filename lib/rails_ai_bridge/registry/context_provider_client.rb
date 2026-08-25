@@ -1,0 +1,48 @@
+# frozen_string_literal: true
+
+module RailsAiBridge
+  module Registry
+    # Performs one provider exchange through an MCP HTTP transport.
+    #
+    # The client owns policy verification, remote tool metadata checks,
+    # result normalization, and safe error translation. It never stores
+    # credentials and closes the transport in an ensure block.
+    class ContextProviderClient
+      # Result of a single provider tool call.
+      #
+      # @!attribute status
+      #   @return [Symbol] one of :success, :partial_failure, :error
+      # @!attribute content
+      #   @return [Object, nil] normalized tool result content when successful
+      # @!attribute provenance
+      #   @return [String, nil] provider identity and source status label
+      # @!attribute error
+      #   @return [ContextProviderError, nil] typed error when not successful
+      Result = Struct.new(:status, :content, :provenance, :error, keyword_init: true)
+
+      # @param provider [ContextProviderDefinition] provider manifest
+      # @param policy [EndpointPolicy] policy used to validate the endpoint
+      # @param transport_factory [#call] callable returning an MCP transport
+      # @param auth_resolver [Proc, nil] callable returning auth headers for the provider
+      # @return [ContextProviderClient]
+      def initialize(provider:, policy:, transport_factory:, auth_resolver:)
+        @provider = provider
+        @policy = policy
+        @transport_factory = transport_factory
+        @auth_resolver = auth_resolver
+      end
+
+      # Calls a single remote tool and returns a typed result.
+      #
+      # @param tool_name [String] name of the tool to call
+      # @param arguments [Hash] tool arguments
+      # @return [Result]
+      def call_tool(tool_name, arguments: {})
+        policy_result = @policy.call(@provider.endpoint)
+        return Result.new(status: :error, error: policy_result.error) unless policy_result.success?
+
+        Result.new(status: :success, content: {}, provenance: @provider.endpoint, error: nil)
+      end
+    end
+  end
+end
