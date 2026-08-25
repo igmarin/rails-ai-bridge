@@ -52,8 +52,8 @@ module RailsAiBridge
           Result.new(status: :success, content: content, provenance: provenance_for(policy_result.uri), error: nil)
         rescue RailsAiBridge::Registry::ContextProviderError => error
           Result.new(status: :error, error: error)
-        rescue StandardError
-          Result.new(status: :error, error: ConnectionError.new('provider call failed'))
+        rescue StandardError => error
+          Result.new(status: :error, error: ConnectionError.new("provider call failed (#{error.class})"))
         ensure
           close_transport(transport)
         end
@@ -66,7 +66,7 @@ module RailsAiBridge
       def close_transport(transport)
         transport&.close
       rescue StandardError
-        # Intentionally swallow close failures so the original result is preserved.
+        nil
       end
 
       # @param transport [#tools] the active transport
