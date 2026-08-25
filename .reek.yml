@@ -1124,6 +1124,7 @@ detectors:
     - RailsAiBridge::Registry::ContextProviderClient#find_tool
     - RailsAiBridge::Registry::ContextProviderClient#provenance_for
     - RailsAiBridge::Registry::EndpointPolicy#failure
+    - RailsAiBridge::Registry::EndpointPolicy#log_error
     - RailsAiBridge::Registry::EndpointPolicy#normalize_host
     - RailsAiBridge::Doctor::Checkers::BaseChecker#new_check
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#registry_config

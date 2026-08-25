@@ -124,6 +124,16 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
       expect(result.error.message).to eq('endpoint could not be resolved')
     end
 
+    it 'returns a policy error when the resolver raises an unexpected StandardError' do
+      allow(resolver).to receive(:getaddresses).and_raise(ArgumentError.new('unexpected resolver failure'))
+
+      result = policy.call('https://example.com/some-tool')
+
+      expect(result).not_to be_success
+      expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
+      expect(result.error.message).to eq('endpoint could not be resolved')
+    end
+
     it 'rejects an uppercase HTTP scheme for a public host' do
       policy = described_class.new(
         resolver: resolver,

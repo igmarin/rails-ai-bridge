@@ -2,6 +2,8 @@
 
 require 'ipaddr'
 require 'resolv'
+require 'socket'
+require 'timeout'
 require 'uri'
 
 module RailsAiBridge
@@ -71,10 +73,29 @@ module RailsAiBridge
       rescue URI::Error
         failure('endpoint is not a valid URL')
       rescue Resolv::ResolvError, SocketError, Timeout::Error, IPAddr::Error
-        failure('endpoint could not be resolved')
+        resolve_failure
+      rescue StandardError => error
+        log_error(error)
+        resolve_failure
       end
 
       private
+
+      # @return [Result]
+      def resolve_failure
+        failure('endpoint could not be resolved')
+      end
+
+      # @param error [StandardError]
+      # @return [void]
+      def log_error(error)
+        logger = Rails.logger
+        return unless logger
+
+        backtrace = error.backtrace
+        logger.error("#{error.class}: #{error.message}")
+        logger.error(backtrace.first(5).join("\n")) if backtrace
+      end
 
       # @param message [String] safe, credential-free failure message
       # @return [Result]
@@ -132,7 +153,7 @@ module RailsAiBridge
       end
 
       # @param ip [IPAddr]
-      # @return [Boolean] whether the address is loopback or an allowed RFC1918 private address
+      # @return [Boolean] whether the address is loopback or an allowed RFC1918/ULA private address
       def local_address?(ip)
         return true if ip.loopback?
 
