@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Watcher nil-app guard** — `Watcher#initialize` now raises `ArgumentError` when no application is available instead of storing `nil` and failing later with `NoMethodError` on `app.root`.
 - **StaticApp** — `RailsAiBridge::StaticApp` provides a minimal app-like object (root, paths, config, eager_load!) for static-capable introspectors (schema, gems, tests, migrations, conventions) without booting Rails. Includes a capability map (`STATIC_CAPABLE` / `BOOT_REQUIRED`) so static mode reports unavailable sections honestly.
 - **BootManager** — `RailsAiBridge::BootManager` locates the app root, quarantines boot stdout to stderr, honors a configurable timeout, and returns a structured result for `StandardError`/`ScriptError` failures. Offers `static_fallback` for commands that permit it (`context`, `inspect`, `doctor`).
+- **Doctor boot diagnostics** — `Doctor.run_for` provides a programmatic boot-to-static-fallback path for standalone callers. It reports structured Rails boot failures, continues static-capable checks, and marks runtime-only checks as unavailable rather than presenting partial diagnostics as complete.
 - **Static-mode introspection** — `Introspector` detects `StaticApp` and returns `{ error: "not available without boot" }` for boot-required introspectors. Metadata includes `static_mode: true` and detects Rails version from `Gemfile.lock` without booting.
 
 ### Changed

@@ -4,6 +4,9 @@ require 'spec_helper'
 
 RSpec.describe RailsAiBridge::Doctor do
   let(:doctor) { described_class.new(Rails.application) }
+  let(:static_root) { Dir.mktmpdir('doctor-static-') }
+
+  after { FileUtils.rm_rf(static_root) }
 
   describe '#run' do
     subject(:result) { doctor.run }
@@ -80,6 +83,45 @@ RSpec.describe RailsAiBridge::Doctor do
 
       # 1 fail (0) + 1 pass (10) + 15 others (all pass = 150) = 160 / 170 = 94
       expect(score).to be < 100
+    end
+
+    it 'reports a Rails boot failure without exposing exception details' do
+      static_app = RailsAiBridge::StaticApp.new(static_root)
+      boot_result = {
+        success: false,
+        error: 'password=secret database.internal.example',
+        error_class: 'ActiveRecord::ConnectionNotEstablished'
+      }
+
+      current = described_class.new(static_app, boot_result: boot_result).run
+      boot_check = current[:checks].find { |check| check.name == 'Rails boot' }
+
+      expect(boot_check).to have_attributes(
+        status: :fail,
+        message: 'Rails boot failed (ActiveRecord::ConnectionNotEstablished)'
+      )
+    end
+
+    it 'runs Doctor through boot and static fallback' do
+      root = File.expand_path('../../fixtures/boot_apps/syntax_error', __dir__)
+
+      current = described_class.run_for(root, timeout: 1)
+      boot_check = current[:checks].find { |check| check.name == 'Rails boot' }
+
+      expect(boot_check).to have_attributes(status: :fail, message: 'Rails boot failed (SyntaxError)')
+      expect(current[:checks]).to include(have_attributes(name: 'Routes', status: :warn))
+    end
+
+    it 'marks runtime-only checks unavailable in static mode' do
+      static_app = RailsAiBridge::StaticApp.new(static_root)
+
+      current = described_class.new(static_app).run
+      routes_check = current[:checks].find { |check| check.name == 'Routes' }
+
+      expect(routes_check).to have_attributes(
+        status: :warn,
+        message: 'Not available without Rails boot'
+      )
     end
   end
 end
