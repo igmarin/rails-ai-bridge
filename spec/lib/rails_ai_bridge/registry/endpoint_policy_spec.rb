@@ -65,10 +65,10 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
     end
 
     context 'when the host is on the allowlist' do
-      let(:allowed_hosts) { ['example.com.'] }
+      let(:allowed_hosts) { ['example.com'] }
 
       before do
-        allow(resolver).to receive(:getaddresses).with('example.com').and_return(['93.184.216.34'])
+        allow(resolver).to receive(:getaddresses).with('example.com').and_return(['192.0.2.1'])
       end
 
       it 'returns the canonical URI and resolved addresses' do
@@ -76,7 +76,7 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
 
         expect(result).to be_success
         expect(result.uri.to_s).to eq('https://example.com/some-tool')
-        expect(result.addresses).to eq(['93.184.216.34'])
+        expect(result.addresses).to eq(['192.0.2.1'])
       end
 
       it 'strips userinfo and fragments from the canonical URI' do
@@ -93,11 +93,15 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
         expect(result.uri.host).to eq('example.com')
       end
 
-      it 'treats a trailing dot on the endpoint host as equivalent to the allowlist entry' do
-        result = policy.call('https://example.com./some-tool')
+      context 'when the allowlist entry has a trailing dot' do
+        let(:allowed_hosts) { ['example.com.'] }
 
-        expect(result).to be_success
-        expect(result.addresses).to eq(['93.184.216.34'])
+        it 'treats a trailing dot on the allowlist entry as equivalent to the endpoint host' do
+          result = policy.call('https://example.com./some-tool')
+
+          expect(result).to be_success
+          expect(result.addresses).to eq(['192.0.2.1'])
+        end
       end
     end
 

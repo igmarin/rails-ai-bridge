@@ -86,6 +86,8 @@ module RailsAiBridge
       def canonicalize(uri)
         uri.dup.tap do |u|
           u.host = normalize_host(u.host)
+          # Setting userinfo to an empty string drops both user and password
+          # components from the canonical URL, preventing credential leakage.
           u.userinfo = ''
           u.fragment = nil
         end
