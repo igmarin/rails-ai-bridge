@@ -10,10 +10,9 @@ module RailsAiBridge
       # @return [String] sanitized message with URLs and paths replaced
       def self.sanitize(message)
         message.to_s
-               .gsub(%r{https?://[^\s]+}i, '[redacted]')
-               .gsub(%r{(ssh|git|file|ftp|sftp|ws|wss)://[^\s]+}i, '[redacted]')
+               .gsub(%r{[a-z][a-z0-9+.-]+://[^\s]+}i, '[redacted]')
                .gsub(/git@[^\s]+/, '[redacted]')
-               .gsub(%r{(?:\A|\s)/[A-Za-z0-9_.-]+(?:/[^\s]*)?}, '[redacted]')
+               .gsub(%r{(?<=\s|^|\(|'|"|`)/[A-Za-z0-9_.-]+(?:/[^\s]*)?}, '[redacted]')
                .gsub(/[A-Za-z]:\\[^\s]+/, '[redacted]')
       end
     end

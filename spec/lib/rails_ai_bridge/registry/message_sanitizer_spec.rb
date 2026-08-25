@@ -28,6 +28,16 @@ RSpec.describe RailsAiBridge::Registry::MessageSanitizer do
       end
     end
 
+    it 'redacts database URLs (postgres, mysql, redis)' do
+      %w[postgres mysql redis mongodb].each do |scheme|
+        result = described_class.sanitize("connecting to #{scheme}://user:pass@db.example.com:5432/mydb")
+
+        expect(result).to include('[redacted]')
+        expect(result).not_to include('db.example.com')
+        expect(result).not_to include('user:pass')
+      end
+    end
+
     it 'redacts git@ SSH URIs' do
       result = described_class.sanitize('clone from git@github.com:user/repo.git')
 
@@ -47,6 +57,20 @@ RSpec.describe RailsAiBridge::Registry::MessageSanitizer do
 
       expect(result).to include('[redacted]')
       expect(result).not_to include('/usr/local')
+    end
+
+    it 'redacts paths inside quotes' do
+      result = described_class.sanitize("No such file or directory - '/etc/secrets/config.yml'")
+
+      expect(result).to include('[redacted]')
+      expect(result).not_to include('/etc/secrets')
+    end
+
+    it 'redacts paths inside parentheses' do
+      result = described_class.sanitize('failed to open (/var/log/app.log) for reading')
+
+      expect(result).to include('[redacted]')
+      expect(result).not_to include('/var/log')
     end
 
     it 'redacts Windows paths' do
