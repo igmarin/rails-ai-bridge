@@ -58,14 +58,18 @@ module RailsAiBridge
     # @return [Config::Registry]
     attr_reader :registry
 
+    # @return [Config::ContextProviders]
+    attr_reader :context_providers
+
     def initialize
-      @auth          = Config::Auth.new
-      @server        = Config::Server.new
-      @introspection = Config::Introspection.new
-      @output        = Config::Output.new
-      @mcp           = Config::Mcp.new
-      @rubydex       = Config::Rubydex.new
-      @registry      = Config::Registry.new
+      @auth              = Config::Auth.new
+      @server            = Config::Server.new
+      @introspection     = Config::Introspection.new
+      @output            = Config::Output.new
+      @mcp               = Config::Mcp.new
+      @rubydex           = Config::Rubydex.new
+      @registry          = Config::Registry.new
+      @context_providers = Config::ContextProviders.new
     end
 
     # -- Config::Auth -----------------------------------------------------------
