@@ -258,13 +258,17 @@ module RailsAiBridge
             resolver: Resolv::DNS.new,
             allowed_hosts: providers_config.allowed_hosts,
             allowed_loopback_ports: providers_config.allowed_loopback_ports,
-            allow_private_networks: providers_config.allow_private_networks
+            allow_private_networks: providers_config.allow_private_networks,
+            timeout_seconds: providers_config.timeout_seconds,
+            max_resolved_addresses: providers_config.max_resolved_addresses
           )
           RailsAiBridge::Registry::ContextProviderClient.new(
             provider: provider,
             policy: policy,
             transport_factory: method(:default_transport_factory),
-            auth_resolver: providers_config.auth_resolver
+            auth_resolver: providers_config.auth_resolver,
+            timeout_seconds: providers_config.timeout_seconds,
+            cleanup_deadline_seconds: [5.0, providers_config.timeout_seconds].min
           )
         end
 
@@ -284,7 +288,11 @@ module RailsAiBridge
         # @return [Object] MCP transport
         def default_transport_factory(uri, addresses, headers)
           timeout = providers_config.timeout_seconds.to_f
-          MCP::Client::HTTP.new(url: uri, headers: headers) do |faraday|
+          MCP::Client::HTTP.new(
+            url: uri,
+            headers: headers,
+            max_reconnection_wait: timeout
+          ) do |faraday|
             options = faraday.options
             options.timeout = timeout
             options.open_timeout = timeout

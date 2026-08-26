@@ -36,6 +36,9 @@ module RailsAiBridge
       # @return [Integer] maximum tools to call per provider
       attr_reader :max_tools_per_provider
 
+      # @return [Integer] maximum DNS addresses to resolve per endpoint
+      attr_reader :max_resolved_addresses
+
       # @return [ContextProviders]
       def initialize
         @enabled = false
@@ -46,6 +49,7 @@ module RailsAiBridge
         @max_response_bytes = 1_048_576
         @max_providers = 8
         @max_tools_per_provider = 16
+        @max_resolved_addresses = 8
         @allow_private_networks = false
         @auth_resolver = nil
       end
@@ -93,6 +97,15 @@ module RailsAiBridge
       # @raise [RailsAiBridge::ConfigurationError] when the value is not an integer >= 1
       def max_tools_per_provider=(value)
         @max_tools_per_provider = coerce_count(value, 'max_tools_per_provider')
+      end
+
+      # Sets the maximum number of DNS addresses to resolve per endpoint.
+      #
+      # @param value [Integer, #to_i] count; must be an integer >= 1
+      # @return [Integer] the validated count
+      # @raise [RailsAiBridge::ConfigurationError] when the value is not an integer >= 1
+      def max_resolved_addresses=(value)
+        @max_resolved_addresses = coerce_count(value, 'max_resolved_addresses')
       end
 
       private

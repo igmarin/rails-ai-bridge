@@ -366,5 +366,46 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
       expect(result.error.message).not_to include('/etc/secrets')
       expect(result.error.message).to include('[redacted]')
     end
+
+    it 'times out when the transport blocks longer than the configured timeout' do
+      client = described_class.new(
+        provider: provider,
+        policy: policy,
+        transport_factory: transport_factory,
+        auth_resolver: nil,
+        timeout_seconds: 0.01
+      )
+      allow(fake_transport).to receive(:tools) { sleep 1 }
+
+      result = client.call_tool('get_status', arguments: {})
+
+      expect(result.status).to eq(:error)
+      expect(result.error).to be_a(RailsAiBridge::Registry::TimeoutError)
+      expect(result.error.message).to eq('provider call timed out')
+      expect(fake_transport).to have_received(:close)
+    end
+
+    it 'returns the original result even when transport.close exceeds the cleanup deadline' do
+      client = described_class.new(
+        provider: provider,
+        policy: policy,
+        transport_factory: transport_factory,
+        auth_resolver: nil,
+        timeout_seconds: 0.01,
+        cleanup_deadline_seconds: 0.01
+      )
+      success_tool = double('tool', name: 'get_status', read_only_hint: true, destructive_hint: false)
+      allow(fake_transport).to receive(:tools).and_return([success_tool])
+      allow(fake_transport).to receive(:call_tool).and_return('ok')
+      allow(fake_transport).to receive(:close) { sleep 1 }
+
+      result = client.call_tool('get_status', arguments: {})
+
+      expect(result.status).to eq(:success)
+      expect(result.content).to eq('ok')
+      expect(fake_transport).to have_received(:close)
+    end
+
+
   end
 end

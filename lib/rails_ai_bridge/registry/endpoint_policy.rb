@@ -35,11 +35,13 @@ module RailsAiBridge
       # @param allowed_loopback_ports [Array<Integer>] allowed loopback ports
       # @param allow_private_networks [Boolean] whether private/link-local network destinations are allowed
       # @return [EndpointPolicy]
-      def initialize(resolver:, allowed_hosts:, allowed_loopback_ports:, allow_private_networks:)
+      def initialize(resolver:, allowed_hosts:, allowed_loopback_ports:, allow_private_networks:, timeout_seconds: nil, max_resolved_addresses: nil)
         @resolver = resolver
         @allowed_hosts = allowed_hosts.map { |host| normalize_host(host.to_s) }.freeze
         @allowed_loopback_ports = allowed_loopback_ports.map(&:to_i).freeze
         @allow_private_networks = allow_private_networks
+        @timeout_seconds = timeout_seconds
+        @max_resolved_addresses = max_resolved_addresses
       end
 
       # Checks the endpoint against scheme, host, and network policy.
@@ -59,8 +61,10 @@ module RailsAiBridge
 
         host = normalize_host(raw_host)
         host_label = host.inspect
-        raw_addresses = @resolver.getaddresses(host).map(&:to_s)
+        raw_addresses = resolve_with_timeout(host).map(&:to_s)
         return failure("no addresses resolved for #{host_label}") if raw_addresses.empty?
+
+        return failure('endpoint resolved to too many addresses') if @max_resolved_addresses && raw_addresses.length > @max_resolved_addresses
 
         approved = filter_addresses(raw_addresses, uri, host)
         # Fail closed when any resolved address is rejected. Approving only the
@@ -91,6 +95,18 @@ module RailsAiBridge
       end
 
       private
+
+      # Resolves the host with an optional timeout to prevent DNS stalls.
+      #
+      # @param host [String] normalized host name
+      # @return [Array<Object>] addresses returned by the resolver
+      def resolve_with_timeout(host)
+        if @timeout_seconds
+          Timeout.timeout(@timeout_seconds) { @resolver.getaddresses(host) }
+        else
+          @resolver.getaddresses(host)
+        end
+      end
 
       # @return [Result]
       def resolve_failure
