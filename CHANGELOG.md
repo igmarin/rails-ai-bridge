@@ -13,15 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   context providers, the `AppScope` runtime seam, and production private-network
   guards.
 - `README.md` table-of-contents link to the v4.3.x → v5 upgrade guide.
-- `lib/tasks/zeitwerk.rake` with a `zeitwerk:check` task and regression specs.
+- `lib/tasks/zeitwerk.rake` with a `rails_ai_bridge:check_zeitwerk` task and regression specs.
   The task only eager-loads the gem's own Zeitwerk loader, not host-app loaders.
 
 ### Fixed
 
 - `lib/rails_ai_bridge.rb` now requires `active_support` and
-  `active_support/core_ext` so the gem can be required outside a full Rails
-  boot (fixes `undefined method 'delegate'` in standalone use).
-
+  `active_support/core_ext/module/delegation` so the gem can be required
+  outside a full Rails boot (fixes `undefined method 'delegate'` in standalone
+  use).
 
 ### Security
 

@@ -74,8 +74,11 @@ NETWORK=1 rails ai:doctor  # with provider probes
 
 ### Rolling back
 
-- **Pin to v4** — set `gem 'rails-ai-bridge', '~> 4.3.0'` in the host `Gemfile`, then `bundle update rails-ai-bridge --conservative`.
-- **Runtime disable** — set `config.context_providers.enabled = false` in the initializer to stop outbound requests without changing the installed version. Removing `allowed_hosts` is the emergency shutdown.
+- **Pin to v4** — set `gem 'rails-ai-bridge', '~> 4.3.0'` in the host `Gemfile`,
+  then `bundle update rails-ai-bridge --conservative`.
+- **Runtime disable** — set `config.context_providers.enabled = false` in the
+  initializer to stop outbound requests without changing the installed version.
+  Removing `allowed_hosts` is the emergency shutdown.
 
 ---
 

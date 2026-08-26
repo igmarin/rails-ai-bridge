@@ -5,9 +5,13 @@ require 'rake'
 require 'spec_helper'
 
 RSpec.describe 'rake zeitwerk:check' do
+  # Pin the gem's own Gemfile and cwd so host shell state cannot leak in.
+  let(:project_root) { File.expand_path('../../..', __dir__) }
+  let(:subprocess_env) { ENV.to_h.merge('BUNDLE_GEMFILE' => File.join(project_root, 'Gemfile')) }
+
   it 'eager-loads the gem without errors' do
     command = ['bundle', 'exec', 'rake', 'rails_ai_bridge:check_zeitwerk']
-    stdout, stderr, status = Open3.capture3(*command)
+    stdout, stderr, status = Open3.capture3(subprocess_env, *command, chdir: project_root)
 
     aggregate_failures do
       expect(status).to be_success, "expected zeitwerk:check to pass, got exit #{status.exitstatus}\nstderr: #{stderr}\nstdout: #{stdout}"

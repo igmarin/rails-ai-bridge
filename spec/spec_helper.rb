@@ -5,9 +5,6 @@ SimpleCov.start do
   enable_coverage :branch
   minimum_coverage line: 90, branch: 90 if (ENV['CI'] || ENV.fetch('COVERAGE', nil)) && !ENV['PERF']
   skip 'spec'
-  # Rake task files are CLI integration points, not core library code. Branch
-  # coverage for them is noisy and the tasks are already exercised by the rake
-  # specs and real CI workflows.
 end
 
 require_relative 'reek_helper'

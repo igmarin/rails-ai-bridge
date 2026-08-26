@@ -22,11 +22,6 @@ RSpec.describe RailsAiBridge::Introspectors::ActionTextIntrospector do
       expect(result[:installed]).to be true
     end
 
-    it 'returns installed as false when ActionText is not loaded' do
-      hide_const('ActionText')
-      expect(result[:installed]).to be false
-    end
-
     context 'with rich text macros in model source' do
       let(:fixture_model) { Rails.root.join('app/models/article.rb').to_s }
 

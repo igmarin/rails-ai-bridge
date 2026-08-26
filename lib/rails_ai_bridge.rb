@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 
 require 'active_support'
-require 'active_support/core_ext'
+# Standalone use (outside a Rails boot) needs Class#delegate from
+# ActiveSupport; load only that extension to avoid polluting host namespaces.
+require 'active_support/core_ext/module/delegation'
 require 'zeitwerk'
 
 loader = Zeitwerk::Loader.for_gem(warn_on_extra_files: false)
