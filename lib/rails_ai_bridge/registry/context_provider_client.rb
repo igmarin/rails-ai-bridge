@@ -157,8 +157,8 @@ module RailsAiBridge
       def sanitize_content(content)
         case content
         when String then sanitize_message(content)
-        when Hash then content.transform_values { |v| sanitize_content(v) }
-        when Array then content.map { |v| sanitize_content(v) }
+        when Hash then content.transform_values { |value| sanitize_content(value) }
+        when Array then content.map { |value| sanitize_content(value) }
         else content
         end
       end

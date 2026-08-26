@@ -136,6 +136,7 @@ detectors:
     - RailsAiBridge::ContextProvider#rebuild_section
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#probe_all_providers
     - RailsAiBridge::Registry::ContextProviderClient#probe
+    - RailsAiBridge::Registry::ContextProviderClient#sanitize_content
     - RailsAiBridge::Tools::GetProviderContext#self.call
     - RailsAiBridge::Tools::GetProviderContext::ResultFormatter#format
     - RailsAiBridge::Tools::GetProviderContext::ResultFormatter#format_data
@@ -739,6 +740,7 @@ detectors:
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#probe_all_providers
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#probe_provider
     - RailsAiBridge::Registry::ContextProviderClient#probe
+    - RailsAiBridge::Registry::ContextProviderClient#sanitize_content
     - RailsAiBridge::Generators::HelpGenerator#show_commands
     - RailsAiBridge::Generators::CommandHelp#print_command_reference
     - RailsAiBridge::Generators::InstallGenerator#add_to_gitignore
