@@ -237,6 +237,17 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
       expect(result.content['outer']['inner']).not_to include('nested-secret')
       expect(result.content['outer']['safe']).to eq('ok')
     end
+
+    it 'passes through non-String/Hash/Array content unchanged' do
+      fake_tool = double('tool', name: 'get_status', read_only_hint: true, destructive_hint: false)
+      allow(fake_transport).to receive_messages(tools: [fake_tool])
+      allow(fake_transport).to receive(:call_tool).and_return(42)
+
+      result = client.call_tool('get_status', arguments: {})
+
+      expect(result.status).to eq(:success)
+      expect(result.content).to eq(42)
+    end
   end
 
   describe '#probe' do
