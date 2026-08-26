@@ -4,7 +4,7 @@ require 'spec_helper'
 require 'mcp'
 
 # Characterization specs that pin the MCP tool annotation structure across
-# all 19 built-in tools. The MCP SDK's `annotations` DSL exposes hints that
+# all 20 built-in tools. The MCP SDK's `annotations` DSL exposes hints that
 # clients use to understand tool safety characteristics.
 #
 # All rails-ai-bridge tools are read-only, non-destructive, and idempotent

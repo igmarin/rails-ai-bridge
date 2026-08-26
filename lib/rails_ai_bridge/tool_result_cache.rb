@@ -16,6 +16,14 @@ module RailsAiBridge
     @cache = {}
     @mutex = Mutex.new
 
+    # Tool names that must never be cached because their results may change
+    # between calls (external provider data) or represent live network state.
+    #
+    # @return [Set<String>]
+    NON_CACHEABLE = Set[
+      'rails_get_provider_context'
+    ].freeze
+
     # Wraps a tool class so that calls are routed through the cache.
     class CachedTool < SimpleDelegator
       def initialize(tool_class)
@@ -63,7 +71,10 @@ module RailsAiBridge
       # @param tool_class [Class] an +MCP::Tool+ subclass
       # @return [Class, CachedTool]
       def maybe_wrap(tool_class)
-        enabled? ? wrap(tool_class) : tool_class
+        return tool_class unless enabled?
+        return tool_class if NON_CACHEABLE.include?(tool_class.tool_name)
+
+        wrap(tool_class)
       end
 
       # Wraps a tool class so every call goes through the cache.

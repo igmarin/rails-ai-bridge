@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'json'
+require 'resolv'
 
 module RailsAiBridge
   module Tools
@@ -125,7 +126,10 @@ module RailsAiBridge
       private_class_method :build_client
 
       # @param uri [URI]
-      # @param _addresses [Array<String>] policy-validated IP addresses (see design doc INV-6)
+      # @param _addresses [Array<String>] policy-validated IP addresses; not passed to
+      #   the MCP SDK transport because Faraday re-resolves uri.host. See design doc
+      #   INV-6 and section 11 (Risks) — address pinning requires a custom Faraday
+      #   adapter, tracked for v5 hardening.
       # @param headers [Hash]
       # @return [Object] MCP transport
       def self.default_transport_factory(uri, _addresses, headers)
@@ -182,7 +186,7 @@ module RailsAiBridge
             lines << '## Failures'
             lines << ''
             @result.failures.each do |error|
-              provider = error.respond_to?(:provider_name) ? error.provider_name : 'unknown'
+              provider = (error.provider_name if error.respond_to?(:provider_name)) || 'unknown'
               lines << "- **#{provider}** (#{error.class.name.demodulize}): #{error.message}"
             end
             lines << ''
@@ -194,6 +198,7 @@ module RailsAiBridge
 
         private
 
+        # @return [String] markdown header with provider name and status
         def header
           if @provider_name
             status_label = @result.error? ? 'FAILED' : 'OK'
@@ -204,6 +209,8 @@ module RailsAiBridge
           end
         end
 
+        # @param data [String, Hash, Array, Object] tool result content
+        # @return [String] formatted markdown for the data type
         def format_data(data)
           case data
           when String
@@ -217,6 +224,8 @@ module RailsAiBridge
           end
         end
 
+        # @param value [Object] a single value from a Hash or Array
+        # @return [String] JSON-pretty for nested structures, to_s for scalars
         def format_value(value)
           if value.is_a?(Hash) || value.is_a?(Array)
             JSON.pretty_generate(value)

@@ -93,11 +93,13 @@ RSpec.describe RailsAiBridge::Tools::GetProviderContext do
 
   context 'when the manifest is malformed JSON' do
     before do
+      allow(File).to receive(:exist?).and_call_original
+      allow(File).to receive(:exist?).with('config/rails_ai_bridge/registry.json').and_return(true)
       allow(RailsAiBridge::Registry::RegistryManifest).to receive(:from_file).and_raise(JSON::ParserError.new('unexpected token'))
     end
 
     it 'returns a setup message instead of raising' do
-      expect(content).to include('manifest')
+      expect(content).to include('No registry manifest found')
     end
   end
 
@@ -217,6 +219,59 @@ RSpec.describe RailsAiBridge::Tools::GetProviderContext do
 
     it 'uses the declared field name in the output' do
       expect(content).to include('invoices')
+    end
+  end
+
+  # ── error without provider_name ──────────────────────────────────────────────
+
+  context 'when an error has no provider_name set' do
+    let(:error_without_name) { RailsAiBridge::Registry::ConnectionError.new('connection refused') }
+    let(:aggregate_result) do
+      RailsAiBridge::Registry::ContextAggregator::AggregateResult.new(
+        results: {}, failures: [error_without_name], status: :error, elapsed_ms: 0
+      )
+    end
+
+    it 'renders unknown as the provider name in the formatter' do
+      output = described_class::ResultFormatter.new(aggregate_result).format
+      expect(output).to include('unknown')
+      expect(output).to include('ConnectionError')
+    end
+  end
+
+  # ── ResultFormatter branch coverage ──────────────────────────────────────────
+
+  describe RailsAiBridge::Tools::GetProviderContext::ResultFormatter do
+    let(:success_result) do
+      RailsAiBridge::Registry::ContextAggregator::AggregateResult.new(
+        results: { 'billing' => { 'status' => 'ok' } }, failures: [], status: :success, elapsed_ms: 42
+      )
+    end
+
+    it 'formats a single provider error header' do
+      error_result = RailsAiBridge::Registry::ContextAggregator::AggregateResult.new(
+        results: {}, failures: [], status: :error, elapsed_ms: 10
+      )
+      output = described_class.new(error_result, provider_name: 'billing').format
+      expect(output).to include('Provider Context: billing')
+      expect(output).to include('FAILED')
+    end
+
+    it 'formats Array data as a list' do
+      array_result = RailsAiBridge::Registry::ContextAggregator::AggregateResult.new(
+        results: { 'billing' => [{ 'id' => 1 }, { 'id' => 2 }] }, failures: [], status: :success, elapsed_ms: 5
+      )
+      output = described_class.new(array_result).format
+      expect(output).to include('"id": 1')
+      expect(output).to include('"id": 2')
+    end
+
+    it 'formats scalar data with to_s' do
+      scalar_result = RailsAiBridge::Registry::ContextAggregator::AggregateResult.new(
+        results: { 'billing' => 42 }, failures: [], status: :success, elapsed_ms: 1
+      )
+      output = described_class.new(scalar_result).format
+      expect(output).to include('42')
     end
   end
 end

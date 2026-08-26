@@ -120,12 +120,18 @@ RSpec.describe RailsAiBridge::Server do
         expect(registry_wrappers.map(&:__getobj__)).to all(be_a(RailsAiBridge::ToolResultCache::CachedTool))
       end
 
-      it 'wraps all built-in tools with ToolResultCache::CachedTool' do
+      it 'wraps cacheable built-in tools with ToolResultCache::CachedTool' do
         allow(RailsAiBridge.configuration).to receive(:additional_tools).and_return([])
 
         inner = server.tool_classes.map(&:__getobj__)
+        cacheable, excluded = inner.partition do |tool|
+          tool.is_a?(RailsAiBridge::ToolResultCache::CachedTool)
+        end
 
-        expect(inner).to all(be_a(RailsAiBridge::ToolResultCache::CachedTool))
+        # Non-cacheable tools (e.g. rails_get_provider_context) are not wrapped
+        excluded.each { |tool| expect(tool).to be < RailsAiBridge::Tools::BaseTool }
+        expect(cacheable).to all(be_a(RailsAiBridge::ToolResultCache::CachedTool))
+        expect(excluded.map(&:tool_name)).to match_array(RailsAiBridge::ToolResultCache::NON_CACHEABLE.to_a)
       end
     end
 

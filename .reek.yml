@@ -7,6 +7,7 @@ detectors:
     - RailsAiBridge::Config::Auth#http_mcp_token
     - RailsAiBridge::Config::Auth#mcp_jwt_decoder
     - RailsAiBridge::Config::Auth#mcp_token_resolver
+    - RailsAiBridge::Registry::ContextProviderError#provider_name
     - RailsAiBridge::Config::Introspection#additional_introspectors
     - RailsAiBridge::Config::Introspection#cache_ttl
     - RailsAiBridge::Config::Introspection#cache_warm_on_boot
