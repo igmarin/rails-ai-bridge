@@ -215,6 +215,32 @@ module RailsAiBridge
             # config.allow_auto_mount_in_production = false
             # config.http_path = "/mcp"
             # config.http_port = 6029
+
+            # ---------------------------------------------------------------------------
+            # Outbound context providers (v5)
+            # ---------------------------------------------------------------------------
+            # rails_get_provider_context fetches context from declared external MCP
+            # services. Disabled by default — no DNS or network calls unless enabled.
+            # See docs/v5/context-providers-design.md and docs/mcp-security.md.
+            #
+            # config.context_providers.enabled = true
+            # config.context_providers.allowed_hosts = ['context.example.com']
+            # config.context_providers.allowed_loopback_ports = [3000, 9292]
+            # config.context_providers.timeout_seconds = 10
+            # config.context_providers.aggregation_budget_seconds = 30
+            # config.context_providers.max_response_bytes = 1_048_576
+            # config.context_providers.max_providers = 8
+            # config.context_providers.max_tools_per_provider = 16
+            #
+            # Auth resolver — returns headers for a trusted provider identity.
+            # Never put tokens in the registry manifest.
+            # config.context_providers.auth_resolver = lambda do |provider_name, canonical_endpoint|
+            #   { 'Authorization' => "Bearer \#{token_for(provider_name)}" }
+            # end
+            #
+            # WARNING: Enabling allow_private_networks permits connections to internal
+            # network addresses; use it only for controlled development endpoints.
+            # config.context_providers.allow_private_networks = false
           end
         RUBY
 

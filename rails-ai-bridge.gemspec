@@ -44,10 +44,16 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
 
   # Core dependencies
-  spec.add_dependency 'mcp', '>= 1.0', '< 2.0' # Official MCP Ruby SDK (1.x stable)
+  spec.add_dependency 'mcp', '>= 1.3', '< 2.0' # Official MCP Ruby SDK (1.3+ for Client::HTTP)
   spec.add_dependency 'railties', '>= 7.1', '< 10.0'
   spec.add_dependency 'thor', '>= 1.0', '< 3.0'
   spec.add_dependency 'zeitwerk', '~> 2.6' # Autoloading
+
+  # Outbound context provider transport (MCP::Client::HTTP uses these but does
+  # not declare them; we require them explicitly so provider calls work without
+  # the host app needing to add them to its Gemfile).
+  spec.add_dependency 'event_stream_parser', '>= 1.0'
+  spec.add_dependency 'faraday', '>= 2.0', '< 3.0'
 
   # Semantic code analysis via Shopify's rubydex
   spec.add_dependency 'rubydex', '~> 0.3.0'

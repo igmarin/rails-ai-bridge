@@ -5,7 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [5.0.0] - 2026-08-26
+
+v5 adds optional outbound context providers — a way to read context from declared external MCP services. Provider traffic is disabled by default, limited to an explicit host allowlist, and allowed to call only remote tools that advertise read-only, non-destructive behavior. The local `rails_get_context` tool remains in-process and is not affected.
+
+### Migration from v4
+
+Existing v4 installations make no outbound provider requests. Upgrading to v5 does not enable requests, change `rails_get_context`, or require a manifest change. Hosts that want providers must add provider declarations, explicitly enable `config.context_providers.enabled`, configure exact allowed hosts, and provide downstream auth through the resolver. To disable during rollout: set `config.context_providers.enabled = false`. Emergency shutdown: remove the `allowed_hosts` array.
+
+### Gemspec changes
+
+- `mcp` minimum raised from `1.0` to `1.3` (provider client depends on `MCP::Client::HTTP` from 1.3+)
+- `faraday >= 2.0, < 3.0` added as explicit dependency (MCP SDK uses it but does not declare it)
+- `event_stream_parser >= 1.0` added as explicit dependency (MCP SDK uses it for SSE parsing but does not declare it)
 
 ### Added
 
@@ -32,9 +44,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Unknown Doctor boot failures** — Boot diagnostics now report `UnknownError` when exception class metadata is absent instead of rendering an empty error class.
 - **Request-scoped resolver memoization** — `Registry#with_request_resolver` and `request_active?` now use a frozen sentinel object instead of relying on `Thread.current[REQUEST_RESOLVER_KEY]` being `nil`. Previously `request_resolver?` checked `!Thread.current[REQUEST_RESOLVER_KEY].nil?`, which returned `false` for an active but unbuilt resolver. A sentinel distinguishes "active, not built" from "not active."
-
-### Added
-
 - **Branch coverage improvements** — 20 files raised to 90%+ branch coverage with focused RSpec tests covering previously uncovered branches.
 
 ## [4.3.0] - 2026-08-16

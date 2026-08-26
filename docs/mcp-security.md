@@ -125,6 +125,57 @@ The stdio MCP server has no Bearer layer; anyone who can run the process can use
 
 - [SECURITY.md](../SECURITY.md) — reporting vulnerabilities and design summary
 - [docs/GUIDE.md](GUIDE.md) — full configuration and MCP tool reference
+- [docs/v5/context-providers-design.md](v5/context-providers-design.md) — outbound provider design and security model
+
+## Outbound context provider security (v5)
+
+v5 adds `rails_get_provider_context`, which reads context from declared external MCP services. This changes the security model because a project file (the registry manifest) can name a network endpoint. The following controls are in place:
+
+### Disabled by default
+
+`config.context_providers.enabled` defaults to `false`. No DNS lookup or network request occurs unless the host explicitly enables providers and configures an allowlist. The tool returns a setup message and makes no network call when disabled.
+
+### Exact host allowlist
+
+`config.context_providers.allowed_hosts` is an exact-match list (case-insensitive, one trailing dot removed). No wildcard, suffix, or subdomain matching. Remote HTTPS must use port 443 (default). Plain HTTP is allowed only on loopback with an explicitly allowlisted host and a port from `allowed_loopback_ports` (default: `[3000, 9292]`).
+
+### SSRF protection
+
+`Registry::EndpointPolicy` validates every address returned by DNS resolution before connection. Private addresses (RFC1918, IPv6 ULA), link-local, multicast, unspecified, and cloud-metadata endpoints (`169.254.169.254`) are rejected. Mixed public/private DNS answers fail closed. A development-only `allow_private_networks` override exists but never permits metadata addresses.
+
+### Read-only tool enforcement
+
+Only remote tools that advertise `read_only_hint: true` and `destructive_hint: false` in their MCP tool metadata can be called. Missing or conflicting annotations are rejected.
+
+### Credential safety
+
+- Provider manifests never contain tokens.
+- Auth headers come from a trusted `auth_resolver` lambda, bound to the provider's canonical endpoint.
+- Headers are never logged, persisted, or copied into generated context.
+- Reflected `Authorization` values in provider content are redacted to `[REDACTED]` before MCP responses are returned.
+- Error messages are sanitized through `MessageSanitizer` — no URLs, file paths, or credential values leak into error results.
+
+### Resource limits
+
+| Limit | Default | Purpose |
+|-------|---------|---------|
+| `timeout_seconds` | 10 | Per-tool connect/read timeout |
+| `aggregation_budget_seconds` | 30 | Total budget across all providers in one call |
+| `max_response_bytes` | 1,048,576 (1 MiB) | Per-provider response cap before normalization |
+| `max_providers` | 8 | Maximum providers per invocation |
+| `max_tools_per_provider` | 16 | Maximum tools per provider |
+
+### Cache exclusion
+
+`rails_get_provider_context` is listed in `ToolResultCache::NON_CACHEABLE` so provider context always reflects live state, even when `tool_result_cache_ttl` is positive.
+
+### Emergency shutdown
+
+To immediately disable all provider traffic:
+```ruby
+RailsAiBridge.configure { |c| c.context_providers.enabled = false }
+```
+Or remove the `allowed_hosts` array — no host matches, all provider calls fail before DNS.
 
 ## Residual risk checklist (operators)
 
@@ -136,5 +187,6 @@ Use this before exposing HTTP MCP beyond a single-developer machine:
 | `cors_origins` includes `*` | CORS disabled unless configured | Prefer exact origins; never combine `*` with browsers on untrusted networks |
 | In-memory rate limit | Per-process only | Use `config.mcp.rate_limiter` / reverse proxy / WAF for multi-worker or multi-host |
 | Information disclosure via tools | Read-only tools still reveal schema/routes/code | Prefer stdio; bind HTTP to `127.0.0.1`; use exclusions/presets for regulated data |
+| Outbound provider calls to external services | Disabled by default | Enable only with exact `allowed_hosts`; use `allow_private_networks = false` (default) in production |
 
 See also [SECURITY.md](../SECURITY.md) for production `auto_mount` requirements and private vulnerability reporting.
