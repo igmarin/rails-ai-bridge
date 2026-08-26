@@ -257,7 +257,7 @@ namespace :ai do
     puts '🩺 Running AI readiness diagnostics...'
     puts ''
 
-    result = RailsAiBridge::Doctor.new.run
+    result = RailsAiBridge::Doctor.new(network: ENV['NETWORK'] == '1').run
 
     result[:checks].each do |check|
       icon = RailsAiBridge::STATUS_ICONS[check.status]
@@ -276,7 +276,7 @@ namespace :ai do
     puts '🩺 Running AI readiness diagnostics...'
     puts ''
 
-    result = RailsAiBridge::Doctor.new.run
+    result = RailsAiBridge::Doctor.new(network: ENV['NETWORK'] == '1').run
 
     any_failed = false
 

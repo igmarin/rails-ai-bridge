@@ -179,4 +179,91 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
       expect(fake_transport).to have_received(:close)
     end
   end
+
+  describe '#probe' do
+    let(:fake_transport) { double('transport', close: nil, tools: []) }
+
+    before do
+      allow(transport_factory).to receive(:call).and_return(fake_transport)
+      allow(policy).to receive(:call).with('https://example.com/mcp').and_return(
+        RailsAiBridge::Registry::EndpointPolicy::Result.new(
+          success: true,
+          error: nil,
+          uri: URI.parse('https://example.com/mcp'),
+          addresses: ['192.0.2.1']
+        )
+      )
+    end
+
+    it 'returns a success result when the endpoint is reachable' do
+      result = client.probe
+
+      expect(result.status).to eq(:success)
+      expect(fake_transport).to have_received(:close)
+    end
+
+    it 'returns an error result when the policy rejects the endpoint' do
+      allow(policy).to receive(:call).with('https://example.com/mcp').and_return(
+        RailsAiBridge::Registry::EndpointPolicy::Result.new(
+          success: false,
+          error: RailsAiBridge::Registry::PolicyError.new('host not allowed'),
+          uri: nil,
+          addresses: nil
+        )
+      )
+
+      result = client.probe
+
+      expect(result.status).to eq(:error)
+      expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
+      expect(transport_factory).not_to have_received(:call)
+    end
+
+    it 'returns a connection error when the transport fails and closes the transport' do
+      allow(fake_transport).to receive(:tools).and_raise(StandardError, 'connection refused')
+
+      result = client.probe
+
+      expect(result.status).to eq(:error)
+      expect(result.error).to be_a(RailsAiBridge::Registry::ConnectionError)
+      expect(result.error.message).to include('connection refused')
+      expect(fake_transport).to have_received(:close)
+    end
+
+    it 'returns a timeout error when the transport times out' do
+      allow(fake_transport).to receive(:tools).and_raise(Timeout::Error)
+
+      result = client.probe
+
+      expect(result.status).to eq(:error)
+      expect(result.error).to be_a(RailsAiBridge::Registry::TimeoutError)
+      expect(fake_transport).to have_received(:close)
+    end
+
+    it 'enforces a timeout on the tools request' do
+      allow(fake_transport).to receive(:tools) do
+        sleep 0.5
+        []
+      end
+
+      result = client.probe(timeout: 0.01)
+
+      expect(result.status).to eq(:error)
+      expect(result.error).to be_a(RailsAiBridge::Registry::TimeoutError)
+      expect(fake_transport).to have_received(:close)
+    end
+
+    it 'redacts URLs and paths from error messages' do
+      allow(fake_transport).to receive(:tools)
+        .and_raise(StandardError, 'connection to https://secret.example.com/path?token=abc failed at /etc/secrets/config.yml')
+
+      result = client.probe
+
+      expect(result.status).to eq(:error)
+      expect(result.error.message).not_to include('secret.example.com')
+      expect(result.error.message).not_to include('token=abc')
+      expect(result.error.message).not_to include('/etc/secrets')
+      expect(result.error.message).to include('[redacted]')
+    end
+  end
 end

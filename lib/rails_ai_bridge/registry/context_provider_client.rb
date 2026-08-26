@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'timeout'
+
 module RailsAiBridge
   module Registry
     # Performs one provider exchange through an MCP HTTP transport.
@@ -60,7 +62,39 @@ module RailsAiBridge
         rescue Timeout::Error
           Result.new(status: :error, error: RailsAiBridge::Registry::TimeoutError.new('provider call timed out'))
         rescue StandardError => error
-          Result.new(status: :error, error: RailsAiBridge::Registry::ConnectionError.new("provider call failed (#{error.class})"))
+          Result.new(status: :error, error: RailsAiBridge::Registry::ConnectionError.new("provider call failed (#{error.class}): #{sanitize_message(error.message)}"))
+        ensure
+          close_transport(transport)
+        end
+      end
+
+      # Lightweight reachability probe: validates the endpoint, opens a
+      # transport, lists tools, and closes. Does not call any tool.
+      #
+      # @param timeout [Numeric, nil] per-probe timeout in seconds; nil skips timeout
+      # @return [Result]
+      def probe(timeout: nil)
+        endpoint = @provider.endpoint
+        transport = nil
+        begin
+          policy_result = @policy.call(endpoint)
+          return Result.new(status: :error, error: policy_result.error) unless policy_result.success?
+
+          canonical_uri = policy_result.uri
+          headers = resolve_auth(endpoint, canonical_uri)
+          transport = @transport_factory.call(canonical_uri, policy_result.addresses, headers)
+          if timeout
+            Timeout.timeout(timeout) { transport.tools }
+          else
+            transport.tools
+          end
+          Result.new(status: :success, content: nil, provenance: provenance_for(canonical_uri), error: nil)
+        rescue RailsAiBridge::Registry::ContextProviderError => error
+          Result.new(status: :error, error: error)
+        rescue Timeout::Error
+          Result.new(status: :error, error: RailsAiBridge::Registry::TimeoutError.new('provider probe timed out'))
+        rescue StandardError => error
+          Result.new(status: :error, error: RailsAiBridge::Registry::ConnectionError.new("provider probe failed (#{error.class}): #{sanitize_message(error.message)}"))
         ensure
           close_transport(transport)
         end
@@ -108,6 +142,12 @@ module RailsAiBridge
       # @return [String] a safe provenance label with no credentials
       def provenance_for(uri)
         "#{uri.scheme}://#{uri.host}"
+      end
+
+      # @param message [String] raw error message
+      # @return [String] sanitized message with URLs and paths redacted
+      def sanitize_message(message)
+        RailsAiBridge::Registry::MessageSanitizer.sanitize(message)
       end
     end
   end
