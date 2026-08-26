@@ -6,7 +6,7 @@ require 'spec_helper'
 
 RSpec.describe 'rake zeitwerk:check' do
   it 'eager-loads the gem without errors' do
-    command = ['bundle', 'exec', 'rake', 'zeitwerk:check']
+    command = ['bundle', 'exec', 'rake', 'rails_ai_bridge:check_zeitwerk']
     stdout, stderr, status = Open3.capture3(*command)
 
     aggregate_failures do
@@ -36,7 +36,7 @@ RSpec.describe 'zeitwerk:check loader selection' do
 
     allow(Zeitwerk::Registry.loaders).to receive(:each).and_yield(other_loader).and_yield(gem_loader)
 
-    task = Rake::Task['zeitwerk:check']
+    task = Rake::Task['rails_ai_bridge:check_zeitwerk']
     expect { task.execute }.to output(/Zeitwerk check passed\n/).to_stdout
     expect(gem_loader).to have_received(:eager_load)
     expect(other_loader).not_to have_received(:eager_load)
@@ -47,7 +47,7 @@ RSpec.describe 'zeitwerk:check loader selection' do
 
     allow(Zeitwerk::Registry.loaders).to receive(:each).and_yield(other_loader)
 
-    task = Rake::Task['zeitwerk:check']
+    task = Rake::Task['rails_ai_bridge:check_zeitwerk']
     expect { task.execute }.to raise_error(/RailsAiBridge Zeitwerk loader not found/)
     expect(other_loader).not_to have_received(:eager_load)
   end

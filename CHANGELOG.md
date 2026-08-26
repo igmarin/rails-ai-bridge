@@ -21,9 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `lib/rails_ai_bridge.rb` now requires `active_support` and
   `active_support/core_ext` so the gem can be required outside a full Rails
   boot (fixes `undefined method 'delegate'` in standalone use).
-- `spec/lib/rails_ai_bridge/tools/get_context_spec.rb` memoized-helper layout
-  and RuboCop directive in `non_ar_models_introspector_spec.rb` to keep the
-  lint suite green on RuboCop 1.90+.
+
 
 ### Security
 

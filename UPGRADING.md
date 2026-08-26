@@ -2,7 +2,7 @@
 
 ## Upgrading from 4.3.0 to 5.0.0
 
-**No action is required for existing v4 installations.** v5 is intentionally
+**No application-code or configuration changes are required to upgrade.** v5 is intentionally
 backwards-compatible by default: outbound context providers are disabled,
 `rails_get_context` stays in-process, and all v4 configuration settings still
 work.
@@ -48,17 +48,19 @@ RailsAiBridge.configure do |config|
   config.context_providers.enabled = true
   config.context_providers.allowed_hosts = ['context.example.com']
   config.context_providers.auth_resolver = lambda do |_endpoint, canonical_uri|
+    # `token_for` is a placeholder — replace it with a real secret-manager call.
+    # The README's "Provider auth" section shows worked Vault/ENV/KMS examples.
     { 'Authorization' => "Bearer #{token_for(canonical_uri.host)}" }
   end
 end
 ```
 
-3. Call `rails_get_provider_context` from your AI client, or run
+1. Call `rails_get_provider_context` from your AI client, or run
    `NETWORK=1 rails ai:doctor` to verify reachability.
 
 ### Production guard for private networks
 
-In production, `config.context_providers.allow_private_networks` is ignored and
+In production, `config.context_providers.allow_private_networks` has no effect;
 private (RFC1918/ULA) destinations are rejected, even if the allowlist would
 otherwise permit them. Keep provider endpoints on public or explicitly allowed
 loopback addresses.
@@ -69,6 +71,11 @@ loopback addresses.
 rails ai:doctor        # no network
 NETWORK=1 rails ai:doctor  # with provider probes
 ```
+
+### Rolling back
+
+- **Pin to v4** — set `gem 'rails-ai-bridge', '~> 4.3.0'` in the host `Gemfile`, then `bundle update rails-ai-bridge --conservative`.
+- **Runtime disable** — set `config.context_providers.enabled = false` in the initializer to stop outbound requests without changing the installed version. Removing `allowed_hosts` is the emergency shutdown.
 
 ---
 

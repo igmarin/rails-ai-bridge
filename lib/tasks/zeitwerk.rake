@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-namespace :zeitwerk do
+namespace :rails_ai_bridge do
   desc 'Eager-load all gem constants to verify Zeitwerk autoloading'
-  task :check do
+  task :check_zeitwerk do
     # This task lives in lib/tasks; the gem's lib directory is one directory up.
     lib_dir = File.expand_path('..', __dir__)
 
