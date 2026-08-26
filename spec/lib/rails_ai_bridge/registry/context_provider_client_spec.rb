@@ -222,6 +222,21 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
       expect(result.content[0]).not_to include('leak-me')
       expect(result.content[1]).to eq('status: ok')
     end
+
+    it 'redacts reflected auth values in nested Hash content' do
+      fake_tool = double('tool', name: 'get_status', read_only_hint: true, destructive_hint: false)
+      allow(fake_transport).to receive_messages(tools: [fake_tool])
+      allow(fake_transport).to receive(:call_tool).and_return(
+        { 'outer' => { 'inner' => 'Bearer nested-secret', 'safe' => 'ok' } }
+      )
+
+      result = client.call_tool('get_status', arguments: {})
+
+      expect(result.status).to eq(:success)
+      expect(result.content['outer']['inner']).to include('[redacted]')
+      expect(result.content['outer']['inner']).not_to include('nested-secret')
+      expect(result.content['outer']['safe']).to eq('ok')
+    end
   end
 
   describe '#probe' do

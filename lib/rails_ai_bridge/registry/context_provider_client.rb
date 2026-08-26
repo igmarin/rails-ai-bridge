@@ -156,7 +156,7 @@ module RailsAiBridge
       # @return [String, Hash, Array, Object] content with reflected auth values redacted
       def sanitize_content(content)
         case content
-        when String then MessageSanitizer.sanitize(content)
+        when String then sanitize_message(content)
         when Hash then content.transform_values { |v| sanitize_content(v) }
         when Array then content.map { |v| sanitize_content(v) }
         else content
