@@ -74,7 +74,7 @@ flowchart LR
 
 1. **Introspect**: built-in scanners read your Rails app structure: schema, models, routes, controllers, gems, tests, conventions, and optional full-stack details.
 2. **Generate**: `rails ai:bridge` writes compact, assistant-specific files such as `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/`, and Copilot instructions.
-3. **Serve**: `rails ai:serve` exposes 19 read-only `rails_*` tools so an assistant can drill into exact details on demand.
+3. **Serve**: `rails ai:serve` exposes 20 read-only `rails_*` tools so an assistant can drill into exact details on demand.
 
 This creates two complementary layers:
 
@@ -251,7 +251,7 @@ This keeps context focused and avoids unnecessary token usage while still allowi
 
 ## MCP Tools
 
-The gem exposes **19 built-in tools** via MCP that AI clients call on-demand (hosts can append more via `config.additional_tools`):
+The gem exposes **20 built-in tools** via MCP that AI clients call on-demand (hosts can append more via `config.additional_tools`):
 
 | Tool | What it returns |
 |------|----------------|
@@ -274,6 +274,7 @@ The gem exposes **19 built-in tools** via MCP that AI clients call on-demand (ho
 | `rails_use_skill` | Loads a skill framed as an application directive (apply it step by step to the current task) |
 | `rails_use_agent` | Loads an agent/workflow framed as an activation directive (follow it end to end) |
 | `rails_list_context_providers` | Context providers declared in the registry manifest — external services (e.g. MCP servers) the bridge can query for project context; shows type, endpoint, optional flag, and tool specs |
+| `rails_get_provider_context` | Fetches context from declared external MCP providers. Requires `context_providers.enabled = true` and an explicit host allowlist. Separate from `rails_get_context` (local in-process composite) |
 
 All tools are **read-only** — they never modify your application or database.
 

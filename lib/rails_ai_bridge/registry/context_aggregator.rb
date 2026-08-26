@@ -128,6 +128,7 @@ module RailsAiBridge
 
         { data: data, error: nil }
       rescue RailsAiBridge::Registry::ContextProviderError => error
+        error.provider_name = name unless error.provider_name
         { data: nil, error: error }
       end
 
@@ -142,7 +143,9 @@ module RailsAiBridge
         end
         return { content: result.content } if result.status == :success
 
-        { error: result.error }
+        error = result.error
+        error&.provider_name = name unless error&.provider_name
+        { error: error }
       end
 
       # Rejects two tools mapping to the same field name before any network calls.

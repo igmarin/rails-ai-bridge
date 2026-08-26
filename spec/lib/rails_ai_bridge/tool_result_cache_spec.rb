@@ -229,5 +229,13 @@ RSpec.describe RailsAiBridge::ToolResultCache do
 
       expect(result.content.first[:text]).to eq(context.to_s)
     end
+
+    it 'does not wrap tools listed in NON_CACHEABLE' do
+      RailsAiBridge.configuration.mcp.tool_result_cache_ttl = 30
+
+      expect(described_class.maybe_wrap(RailsAiBridge::Tools::GetProviderContext)).to eq(
+        RailsAiBridge::Tools::GetProviderContext
+      )
+    end
   end
 end
