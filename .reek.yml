@@ -135,6 +135,9 @@ detectors:
     - RailsAiBridge::ContextProvider#rebuild_section
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#probe_all_providers
     - RailsAiBridge::Registry::ContextProviderClient#probe
+    - RailsAiBridge::Tools::GetProviderContext#self.call
+    - RailsAiBridge::Tools::GetProviderContext::ResultFormatter#format
+    - RailsAiBridge::Tools::GetProviderContext::ResultFormatter#format_data
     - RailsAiBridge::Doctor::Checkers::TestsChecker#call
     - RailsAiBridge::ExclusionHelper#excluded_class_or_table?
     - RailsAiBridge::ExclusionHelper#table_pattern_match?
@@ -330,6 +333,8 @@ detectors:
     - RailsAiBridge::Registry::ContextAggregator#fetch_tool
     - RailsAiBridge::Registry::ContextAggregator#validate_no_mapping_collisions!
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#probe_provider
+    - RailsAiBridge::Tools::GetProviderContext::ResultFormatter#format
+    - RailsAiBridge::Tools::GetProviderContext::ResultFormatter#format_data
     - RailsAiBridge::Introspectors::ActionMailboxIntrospector#extract_mailboxes
     - RailsAiBridge::Introspectors::ActionTextIntrospector#extract_rich_text_fields
     - RailsAiBridge::Introspectors::ActiveStorageIntrospector#extract_attachments
@@ -513,6 +518,7 @@ detectors:
   ManualDispatch:
     exclude:
     - RailsAiBridge::ContextProvider#cache_key
+    - RailsAiBridge::Tools::GetProviderContext::ResultFormatter#format
     - RailsAiBridge::ExclusionHelper#excluded_class_or_table?
     - RailsAiBridge::HttpTransportApp#rate_limiter_allow?
     - RailsAiBridge::Introspector#app_name
@@ -724,6 +730,11 @@ detectors:
     - RailsAiBridge::Registry::ContextAggregator#fetch_all
     - RailsAiBridge::Registry::ContextAggregator#fetch_one
     - RailsAiBridge::Registry::ContextAggregator#fetch_provider
+    - RailsAiBridge::Registry::ContextAggregator#fetch_tool
+    - RailsAiBridge::Tools::GetProviderContext#self.call
+    - RailsAiBridge::Tools::GetProviderContext#self.load_manifest
+    - RailsAiBridge::Tools::GetProviderContext::ResultFormatter#format
+    - RailsAiBridge::Tools::GetProviderContext::ResultFormatter#format_data
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#probe_all_providers
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#probe_provider
     - RailsAiBridge::Registry::ContextProviderClient#probe
@@ -1144,6 +1155,7 @@ detectors:
     - RailsAiBridge::Registry::ContextAggregator#elapsed_ms
     - RailsAiBridge::Registry::ContextAggregator#error_result
     - RailsAiBridge::Registry::ContextAggregator#monotonic_now
+    - RailsAiBridge::Tools::GetProviderContext::ResultFormatter#format_value
     - RailsAiBridge::Config::Registry#legacy_manifest_path
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#default_transport_factory
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#providers_config

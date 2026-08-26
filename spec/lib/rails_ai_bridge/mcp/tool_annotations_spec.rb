@@ -7,9 +7,11 @@ require 'mcp'
 # all 19 built-in tools. The MCP SDK's `annotations` DSL exposes hints that
 # clients use to understand tool safety characteristics.
 #
-# All rails-ai-bridge tools are read-only, non-destructive, idempotent, and
-# operate within the host app's world (open_world_hint: false). These specs
-# pin that contract so the MCP 1.3.0 upgrade doesn't silently change it.
+# All rails-ai-bridge tools are read-only, non-destructive, and idempotent
+# with open_world_hint: false — except GetProviderContext, which is
+# idempotent_hint: false (provider data may change between calls) and
+# open_world_hint: true (it reaches external services). These specs pin
+# that contract so the MCP 1.3.0 upgrade doesn't silently change it.
 #
 # In MCP SDK 1.3.0, `annotations` returns an `MCP::Tool::Annotations` object
 # with accessor methods (not a Hash), and `input_schema` returns an
@@ -41,12 +43,20 @@ RSpec.describe 'MCP tool annotations (SDK 1.3.0)' do
         expect(tool_class.annotations.destructive_hint).to be(false)
       end
 
-      it 'declares idempotent_hint: true' do
-        expect(tool_class.annotations.idempotent_hint).to be(true)
+      it 'declares idempotent_hint: true (or false for outbound providers)' do
+        if tool_class == RailsAiBridge::Tools::GetProviderContext
+          expect(tool_class.annotations.idempotent_hint).to be(false)
+        else
+          expect(tool_class.annotations.idempotent_hint).to be(true)
+        end
       end
 
-      it 'declares open_world_hint: false' do
-        expect(tool_class.annotations.open_world_hint).to be(false)
+      it 'declares open_world_hint: false (or true for outbound providers)' do
+        if tool_class == RailsAiBridge::Tools::GetProviderContext
+          expect(tool_class.annotations.open_world_hint).to be(true)
+        else
+          expect(tool_class.annotations.open_world_hint).to be(false)
+        end
       end
     end
   end

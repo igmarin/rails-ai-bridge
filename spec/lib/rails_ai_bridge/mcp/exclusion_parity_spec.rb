@@ -44,7 +44,8 @@ module MCPExclusionParityTables
     'rails_use_agent' => :does_not_list_models_or_tables,
     'rails_list_context_providers' => :does_not_list_models_or_tables,
     # Required as a listing surface once Server::TOOLS includes this tool (#181).
-    'rails_get_context' => :omits_excluded_names
+    'rails_get_context' => :omits_excluded_names,
+    'rails_get_provider_context' => :does_not_list_models_or_tables
   }.freeze
 
   # Present in TOOL_EXCLUSION_POLICY but not required in Server::TOOLS until #181.
