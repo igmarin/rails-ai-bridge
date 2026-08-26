@@ -1159,6 +1159,7 @@ detectors:
     - RailsAiBridge::Registry::ContextAggregator#elapsed_ms
     - RailsAiBridge::Registry::ContextAggregator#error_result
     - RailsAiBridge::Registry::ContextAggregator#monotonic_now
+    - RailsAiBridge::Registry::EndpointPolicy#loopback_address?
     - RailsAiBridge::Tools::GetProviderContext::ResultFormatter#format_value
     - RailsAiBridge::Config::Registry#legacy_manifest_path
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#default_transport_factory
