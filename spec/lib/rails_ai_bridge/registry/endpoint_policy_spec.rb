@@ -381,5 +381,37 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
       expect(result).to be_success
       expect(result.addresses).to eq(%w[192.0.2.1 198.51.100.7])
     end
+
+    it 'normalizes Resolv::DNS answer objects to strings before applying policy' do
+      policy = described_class.new(
+        resolver: resolver,
+        allowed_hosts: ['example.com'],
+        allowed_loopback_ports: [3000, 9292],
+        allow_private_networks: false
+      )
+      allow(resolver).to receive(:getaddresses).with('example.com')
+                                               .and_return([Resolv::IPv4.create('192.0.2.1'), Resolv::IPv6.create('2001:db8::1')])
+
+      result = policy.call('https://example.com/some-tool')
+
+      expect(result).to be_success
+      expect(result.addresses).to eq(['192.0.2.1', '2001:db8::1'])
+    end
+
+    it 'rejects private addresses in production even when allow_private_networks is true' do
+      policy = described_class.new(
+        resolver: resolver,
+        allowed_hosts: ['private.example.com'],
+        allowed_loopback_ports: [3000, 9292],
+        allow_private_networks: true
+      )
+      allow(resolver).to receive(:getaddresses).with('private.example.com').and_return(['192.168.1.1'])
+      allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new('production'))
+
+      result = policy.call('https://private.example.com/some-tool')
+
+      expect(result).not_to be_success
+      expect(result.error.message).to eq('endpoint is not permitted by policy')
+    end
   end
 end

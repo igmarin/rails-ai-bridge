@@ -59,7 +59,7 @@ module RailsAiBridge
 
         host = normalize_host(raw_host)
         host_label = host.inspect
-        raw_addresses = @resolver.getaddresses(host)
+        raw_addresses = @resolver.getaddresses(host).map(&:to_s)
         return failure("no addresses resolved for #{host_label}") if raw_addresses.empty?
 
         approved = filter_addresses(raw_addresses, uri, host)
@@ -146,13 +146,18 @@ module RailsAiBridge
           elsif ip.link_local?
             false
           elsif ip.private?
-            @allow_private_networks
+            @allow_private_networks && !production?
           else
             @allowed_hosts.include?(host)
           end
         rescue IPAddr::InvalidAddressError
           false
         end
+      end
+
+      # @return [Boolean] whether the runtime environment is a Rails production environment
+      def production?
+        defined?(Rails) && Rails.respond_to?(:env) && Rails.env&.production?
       end
 
       # @param raw [String] IP address string

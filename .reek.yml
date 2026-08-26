@@ -537,6 +537,7 @@ detectors:
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#discover_databases
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#discover_replicas
     - RailsAiBridge::Introspectors::NonArModelsIntrospector#eager_load_app_models_dir
+    - RailsAiBridge::Registry::EndpointPolicy#production?
     - RailsAiBridge::Introspectors::RouteIntrospector#detect_mounted_engines
     - RailsAiBridge::Introspectors::RouteIntrospector#extract_routes
     - RailsAiBridge::Introspectors::RouteIntrospector::RouteParser#required_part_names
@@ -1160,6 +1161,7 @@ detectors:
     - RailsAiBridge::Registry::ContextAggregator#error_result
     - RailsAiBridge::Registry::ContextAggregator#monotonic_now
     - RailsAiBridge::Registry::EndpointPolicy#loopback_address?
+    - RailsAiBridge::Registry::EndpointPolicy#production?
     - RailsAiBridge::Tools::GetProviderContext::ResultFormatter#format_value
     - RailsAiBridge::Config::Registry#legacy_manifest_path
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#default_transport_factory
