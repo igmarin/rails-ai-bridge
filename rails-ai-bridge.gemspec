@@ -52,7 +52,7 @@ Gem::Specification.new do |spec|
   # Outbound context provider transport (MCP::Client::HTTP uses these but does
   # not declare them; we require them explicitly so provider calls work without
   # the host app needing to add them to its Gemfile).
-  spec.add_dependency 'event_stream_parser', '>= 1.0'
+  spec.add_dependency 'event_stream_parser', '>= 1.0', '< 2.0'
   spec.add_dependency 'faraday', '>= 2.0', '< 3.0'
 
   # Semantic code analysis via Shopify's rubydex

@@ -13,12 +13,6 @@ v5 adds optional outbound context providers — a way to read context from decla
 
 Existing v4 installations make no outbound provider requests. Upgrading to v5 does not enable requests, change `rails_get_context`, or require a manifest change. Hosts that want providers must add provider declarations, explicitly enable `config.context_providers.enabled`, configure exact allowed hosts, and provide downstream auth through the resolver. To disable during rollout: set `config.context_providers.enabled = false`. Emergency shutdown: remove the `allowed_hosts` array.
 
-### Gemspec changes
-
-- `mcp` minimum raised from `1.0` to `1.3` (provider client depends on `MCP::Client::HTTP` from 1.3+)
-- `faraday >= 2.0, < 3.0` added as explicit dependency (MCP SDK uses it but does not declare it)
-- `event_stream_parser >= 1.0` added as explicit dependency (MCP SDK uses it for SSE parsing but does not declare it)
-
 ### Added
 
 - **AppScope runtime seam** — `RailsAiBridge::AppScope` provides a thread-local application scope (`with_app(app) { ... }` / `current_app`) so that CLI, tests, and standalone processes can scope a different app without hardcoding `Rails.application`. Defaults to `Rails.application` for backward compatibility. All MCP tools, `ContextProvider`, `Resources`, `CacheWarmer`, `Doctor`, `Watcher`, serializers, and the public API (`introspect`, `generate_context`, `start_mcp_server`) now resolve the app through `AppScope.current_app`.
@@ -38,6 +32,7 @@ Existing v4 installations make no outbound provider requests. Upgrading to v5 do
 
 ### Changed
 
+- **Gemspec dependencies for v5** — `mcp` minimum raised from `1.0` to `1.3` (provider client depends on `MCP::Client::HTTP` from 1.3+). `faraday >= 2.0, < 3.0` added as explicit dependency (MCP SDK uses it but does not declare it). `event_stream_parser >= 1.0, < 2.0` added as explicit dependency (MCP SDK uses it for SSE parsing but does not declare it).
 - **RuboCop Performance plugin enabled** — `rubocop-performance` (~> 1.27) added as an explicit development dependency and loaded as a RuboCop plugin. 77 offenses autocorrected (TimesMap, StringInclude, MapCompact, DeleteSuffix/DeletePrefix, StringReplacement, RedundantBlockCall). 4 CollectionLiteralInLoop offenses fixed by extracting immutable literals to constants. `rubocop-rails` constraint tightened to `~> 2.37`.
 - **Ruby 4.0 canary in CI** — CI matrix includes a non-blocking Ruby 4.0 / Rails 8.1 canary job to catch compatibility issues early without blocking the pipeline.
 ### Fixed
