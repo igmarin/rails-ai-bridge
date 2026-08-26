@@ -58,6 +58,13 @@ module RailsAiBridge
         See `docs/skill-registry-guide.md` for a step-by-step guide.
       MSG
 
+      MALFORMED_MANIFEST_MESSAGE = <<~MSG
+        Registry manifest at `%<path>s` is invalid and could not be parsed.
+        Check the JSON syntax and try again.
+
+        See `docs/skill-registry-guide.md` for the expected format.
+      MSG
+
       NO_PROVIDERS_MESSAGE = 'No context providers are declared in the registry manifest.'
 
       # @param provider [String, nil] optional provider name from the manifest
@@ -67,7 +74,8 @@ module RailsAiBridge
         return text_response(DISABLED_MESSAGE) unless providers_config.enabled
 
         manifest = load_manifest
-        return text_response(NO_MANIFEST_MESSAGE) unless manifest
+        return text_response(NO_MANIFEST_MESSAGE) if manifest == :missing
+        return text_response(format(MALFORMED_MANIFEST_MESSAGE, path: manifest_path)) if manifest == :malformed
 
         return text_response(NO_PROVIDERS_MESSAGE) if manifest.context_providers.empty?
 
@@ -84,17 +92,23 @@ module RailsAiBridge
       end
       private_class_method :providers_config
 
-      # @return [RegistryManifest, nil]
+      # @return [RegistryManifest, Symbol] the manifest, or :missing, or :malformed
       def self.load_manifest
-        path = RailsAiBridge.configuration.registry.registry_manifest_path
-        return nil unless path && File.exist?(path)
+        path = manifest_path
+        return :missing unless path && File.exist?(path)
 
         Registry::RegistryManifest.from_file(path)
       rescue ArgumentError, JSON::ParserError => error
         Rails.logger&.error { "[rails-ai-bridge] Manifest load failed: #{error.message}" }
-        nil
+        :malformed
       end
       private_class_method :load_manifest
+
+      # @return [String, nil] path to the registry manifest
+      def self.manifest_path
+        RailsAiBridge.configuration.registry.registry_manifest_path
+      end
+      private_class_method :manifest_path
 
       # @param manifest [RegistryManifest]
       # @return [Registry::ContextAggregator]

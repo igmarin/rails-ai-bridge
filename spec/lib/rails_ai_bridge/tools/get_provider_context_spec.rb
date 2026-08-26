@@ -81,11 +81,11 @@ RSpec.describe RailsAiBridge::Tools::GetProviderContext do
 
   context 'when no manifest is found' do
     before do
-      allow(described_class).to receive(:load_manifest).and_return(nil)
+      allow(described_class).to receive(:load_manifest).and_return(:missing)
     end
 
     it 'returns a setup message mentioning the manifest' do
-      expect(content).to include('manifest')
+      expect(content).to include('No registry manifest found')
     end
   end
 
@@ -98,8 +98,9 @@ RSpec.describe RailsAiBridge::Tools::GetProviderContext do
       allow(RailsAiBridge::Registry::RegistryManifest).to receive(:from_file).and_raise(JSON::ParserError.new('unexpected token'))
     end
 
-    it 'returns a setup message instead of raising' do
-      expect(content).to include('No registry manifest found')
+    it 'returns a malformed manifest message instead of raising' do
+      expect(content).to include('invalid')
+      expect(content).to include('could not be parsed')
     end
   end
 
