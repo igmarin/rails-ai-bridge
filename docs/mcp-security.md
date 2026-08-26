@@ -143,7 +143,7 @@ v5 adds `rails_get_provider_context`, which reads context from declared external
 
 `Registry::EndpointPolicy` validates every address returned by DNS resolution before connection. Private addresses (RFC1918, IPv6 ULA), link-local, multicast, unspecified, and cloud-metadata endpoints (`169.254.169.254`) are rejected. DNS answers fail closed: when any resolved address is blocked, the whole endpoint is rejected — a mix of permitted and blocked answers never results in a connection. The `allow_private_networks` override is development-only; when `Rails.env.production?` is true, private destinations are rejected even if `allow_private_networks` is set to `true`. Link-local and metadata addresses are never permitted.
 
-Per-request connect/read timeouts are applied to the underlying HTTP transport from `timeout_seconds` (see the resource-limits table below). The transport does not pin connections to policy-validated addresses (a custom Faraday adapter would be required) — see `docs/v5/context-providers-design.md`, invariant INV-6 and section 11 for this known limitation.
+Per-request connect/read timeouts are applied to the underlying HTTP transport from `timeout_seconds` (see the resource-limits table below). Connections are pinned to the first policy-validated address through a custom Faraday adapter (`Registry::PinningHttpAdapter`), so DNS rebinding cannot route provider calls or Doctor probes to an unapproved address. The adapter preserves the original Host header and TLS SNI while connecting to the approved IP.
 
 ### Read-only tool enforcement
 

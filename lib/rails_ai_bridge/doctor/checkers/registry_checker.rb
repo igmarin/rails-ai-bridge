@@ -273,25 +273,22 @@ module RailsAiBridge
         #   raise ArgumentError at runtime, swallowed as ConnectionError by the
         #   client boundary). Faraday applies a per-request timeout derived from
         #   +config.context_providers.timeout_seconds+ through the transport's
-        #   customizer block. Faraday re-resolves uri.host at connect time, so
-        #   policy-validated addresses cannot be pinned without a custom adapter
-        #   (design doc INV-6 / section 11 Risks); EndpointPolicy failing closed on
-        #   mixed DNS answers keeps re-resolution within approved hosts. Address
-        #   pinning remains tracked for a future v5 hardening pass.
+        #   customizer block. The connection is pinned to the first
+        #   policy-validated address via {Registry::PinningHttpAdapter} so DNS
+        #   rebinding cannot route the request to an unapproved address.
         # @param addresses [Array<String>] policy-validated IP addresses. The MCP
-        #   SDK's MCP::Client::HTTP delegates connection to Faraday, which resolves
-        #   uri.host again at connection time. Address pinning (connecting to a
-        #   specific validated IP while preserving Host header and TLS SNI) requires
-        #   a custom Faraday adapter — see design doc INV-6 and section 11 risks.
-        #   This is a known limitation tracked for a future v5 hardening pass.
+        #   SDK's MCP::Client::HTTP delegates connection to Faraday; this factory
+        #   installs a custom adapter that connects to the approved address while
+        #   preserving the original Host header and TLS SNI.
         # @param headers [Hash]
         # @return [Object] MCP transport
-        def default_transport_factory(uri, _addresses, headers)
+        def default_transport_factory(uri, addresses, headers)
           timeout = providers_config.timeout_seconds.to_f
           MCP::Client::HTTP.new(url: uri, headers: headers) do |faraday|
             options = faraday.options
             options.timeout = timeout
             options.open_timeout = timeout
+            faraday.adapter Registry::PinningHttpAdapter, addresses: addresses, original_host: uri.host
           end
         end
       end

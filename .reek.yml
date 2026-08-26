@@ -736,11 +736,13 @@ detectors:
     - RailsAiBridge::Registry::ContextAggregator#fetch_provider
     - RailsAiBridge::Registry::ContextAggregator#fetch_tool
     - RailsAiBridge::Tools::GetProviderContext#self.call
+    - RailsAiBridge::Tools::GetProviderContext#self.default_transport_factory
     - RailsAiBridge::Tools::GetProviderContext#self.load_manifest
     - RailsAiBridge::Tools::GetProviderContext::ResultFormatter#format
     - RailsAiBridge::Tools::GetProviderContext::ResultFormatter#format_data
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#probe_all_providers
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#probe_provider
+    - RailsAiBridge::Doctor::Checkers::RegistryChecker#default_transport_factory
     - RailsAiBridge::Registry::ContextProviderClient#probe
     - RailsAiBridge::Registry::ContextProviderClient#sanitize_content
     - RailsAiBridge::Generators::HelpGenerator#show_commands

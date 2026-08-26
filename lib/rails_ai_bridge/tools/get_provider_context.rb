@@ -140,18 +140,18 @@ module RailsAiBridge
       private_class_method :build_client
 
       # @param uri [URI] canonical provider URI, bound via the SDK's +url:+ keyword (required by mcp >= 1.3)
-      # @param _addresses [Array<String>] policy-validated IP addresses; not passed to
-      #   the MCP SDK transport because Faraday re-resolves uri.host. See design doc
-      #   INV-6 and section 11 (Risks) — address pinning requires a custom Faraday
-      #   adapter, tracked for v5 hardening.
+      # @param addresses [Array<String>] policy-validated IP addresses; the transport
+      #   pins the TCP connection to the first approved address while preserving
+      #   the original Host header and TLS SNI.
       # @param headers [Hash]
       # @return [Object] MCP transport
-      def self.default_transport_factory(uri, _addresses, headers)
+      def self.default_transport_factory(uri, addresses, headers)
         timeout = providers_config.timeout_seconds.to_f
         MCP::Client::HTTP.new(url: uri, headers: headers) do |faraday|
           options = faraday.options
           options.timeout = timeout
           options.open_timeout = timeout
+          faraday.adapter Registry::PinningHttpAdapter, addresses: addresses, original_host: uri.host
         end
       end
       private_class_method :default_transport_factory
