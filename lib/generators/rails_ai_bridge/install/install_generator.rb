@@ -233,9 +233,10 @@ module RailsAiBridge
             # config.context_providers.max_tools_per_provider = 16
             #
             # Auth resolver — returns headers for a trusted provider identity.
+            # Called with (endpoint, canonical_uri) at request time.
             # Never put tokens in the registry manifest.
-            # config.context_providers.auth_resolver = lambda do |provider_name, canonical_endpoint|
-            #   { 'Authorization' => "Bearer \#{token_for(provider_name)}" }
+            # config.context_providers.auth_resolver = lambda do |endpoint, canonical_uri|
+            #   { 'Authorization' => "Bearer \#{token_for(canonical_uri.host)}" }
             # end
             #
             # WARNING: Enabling allow_private_networks permits connections to internal

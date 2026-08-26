@@ -178,6 +178,50 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
       )
       expect(fake_transport).to have_received(:close)
     end
+
+    it 'redacts reflected Authorization values in successful string content' do
+      fake_tool = double('tool', name: 'get_status', read_only_hint: true, destructive_hint: false)
+      allow(fake_transport).to receive_messages(tools: [fake_tool])
+      allow(fake_transport).to receive(:call_tool).and_return(
+        'Token: Bearer abc123secret'
+      )
+
+      result = client.call_tool('get_status', arguments: {})
+
+      expect(result.status).to eq(:success)
+      expect(result.content).to include('[redacted]')
+      expect(result.content).not_to include('abc123secret')
+    end
+
+    it 'redacts reflected auth values in successful Hash content' do
+      fake_tool = double('tool', name: 'get_status', read_only_hint: true, destructive_hint: false)
+      allow(fake_transport).to receive_messages(tools: [fake_tool])
+      allow(fake_transport).to receive(:call_tool).and_return(
+        { 'data' => 'Authorization: Bearer leak-me', 'safe' => 'ok' }
+      )
+
+      result = client.call_tool('get_status', arguments: {})
+
+      expect(result.status).to eq(:success)
+      expect(result.content['data']).to include('[redacted]')
+      expect(result.content['data']).not_to include('leak-me')
+      expect(result.content['safe']).to eq('ok')
+    end
+
+    it 'redacts reflected auth values in successful Array content' do
+      fake_tool = double('tool', name: 'get_status', read_only_hint: true, destructive_hint: false)
+      allow(fake_transport).to receive_messages(tools: [fake_tool])
+      allow(fake_transport).to receive(:call_tool).and_return(
+        ['token=leak-me', 'status: ok']
+      )
+
+      result = client.call_tool('get_status', arguments: {})
+
+      expect(result.status).to eq(:success)
+      expect(result.content[0]).to include('[redacted]')
+      expect(result.content[0]).not_to include('leak-me')
+      expect(result.content[1]).to eq('status: ok')
+    end
   end
 
   describe '#probe' do

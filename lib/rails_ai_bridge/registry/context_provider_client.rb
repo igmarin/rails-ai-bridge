@@ -56,7 +56,7 @@ module RailsAiBridge
           return Result.new(status: :error, error: RemoteToolError.new("tool #{tool_label} is not allowed")) unless remote_tool
 
           content = transport.call_tool(name: tool_name, arguments: arguments)
-          Result.new(status: :success, content: content, provenance: provenance_for(canonical_uri), error: nil)
+          Result.new(status: :success, content: sanitize_content(content), provenance: provenance_for(canonical_uri), error: nil)
         rescue RailsAiBridge::Registry::ContextProviderError => error
           Result.new(status: :error, error: error)
         rescue Timeout::Error
@@ -148,6 +148,19 @@ module RailsAiBridge
       # @return [String] sanitized message with URLs and paths redacted
       def sanitize_message(message)
         RailsAiBridge::Registry::MessageSanitizer.sanitize(message)
+      end
+
+      # Recursively redact credential values in successful provider content
+      # before it reaches the MCP response. Handles String, Hash, and Array.
+      # @param content [String, Hash, Array, Object] raw provider content
+      # @return [String, Hash, Array, Object] content with reflected auth values redacted
+      def sanitize_content(content)
+        case content
+        when String then MessageSanitizer.sanitize(content)
+        when Hash then content.transform_values { |v| sanitize_content(v) }
+        when Array then content.map { |v| sanitize_content(v) }
+        else content
+        end
       end
     end
   end

@@ -172,9 +172,11 @@ Only remote tools that advertise `read_only_hint: true` and `destructive_hint: f
 ### Emergency shutdown
 
 To immediately disable all provider traffic:
+
 ```ruby
 RailsAiBridge.configure { |c| c.context_providers.enabled = false }
 ```
+
 Or remove the `allowed_hosts` array — no host matches, all provider calls fail before DNS.
 
 ## Residual risk checklist (operators)

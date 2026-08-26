@@ -37,6 +37,7 @@ Existing v4 installations make no outbound provider requests. Upgrading to v5 do
 - **Ruby 4.0 canary in CI** — CI matrix includes a non-blocking Ruby 4.0 / Rails 8.1 canary job to catch compatibility issues early without blocking the pipeline.
 ### Fixed
 
+- **Successful provider content redaction (AC-11)** — `ContextProviderClient#call_tool` now redacts reflected credential values in successful provider content before returning the result. Previously `MessageSanitizer` only ran on error messages; reflected `Authorization` / `Bearer` / credential fields in successful provider responses could reach `rails_get_provider_context`. Content is recursively sanitized for String, Hash, and Array types.
 - **Unknown Doctor boot failures** — Boot diagnostics now report `UnknownError` when exception class metadata is absent instead of rendering an empty error class.
 - **Request-scoped resolver memoization** — `Registry#with_request_resolver` and `request_active?` now use a frozen sentinel object instead of relying on `Thread.current[REQUEST_RESOLVER_KEY]` being `nil`. Previously `request_resolver?` checked `!Thread.current[REQUEST_RESOLVER_KEY].nil?`, which returned `false` for an active but unbuilt resolver. A sentinel distinguishes "active, not built" from "not active."
 - **Branch coverage improvements** — 20 files raised to 90%+ branch coverage with focused RSpec tests covering previously uncovered branches.
