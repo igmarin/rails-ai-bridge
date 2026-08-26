@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `README.md` table-of-contents link to the v4.3.x → v5 upgrade guide.
 - `lib/tasks/zeitwerk.rake` with a `rails_ai_bridge:check_zeitwerk` task and regression specs.
   The task only eager-loads the gem's own Zeitwerk loader, not host-app loaders.
+- Explicit v5 provider dependency floors documented in the gemspec:
+  `mcp >= 1.3`, `faraday >= 2.0`, and `event_stream_parser >= 1.0`.
 
 ### Fixed
 
@@ -34,7 +36,7 @@ v5 adds optional outbound context providers — a way to read context from decla
 
 ### Migration from v4
 
-Existing v4 installations make no outbound provider requests. Upgrading to v5 does not enable requests, change `rails_get_context`, or require a manifest change. Hosts that want providers must add provider declarations, explicitly enable `config.context_providers.enabled`, configure exact allowed hosts, and provide downstream auth through the resolver. To disable during rollout: set `config.context_providers.enabled = false`. Emergency shutdown: remove the `allowed_hosts` array.
+Existing v4 installations make no outbound provider requests. Upgrading to v5 does not enable requests, change `rails_get_context`, or require a manifest change. Hosts that want providers must add provider declarations, explicitly enable `config.context_providers.enabled`, configure exact allowed hosts, and provide downstream auth through the resolver. To disable during rollout or as an emergency shutdown: set `config.context_providers.enabled = false`. Note that removing the `allowed_hosts` array alone does not stop loopback endpoints on allowed ports; setting `enabled = false` is the complete shutdown.
 
 ### Added
 
