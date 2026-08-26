@@ -255,6 +255,24 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
         expect(result).not_to be_success
         expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
       end
+
+      it 'allows an IPv6 loopback endpoint (::1) on an allowed port even with an empty host allowlist' do
+        allow(resolver).to receive(:getaddresses).with('localhost').and_return(['::1'])
+
+        result = policy.call('http://localhost:9292/some-tool')
+
+        expect(result).to be_success
+        expect(result.addresses).to eq(['::1'])
+      end
+
+      it 'rejects an IPv6 loopback endpoint (::1) on a non-allowed port' do
+        allow(resolver).to receive(:getaddresses).with('localhost').and_return(['::1'])
+
+        result = policy.call('http://localhost:4000/some-tool')
+
+        expect(result).not_to be_success
+        expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
+      end
     end
 
     context 'with private network destinations' do
@@ -290,6 +308,45 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
 
         expect(result).to be_success
         expect(result.addresses).to eq(['192.168.1.1'])
+      end
+
+      it 'allows an IPv6 unique local address (ULA) when private networks are enabled' do
+        allow(resolver).to receive(:getaddresses).with('private.local').and_return(['fd00::1'])
+
+        result = policy.call('https://private.local/some-tool')
+
+        expect(result).to be_success
+        expect(result.addresses).to eq(['fd00::1'])
+      end
+
+      it 'allows an IPv6 unique local address (ULA) over plain http when private networks are enabled' do
+        allow(resolver).to receive(:getaddresses).with('ula.local').and_return(['fd00::1'])
+        http_ula_policy = described_class.new(
+          resolver: resolver,
+          allowed_hosts: ['ula.local'],
+          allowed_loopback_ports: [3000, 9292],
+          allow_private_networks: true
+        )
+
+        result = http_ula_policy.call('http://ula.local/some-tool')
+
+        expect(result).to be_success
+        expect(result.addresses).to eq(['fd00::1'])
+      end
+
+      it 'rejects an IPv6 unique local address (ULA) when private networks are disabled' do
+        allow(resolver).to receive(:getaddresses).with('ula.local').and_return(['fd00::1'])
+        strict_policy = described_class.new(
+          resolver: resolver,
+          allowed_hosts: ['ula.local'],
+          allowed_loopback_ports: [3000, 9292],
+          allow_private_networks: false
+        )
+
+        result = strict_policy.call('https://ula.local/some-tool')
+
+        expect(result).not_to be_success
+        expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
       end
     end
 

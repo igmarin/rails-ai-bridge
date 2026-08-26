@@ -1,5 +1,90 @@
 # Upgrading rails-ai-bridge
 
+## Upgrading from 4.3.0 to 5.0.0
+
+**No application-code or configuration changes are required to upgrade.** v5 is intentionally
+backwards-compatible by default: outbound context providers are disabled,
+`rails_get_context` stays in-process, and all v4 configuration settings still
+work.
+
+Run:
+
+```bash
+bundle update rails-ai-bridge
+```
+
+Bundler will pull in the new dependency floor (`mcp >= 1.3`, `faraday >= 2.0`,
+`event_stream_parser >= 1.0`) automatically.
+
+### What changed in v5
+
+1. **Outbound context providers (opt-in, disabled by default)** —
+   `rails_get_provider_context` can fetch context from external MCP services
+   declared in your registry manifest. No network request is made unless you
+   explicitly enable and allowlist providers. See
+   [docs/v5/context-providers-design.md](docs/v5/context-providers-design.md).
+2. **AppScope runtime seam** — `RailsAiBridge::AppScope.with_app(app) { ... }`
+   and `RailsAiBridge::AppScope.current_app` let standalone callers, tests, and
+   the install generator scope a different app without hardcoding
+   `Rails.application`.
+3. **BootManager and StaticApp** — `RailsAiBridge::BootManager` gives the Doctor
+   and standalone callers a bounded, structured boot-to-static-fallback path.
+   `RailsAiBridge::StaticApp` supports static-only introspection without booting
+   Rails.
+4. **Doctor network probe** — `rails ai:doctor` and `rails ai:check` can probe
+   declared provider endpoints with `NETWORK=1`. Ordinary runs still make no
+   network calls.
+5. **`mcp` dependency floor raised to 1.3** — required for `MCP::Client::HTTP`.
+   `faraday` and `event_stream_parser` are now explicit gem dependencies.
+
+### To start using outbound providers
+
+1. Declare providers and read-only tools in
+   `config/rails_ai_bridge/registry.json`.
+2. Enable and allowlist them in the initializer:
+
+   ```ruby
+   RailsAiBridge.configure do |config|
+     config.context_providers.enabled = true
+     config.context_providers.allowed_hosts = ['context.example.com']
+     config.context_providers.auth_resolver = lambda do |_endpoint, canonical_uri|
+       # `token_for` is a placeholder — replace it with a real secret-manager call.
+       # The README's "Provider auth" section shows worked Vault/ENV/KMS examples.
+       { 'Authorization' => "Bearer #{token_for(canonical_uri.host)}" }
+     end
+   end
+   ```
+
+3. Call `rails_get_provider_context` from your AI client, or run
+   `NETWORK=1 rails ai:doctor` to verify reachability.
+
+### Production guard for private networks
+
+In production, `config.context_providers.allow_private_networks` has no effect;
+private (RFC1918/ULA) destinations are rejected, even if the allowlist would
+otherwise permit them. Keep provider endpoints on public or explicitly allowed
+loopback addresses.
+
+### Verification
+
+```bash
+rails ai:doctor        # no network
+NETWORK=1 rails ai:doctor  # with provider probes
+```
+
+### Rolling back
+
+- **Pin to v4** — set `gem 'rails-ai-bridge', '~> 4.3.0'` in the host `Gemfile`,
+  then `bundle update rails-ai-bridge --conservative`.
+- **Runtime disable** — set `config.context_providers.enabled = false` in the
+  initializer to stop outbound requests without changing the installed version.
+  This is the complete emergency shutdown. Clearing `allowed_hosts` alone is
+  **not** sufficient: loopback endpoints on allowed ports (for example,
+  `localhost:3000` or `localhost:9292`) remain reachable because loopback policy
+  is independent of the host allowlist.
+
+---
+
 ## Upgrading Rubydex to 0.4.0 (age-gated: mergeable Aug 28)
 
 **Current:** `rubydex ~> 0.3.0` (installed: 0.3.0)
@@ -10,6 +95,7 @@
 Source: [v0.3.0...v0.4.0](https://github.com/Shopify/rubydex/compare/v0.3.0...v0.4.0)
 
 **Breaking changes:**
+
 - **`Config` is now a proper object** (#965) — `Rubydex::Graph.new` may accept
   or require a `Config` instance instead of being constructed with no args.
   The adapter currently calls `Rubydex::Graph.new` with no arguments in
@@ -24,6 +110,7 @@ Source: [v0.3.0...v0.4.0](https://github.com/Shopify/rubydex/compare/v0.3.0...v0
   changed; may affect `graph[name]` lookups.
 
 **Enhancements:**
+
 - Eagerly compute name depths into `Name` (#948)
 - Remove Mixin vec clones from ancestor linearization (#949)
 - Add linter configuration and configurable Rubydex linter (#972, #974)
@@ -31,6 +118,7 @@ Source: [v0.3.0...v0.4.0](https://github.com/Shopify/rubydex/compare/v0.3.0...v0
 - Index RBS attribute methods (#970)
 
 **Bug fixes:**
+
 - Enqueue retry if `Object` ancestors are incomplete (#950)
 - Visit `module_function` bodies once in `OperationBuilder` (#994)
 - Fix `extend self` in anonymous modules (#1001)
@@ -59,6 +147,7 @@ Source: [v0.3.0...v0.4.0](https://github.com/Shopify/rubydex/compare/v0.3.0...v0
 ### Rubydex characterization specs
 
 The following spec files pin current behavior to catch regressions:
+
 - `spec/lib/rails_ai_bridge/rubydex_adapter/characterization_spec.rb` —
   full graph API contract (indexing, search, declarations, definitions,
   references, locations, ancestors/descendants, graceful failure)
@@ -88,6 +177,7 @@ tightening from `>= 1.0` to `>= 1.3` to ensure all hosts pick up the
 Source: [CHANGELOG.md](https://github.com/modelcontextprotocol/ruby-sdk/blob/main/CHANGELOG.md)
 
 **1.3.0 (Aug 22, 2026):**
+
 - **Added:** `resources_list_handler` for context-dependent resource lists (#509)
 - **Added:** Handler-returned `_meta` passed through subscribe result (#510)
 - **Changed:** Bound OAuth response bodies in the client (#520)
@@ -95,6 +185,7 @@ Source: [CHANGELOG.md](https://github.com/modelcontextprotocol/ruby-sdk/blob/mai
 - **Changed:** Documentation moved from README.md to documentation site (#523)
 
 **1.2.0 (Aug 15, 2026) — 2026-07-28 stateless lifecycle:**
+
 - **Added:** SEP-2575 modern request envelope handling (#475)
 - **Added:** Both lifecycle eras over stdio with era lock (#478)
 - **Added:** Sessionless modern path over Streamable HTTP (#479)
@@ -115,6 +206,7 @@ Source: [CHANGELOG.md](https://github.com/modelcontextprotocol/ruby-sdk/blob/mai
 - **Fixed:** Invalid Params for unknown prompts and missing prompt arguments (#517)
 
 **1.1.0 (Aug 1, 2026):**
+
 - **Added:** 2026-07-28 as Latest Protocol Version (#476)
 - **Added:** Server tool annotations exposed on `MCP::Client::Tool` (#445)
 - **Fixed:** Explicit tool response content preserved (#469)
@@ -147,6 +239,7 @@ Source: [CHANGELOG.md](https://github.com/modelcontextprotocol/ruby-sdk/blob/mai
 ### MCP characterization specs
 
 The following spec files pin current protocol behavior:
+
 - `spec/lib/rails_ai_bridge/mcp/protocol_characterization_spec.rb` —
   SDK version, server construction, transport routing, lifecycle methods
 - `spec/lib/rails_ai_bridge/mcp/tool_annotations_spec.rb` —
@@ -178,7 +271,6 @@ Optional: characterization coverage lives in
 
 ---
 
-
 ## Upgrading from 3.6.1 to 3.6.2
 
 **No configuration changes required.**
@@ -188,7 +280,6 @@ introspection and `rails ai:doctor` now use `db/structure.sql` automatically
 (no need for `db/schema.rb`). Live DB introspection was already format-agnostic.
 
 ---
-
 
 ## Upgrading from 3.6.0 to 3.6.1
 
@@ -206,7 +297,6 @@ documentation updates in 3.6.1. Skill-pack git sources must use `https://`,
 SCP-style `git@host:path`, or `ssh://` (plain `http://` and `file://` are rejected).
 
 ---
-
 
 ## Upgrading from 3.5.x to 3.6.0
 
@@ -227,13 +317,16 @@ moved from `>= 0.10` to `>= 0.25`, but if you were already on a recent version
 
 ## Upgrading from 1.x to 2.x
 
-**No configuration changes required.** Every `config.*` attribute from 1.x is still available — `Configuration` now delegates to focused sub-objects but exposes the same flat DSL. See `CHANGELOG.md` for the full list of internal changes.
+**No configuration changes required.** Every `config.*` attribute from 1.x is still available — `Configuration`
+now delegates to focused sub-objects but exposes the same flat DSL. See `CHANGELOG.md` for the full list of
+internal changes.
 
 ---
 
 ## New in 2.x — `config.mcp` settings
 
-MCP HTTP operational configuration lives under `config.mcp` (a `Config::Mcp` object). All attributes are also accessible as flat delegators on `config` directly.
+MCP HTTP operational configuration lives under `config.mcp` (a `Config::Mcp` object). All attributes are also
+accessible as flat delegators on `config` directly.
 
 ### Rate limiting
 
@@ -248,15 +341,18 @@ RailsAiBridge.configure do |config|
 end
 ```
 
-When `rate_limit_max_requests` is `nil` (default), the gem may apply an **implicit** per-IP ceiling from `security_profile` (`:strict` / `:balanced` / `:relaxed`), unless `mode` suppresses it:
+When `rate_limit_max_requests` is `nil` (default), the gem may apply an **implicit** per-IP ceiling from
+`security_profile` (`:strict` / `:balanced` / `:relaxed`), unless `mode` suppresses it:
 
 - **`mode: :dev`** — no implicit limit.
 - **`mode: :hybrid`** (default) — implicit limit only when `Rails.env.production?`.
 - **`mode: :production`** — implicit limit in every Rails environment.
 
-Set `config.mcp.rate_limit_max_requests = 0` to **disable** limiting entirely (including implicit). A **positive integer** always overrides the profile.
+Set `config.mcp.rate_limit_max_requests = 0` to **disable** limiting entirely (including implicit).
+A **positive integer** always overrides the profile.
 
-> **Note:** the rate limiter is **in-memory and per-process**. It is not shared across Puma workers or hosts. Use a reverse proxy, WAF, or `rack-attack` for strict distributed quotas.
+> **Note:** the rate limiter is **in-memory and per-process**. It is not shared across Puma workers or hosts.
+> Use a reverse proxy, WAF, or `rack-attack` for strict distributed quotas.
 
 ### Structured logging
 
@@ -267,7 +363,9 @@ RailsAiBridge.configure do |config|
 end
 ```
 
-Each log line includes `msg`, `event`, `http_status`, `path`, `client_ip`, and `request_id` (when present). Tokens and full Rack `env` are never logged. The flag is read **on each request** (unlike the rate-limit snapshot taken at `HttpTransportApp.build`).
+Each log line includes `msg`, `event`, `http_status`, `path`, `client_ip`, and `request_id` (when present).
+Tokens and full Rack `env` are never logged. The flag is read **on each request** (unlike the rate-limit
+snapshot taken at `HttpTransportApp.build`).
 
 ### Post-auth authorization (`authorize`)
 
@@ -280,7 +378,9 @@ RailsAiBridge.configure do |config|
 end
 ```
 
-The lambda is read and called **on every request** (like `http_log_json`), so changes take effect immediately without rebuilding the transport app. If the lambda raises a `StandardError`, the gem treats it as a 403 and logs the error — it does not propagate as a 500.
+The lambda is read and called **on every request** (like `http_log_json`), so changes take effect immediately
+without rebuilding the transport app. If the lambda raises a `StandardError`, the gem treats it as a 403 and
+logs the error — it does not propagate as a 500.
 
 ### Production boot guard
 
@@ -292,6 +392,7 @@ end
 ```
 
 When `true` in a production environment, Rails boot fails unless at least one MCP HTTP auth mechanism is configured:
+
 - `config.http_mcp_token`, or
 - `ENV["RAILS_AI_BRIDGE_MCP_TOKEN"]`, or
 - `config.mcp_token_resolver`, or
@@ -303,7 +404,8 @@ Default is `false`.
 
 ## `strategy :bearer_token` misconfiguration guard
 
-Rails **boot** raises `RailsAiBridge::ConfigurationError` if you configure `:bearer_token` strategy without a resolver or static token — that combination would leave HTTP MCP unauthenticated.
+Rails **boot** raises `RailsAiBridge::ConfigurationError` if you configure `:bearer_token` strategy without a
+resolver or static token — that combination would leave HTTP MCP unauthenticated.
 
 ---
 

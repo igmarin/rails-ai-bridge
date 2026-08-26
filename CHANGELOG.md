@@ -5,13 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `UPGRADING.md` section documenting the v4.3.0 to v5.0.0 migration, outbound
+  context providers, the `AppScope` runtime seam, and production private-network
+  guards.
+- `README.md` table-of-contents link to the v4.3.x → v5 upgrade guide.
+- `lib/tasks/zeitwerk.rake` with a `rails_ai_bridge:check_zeitwerk` task and regression specs.
+  The task only eager-loads the gem's own Zeitwerk loader, not host-app loaders.
+- Explicit v5 provider dependency floors documented in the gemspec:
+  `mcp >= 1.3`, `faraday >= 2.0`, and `event_stream_parser >= 1.0`.
+
+### Fixed
+
+- `lib/rails_ai_bridge.rb` now requires `active_support` and
+  `active_support/core_ext/module/delegation` so the gem can be required
+  outside a full Rails boot (fixes `undefined method 'delegate'` in standalone
+  use).
+
+### Security
+
+- Bumped `sqlite3` development dependency to `>= 2.9.6` to clear
+  `bundle-audit` advisory GHSA-mwm8-39rw-8826.
+
 ## [5.0.0] - 2026-08-26
 
 v5 adds optional outbound context providers — a way to read context from declared external MCP services. Provider traffic is disabled by default, limited to an explicit host allowlist, and allowed to call only remote tools that advertise read-only, non-destructive behavior. The local `rails_get_context` tool remains in-process and is not affected.
 
 ### Migration from v4
 
-Existing v4 installations make no outbound provider requests. Upgrading to v5 does not enable requests, change `rails_get_context`, or require a manifest change. Hosts that want providers must add provider declarations, explicitly enable `config.context_providers.enabled`, configure exact allowed hosts, and provide downstream auth through the resolver. To disable during rollout: set `config.context_providers.enabled = false`. Emergency shutdown: remove the `allowed_hosts` array.
+Existing v4 installations make no outbound provider requests. Upgrading to v5 does not enable requests, change `rails_get_context`, or require a manifest change. Hosts that want providers must add provider declarations, explicitly enable `config.context_providers.enabled`, configure exact allowed hosts, and provide downstream auth through the resolver. To disable during rollout or as an emergency shutdown: set `config.context_providers.enabled = false`. Note that removing the `allowed_hosts` array alone does not stop loopback endpoints on allowed ports; setting `enabled = false` is the complete shutdown.
 
 ### Added
 
