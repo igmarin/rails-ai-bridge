@@ -385,6 +385,26 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
       expect(fake_transport).to have_received(:close)
     end
 
+    it 'caps the cleanup deadline at the per-tool timeout' do
+      client = described_class.new(
+        provider: provider,
+        policy: policy,
+        transport_factory: transport_factory,
+        auth_resolver: nil,
+        timeout_seconds: 0.01,
+        cleanup_deadline_seconds: 1000
+      )
+      success_tool = double('tool', name: 'get_status', read_only_hint: true, destructive_hint: false)
+      allow(fake_transport).to receive_messages(tools: [success_tool], call_tool: 'ok')
+      allow(fake_transport).to receive(:close) { Queue.new.pop }
+
+      result = client.call_tool('get_status', arguments: {})
+
+      expect(result.status).to eq(:success)
+      expect(result.content).to eq('ok')
+      expect(fake_transport).to have_received(:close)
+    end
+
     it 'returns the original result even when transport.close exceeds the cleanup deadline' do
       client = described_class.new(
         provider: provider,
@@ -395,8 +415,7 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
         cleanup_deadline_seconds: 0.01
       )
       success_tool = double('tool', name: 'get_status', read_only_hint: true, destructive_hint: false)
-      allow(fake_transport).to receive(:tools).and_return([success_tool])
-      allow(fake_transport).to receive(:call_tool).and_return('ok')
+      allow(fake_transport).to receive_messages(tools: [success_tool], call_tool: 'ok')
       allow(fake_transport).to receive(:close) { sleep 1 }
 
       result = client.call_tool('get_status', arguments: {})
@@ -405,7 +424,5 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
       expect(result.content).to eq('ok')
       expect(fake_transport).to have_received(:close)
     end
-
-
   end
 end

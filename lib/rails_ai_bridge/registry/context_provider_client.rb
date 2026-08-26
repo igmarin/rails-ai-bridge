@@ -35,7 +35,7 @@ module RailsAiBridge
         @transport_factory = transport_factory
         @auth_resolver = auth_resolver
         @timeout_seconds = timeout_seconds
-        @cleanup_deadline_seconds = cleanup_deadline_seconds
+        @cleanup_deadline_seconds = clamp_cleanup_deadline(cleanup_deadline_seconds, timeout_seconds)
       end
 
       # Calls a single remote tool and returns a typed result.
@@ -105,6 +105,16 @@ module RailsAiBridge
       end
 
       private
+
+      # @param cleanup_deadline_seconds [Numeric, nil] requested cleanup deadline
+      # @param timeout_seconds [Numeric, nil] per-call timeout
+      # @return [Numeric, nil] cleanup deadline capped at the per-call timeout
+      def clamp_cleanup_deadline(cleanup_deadline_seconds, timeout_seconds)
+        return nil unless cleanup_deadline_seconds
+        return cleanup_deadline_seconds unless timeout_seconds
+
+        [cleanup_deadline_seconds, timeout_seconds].min
+      end
 
       # @param block [Proc] the operation to time-box
       # @return [Object] the block result

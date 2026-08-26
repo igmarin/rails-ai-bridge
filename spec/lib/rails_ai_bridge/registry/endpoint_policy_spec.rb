@@ -470,6 +470,7 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
       expect(result).not_to be_success
       expect(result.error.message).to eq('endpoint is not permitted by policy')
     end
+
     it 'limits the number of resolved addresses' do
       policy = described_class.new(
         resolver: resolver,
@@ -486,6 +487,28 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
       expect(result).not_to be_success
       expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
       expect(result.error.message).to eq('endpoint resolved to too many addresses')
+    end
+
+    it 'rejects invalid max_resolved_addresses values' do
+      expect do
+        described_class.new(
+          resolver: resolver,
+          allowed_hosts: ['example.com'],
+          allowed_loopback_ports: [3000, 9292],
+          allow_private_networks: false,
+          max_resolved_addresses: 0
+        )
+      end.to raise_error(RailsAiBridge::ConfigurationError, /must be a positive integer/)
+
+      expect do
+        described_class.new(
+          resolver: resolver,
+          allowed_hosts: ['example.com'],
+          allowed_loopback_ports: [3000, 9292],
+          allow_private_networks: false,
+          max_resolved_addresses: '8'
+        )
+      end.to raise_error(RailsAiBridge::ConfigurationError, /must be a positive integer/)
     end
 
     it 'times out DNS resolution that exceeds the configured timeout' do

@@ -107,7 +107,7 @@ If providers are disabled, the tool returns a setup message and makes no DNS or 
 - `context_providers.enabled` defaults to `false`.
 - The v4 gemspec currently permits MCP 1.x; Task 10 raises the v5 minimum to MCP 1.3 because the provider client depends on that SDK surface.
 - The default per-tool timeout is 10 seconds.
-- The default maximum number of resolved addresses is 8; `EndpointPolicy` returns a `TimeoutError` when resolution exceeds the per-tool deadline and a `PolicyError` when more than the configured number of addresses are returned.
+- The default maximum number of resolved addresses is 8; `EndpointPolicy` returns a `PolicyError` when resolution exceeds the per-tool deadline or more than the configured number of addresses are returned.
 - The default total aggregation budget is 30 seconds across all providers in one `rails_get_provider_context` call.
 - The MCP SDK's 4 MiB message limit is an outer parser guard. The bridge's default network response cap is 1 MiB (1,048,576 bytes) before MCP tool truncation.
 - Provider count is capped at a default maximum of 8 providers per invocation; tool count is capped at a default maximum of 16 tools per provider; aggregation response size is capped at 2 MiB (2,097,152 bytes) total across all providers. Each limit's scope is per-invocation, not per-process.

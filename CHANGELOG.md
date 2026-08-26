@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Outbound context provider hardening: bounded DNS resolution timeout and
+  `max_resolved_addresses`, per-tool `Timeout.timeout` around `ContextProviderClient`
+  operations, a bounded `transport.close` cleanup deadline, and `MCP::Client::HTTP`
+  `max_reconnection_wait` tied to the per-tool timeout.
 - `UPGRADING.md` section documenting the v4.3.0 to v5.0.0 migration, outbound
   context providers, the `AppScope` runtime seam, and production private-network
   guards.

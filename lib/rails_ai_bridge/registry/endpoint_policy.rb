@@ -34,6 +34,8 @@ module RailsAiBridge
       # @param allowed_hosts [Array<String>] exact allowed hostnames or public IP strings
       # @param allowed_loopback_ports [Array<Integer>] allowed loopback ports
       # @param allow_private_networks [Boolean] whether private/link-local network destinations are allowed
+      # @param timeout_seconds [Numeric, nil] per-call DNS resolution timeout in seconds; nil disables the timeout
+      # @param max_resolved_addresses [Integer, nil] maximum number of addresses to accept from DNS; nil disables the cap
       # @return [EndpointPolicy]
       def initialize(resolver:, allowed_hosts:, allowed_loopback_ports:, allow_private_networks:, timeout_seconds: nil, max_resolved_addresses: nil)
         @resolver = resolver
@@ -42,6 +44,10 @@ module RailsAiBridge
         @allow_private_networks = allow_private_networks
         @timeout_seconds = timeout_seconds
         @max_resolved_addresses = max_resolved_addresses
+        return unless @max_resolved_addresses && (!@max_resolved_addresses.is_a?(Integer) || @max_resolved_addresses <= 0)
+
+        raise RailsAiBridge::ConfigurationError,
+              "max_resolved_addresses must be a positive integer, got #{max_resolved_addresses.inspect}"
       end
 
       # Checks the endpoint against scheme, host, and network policy.
