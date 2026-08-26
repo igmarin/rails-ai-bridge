@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'json'
+
 module RailsAiBridge
   module Tools
     # MCP tool for fetching context from declared external providers.

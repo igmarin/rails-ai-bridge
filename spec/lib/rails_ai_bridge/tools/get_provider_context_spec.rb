@@ -89,6 +89,18 @@ RSpec.describe RailsAiBridge::Tools::GetProviderContext do
     end
   end
 
+  # ── malformed manifest ──────────────────────────────────────────────────────
+
+  context 'when the manifest is malformed JSON' do
+    before do
+      allow(RailsAiBridge::Registry::RegistryManifest).to receive(:from_file).and_raise(JSON::ParserError.new('unexpected token'))
+    end
+
+    it 'returns a setup message instead of raising' do
+      expect(content).to include('manifest')
+    end
+  end
+
   # ── no providers declared ───────────────────────────────────────────────────
 
   context 'when manifest has no context providers' do
