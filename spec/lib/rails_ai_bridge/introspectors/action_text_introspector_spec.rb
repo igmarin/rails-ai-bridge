@@ -13,7 +13,13 @@ RSpec.describe RailsAiBridge::Introspectors::ActionTextIntrospector do
     end
 
     it 'returns installed as false when ActionText is not loaded' do
+      hide_const('ActionText')
       expect(result[:installed]).to be false
+    end
+
+    it 'returns installed as true when ActionText is loaded' do
+      stub_const('ActionText', Module.new) unless defined?(ActionText)
+      expect(result[:installed]).to be true
     end
 
     context 'with rich text macros in model source' do

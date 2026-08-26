@@ -3,97 +3,90 @@
 require 'spec_helper'
 
 # Composite tool fixtures need model/schema/controller/route/test snapshots.
-# rubocop:disable-next RSpec/MultipleMemoizedHelpers
 RSpec.describe RailsAiBridge::Tools::GetContext do
   let(:response) { described_class.call(**params) }
-  let(:content) { response.content.first[:text] }
   let(:params) { { model: 'User' } }
   let(:app_root) { Pathname.new(Dir.mktmpdir('get-context-')) }
-
-  let(:models_data) do
+  let(:cached_data) do
     {
-      'User' => {
-        table_name: 'users',
-        semantic_tier: 'core',
-        semantic_tier_reason: 'listed in core_models',
-        associations: [
-          { name: 'posts', type: 'has_many', source: :reflection },
-          { name: 'profile', type: 'has_one', source: :regex }
-        ],
-        validations: [{ kind: 'presence', attributes: ['email'], options: {} }]
+      models: {
+        'User' => {
+          table_name: 'users',
+          semantic_tier: 'core',
+          semantic_tier_reason: 'listed in core_models',
+          associations: [
+            { name: 'posts', type: 'has_many', source: :reflection },
+            { name: 'profile', type: 'has_one', source: :regex }
+          ],
+          validations: [{ kind: 'presence', attributes: ['email'], options: {} }]
+        },
+        'Post' => {
+          table_name: 'posts',
+          semantic_tier: 'supporting',
+          associations: [{ name: 'user', type: 'belongs_to', source: :reflection }],
+          validations: []
+        }
       },
-      'Post' => {
-        table_name: 'posts',
-        semantic_tier: 'supporting',
-        associations: [{ name: 'user', type: 'belongs_to', source: :reflection }],
-        validations: []
-      }
-    }
-  end
-
-  let(:schema_data) do
-    {
-      adapter: 'SQLite',
-      source: :live,
-      tables: {
-        'users' => {
-          columns: [
-            { name: 'id', type: 'integer', null: false, default: nil },
-            { name: 'email', type: 'string', null: false, default: nil },
-            { name: 'name', type: 'string', null: true, default: nil }
-          ],
-          indexes: [{ name: 'index_users_on_email', columns: ['email'], unique: true }],
-          foreign_keys: []
-        },
-        'posts' => {
-          columns: [
-            { name: 'id', type: 'integer', null: false, default: nil },
-            { name: 'title', type: 'string', null: true, default: nil }
-          ],
-          indexes: [],
-          foreign_keys: []
+      schema: {
+        adapter: 'SQLite',
+        source: :live,
+        tables: {
+          'users' => {
+            columns: [
+              { name: 'id', type: 'integer', null: false, default: nil },
+              { name: 'email', type: 'string', null: false, default: nil },
+              { name: 'name', type: 'string', null: true, default: nil }
+            ],
+            indexes: [{ name: 'index_users_on_email', columns: ['email'], unique: true }],
+            foreign_keys: []
+          },
+          'posts' => {
+            columns: [
+              { name: 'id', type: 'integer', null: false, default: nil },
+              { name: 'title', type: 'string', null: true, default: nil }
+            ],
+            indexes: [],
+            foreign_keys: []
+          }
         }
-      }
-    }
-  end
-
-  let(:controllers_data) do
-    {
+      },
       controllers: {
-        'UsersController' => {
-          parent_class: 'ApplicationController',
-          actions: %w[index show create],
-          filters: [{ kind: 'before_action', name: 'set_user', only: ['show'] }],
-          strong_params: ['user_params']
-        },
-        'PostsController' => {
-          parent_class: 'ApplicationController',
-          actions: %w[index show],
-          filters: [],
-          strong_params: []
+        controllers: {
+          'UsersController' => {
+            parent_class: 'ApplicationController',
+            actions: %w[index show create],
+            filters: [{ kind: 'before_action', name: 'set_user', only: ['show'] }],
+            strong_params: ['user_params']
+          },
+          'PostsController' => {
+            parent_class: 'ApplicationController',
+            actions: %w[index show],
+            filters: [],
+            strong_params: []
+          }
         }
-      }
+      },
+      routes: {
+        total_routes: 4,
+        api_namespaces: [],
+        by_controller: {
+          'users' => [
+            { verb: 'GET', path: '/users', action: 'index', name: 'users' },
+            { verb: 'GET', path: '/users/:id', action: 'show', name: 'user' }
+          ],
+          'posts' => [
+            { verb: 'GET', path: '/posts', action: 'index', name: 'posts' },
+            { verb: 'POST', path: '/posts', action: 'create', name: nil }
+          ]
+        }
+      },
+      tests: { framework: 'rspec' }
     }
   end
 
-  let(:routes_data) do
-    {
-      total_routes: 4,
-      api_namespaces: [],
-      by_controller: {
-        'users' => [
-          { verb: 'GET', path: '/users', action: 'index', name: 'users' },
-          { verb: 'GET', path: '/users/:id', action: 'show', name: 'user' }
-        ],
-        'posts' => [
-          { verb: 'GET', path: '/posts', action: 'index', name: 'posts' },
-          { verb: 'POST', path: '/posts', action: 'create', name: nil }
-        ]
-      }
-    }
+  def content
+    response.content.first[:text]
   end
-
-  let(:tests_data) { { framework: 'rspec' } }
 
   before do
     FileUtils.mkdir_p(app_root.join('spec/models'))
@@ -103,13 +96,7 @@ RSpec.describe RailsAiBridge::Tools::GetContext do
 
     allow(described_class).to receive(:rails_app).and_return(instance_double(Rails::Application, root: app_root))
     allow(described_class).to receive(:cached_section) do |section|
-      case section
-      when :models then models_data
-      when :schema then schema_data
-      when :controllers then controllers_data
-      when :routes then routes_data
-      when :tests then tests_data
-      end
+      cached_data[section]
     end
   end
 
@@ -234,18 +221,18 @@ RSpec.describe RailsAiBridge::Tools::GetContext do
     end
 
     context 'when feature name is ambiguous between models' do
-      let(:models_data) do
-        {
-          'User' => { table_name: 'users', associations: [], validations: [] },
-          'UserProfile' => { table_name: 'user_profiles', associations: [], validations: [] }
-        }
-      end
-      let(:schema_data) do
-        {
-          adapter: 'SQLite', source: :live,
-          tables: { 'users' => { columns: [{ name: 'id', type: 'integer' }] },
-                    'user_profiles' => { columns: [{ name: 'id', type: 'integer' }] } }
-        }
+      let(:cached_data) do
+        super().merge(
+          models: {
+            'User' => { table_name: 'users', associations: [], validations: [] },
+            'UserProfile' => { table_name: 'user_profiles', associations: [], validations: [] }
+          },
+          schema: {
+            adapter: 'SQLite', source: :live,
+            tables: { 'users' => { columns: [{ name: 'id', type: 'integer' }] },
+                      'user_profiles' => { columns: [{ name: 'id', type: 'integer' }] } }
+          }
+        )
       end
       let(:params) { { feature: 'user' } }
 
@@ -339,8 +326,7 @@ RSpec.describe RailsAiBridge::Tools::GetContext do
     end
 
     context 'when :regulated omits domain introspectors' do
-      let(:models_data) { nil }
-      let(:schema_data) { nil }
+      let(:cached_data) { super().merge(models: nil, schema: nil) }
       let(:params) { { controller: 'PostsController' } }
 
       it 'returns a setup message for missing domain data and still includes the controller' do
@@ -394,16 +380,18 @@ RSpec.describe RailsAiBridge::Tools::GetContext do
     end
 
     context 'when nearby controller route keys share a substring' do
-      let(:routes_data) do
-        {
-          total_routes: 3,
-          api_namespaces: [],
-          by_controller: {
-            'users' => [{ verb: 'GET', path: '/users', action: 'index', name: 'users' }],
-            'user_sessions' => [{ verb: 'GET', path: '/user_sessions', action: 'index', name: 'user_sessions' }],
-            'superuser' => [{ verb: 'GET', path: '/superuser', action: 'show', name: 'superuser' }]
+      let(:cached_data) do
+        super().merge(
+          routes: {
+            total_routes: 3,
+            api_namespaces: [],
+            by_controller: {
+              'users' => [{ verb: 'GET', path: '/users', action: 'index', name: 'users' }],
+              'user_sessions' => [{ verb: 'GET', path: '/user_sessions', action: 'index', name: 'user_sessions' }],
+              'superuser' => [{ verb: 'GET', path: '/superuser', action: 'show', name: 'superuser' }]
+            }
           }
-        }
+        )
       end
       let(:params) { { feature: 'user' } }
 
@@ -435,28 +423,28 @@ RSpec.describe RailsAiBridge::Tools::GetContext do
     end
 
     context "with detail: 'summary'" do
-      let(:models_data) do
+      let(:cached_data) do
         associations = Array.new(40) { |i| { name: "assoc_#{i}", type: 'has_many', source: :reflection } }
         validations = Array.new(20) { |i| { kind: 'presence', attributes: ["field_#{i}"], options: {} } }
-        {
-          'User' => {
-            table_name: 'users',
-            semantic_tier: 'core',
-            associations: associations,
-            validations: validations
-          }
-        }
-      end
-
-      let(:schema_data) do
         columns = Array.new(80) { |i| { name: "col_#{i}", type: 'string', null: true, default: nil } }
-        {
-          adapter: 'SQLite',
-          source: :live,
-          tables: {
-            'users' => { columns: columns, indexes: [], foreign_keys: [] }
+
+        super().merge(
+          models: {
+            'User' => {
+              table_name: 'users',
+              semantic_tier: 'core',
+              associations: associations,
+              validations: validations
+            }
+          },
+          schema: {
+            adapter: 'SQLite',
+            source: :live,
+            tables: {
+              'users' => { columns: columns, indexes: [], foreign_keys: [] }
+            }
           }
-        }
+        )
       end
 
       let(:params) { { model: 'User', detail: 'summary' } }

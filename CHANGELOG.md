@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `UPGRADING.md` section documenting the v4.3.0 to v5.0.0 migration, outbound
+  context providers, the `AppScope` runtime seam, and production private-network
+  guards.
+- `README.md` table-of-contents link to the v4.3.x → v5 upgrade guide.
+- `lib/tasks/zeitwerk.rake` with a `zeitwerk:check` task and regression specs.
+  The task only eager-loads the gem's own Zeitwerk loader, not host-app loaders.
+
+### Fixed
+
+- `lib/rails_ai_bridge.rb` now requires `active_support` and
+  `active_support/core_ext` so the gem can be required outside a full Rails
+  boot (fixes `undefined method 'delegate'` in standalone use).
+- `spec/lib/rails_ai_bridge/tools/get_context_spec.rb` memoized-helper layout
+  and RuboCop directive in `non_ar_models_introspector_spec.rb` to keep the
+  lint suite green on RuboCop 1.90+.
+
+### Security
+
+- Bumped `sqlite3` development dependency to `>= 2.9.6` to clear
+  `bundle-audit` advisory GHSA-mwm8-39rw-8826.
+
 ## [5.0.0] - 2026-08-26
 
 v5 adds optional outbound context providers — a way to read context from declared external MCP services. Provider traffic is disabled by default, limited to an explicit host allowlist, and allowed to call only remote tools that advertise read-only, non-destructive behavior. The local `rails_get_context` tool remains in-process and is not affected.

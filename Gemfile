@@ -19,7 +19,7 @@ group :development, :test do
   gem 'rubocop-rspec', '~> 3.10'
   gem 'simplecov', '~> 1.1.0'
   gem 'skunk', '~> 0.5'
-  gem 'sqlite3', '~> 2.9'
+  gem 'sqlite3', '~> 2.9', '>= 2.9.6'
 end
 
 # Mutation testing requires Ruby >= 3.3.

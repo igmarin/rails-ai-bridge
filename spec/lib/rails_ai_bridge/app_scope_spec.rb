@@ -27,6 +27,13 @@ RSpec.describe RailsAiBridge::AppScope do
       end
       expect(described_class.current_app).to eq(Rails.application)
     end
+
+    it 'returns nil when no scope is set and Rails is not loaded' do
+      described_class.clear_app
+      hide_const('Rails')
+
+      expect(described_class.current_app).to be_nil
+    end
   end
 
   describe '.with_app' do

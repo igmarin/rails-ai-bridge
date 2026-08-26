@@ -40,6 +40,7 @@ Use the README as the shortest path to understanding and setup. Jump to deeper d
 | Check what the AI learns | [What Your AI Learns](#what-your-ai-learns) |
 | Choose `:standard`, `:full`, or opt-ins | [Pick the right preset for your app](#pick-the-right-preset-for-your-app) |
 | Use MCP safely | [HTTP transport](#http-transport-alternative-for-all-clients) and [mcp-security.md](docs/mcp-security.md) |
+| Upgrade from v4.3.x to v5 | [UPGRADING.md](UPGRADING.md#upgrading-from-430-to-500) |
 | Improve day-to-day AI results | [Best Practices](docs/BEST_PRACTICES.md) |
 
 ## When this helps

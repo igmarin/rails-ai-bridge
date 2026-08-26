@@ -1,5 +1,77 @@
 # Upgrading rails-ai-bridge
 
+## Upgrading from 4.3.0 to 5.0.0
+
+**No action is required for existing v4 installations.** v5 is intentionally
+backwards-compatible by default: outbound context providers are disabled,
+`rails_get_context` stays in-process, and all v4 configuration settings still
+work.
+
+Run:
+
+```bash
+bundle update rails-ai-bridge
+```
+
+Bundler will pull in the new dependency floor (`mcp >= 1.3`, `faraday >= 2.0`,
+`event_stream_parser >= 1.0`) automatically.
+
+### What changed in v5
+
+1. **Outbound context providers (opt-in, disabled by default)** —
+   `rails_get_provider_context` can fetch context from external MCP services
+   declared in your registry manifest. No network request is made unless you
+   explicitly enable and allowlist providers. See
+   [docs/v5/context-providers-design.md](docs/v5/context-providers-design.md).
+2. **AppScope runtime seam** — `RailsAiBridge::AppScope.with_app(app) { ... }`
+   and `RailsAiBridge::AppScope.current_app` let standalone callers, tests, and
+   the install generator scope a different app without hardcoding
+   `Rails.application`.
+3. **BootManager and StaticApp** — `RailsAiBridge::BootManager` gives the Doctor
+   and standalone callers a bounded, structured boot-to-static-fallback path.
+   `RailsAiBridge::StaticApp` supports static-only introspection without booting
+   Rails.
+4. **Doctor network probe** — `rails ai:doctor` and `rails ai:check` can probe
+   declared provider endpoints with `NETWORK=1`. Ordinary runs still make no
+   network calls.
+5. **`mcp` dependency floor raised to 1.3** — required for `MCP::Client::HTTP`.
+   `faraday` and `event_stream_parser` are now explicit gem dependencies.
+
+### To start using outbound providers
+
+1. Declare providers and read-only tools in
+   `config/rails_ai_bridge/registry.json`.
+2. Enable and allowlist them in the initializer:
+
+```ruby
+RailsAiBridge.configure do |config|
+  config.context_providers.enabled = true
+  config.context_providers.allowed_hosts = ['context.example.com']
+  config.context_providers.auth_resolver = lambda do |_endpoint, canonical_uri|
+    { 'Authorization' => "Bearer #{token_for(canonical_uri.host)}" }
+  end
+end
+```
+
+3. Call `rails_get_provider_context` from your AI client, or run
+   `NETWORK=1 rails ai:doctor` to verify reachability.
+
+### Production guard for private networks
+
+In production, `config.context_providers.allow_private_networks` is ignored and
+private (RFC1918/ULA) destinations are rejected, even if the allowlist would
+otherwise permit them. Keep provider endpoints on public or explicitly allowed
+loopback addresses.
+
+### Verification
+
+```bash
+rails ai:doctor        # no network
+NETWORK=1 rails ai:doctor  # with provider probes
+```
+
+---
+
 ## Upgrading Rubydex to 0.4.0 (age-gated: mergeable Aug 28)
 
 **Current:** `rubydex ~> 0.3.0` (installed: 0.3.0)
