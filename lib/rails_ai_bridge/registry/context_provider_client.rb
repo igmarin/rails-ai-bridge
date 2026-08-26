@@ -151,13 +151,17 @@ module RailsAiBridge
       end
 
       # Recursively redact credential values in successful provider content
-      # before it reaches the MCP response. Handles String, Hash, and Array.
+      # before it reaches the MCP response. Handles String, Hash (keys and
+      # values), and Array.
       # @param content [String, Hash, Array, Object] raw provider content
-      # @return [String, Hash, Array, Object] content with reflected auth values redacted
+      # @return [String, Hash, Array, Object] content with reflected auth values redacted from strings, hash keys, and values
       def sanitize_content(content)
         case content
         when String then sanitize_message(content)
-        when Hash then content.transform_values { |value| sanitize_content(value) }
+        when Hash
+          content.each_with_object({}) do |(key, value), sanitized|
+            sanitized[sanitize_content(key)] = sanitize_content(value)
+          end
         when Array then content.map { |value| sanitize_content(value) }
         else content
         end

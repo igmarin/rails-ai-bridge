@@ -308,19 +308,49 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
       expect(result.error.message).to eq('plain HTTP is only permitted for loopback or private endpoints')
     end
 
-    it 'allows a host that resolves to a mix of public and private addresses over https' do
+    it 'rejects a host that resolves to a mix of public and blocked addresses over https' do
+      policy = described_class.new(
+        resolver: resolver,
+        allowed_hosts: ['mixed.example.com'],
+        allowed_loopback_ports: [3000, 9292],
+        allow_private_networks: false
+      )
+      allow(resolver).to receive(:getaddresses).with('mixed.example.com').and_return(%w[192.0.2.1 169.254.169.254])
+
+      result = policy.call('https://mixed.example.com/some-tool')
+
+      expect(result).not_to be_success
+      expect(result.error.message).to eq('endpoint resolved to a mix of permitted and blocked addresses')
+    end
+
+    it 'rejects a host that mixes an approved private address with a blocked link-local address' do
       policy = described_class.new(
         resolver: resolver,
         allowed_hosts: ['mixed.example.com'],
         allowed_loopback_ports: [3000, 9292],
         allow_private_networks: true
       )
-      allow(resolver).to receive(:getaddresses).with('mixed.example.com').and_return(%w[192.0.2.1 192.168.1.1])
+      allow(resolver).to receive(:getaddresses).with('mixed.example.com').and_return(%w[192.168.1.1 169.254.1.1])
 
       result = policy.call('https://mixed.example.com/some-tool')
 
+      expect(result).not_to be_success
+      expect(result.error.message).to eq('endpoint resolved to a mix of permitted and blocked addresses')
+    end
+
+    it 'accepts a host whose addresses are all permitted' do
+      policy = described_class.new(
+        resolver: resolver,
+        allowed_hosts: ['example.com'],
+        allowed_loopback_ports: [3000, 9292],
+        allow_private_networks: false
+      )
+      allow(resolver).to receive(:getaddresses).with('example.com').and_return(%w[192.0.2.1 198.51.100.7])
+
+      result = policy.call('https://example.com/some-tool')
+
       expect(result).to be_success
-      expect(result.addresses).to eq(%w[192.0.2.1 192.168.1.1])
+      expect(result.addresses).to eq(%w[192.0.2.1 198.51.100.7])
     end
   end
 end

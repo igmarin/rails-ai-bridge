@@ -63,12 +63,17 @@ module RailsAiBridge
         return failure("no addresses resolved for #{host_label}") if raw_addresses.empty?
 
         approved = filter_addresses(raw_addresses, uri, host)
-        if approved.any?
+        # Fail closed when any resolved address is rejected. Approving only the
+        # permitted subset would still let an unpinned transport re-resolve DNS
+        # and connect to a blocked address, so every answer must pass policy.
+        if approved.empty?
+          failure('endpoint is not permitted by policy')
+        elsif approved.length < raw_addresses.length
+          failure('endpoint resolved to a mix of permitted and blocked addresses')
+        else
           return failure('plain HTTP is only permitted for loopback or private endpoints') if scheme == 'http' && !plaintext_permitted?(approved)
 
           Result.new(success: true, error: nil, uri: canonicalize(uri), addresses: approved)
-        else
-          failure('endpoint is not permitted by policy')
         end
       rescue URI::Error
         failure('endpoint is not a valid URL')

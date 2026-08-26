@@ -139,7 +139,7 @@ module RailsAiBridge
       end
       private_class_method :build_client
 
-      # @param uri [URI]
+      # @param uri [URI] canonical provider URI, bound via the SDK's +url:+ keyword (required by mcp >= 1.3)
       # @param _addresses [Array<String>] policy-validated IP addresses; not passed to
       #   the MCP SDK transport because Faraday re-resolves uri.host. See design doc
       #   INV-6 and section 11 (Risks) — address pinning requires a custom Faraday
@@ -147,7 +147,11 @@ module RailsAiBridge
       # @param headers [Hash]
       # @return [Object] MCP transport
       def self.default_transport_factory(uri, _addresses, headers)
-        MCP::Client::HTTP.new(uri, headers: headers)
+        timeout = providers_config.timeout_seconds.to_f
+        MCP::Client::HTTP.new(url: uri, headers: headers) do |faraday|
+          faraday.options.timeout = timeout
+          faraday.options.open_timeout = timeout
+        end
       end
       private_class_method :default_transport_factory
 

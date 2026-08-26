@@ -137,11 +137,13 @@ v5 adds `rails_get_provider_context`, which reads context from declared external
 
 ### Exact host allowlist
 
-`config.context_providers.allowed_hosts` is an exact-match list (case-insensitive, one trailing dot removed). No wildcard, suffix, or subdomain matching. Remote HTTPS must use port 443 (default). Plain HTTP is allowed only on loopback with an explicitly allowlisted host and a port from `allowed_loopback_ports` (default: `[3000, 9292]`).
+`config.context_providers.allowed_hosts` is an exact-match list (case-insensitive, one trailing dot removed). No wildcard, suffix, or subdomain matching. HTTPS is permitted on any port of an allowlisted host. Plain HTTP is allowed only for loopback endpoints on a port from `allowed_loopback_ports` (default: `[3000, 9292]`) or private endpoints when `allow_private_networks` is enabled.
 
 ### SSRF protection
 
-`Registry::EndpointPolicy` validates every address returned by DNS resolution before connection. Private addresses (RFC1918, IPv6 ULA), link-local, multicast, unspecified, and cloud-metadata endpoints (`169.254.169.254`) are rejected. Mixed public/private DNS answers fail closed. A development-only `allow_private_networks` override exists but never permits metadata addresses.
+`Registry::EndpointPolicy` validates every address returned by DNS resolution before connection. Private addresses (RFC1918, IPv6 ULA), link-local, multicast, unspecified, and cloud-metadata endpoints (`169.254.169.254`) are rejected. DNS answers fail closed: when any resolved address is blocked, the whole endpoint is rejected — a mix of permitted and blocked answers never results in a connection. This matters because the MCP transport delegates connection to Faraday, which re-resolves the host at connect time; failing closed keeps re-resolution within hosts whose entire answer set passed policy. A development-only `allow_private_networks` override exists but never permits link-local or metadata addresses.
+
+Per-request connect/read timeouts are applied to the underlying HTTP transport from `timeout_seconds` (see the resource-limits table below). The transport does not pin connections to policy-validated addresses (a custom Faraday adapter would be required) — see `docs/v5/context-providers-design.md`, invariant INV-6 and section 11 for this known limitation.
 
 ### Read-only tool enforcement
 
@@ -152,7 +154,7 @@ Only remote tools that advertise `read_only_hint: true` and `destructive_hint: f
 - Provider manifests never contain tokens.
 - Auth headers come from a trusted `auth_resolver` lambda, bound to the provider's canonical endpoint.
 - Headers are never logged, persisted, or copied into generated context.
-- Reflected `Authorization` values in provider content are redacted to `[REDACTED]` before MCP responses are returned.
+- Reflected `Authorization` values in provider content are redacted to `[redacted]` before MCP responses are returned.
 - Error messages are sanitized through `MessageSanitizer` — no URLs, file paths, or credential values leak into error results.
 
 ### Resource limits

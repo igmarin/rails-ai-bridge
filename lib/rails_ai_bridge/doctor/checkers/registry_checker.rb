@@ -268,7 +268,16 @@ module RailsAiBridge
           )
         end
 
-        # @param uri [URI]
+        # @param uri [URI] the canonical, credential-free provider URI, bound via
+        #   the SDK's +url:+ keyword (required by mcp >= 1.3; positional arguments
+        #   raise ArgumentError at runtime, swallowed as ConnectionError by the
+        #   client boundary). Faraday applies a per-request timeout derived from
+        #   +config.context_providers.timeout_seconds+ through the transport's
+        #   customizer block. Faraday re-resolves uri.host at connect time, so
+        #   policy-validated addresses cannot be pinned without a custom adapter
+        #   (design doc INV-6 / section 11 Risks); EndpointPolicy failing closed on
+        #   mixed DNS answers keeps re-resolution within approved hosts. Address
+        #   pinning remains tracked for a future v5 hardening pass.
         # @param addresses [Array<String>] policy-validated IP addresses. The MCP
         #   SDK's MCP::Client::HTTP delegates connection to Faraday, which resolves
         #   uri.host again at connection time. Address pinning (connecting to a
@@ -278,7 +287,11 @@ module RailsAiBridge
         # @param headers [Hash]
         # @return [Object] MCP transport
         def default_transport_factory(uri, _addresses, headers)
-          MCP::Client::HTTP.new(uri, headers: headers)
+          timeout = providers_config.timeout_seconds.to_f
+          MCP::Client::HTTP.new(url: uri, headers: headers) do |faraday|
+            faraday.options.timeout = timeout
+            faraday.options.open_timeout = timeout
+          end
         end
       end
     end
