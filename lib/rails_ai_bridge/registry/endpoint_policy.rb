@@ -59,16 +59,27 @@ module RailsAiBridge
 
         host = normalize_host(raw_host)
         host_label = host.inspect
-        raw_addresses = @resolver.getaddresses(host)
+        raw_addresses = @resolver.getaddresses(host).map(&:to_s)
         return failure("no addresses resolved for #{host_label}") if raw_addresses.empty?
 
         approved = filter_addresses(raw_addresses, uri, host)
-        if approved.any?
+        # Fail closed when any resolved address is rejected. Approving only the
+        # permitted subset would still let an unpinned transport re-resolve DNS
+        # and connect to a blocked address, so every answer must pass policy.
+        if approved.empty?
+          failure('endpoint is not permitted by policy')
+        elsif approved.length < raw_addresses.length
+          failure('endpoint resolved to a mix of permitted and blocked addresses')
+        else
+          # AC-2b: remote HTTPS is restricted to the default port so an allowlisted
+          # host cannot be used to reach arbitrary ports on that host.
+          non_default_https = scheme == 'https' && uri.port != URI::HTTPS::DEFAULT_PORT
+          remote_endpoint = !approved.all? { |raw| loopback_address?(raw) }
+          return failure('remote HTTPS must use the default port 443') if non_default_https && remote_endpoint
+
           return failure('plain HTTP is only permitted for loopback or private endpoints') if scheme == 'http' && !plaintext_permitted?(approved)
 
           Result.new(success: true, error: nil, uri: canonicalize(uri), addresses: approved)
-        else
-          failure('endpoint is not permitted by policy')
         end
       rescue URI::Error
         failure('endpoint is not a valid URL')
@@ -135,13 +146,26 @@ module RailsAiBridge
           elsif ip.link_local?
             false
           elsif ip.private?
-            @allow_private_networks
+            @allow_private_networks && !production?
           else
             @allowed_hosts.include?(host)
           end
         rescue IPAddr::InvalidAddressError
           false
         end
+      end
+
+      # @return [Boolean] whether the runtime environment is a Rails production environment
+      def production?
+        defined?(Rails) && Rails.respond_to?(:env) && Rails.env&.production?
+      end
+
+      # @param raw [String] IP address string
+      # @return [Boolean] whether the address is a loopback address
+      def loopback_address?(raw)
+        IPAddr.new(raw).loopback?
+      rescue IPAddr::InvalidAddressError
+        false
       end
 
       # @param addresses [Array<String>] approved IP strings

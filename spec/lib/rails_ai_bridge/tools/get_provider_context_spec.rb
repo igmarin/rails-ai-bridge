@@ -2,6 +2,7 @@
 
 # rubocop:disable RSpec/MultipleMemoizedHelpers
 require 'spec_helper'
+require 'faraday'
 require 'rails_ai_bridge/registry/context_provider_definition'
 require 'rails_ai_bridge/registry/context_tool_spec'
 require 'rails_ai_bridge/registry/provider_request_scope'
@@ -273,6 +274,35 @@ RSpec.describe RailsAiBridge::Tools::GetProviderContext do
       )
       output = described_class.new(scalar_result).format
       expect(output).to include('42')
+    end
+  end
+
+  # ── default_transport_factory ──────────────────────────────────────────────
+
+  describe '.default_transport_factory' do
+    let(:canonical_uri) { URI.parse('https://example.com/mcp') }
+    let(:transport) { described_class.send(:default_transport_factory, canonical_uri, ['192.0.2.1'], {}) }
+
+    after do
+      transport.close
+    rescue StandardError
+      nil
+    end
+
+    it 'builds an MCP HTTP transport bound to the canonical URL via the url keyword' do
+      expect(transport).to be_a(MCP::Client::HTTP)
+      expect(transport.url.to_s).to eq('https://example.com/mcp')
+    end
+
+    it 'applies the configured timeout to the underlying Faraday connection' do
+      config.timeout_seconds = 7
+
+      customizer = transport.instance_variable_get(:@faraday_customizer)
+      connection = Faraday.new
+      customizer.call(connection)
+
+      expect(connection.options.timeout).to eq(7)
+      expect(connection.options.open_timeout).to eq(7)
     end
   end
 end

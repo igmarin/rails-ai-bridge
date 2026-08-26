@@ -308,19 +308,110 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
       expect(result.error.message).to eq('plain HTTP is only permitted for loopback or private endpoints')
     end
 
-    it 'allows a host that resolves to a mix of public and private addresses over https' do
+    it 'rejects a host that resolves to a mix of public and blocked addresses over https' do
+      policy = described_class.new(
+        resolver: resolver,
+        allowed_hosts: ['mixed.example.com'],
+        allowed_loopback_ports: [3000, 9292],
+        allow_private_networks: false
+      )
+      allow(resolver).to receive(:getaddresses).with('mixed.example.com').and_return(%w[192.0.2.1 169.254.169.254])
+
+      result = policy.call('https://mixed.example.com/some-tool')
+
+      expect(result).not_to be_success
+      expect(result.error.message).to eq('endpoint resolved to a mix of permitted and blocked addresses')
+    end
+
+    it 'rejects a host that mixes an approved private address with a blocked link-local address' do
       policy = described_class.new(
         resolver: resolver,
         allowed_hosts: ['mixed.example.com'],
         allowed_loopback_ports: [3000, 9292],
         allow_private_networks: true
       )
-      allow(resolver).to receive(:getaddresses).with('mixed.example.com').and_return(%w[192.0.2.1 192.168.1.1])
+      allow(resolver).to receive(:getaddresses).with('mixed.example.com').and_return(%w[192.168.1.1 169.254.1.1])
 
       result = policy.call('https://mixed.example.com/some-tool')
 
+      expect(result).not_to be_success
+      expect(result.error.message).to eq('endpoint resolved to a mix of permitted and blocked addresses')
+    end
+
+    it 'rejects a remote https endpoint on a non-default port' do
+      policy = described_class.new(
+        resolver: resolver,
+        allowed_hosts: ['example.com'],
+        allowed_loopback_ports: [3000, 9292],
+        allow_private_networks: false
+      )
+      allow(resolver).to receive(:getaddresses).with('example.com').and_return(['192.0.2.1'])
+
+      result = policy.call('https://example.com:8443/some-tool')
+
+      expect(result).not_to be_success
+      expect(result.error.message).to eq('remote HTTPS must use the default port 443')
+    end
+
+    it 'allows an https loopback endpoint on an allowed non-default port' do
+      policy = described_class.new(
+        resolver: resolver,
+        allowed_hosts: [],
+        allowed_loopback_ports: [3000, 9292],
+        allow_private_networks: false
+      )
+      allow(resolver).to receive(:getaddresses).with('localhost').and_return(['127.0.0.1'])
+
+      result = policy.call('https://localhost:9292/some-tool')
+
       expect(result).to be_success
-      expect(result.addresses).to eq(%w[192.0.2.1 192.168.1.1])
+    end
+
+    it 'accepts a host whose addresses are all permitted' do
+      policy = described_class.new(
+        resolver: resolver,
+        allowed_hosts: ['example.com'],
+        allowed_loopback_ports: [3000, 9292],
+        allow_private_networks: false
+      )
+      allow(resolver).to receive(:getaddresses).with('example.com').and_return(%w[192.0.2.1 198.51.100.7])
+
+      result = policy.call('https://example.com/some-tool')
+
+      expect(result).to be_success
+      expect(result.addresses).to eq(%w[192.0.2.1 198.51.100.7])
+    end
+
+    it 'normalizes Resolv::DNS answer objects to strings before applying policy' do
+      policy = described_class.new(
+        resolver: resolver,
+        allowed_hosts: ['example.com'],
+        allowed_loopback_ports: [3000, 9292],
+        allow_private_networks: false
+      )
+      allow(resolver).to receive(:getaddresses).with('example.com')
+                                               .and_return([Resolv::IPv4.create('192.0.2.1'), Resolv::IPv6.create('2001:db8::1')])
+
+      result = policy.call('https://example.com/some-tool')
+
+      expect(result).to be_success
+      expect(result.addresses).to eq(['192.0.2.1', '2001:db8::1'])
+    end
+
+    it 'rejects private addresses in production even when allow_private_networks is true' do
+      policy = described_class.new(
+        resolver: resolver,
+        allowed_hosts: ['private.example.com'],
+        allowed_loopback_ports: [3000, 9292],
+        allow_private_networks: true
+      )
+      allow(resolver).to receive(:getaddresses).with('private.example.com').and_return(['192.168.1.1'])
+      allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new('production'))
+
+      result = policy.call('https://private.example.com/some-tool')
+
+      expect(result).not_to be_success
+      expect(result.error.message).to eq('endpoint is not permitted by policy')
     end
   end
 end

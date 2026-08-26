@@ -5,7 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [5.0.0] - 2026-08-26
+
+v5 adds optional outbound context providers — a way to read context from declared external MCP services. Provider traffic is disabled by default, limited to an explicit host allowlist, and allowed to call only remote tools that advertise read-only, non-destructive behavior. The local `rails_get_context` tool remains in-process and is not affected.
+
+### Migration from v4
+
+Existing v4 installations make no outbound provider requests. Upgrading to v5 does not enable requests, change `rails_get_context`, or require a manifest change. Hosts that want providers must add provider declarations, explicitly enable `config.context_providers.enabled`, configure exact allowed hosts, and provide downstream auth through the resolver. To disable during rollout: set `config.context_providers.enabled = false`. Emergency shutdown: remove the `allowed_hosts` array.
 
 ### Added
 
@@ -26,16 +32,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Gemspec dependencies for v5** — `mcp` minimum raised from `1.0` to `1.3` (provider client depends on `MCP::Client::HTTP` from 1.3+). `faraday >= 2.0, < 3.0` added as explicit dependency (MCP SDK uses it but does not declare it). `event_stream_parser >= 1.0, < 2.0` added as explicit dependency (MCP SDK uses it for SSE parsing but does not declare it).
 - **RuboCop Performance plugin enabled** — `rubocop-performance` (~> 1.27) added as an explicit development dependency and loaded as a RuboCop plugin. 77 offenses autocorrected (TimesMap, StringInclude, MapCompact, DeleteSuffix/DeletePrefix, StringReplacement, RedundantBlockCall). 4 CollectionLiteralInLoop offenses fixed by extracting immutable literals to constants. `rubocop-rails` constraint tightened to `~> 2.37`.
 - **Ruby 4.0 canary in CI** — CI matrix includes a non-blocking Ruby 4.0 / Rails 8.1 canary job to catch compatibility issues early without blocking the pipeline.
 ### Fixed
 
+- **Successful provider content redaction (AC-11)** — `ContextProviderClient#call_tool` now redacts reflected credential values in successful provider content before returning the result. Previously `MessageSanitizer` only ran on error messages; reflected `Authorization` / `Bearer` / credential fields in successful provider responses could reach `rails_get_provider_context`. Content is recursively sanitized for String, Hash, and Array types — including Hash keys (a response such as `{ "Authorization: Bearer leak" => "ok" }` previously returned the credential unchanged).
+- **Install generator auth_resolver example** — The commented example in the initializer template now matches the actual runtime callback signature `(endpoint, canonical_uri)` instead of the incorrect `(provider_name, canonical_endpoint)`. The runtime contract was always `(endpoint, canonical_uri)`; only the example was wrong.
 - **Unknown Doctor boot failures** — Boot diagnostics now report `UnknownError` when exception class metadata is absent instead of rendering an empty error class.
 - **Request-scoped resolver memoization** — `Registry#with_request_resolver` and `request_active?` now use a frozen sentinel object instead of relying on `Thread.current[REQUEST_RESOLVER_KEY]` being `nil`. Previously `request_resolver?` checked `!Thread.current[REQUEST_RESOLVER_KEY].nil?`, which returned `false` for an active but unbuilt resolver. A sentinel distinguishes "active, not built" from "not active."
-
-### Added
-
 - **Branch coverage improvements** — 20 files raised to 90%+ branch coverage with focused RSpec tests covering previously uncovered branches.
+- **Endpoint policy fails closed on mixed DNS answers and normalizes resolver output** — `Registry::EndpointPolicy#call` previously approved an endpoint when *any* resolved address passed policy, returning the approved subset. A second DNS resolution at connect time could reach an address the policy had rejected. The policy now normalizes `Resolv::DNS#getaddresses` results to strings (the SDK returns `Resolv::IPv4` / `Resolv::IPv6` objects, which `IPAddr.new` cannot consume directly) and rejects the whole endpoint with `endpoint resolved to a mix of permitted and blocked addresses` unless every resolved address passes.
+- **Provider HTTP transport address pinning (INV-6)** — both built-in transport factories (`Tools::GetProviderContext`, `Doctor::Checkers::RegistryChecker`) now install `Registry::PinningHttpAdapter`, a custom Faraday adapter that pins the TCP connection to the first policy-validated IP address while preserving the original Host header and TLS SNI. This closes the DNS-rebinding gap where Faraday re-resolved `uri.host` at connect time and could route to an unapproved address.
+- **Provider HTTP transport construction and timeouts** — both built-in transport factories now pass the canonical URI through `MCP::Client::HTTP`'s `url:` keyword (required since mcp 1.3's keyword-only constructor; positional arguments raised `ArgumentError` at runtime, surfacing only as generic connection failures) and apply per-request connect/read timeouts from `context_providers.timeout_seconds` through the transport's Faraday customizer block.
+- **Production guard for private-network providers** — `Registry::EndpointPolicy` now rejects private (RFC1918 / IPv6 ULA) destinations when `Rails.env.production?` is true, even if `config.context_providers.allow_private_networks` is set to `true`. The override remains available for development but is silently ignored in production to prevent accidental SSRF exposure.
 
 ## [4.3.0] - 2026-08-16
 

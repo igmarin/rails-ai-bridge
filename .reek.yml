@@ -136,6 +136,7 @@ detectors:
     - RailsAiBridge::ContextProvider#rebuild_section
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#probe_all_providers
     - RailsAiBridge::Registry::ContextProviderClient#probe
+    - RailsAiBridge::Registry::ContextProviderClient#sanitize_content
     - RailsAiBridge::Tools::GetProviderContext#self.call
     - RailsAiBridge::Tools::GetProviderContext::ResultFormatter#format
     - RailsAiBridge::Tools::GetProviderContext::ResultFormatter#format_data
@@ -334,6 +335,7 @@ detectors:
     - RailsAiBridge::Registry::ContextAggregator#fetch_tool
     - RailsAiBridge::Registry::ContextAggregator#validate_no_mapping_collisions!
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#probe_provider
+    - RailsAiBridge::Doctor::Checkers::RegistryChecker#default_transport_factory
     - RailsAiBridge::Tools::GetProviderContext::ResultFormatter#format
     - RailsAiBridge::Tools::GetProviderContext::ResultFormatter#format_data
     - RailsAiBridge::Introspectors::ActionMailboxIntrospector#extract_mailboxes
@@ -535,6 +537,7 @@ detectors:
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#discover_databases
     - RailsAiBridge::Introspectors::MultiDatabaseIntrospector#discover_replicas
     - RailsAiBridge::Introspectors::NonArModelsIntrospector#eager_load_app_models_dir
+    - RailsAiBridge::Registry::EndpointPolicy#production?
     - RailsAiBridge::Introspectors::RouteIntrospector#detect_mounted_engines
     - RailsAiBridge::Introspectors::RouteIntrospector#extract_routes
     - RailsAiBridge::Introspectors::RouteIntrospector::RouteParser#required_part_names
@@ -733,12 +736,15 @@ detectors:
     - RailsAiBridge::Registry::ContextAggregator#fetch_provider
     - RailsAiBridge::Registry::ContextAggregator#fetch_tool
     - RailsAiBridge::Tools::GetProviderContext#self.call
+    - RailsAiBridge::Tools::GetProviderContext#self.default_transport_factory
     - RailsAiBridge::Tools::GetProviderContext#self.load_manifest
     - RailsAiBridge::Tools::GetProviderContext::ResultFormatter#format
     - RailsAiBridge::Tools::GetProviderContext::ResultFormatter#format_data
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#probe_all_providers
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#probe_provider
+    - RailsAiBridge::Doctor::Checkers::RegistryChecker#default_transport_factory
     - RailsAiBridge::Registry::ContextProviderClient#probe
+    - RailsAiBridge::Registry::ContextProviderClient#sanitize_content
     - RailsAiBridge::Generators::HelpGenerator#show_commands
     - RailsAiBridge::Generators::CommandHelp#print_command_reference
     - RailsAiBridge::Generators::InstallGenerator#add_to_gitignore
@@ -1156,6 +1162,8 @@ detectors:
     - RailsAiBridge::Registry::ContextAggregator#elapsed_ms
     - RailsAiBridge::Registry::ContextAggregator#error_result
     - RailsAiBridge::Registry::ContextAggregator#monotonic_now
+    - RailsAiBridge::Registry::EndpointPolicy#loopback_address?
+    - RailsAiBridge::Registry::EndpointPolicy#production?
     - RailsAiBridge::Tools::GetProviderContext::ResultFormatter#format_value
     - RailsAiBridge::Config::Registry#legacy_manifest_path
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#default_transport_factory

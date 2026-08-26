@@ -92,6 +92,28 @@ Compact files are ordered for usefulness: primary domain models, busy endpoints,
 - Generated assistant context avoids credential values and suppresses secret-bearing config paths such as `.env*`, Rails credentials, `master.key`, private key material, and custom `config/secrets` or `config/private` files.
 - HTTP MCP is unauthenticated unless you set a token or `require_http_auth`. Bind to `127.0.0.1` unless you add auth. See [docs/mcp-security.md](docs/mcp-security.md).
 
+### Outbound context providers (v5, opt-in)
+
+`rails_get_provider_context` reads context from external MCP services declared in your registry manifest. Provider traffic is **disabled by default** — no DNS lookup or network request happens until you enable it. Enabling takes three steps:
+
+1. Declare providers in `config/rails_ai_bridge/registry.json` with their endpoint and tool specs.
+2. Enable traffic with an explicit host allowlist and downstream auth (tokens never live in the manifest):
+
+```ruby
+RailsAiBridge.configure do |c|
+  c.context_providers.enabled = true
+  c.context_providers.allowed_hosts = ['context.example.com']
+  c.context_providers.auth_resolver = lambda do |_endpoint, canonical_uri|
+    # token_for is host-application code — replace with your secret-manager lookup
+    { 'Authorization' => "Bearer #{token_for(canonical_uri.host)}" }
+  end
+end
+```
+
+1. Only remote tools advertising `read_only_hint: true` and `destructive_hint: false` are callable; reflected credentials in provider responses are redacted before they reach MCP clients.
+
+See [docs/v5/context-providers-design.md](docs/v5/context-providers-design.md) for the design and security model, and [docs/mcp-security.md](docs/mcp-security.md) for SSRF controls and operator checklists.
+
 ---
 
 ## Quick start
