@@ -319,20 +319,19 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
         expect(result.addresses).to eq(['fd00::1'])
       end
 
-      it 'rejects an IPv6 unique local address (ULA) over plain http when private networks are enabled' do
+      it 'allows an IPv6 unique local address (ULA) over plain http when private networks are enabled' do
         allow(resolver).to receive(:getaddresses).with('ula.local').and_return(['fd00::1'])
         http_ula_policy = described_class.new(
           resolver: resolver,
           allowed_hosts: ['ula.local'],
           allowed_loopback_ports: [3000, 9292],
-          allow_private_networks: false
+          allow_private_networks: true
         )
 
         result = http_ula_policy.call('http://ula.local/some-tool')
 
-        expect(result).not_to be_success
-        expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
-        expect(result.error.message).to eq('endpoint is not permitted by policy')
+        expect(result).to be_success
+        expect(result.addresses).to eq(['fd00::1'])
       end
 
       it 'rejects an IPv6 unique local address (ULA) when private networks are disabled' do
