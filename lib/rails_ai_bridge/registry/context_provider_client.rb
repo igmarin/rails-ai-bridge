@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'timeout'
+
 module RailsAiBridge
   module Registry
     # Performs one provider exchange through an MCP HTTP transport.
@@ -69,8 +71,9 @@ module RailsAiBridge
       # Lightweight reachability probe: validates the endpoint, opens a
       # transport, lists tools, and closes. Does not call any tool.
       #
+      # @param timeout [Numeric, nil] per-probe timeout in seconds; nil skips timeout
       # @return [Result]
-      def probe
+      def probe(timeout: nil)
         endpoint = @provider.endpoint
         transport = nil
         begin
@@ -80,7 +83,11 @@ module RailsAiBridge
           canonical_uri = policy_result.uri
           headers = resolve_auth(endpoint, canonical_uri)
           transport = @transport_factory.call(canonical_uri, policy_result.addresses, headers)
-          transport.tools
+          if timeout
+            Timeout.timeout(timeout) { transport.tools }
+          else
+            transport.tools
+          end
           Result.new(status: :success, content: nil, provenance: provenance_for(canonical_uri), error: nil)
         rescue RailsAiBridge::Registry::ContextProviderError => error
           Result.new(status: :error, error: error)

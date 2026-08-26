@@ -90,5 +90,34 @@ RSpec.describe RailsAiBridge::Registry::MessageSanitizer do
     it 'handles nil messages gracefully' do
       expect(described_class.sanitize(nil)).to eq('')
     end
+
+    it 'redacts JSON access_token fields' do
+      result = described_class.sanitize('HTTP 401: {"access_token":"secret123","status":"error"}')
+
+      expect(result).to include('[redacted]')
+      expect(result).not_to include('secret123')
+    end
+
+    it 'redacts token and password fields in plaintext' do
+      result = described_class.sanitize('auth failed: token=abc123 password=hunter2')
+
+      expect(result).to include('[redacted]')
+      expect(result).not_to include('abc123')
+      expect(result).not_to include('hunter2')
+    end
+
+    it 'redacts Authorization header values' do
+      result = described_class.sanitize('Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.payload.sig')
+
+      expect(result).to include('[redacted]')
+      expect(result).not_to include('eyJhbGci')
+    end
+
+    it 'redacts api_key fields' do
+      result = described_class.sanitize('request failed: api_key=sk-live-12345')
+
+      expect(result).to include('[redacted]')
+      expect(result).not_to include('sk-live-12345')
+    end
   end
 end

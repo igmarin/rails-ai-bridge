@@ -133,10 +133,14 @@ module RailsAiBridge
           )
         end
 
+        # @return [Config::ContextProviders] the configured context providers
         def providers_config
           RailsAiBridge.configuration.context_providers
         end
 
+        # Dispatches to the appropriate network check based on config state:
+        # disabled → skip, empty manifest → skip, otherwise probe all providers.
+        # @return [Check] the network reachability check result
         def network_reachability_check
           return providers_disabled_check unless providers_config.enabled
           return no_providers_check if manifest_context_providers.empty?
@@ -144,10 +148,12 @@ module RailsAiBridge
           probe_all_providers
         end
 
+        # @return [Hash<String, ContextProviderDefinition>] providers from the manifest
         def manifest_context_providers
           parsed_manifest.context_providers
         end
 
+        # @return [Check] a pass check indicating providers are disabled
         def providers_disabled_check
           new_check(
             name: 'Registry',
@@ -157,6 +163,7 @@ module RailsAiBridge
           )
         end
 
+        # @return [Check] a pass check indicating no providers are declared
         def no_providers_check
           new_check(
             name: 'Registry',
@@ -166,6 +173,11 @@ module RailsAiBridge
           )
         end
 
+        # Probes each declared provider and collects failures (required)
+        # and warnings (optional). Returns a fail check if any required
+        # provider is unreachable, a warn check if only optional ones are,
+        # or a pass check if all are reachable.
+        # @return [Check] the aggregated probe result
         def probe_all_providers
           failures = []
           warnings = []
@@ -193,6 +205,8 @@ module RailsAiBridge
           )
         end
 
+        # @param failures [Array<String>] required provider failure messages
+        # @return [Check] a fail check listing unreachable required providers
         def required_failure_check(failures)
           new_check(
             name: 'Registry',
@@ -202,6 +216,8 @@ module RailsAiBridge
           )
         end
 
+        # @param warnings [Array<String>] optional provider warning messages
+        # @return [Check] a warn check listing unreachable optional providers
         def optional_warning_check(warnings)
           new_check(
             name: 'Registry',
@@ -216,7 +232,7 @@ module RailsAiBridge
         # @return [ContextProviderClient::Result]
         def probe_provider(_name, provider)
           client = build_probe_client(provider)
-          client.probe
+          client.probe(timeout: providers_config.timeout_seconds)
         rescue RailsAiBridge::Registry::ContextProviderError => error
           RailsAiBridge::Registry::ContextProviderClient::Result.new(
             status: :error,
@@ -253,10 +269,12 @@ module RailsAiBridge
         end
 
         # @param uri [URI]
-        # @param addresses [Array<String>] policy-validated IP addresses; the MCP
-        #   SDK HTTP client does not support address pinning, so these are not
-        #   enforced at the socket layer. NOTE: address pinning requires a custom
-        #   Faraday adapter; upgrade path is to inject one via config.
+        # @param addresses [Array<String>] policy-validated IP addresses. The MCP
+        #   SDK's MCP::Client::HTTP delegates connection to Faraday, which resolves
+        #   uri.host again at connection time. Address pinning (connecting to a
+        #   specific validated IP while preserving Host header and TLS SNI) requires
+        #   a custom Faraday adapter — see design doc INV-6 and section 11 risks.
+        #   This is a known limitation tracked for a future v5 hardening pass.
         # @param headers [Hash]
         # @return [Object] MCP transport
         def default_transport_factory(uri, _addresses, headers)

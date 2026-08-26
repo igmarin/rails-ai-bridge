@@ -134,6 +134,7 @@ detectors:
     - RailsAiBridge::ContextProvider#rebuild
     - RailsAiBridge::ContextProvider#rebuild_section
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#probe_all_providers
+    - RailsAiBridge::Registry::ContextProviderClient#probe
     - RailsAiBridge::Doctor::Checkers::TestsChecker#call
     - RailsAiBridge::ExclusionHelper#excluded_class_or_table?
     - RailsAiBridge::ExclusionHelper#table_pattern_match?
