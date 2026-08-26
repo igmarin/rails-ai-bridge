@@ -37,7 +37,7 @@ RSpec.describe RailsAiBridge::Server do
   end
 
   describe 'TOOLS constant' do
-    it 'includes all 19 built-in tools' do
+    it 'includes all 20 built-in tools' do
       expect(RailsAiBridge::Server::TOOLS.length).to eq(20)
     end
 

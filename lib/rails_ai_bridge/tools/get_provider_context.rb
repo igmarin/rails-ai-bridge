@@ -87,7 +87,7 @@ module RailsAiBridge
         return nil unless path && File.exist?(path)
 
         Registry::RegistryManifest.from_file(path)
-      rescue ArgumentError => error
+      rescue ArgumentError, JSON::ParserError => error
         Rails.logger&.error { "[rails-ai-bridge] Manifest load failed: #{error.message}" }
         nil
       end

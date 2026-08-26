@@ -10,7 +10,7 @@ module RailsAiBridge
       attr_reader :category
 
       # @return [String, nil] provider name associated with this error
-      attr_reader :provider_name
+      attr_accessor :provider_name
 
       # @param message [String] safe, credential-free message
       # @param category [Symbol] stable error category
