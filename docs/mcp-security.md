@@ -137,7 +137,7 @@ v5 adds `rails_get_provider_context`, which reads context from declared external
 
 ### Exact host allowlist
 
-`config.context_providers.allowed_hosts` is an exact-match list (case-insensitive, one trailing dot removed). No wildcard, suffix, or subdomain matching. HTTPS is permitted on any port of an allowlisted host. Plain HTTP is allowed only for loopback endpoints on a port from `allowed_loopback_ports` (default: `[3000, 9292]`) or private endpoints when `allow_private_networks` is enabled.
+`config.context_providers.allowed_hosts` is an exact-match list (case-insensitive, one trailing dot removed). No wildcard, suffix, or subdomain matching. Remote HTTPS endpoints must use the default port 443; non-default HTTPS ports are only permitted for loopback addresses on ports from `allowed_loopback_ports` (default: `[3000, 9292]`). Plain HTTP is allowed only for loopback endpoints on a port from `allowed_loopback_ports` or private endpoints when `allow_private_networks` is enabled.
 
 ### SSRF protection
 

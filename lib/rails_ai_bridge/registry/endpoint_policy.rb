@@ -71,6 +71,10 @@ module RailsAiBridge
         elsif approved.length < raw_addresses.length
           failure('endpoint resolved to a mix of permitted and blocked addresses')
         else
+          # AC-2b: remote HTTPS is restricted to the default port so an allowlisted
+          # host cannot be used to reach arbitrary ports on that host.
+          return failure('remote HTTPS must use the default port 443') if scheme == 'https' && uri.port != URI::HTTPS::DEFAULT_PORT && !approved.all? { |raw| loopback_address?(raw) }
+
           return failure('plain HTTP is only permitted for loopback or private endpoints') if scheme == 'http' && !plaintext_permitted?(approved)
 
           Result.new(success: true, error: nil, uri: canonicalize(uri), addresses: approved)
@@ -147,6 +151,14 @@ module RailsAiBridge
         rescue IPAddr::InvalidAddressError
           false
         end
+      end
+
+      # @param raw [String] IP address string
+      # @return [Boolean] whether the address is a loopback address
+      def loopback_address?(raw)
+        IPAddr.new(raw).loopback?
+      rescue IPAddr::InvalidAddressError
+        false
       end
 
       # @param addresses [Array<String>] approved IP strings

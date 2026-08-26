@@ -335,6 +335,7 @@ detectors:
     - RailsAiBridge::Registry::ContextAggregator#fetch_tool
     - RailsAiBridge::Registry::ContextAggregator#validate_no_mapping_collisions!
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#probe_provider
+    - RailsAiBridge::Doctor::Checkers::RegistryChecker#default_transport_factory
     - RailsAiBridge::Tools::GetProviderContext::ResultFormatter#format
     - RailsAiBridge::Tools::GetProviderContext::ResultFormatter#format_data
     - RailsAiBridge::Introspectors::ActionMailboxIntrospector#extract_mailboxes

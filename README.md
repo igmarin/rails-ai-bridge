@@ -104,12 +104,13 @@ RailsAiBridge.configure do |c|
   c.context_providers.enabled = true
   c.context_providers.allowed_hosts = ['context.example.com']
   c.context_providers.auth_resolver = lambda do |_endpoint, canonical_uri|
+    # token_for is host-application code — replace with your secret-manager lookup
     { 'Authorization' => "Bearer #{token_for(canonical_uri.host)}" }
   end
 end
 ```
 
-3. Only remote tools advertising `read_only_hint: true` and `destructive_hint: false` are callable; reflected credentials in provider responses are redacted before they reach MCP clients.
+1. Only remote tools advertising `read_only_hint: true` and `destructive_hint: false` are callable; reflected credentials in provider responses are redacted before they reach MCP clients.
 
 See [docs/v5/context-providers-design.md](docs/v5/context-providers-design.md) for the design and security model, and [docs/mcp-security.md](docs/mcp-security.md) for SSRF controls and operator checklists.
 

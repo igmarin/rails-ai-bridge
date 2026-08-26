@@ -149,8 +149,9 @@ module RailsAiBridge
       def self.default_transport_factory(uri, _addresses, headers)
         timeout = providers_config.timeout_seconds.to_f
         MCP::Client::HTTP.new(url: uri, headers: headers) do |faraday|
-          faraday.options.timeout = timeout
-          faraday.options.open_timeout = timeout
+          options = faraday.options
+          options.timeout = timeout
+          options.open_timeout = timeout
         end
       end
       private_class_method :default_transport_factory
