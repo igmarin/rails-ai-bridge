@@ -279,6 +279,30 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
       expect(result.status).to eq(:success)
       expect(result.content).to eq(42)
     end
+
+    it 'returns a timeout error when the endpoint policy is blocked' do
+      resolver = instance_double(Resolv::DNS)
+      slow_policy = RailsAiBridge::Registry::EndpointPolicy.new(
+        resolver: resolver,
+        allowed_hosts: ['example.com'],
+        allowed_loopback_ports: [3000, 9292],
+        allow_private_networks: false
+      )
+      allow(resolver).to receive(:getaddresses).with('example.com').and_invoke(proc { sleep 1 })
+      client = described_class.new(
+        provider: provider,
+        policy: slow_policy,
+        transport_factory: transport_factory,
+        auth_resolver: nil,
+        timeout_seconds: 0.01
+      )
+
+      result = client.call_tool('get_status', arguments: {})
+
+      expect(result.status).to eq(:error)
+      expect(result.error).to be_a(RailsAiBridge::Registry::TimeoutError)
+      expect(result.error.message).to eq('provider call timed out')
+    end
   end
 
   describe '#probe' do
@@ -440,6 +464,30 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
       expect(result.status).to eq(:error)
       expect(result.error).to be_a(RailsAiBridge::Registry::TimeoutError)
       expect(fake_transport).to have_received(:close)
+    end
+
+    it 'returns a timeout error when the endpoint policy is blocked' do
+      resolver = instance_double(Resolv::DNS)
+      slow_policy = RailsAiBridge::Registry::EndpointPolicy.new(
+        resolver: resolver,
+        allowed_hosts: ['example.com'],
+        allowed_loopback_ports: [3000, 9292],
+        allow_private_networks: false
+      )
+      allow(resolver).to receive(:getaddresses).with('example.com').and_invoke(proc { sleep 1 })
+      client = described_class.new(
+        provider: provider,
+        policy: slow_policy,
+        transport_factory: transport_factory,
+        auth_resolver: nil,
+        timeout_seconds: 0.01
+      )
+
+      result = client.probe
+
+      expect(result.status).to eq(:error)
+      expect(result.error).to be_a(RailsAiBridge::Registry::TimeoutError)
+      expect(result.error.message).to eq('provider probe timed out')
     end
   end
 end

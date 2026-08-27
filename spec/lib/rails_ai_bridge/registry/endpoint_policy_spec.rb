@@ -528,5 +528,13 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
       expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
       expect(result.error.message).to eq('endpoint could not be resolved')
     end
+
+    it 'does not convert a client-level timeout error' do
+      allow(resolver).to receive(:getaddresses)
+        .and_raise(RailsAiBridge::Registry::TimeoutError.new('client timeout'))
+
+      expect { policy.call('https://example.com/some-tool') }
+        .to raise_error(RailsAiBridge::Registry::TimeoutError, 'client timeout')
+    end
   end
 end

@@ -48,18 +48,18 @@ module RailsAiBridge
         transport = nil
         tool_label = tool_name.inspect
         begin
-          policy_result = with_timeout { @policy.call(endpoint) }
+          policy_result = with_call_timeout { @policy.call(endpoint) }
           return Result.new(status: :error, error: policy_result.error) unless policy_result.success?
 
           return Result.new(status: :error, error: RemoteToolError.new("tool #{tool_label} is not declared in the provider manifest")) unless tool_declared?(tool_name)
 
           canonical_uri = policy_result.uri
           headers = resolve_auth(endpoint, canonical_uri)
-          transport = with_timeout { @transport_factory.call(canonical_uri, policy_result.addresses, headers) }
-          remote_tool = with_timeout { find_tool(transport, tool_name) }
+          transport = with_call_timeout { @transport_factory.call(canonical_uri, policy_result.addresses, headers) }
+          remote_tool = with_call_timeout { find_tool(transport, tool_name) }
           return Result.new(status: :error, error: RemoteToolError.new("tool #{tool_label} is not allowed")) unless remote_tool
 
-          content = with_timeout { transport.call_tool(name: tool_name, arguments: arguments) }
+          content = with_call_timeout { transport.call_tool(name: tool_name, arguments: arguments) }
           Result.new(status: :success, content: sanitize_content(content), provenance: provenance_for(canonical_uri), error: nil)
         rescue RailsAiBridge::Registry::ContextProviderError => error
           Result.new(status: :error, error: error)
@@ -82,13 +82,13 @@ module RailsAiBridge
         transport = nil
         effective_timeout = timeout || @timeout_seconds
         begin
-          policy_result = with_timeout(effective_timeout) { @policy.call(endpoint) }
+          policy_result = with_probe_timeout(effective_timeout) { @policy.call(endpoint) }
           return Result.new(status: :error, error: policy_result.error) unless policy_result.success?
 
           canonical_uri = policy_result.uri
           headers = resolve_auth(endpoint, canonical_uri)
-          transport = with_timeout(effective_timeout) { @transport_factory.call(canonical_uri, policy_result.addresses, headers) }
-          with_timeout(effective_timeout) { transport.tools }
+          transport = with_probe_timeout(effective_timeout) { @transport_factory.call(canonical_uri, policy_result.addresses, headers) }
+          with_probe_timeout(effective_timeout) { transport.tools }
           Result.new(status: :success, content: nil, provenance: provenance_for(canonical_uri), error: nil)
         rescue RailsAiBridge::Registry::ContextProviderError => error
           Result.new(status: :error, error: error)
@@ -114,13 +114,29 @@ module RailsAiBridge
       end
 
       # @param timeout [Numeric, nil] the timeout to apply; defaults to the configured timeout
+      # @param message [String] the message for the timeout error
       # @param block [Proc] the operation to time-box
       # @return [Object] the block result
-      # @raise [Timeout::Error] when the timeout expires
-      def with_timeout(timeout = @timeout_seconds, &)
+      # @raise [RailsAiBridge::Registry::TimeoutError] when the timeout expires
+      def with_timeout(timeout = @timeout_seconds, message = 'operation timed out', &)
         return yield unless timeout
 
-        Timeout.timeout(timeout, &)
+        Timeout.timeout(timeout, RailsAiBridge::Registry::TimeoutError, message, &)
+      end
+
+      # Times out the block using the configured call timeout and message.
+      # @return [Object] the block result
+      # @raise [RailsAiBridge::Registry::TimeoutError] when the timeout expires
+      def with_call_timeout(&)
+        with_timeout(@timeout_seconds, 'provider call timed out', &)
+      end
+
+      # Times out the block using the given probe timeout and message.
+      # @param timeout [Numeric, nil] the timeout to apply
+      # @return [Object] the block result
+      # @raise [RailsAiBridge::Registry::TimeoutError] when the timeout expires
+      def with_probe_timeout(timeout = @timeout_seconds, &)
+        with_timeout(timeout, 'provider probe timed out', &)
       end
 
       # @param endpoint [String] the raw provider endpoint
