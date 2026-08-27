@@ -34,12 +34,20 @@ module RailsAiBridge
       # @param allowed_hosts [Array<String>] exact allowed hostnames or public IP strings
       # @param allowed_loopback_ports [Array<Integer>] allowed loopback ports
       # @param allow_private_networks [Boolean] whether private/link-local network destinations are allowed
+      # @param timeout_seconds [Numeric, nil] per-call DNS resolution timeout in seconds; nil disables the timeout
+      # @param max_resolved_addresses [Integer, nil] maximum number of addresses to accept from DNS; nil disables the cap
       # @return [EndpointPolicy]
-      def initialize(resolver:, allowed_hosts:, allowed_loopback_ports:, allow_private_networks:)
+      def initialize(resolver:, allowed_hosts:, allowed_loopback_ports:, allow_private_networks:, timeout_seconds: nil, max_resolved_addresses: nil)
         @resolver = resolver
         @allowed_hosts = allowed_hosts.map { |host| normalize_host(host.to_s) }.freeze
         @allowed_loopback_ports = allowed_loopback_ports.map(&:to_i).freeze
         @allow_private_networks = allow_private_networks
+        @timeout_seconds = timeout_seconds
+        @max_resolved_addresses = max_resolved_addresses
+        return unless @max_resolved_addresses && (!@max_resolved_addresses.is_a?(Integer) || @max_resolved_addresses <= 0)
+
+        raise RailsAiBridge::ConfigurationError,
+              "max_resolved_addresses must be a positive integer, got #{max_resolved_addresses.inspect}"
       end
 
       # Checks the endpoint against scheme, host, and network policy.
@@ -59,8 +67,11 @@ module RailsAiBridge
 
         host = normalize_host(raw_host)
         host_label = host.inspect
-        raw_addresses = @resolver.getaddresses(host).map(&:to_s)
-        return failure("no addresses resolved for #{host_label}") if raw_addresses.empty?
+        raw_addresses = resolve_with_timeout(host).map(&:to_s)
+        address_count = raw_addresses.length
+        return failure("no addresses resolved for #{host_label}") if address_count.zero?
+
+        return failure('endpoint resolved to too many addresses') if @max_resolved_addresses && address_count > @max_resolved_addresses
 
         approved = filter_addresses(raw_addresses, uri, host)
         # Fail closed when any resolved address is rejected. Approving only the
@@ -68,7 +79,7 @@ module RailsAiBridge
         # and connect to a blocked address, so every answer must pass policy.
         if approved.empty?
           failure('endpoint is not permitted by policy')
-        elsif approved.length < raw_addresses.length
+        elsif approved.length < address_count
           failure('endpoint resolved to a mix of permitted and blocked addresses')
         else
           # AC-2b: remote HTTPS is restricted to the default port so an allowlisted
@@ -83,14 +94,50 @@ module RailsAiBridge
         end
       rescue URI::Error
         failure('endpoint is not a valid URL')
-      rescue Resolv::ResolvError, SocketError, Timeout::Error, IPAddr::Error
+      rescue Timeout::Error
+        # DNS or resolver-level timeouts are operation timeouts, not policy
+        # rejections. Return a typed timeout result so callers can classify
+        # them correctly instead of treating them as policy failures.
+        Result.new(success: false, error: RailsAiBridge::Registry::TimeoutError.new('endpoint resolution timed out'))
+      rescue Resolv::ResolvError, SocketError, IPAddr::Error
         resolve_failure
+      rescue RailsAiBridge::Registry::TimeoutError
+        # Re-raise client-level timeout exceptions so callers can classify the
+        # whole policy evaluation as a timeout, not a policy rejection.
+        raise
       rescue StandardError => error
         log_error(error)
         resolve_failure
       end
 
       private
+
+      # Resolves the host with an optional timeout to prevent DNS stalls.
+      #
+      # When the resolver is a Resolv::DNS, the per-query timeout list is
+      # configured so the resolver itself enforces the deadline.  For other
+      # resolvers, the call is wrapped in Timeout.timeout as a fallback.
+      #
+      # @param host [String] normalized host name
+      # @return [Array<Object>] addresses returned by the resolver
+      def resolve_with_timeout(host)
+        configure_resolver_timeout
+
+        get_addresses = proc { @resolver.getaddresses(host) }
+        return get_addresses.call unless @timeout_seconds
+
+        Timeout.timeout(@timeout_seconds, &get_addresses)
+      end
+
+      # @return [void]
+      def configure_resolver_timeout
+        return unless @timeout_seconds
+
+        @resolver.timeouts = [@timeout_seconds]
+      rescue NoMethodError
+        # Resolver does not support per-query timeouts; fall back to Timeout.timeout.
+        nil
+      end
 
       # @return [Result]
       def resolve_failure

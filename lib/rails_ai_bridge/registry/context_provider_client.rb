@@ -22,16 +22,22 @@ module RailsAiBridge
       #   @return [ContextProviderError, nil] typed error when not successful
       Result = Struct.new(:status, :content, :provenance, :error, keyword_init: true)
 
+      # Upper bound on time to wait for transport.close in the ensure block.
+      # Callers may pass a smaller value, but never a larger one.
+      DEFAULT_CLEANUP_DEADLINE_SECONDS = 5.0
       # @param provider [ContextProviderDefinition] provider manifest
       # @param policy [EndpointPolicy] policy used to validate the endpoint
-      # @param transport_factory [#call] callable returning an MCP transport
-      # @param auth_resolver [Proc, nil] callable returning auth headers for the provider
+      # @param transport_factory [#call] callable returning an MCP client
+      # @param timeout_seconds [Numeric, nil] per-call timeout in seconds; nil disables the timeout
+      # @param cleanup_deadline_seconds [Numeric, nil] maximum time to wait for transport.close; nil disables the deadline
       # @return [ContextProviderClient]
-      def initialize(provider:, policy:, transport_factory:, auth_resolver:)
+      def initialize(provider:, policy:, transport_factory:, auth_resolver:, timeout_seconds: nil, cleanup_deadline_seconds: DEFAULT_CLEANUP_DEADLINE_SECONDS)
         @provider = provider
         @policy = policy
         @transport_factory = transport_factory
         @auth_resolver = auth_resolver
+        @timeout_seconds = timeout_seconds
+        @cleanup_deadline_seconds = clamp_cleanup_deadline(cleanup_deadline_seconds, timeout_seconds)
       end
 
       # Calls a single remote tool and returns a typed result.
@@ -44,19 +50,23 @@ module RailsAiBridge
         transport = nil
         tool_label = tool_name.inspect
         begin
-          policy_result = @policy.call(endpoint)
-          return Result.new(status: :error, error: policy_result.error) unless policy_result.success?
+          with_timeout(@timeout_seconds, 'provider call timed out') do
+            policy_result = @policy.call(endpoint)
+            return Result.new(status: :error, error: policy_result.error) unless policy_result.success?
 
-          return Result.new(status: :error, error: RemoteToolError.new("tool #{tool_label} is not declared in the provider manifest")) unless tool_declared?(tool_name)
+            return Result.new(status: :error, error: RemoteToolError.new("tool #{tool_label} is not declared in the provider manifest")) unless tool_declared?(tool_name)
 
-          canonical_uri = policy_result.uri
-          headers = resolve_auth(endpoint, canonical_uri)
-          transport = @transport_factory.call(canonical_uri, policy_result.addresses, headers)
-          remote_tool = find_tool(transport, tool_name)
-          return Result.new(status: :error, error: RemoteToolError.new("tool #{tool_label} is not allowed")) unless remote_tool
+            canonical_uri = policy_result.uri
+            headers = resolve_auth(endpoint, canonical_uri)
+            transport = @transport_factory.call(canonical_uri, policy_result.addresses, headers)
+            transport.connect
+            remote_tool = find_tool(transport, tool_name)
+            return Result.new(status: :error, error: RemoteToolError.new("tool #{tool_label} is not allowed")) unless remote_tool
 
-          content = transport.call_tool(name: tool_name, arguments: arguments)
-          Result.new(status: :success, content: sanitize_content(content), provenance: provenance_for(canonical_uri), error: nil)
+            raw = transport.call_tool(name: tool_name, arguments: arguments)
+            content = raw.is_a?(Hash) && raw.key?('result') ? raw.dig('result', 'content') : raw
+            Result.new(status: :success, content: sanitize_content(content), provenance: provenance_for(canonical_uri), error: nil)
+          end
         rescue RailsAiBridge::Registry::ContextProviderError => error
           Result.new(status: :error, error: error)
         rescue Timeout::Error
@@ -71,24 +81,24 @@ module RailsAiBridge
       # Lightweight reachability probe: validates the endpoint, opens a
       # transport, lists tools, and closes. Does not call any tool.
       #
-      # @param timeout [Numeric, nil] per-probe timeout in seconds; nil skips timeout
+      # @param timeout [Numeric, nil] per-probe timeout in seconds; nil falls back to the configured per-tool timeout
       # @return [Result]
       def probe(timeout: nil)
         endpoint = @provider.endpoint
         transport = nil
+        effective_timeout = timeout || @timeout_seconds
         begin
-          policy_result = @policy.call(endpoint)
-          return Result.new(status: :error, error: policy_result.error) unless policy_result.success?
+          with_timeout(effective_timeout, 'provider probe timed out') do
+            policy_result = @policy.call(endpoint)
+            return Result.new(status: :error, error: policy_result.error) unless policy_result.success?
 
-          canonical_uri = policy_result.uri
-          headers = resolve_auth(endpoint, canonical_uri)
-          transport = @transport_factory.call(canonical_uri, policy_result.addresses, headers)
-          if timeout
-            Timeout.timeout(timeout) { transport.tools }
-          else
+            canonical_uri = policy_result.uri
+            headers = resolve_auth(endpoint, canonical_uri)
+            transport = @transport_factory.call(canonical_uri, policy_result.addresses, headers)
+            transport.connect
             transport.tools
+            Result.new(status: :success, content: nil, provenance: provenance_for(canonical_uri), error: nil)
           end
-          Result.new(status: :success, content: nil, provenance: provenance_for(canonical_uri), error: nil)
         rescue RailsAiBridge::Registry::ContextProviderError => error
           Result.new(status: :error, error: error)
         rescue Timeout::Error
@@ -102,6 +112,27 @@ module RailsAiBridge
 
       private
 
+      # @param cleanup_deadline_seconds [Numeric, nil] requested cleanup deadline
+      # @param timeout_seconds [Numeric, nil] per-call timeout
+      # @return [Numeric, nil] cleanup deadline capped at the per-call timeout
+      def clamp_cleanup_deadline(cleanup_deadline_seconds, timeout_seconds)
+        return nil unless cleanup_deadline_seconds
+        return cleanup_deadline_seconds unless timeout_seconds
+
+        [cleanup_deadline_seconds, timeout_seconds].min
+      end
+
+      # @param timeout [Numeric, nil] the timeout to apply; defaults to the configured timeout
+      # @param message [String] the message for the timeout error
+      # @yield the operation to time-box
+      # @return [Object] the block result
+      # @raise [RailsAiBridge::Registry::TimeoutError] when the timeout expires
+      def with_timeout(timeout = @timeout_seconds, message = 'operation timed out', &)
+        return yield unless timeout
+
+        Timeout.timeout(timeout, RailsAiBridge::Registry::TimeoutError, message, &)
+      end
+
       # @param endpoint [String] the raw provider endpoint
       # @param uri [URI] the canonical, credential-free provider URI
       # @return [Hash] auth headers for the transport call
@@ -114,13 +145,30 @@ module RailsAiBridge
         raise AuthenticationError, "authentication resolution failed (#{error.class})"
       end
 
-      # @param transport [Object, nil] the active transport
+      # @param transport [Object, nil] the active MCP client or transport
       # @return [void]
       def close_transport(transport)
-        transport&.close
-      rescue StandardError
+        return unless transport
+
+        close = proc do
+          transport.close
+        rescue NoMethodError
+          transport.transport.close
+        end
+        if @cleanup_deadline_seconds
+          Timeout.timeout(@cleanup_deadline_seconds, &close)
+        else
+          close.call
+        end
+      rescue StandardError => error
         # Intentionally swallow close failures so the original result is preserved.
-        nil
+        Rails.logger&.warn do
+          if error.is_a?(Timeout::Error)
+            'ContextProviderClient transport.close exceeded cleanup deadline'
+          else
+            "ContextProviderClient transport.close failed (#{error.class}): #{sanitize_message(error.message)}"
+          end
+        end
       end
 
       # @param tool_name [String]
@@ -129,13 +177,10 @@ module RailsAiBridge
         @provider.tools.any? { |spec| spec.name == tool_name }
       end
 
-      # @param transport [#tools] the active transport
-      # @param tool_name [String]
-      # @return [Object, nil] the remote tool metadata object, or nil if not allowed
+      # @param transport [#tools] the active MCP client
       def find_tool(transport, tool_name)
-        transport.tools.find do |tool|
-          tool.name == tool_name && tool.read_only_hint && !tool.destructive_hint
-        end
+        remote_tool = transport.tools.find { |tool| tool.name == tool_name }
+        remote_tool if remote_tool&.annotations&.fetch('destructiveHint', nil) == false
       end
 
       # @param uri [URI]

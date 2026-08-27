@@ -254,17 +254,22 @@ module RailsAiBridge
         # @param provider [ContextProviderDefinition]
         # @return [ContextProviderClient]
         def build_probe_client(provider)
+          timeout = providers_config.timeout_seconds
           policy = RailsAiBridge::Registry::EndpointPolicy.new(
             resolver: Resolv::DNS.new,
             allowed_hosts: providers_config.allowed_hosts,
             allowed_loopback_ports: providers_config.allowed_loopback_ports,
-            allow_private_networks: providers_config.allow_private_networks
+            allow_private_networks: providers_config.allow_private_networks,
+            timeout_seconds: timeout,
+            max_resolved_addresses: providers_config.max_resolved_addresses
           )
           RailsAiBridge::Registry::ContextProviderClient.new(
             provider: provider,
             policy: policy,
             transport_factory: method(:default_transport_factory),
-            auth_resolver: providers_config.auth_resolver
+            auth_resolver: providers_config.auth_resolver,
+            timeout_seconds: timeout,
+            cleanup_deadline_seconds: [RailsAiBridge::Registry::ContextProviderClient::DEFAULT_CLEANUP_DEADLINE_SECONDS, timeout].min
           )
         end
 
@@ -272,24 +277,30 @@ module RailsAiBridge
         #   the SDK's +url:+ keyword (required by mcp >= 1.3; positional arguments
         #   raise ArgumentError at runtime, swallowed as ConnectionError by the
         #   client boundary). Faraday applies a per-request timeout derived from
-        #   +config.context_providers.timeout_seconds+ through the transport's
+        #   +config.context_providers.timeout_seconds+ through the client's
         #   customizer block. The connection is pinned to the first
         #   policy-validated address via {Registry::PinningHttpAdapter} so DNS
         #   rebinding cannot route the request to an unapproved address.
         # @param addresses [Array<String>] policy-validated IP addresses. The MCP
-        #   SDK's MCP::Client::HTTP delegates connection to Faraday; this factory
+        #   SDK's +MCP::Client::HTTP+ delegates connection to Faraday; this factory
         #   installs a custom adapter that connects to the approved address while
         #   preserving the original Host header and TLS SNI.
         # @param headers [Hash]
-        # @return [Object] MCP transport
+        # @return [MCP::Client] configured MCP client
         def default_transport_factory(uri, addresses, headers)
           timeout = providers_config.timeout_seconds.to_f
-          MCP::Client::HTTP.new(url: uri, headers: headers) do |faraday|
+          http = MCP::Client::HTTP.new(
+            url: uri,
+            headers: headers,
+            max_message_bytes: providers_config.max_response_bytes,
+            max_reconnection_wait: timeout
+          ) do |faraday|
             options = faraday.options
             options.timeout = timeout
             options.open_timeout = timeout
             faraday.adapter Registry::PinningHttpAdapter, addresses: addresses, original_host: uri.host
           end
+          MCP::Client.new(transport: http)
         end
       end
     end

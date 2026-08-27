@@ -1,9 +1,9 @@
 # Offline Mode — Design Plan
 
-> **Status:** Proposed for **5.0 / registry**. Not current work.
-> Skill-pack cache and vendoring only. 4.3 stays read-only and does not add an HTTP client.
-> The gem still makes no outbound network requests except git clone/pull for configured skill packs
-> (see [SECURITY.md](../SECURITY.md)).
+> **Status:** Proposed — not current work.
+> Skill-pack cache and vendoring only; the plan covers git clone/pull for configured skill packs.
+> Outbound context-provider HTTP traffic (added in 5.0.0) is governed by the provider allowlist,
+> not by this plan (see [SECURITY.md](../SECURITY.md)).
 
 ## Problem
 

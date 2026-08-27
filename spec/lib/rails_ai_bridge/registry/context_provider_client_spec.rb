@@ -26,7 +26,7 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
   end
 
   describe '#call_tool' do
-    let(:fake_transport) { double('transport', close: nil) }
+    let(:fake_transport) { double('transport', close: nil, connect: nil) }
 
     before do
       allow(transport_factory).to receive(:call).and_return(fake_transport)
@@ -67,14 +67,36 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
       expect(transport_factory).not_to have_received(:call)
     end
 
-    it 'returns a remote tool error when the tool is not safe' do
-      fake_tool = double('tool', name: 'get_status', read_only_hint: false, destructive_hint: true)
+    it 'returns a remote tool error when the remote tool is destructive' do
+      fake_tool = double('tool', name: 'get_status', annotations: { 'destructiveHint' => true })
       allow(fake_transport).to receive(:tools).and_return([fake_tool])
 
       result = client.call_tool('get_status', arguments: {})
 
       expect(result.status).to eq(:error)
       expect(result.error).to be_a(RailsAiBridge::Registry::RemoteToolError)
+      expect(fake_transport).to have_received(:close)
+    end
+
+    it 'returns a remote tool error when the remote tool omits destructiveHint' do
+      fake_tool = double('tool', name: 'get_status', annotations: { 'readOnlyHint' => true })
+      allow(fake_transport).to receive(:tools).and_return([fake_tool])
+
+      result = client.call_tool('get_status', arguments: {})
+
+      expect(result.status).to eq(:error)
+      expect(result.error).to be_a(RailsAiBridge::Registry::RemoteToolError)
+      expect(fake_transport).to have_received(:close)
+    end
+
+    it 'allows a manifest-declared tool whose remote annotations only falsely claim it is safe' do
+      fake_tool = double('tool', name: 'get_status', annotations: { 'readOnlyHint' => false, 'destructiveHint' => false })
+      allow(fake_transport).to receive_messages(tools: [fake_tool], call_tool: { 'status' => 'ok' })
+
+      result = client.call_tool('get_status', arguments: {})
+
+      expect(result.status).to eq(:success)
+      expect(result.content).to eq({ 'status' => 'ok' })
       expect(fake_transport).to have_received(:close)
     end
 
@@ -124,7 +146,7 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
         transport_factory: transport_factory,
         auth_resolver: auth_resolver
       )
-      fake_tool = double('tool', name: 'get_status', read_only_hint: true, destructive_hint: false)
+      fake_tool = double('tool', name: 'get_status', annotations: { 'readOnlyHint' => true, 'destructiveHint' => false })
       allow(fake_transport).to receive_messages(tools: [fake_tool], call_tool: {})
 
       client.call_tool('get_status', arguments: {})
@@ -137,7 +159,7 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
     end
 
     it 'still returns the original result when transport close raises' do
-      fake_tool = double('tool', name: 'get_status', read_only_hint: true, destructive_hint: false)
+      fake_tool = double('tool', name: 'get_status', annotations: { 'readOnlyHint' => true, 'destructiveHint' => false })
       allow(fake_transport).to receive_messages(tools: [fake_tool], call_tool: { 'status' => 'ok' })
       allow(fake_transport).to receive(:close).and_raise(StandardError, 'close failed')
 
@@ -148,7 +170,7 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
     end
 
     it 'rejects a read-only tool that is not declared in the provider manifest' do
-      fake_tool = double('tool', name: 'undeclared_tool', read_only_hint: true, destructive_hint: false)
+      fake_tool = double('tool', name: 'undeclared_tool', annotations: { 'readOnlyHint' => true, 'destructiveHint' => false })
       allow(fake_transport).to receive_messages(tools: [fake_tool], call_tool: { 'status' => 'ok' })
 
       result = client.call_tool('undeclared_tool', arguments: {})
@@ -160,7 +182,7 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
     end
 
     it 'calls the remote tool and returns a success result' do
-      fake_tool = double('tool', name: 'get_status', read_only_hint: true, destructive_hint: false)
+      fake_tool = double('tool', name: 'get_status', annotations: { 'readOnlyHint' => true, 'destructiveHint' => false })
       allow(fake_transport).to receive(:tools).and_return([fake_tool])
       allow(fake_transport).to receive(:call_tool).with(name: 'get_status', arguments: { 'limit' => 1 }).and_return(
         { 'status' => 'ok' }
@@ -180,7 +202,7 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
     end
 
     it 'redacts reflected Authorization values in successful string content' do
-      fake_tool = double('tool', name: 'get_status', read_only_hint: true, destructive_hint: false)
+      fake_tool = double('tool', name: 'get_status', annotations: { 'readOnlyHint' => true, 'destructiveHint' => false })
       allow(fake_transport).to receive_messages(tools: [fake_tool])
       allow(fake_transport).to receive(:call_tool).and_return(
         'Token: Bearer abc123secret'
@@ -194,7 +216,7 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
     end
 
     it 'redacts reflected auth values in successful Hash content' do
-      fake_tool = double('tool', name: 'get_status', read_only_hint: true, destructive_hint: false)
+      fake_tool = double('tool', name: 'get_status', annotations: { 'readOnlyHint' => true, 'destructiveHint' => false })
       allow(fake_transport).to receive_messages(tools: [fake_tool])
       allow(fake_transport).to receive(:call_tool).and_return(
         { 'data' => 'Authorization: Bearer leak-me', 'safe' => 'ok' }
@@ -209,7 +231,7 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
     end
 
     it 'redacts reflected auth values in successful Array content' do
-      fake_tool = double('tool', name: 'get_status', read_only_hint: true, destructive_hint: false)
+      fake_tool = double('tool', name: 'get_status', annotations: { 'readOnlyHint' => true, 'destructiveHint' => false })
       allow(fake_transport).to receive_messages(tools: [fake_tool])
       allow(fake_transport).to receive(:call_tool).and_return(
         ['token=leak-me', 'status: ok']
@@ -224,7 +246,7 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
     end
 
     it 'redacts reflected auth values in nested Hash content' do
-      fake_tool = double('tool', name: 'get_status', read_only_hint: true, destructive_hint: false)
+      fake_tool = double('tool', name: 'get_status', annotations: { 'readOnlyHint' => true, 'destructiveHint' => false })
       allow(fake_transport).to receive_messages(tools: [fake_tool])
       allow(fake_transport).to receive(:call_tool).and_return(
         { 'outer' => { 'inner' => 'Bearer nested-secret', 'safe' => 'ok' } }
@@ -239,7 +261,7 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
     end
 
     it 'redacts reflected auth values in Hash keys' do
-      fake_tool = double('tool', name: 'get_status', read_only_hint: true, destructive_hint: false)
+      fake_tool = double('tool', name: 'get_status', annotations: { 'readOnlyHint' => true, 'destructiveHint' => false })
       allow(fake_transport).to receive_messages(tools: [fake_tool])
       allow(fake_transport).to receive(:call_tool).and_return(
         { 'Authorization: Bearer key-leak' => 'ok' }
@@ -255,7 +277,7 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
     end
 
     it 'redacts reflected auth values in nested Hash keys' do
-      fake_tool = double('tool', name: 'get_status', read_only_hint: true, destructive_hint: false)
+      fake_tool = double('tool', name: 'get_status', annotations: { 'readOnlyHint' => true, 'destructiveHint' => false })
       allow(fake_transport).to receive_messages(tools: [fake_tool])
       allow(fake_transport).to receive(:call_tool).and_return(
         { 'outer' => { 'Bearer inner-key-leak' => 'v' } }
@@ -270,7 +292,7 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
     end
 
     it 'passes through non-String/Hash/Array content unchanged' do
-      fake_tool = double('tool', name: 'get_status', read_only_hint: true, destructive_hint: false)
+      fake_tool = double('tool', name: 'get_status', annotations: { 'readOnlyHint' => true, 'destructiveHint' => false })
       allow(fake_transport).to receive_messages(tools: [fake_tool])
       allow(fake_transport).to receive(:call_tool).and_return(42)
 
@@ -279,10 +301,34 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
       expect(result.status).to eq(:success)
       expect(result.content).to eq(42)
     end
+
+    it 'returns a timeout error when the endpoint policy is blocked' do
+      resolver = instance_double(Resolv::DNS)
+      slow_policy = RailsAiBridge::Registry::EndpointPolicy.new(
+        resolver: resolver,
+        allowed_hosts: ['example.com'],
+        allowed_loopback_ports: [3000, 9292],
+        allow_private_networks: false
+      )
+      allow(resolver).to receive(:getaddresses).with('example.com').and_invoke(proc { sleep 1 })
+      client = described_class.new(
+        provider: provider,
+        policy: slow_policy,
+        transport_factory: transport_factory,
+        auth_resolver: nil,
+        timeout_seconds: 0.01
+      )
+
+      result = client.call_tool('get_status', arguments: {})
+
+      expect(result.status).to eq(:error)
+      expect(result.error).to be_a(RailsAiBridge::Registry::TimeoutError)
+      expect(result.error.message).to eq('provider call timed out')
+    end
   end
 
   describe '#probe' do
-    let(:fake_transport) { double('transport', close: nil, tools: []) }
+    let(:fake_transport) { double('transport', close: nil, connect: nil, tools: []) }
 
     before do
       allow(transport_factory).to receive(:call).and_return(fake_transport)
@@ -365,6 +411,105 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
       expect(result.error.message).not_to include('token=abc')
       expect(result.error.message).not_to include('/etc/secrets')
       expect(result.error.message).to include('[redacted]')
+    end
+
+    it 'times out when the transport blocks longer than the configured timeout' do
+      client = described_class.new(
+        provider: provider,
+        policy: policy,
+        transport_factory: transport_factory,
+        auth_resolver: nil,
+        timeout_seconds: 0.01
+      )
+      allow(fake_transport).to receive(:tools) { sleep 1 }
+
+      result = client.call_tool('get_status', arguments: {})
+
+      expect(result.status).to eq(:error)
+      expect(result.error).to be_a(RailsAiBridge::Registry::TimeoutError)
+      expect(result.error.message).to eq('provider call timed out')
+      expect(fake_transport).to have_received(:close)
+    end
+
+    it 'caps the cleanup deadline at the per-tool timeout' do
+      client = described_class.new(
+        provider: provider,
+        policy: policy,
+        transport_factory: transport_factory,
+        auth_resolver: nil,
+        timeout_seconds: 0.01,
+        cleanup_deadline_seconds: 1000
+      )
+      success_tool = double('tool', name: 'get_status', annotations: { 'readOnlyHint' => true, 'destructiveHint' => false })
+      allow(fake_transport).to receive_messages(tools: [success_tool], call_tool: 'ok')
+      allow(fake_transport).to receive(:close) { Queue.new.pop }
+
+      result = client.call_tool('get_status', arguments: {})
+
+      expect(result.status).to eq(:success)
+      expect(result.content).to eq('ok')
+      expect(fake_transport).to have_received(:close)
+    end
+
+    it 'returns the original result even when transport.close exceeds the cleanup deadline' do
+      client = described_class.new(
+        provider: provider,
+        policy: policy,
+        transport_factory: transport_factory,
+        auth_resolver: nil,
+        timeout_seconds: 0.01,
+        cleanup_deadline_seconds: 0.01
+      )
+      success_tool = double('tool', name: 'get_status', annotations: { 'readOnlyHint' => true, 'destructiveHint' => false })
+      allow(fake_transport).to receive_messages(tools: [success_tool], call_tool: 'ok')
+      allow(fake_transport).to receive(:close) { sleep 1 }
+
+      result = client.call_tool('get_status', arguments: {})
+
+      expect(result.status).to eq(:success)
+      expect(result.content).to eq('ok')
+      expect(fake_transport).to have_received(:close)
+    end
+
+    it 'applies the configured timeout when probe is called without an explicit timeout' do
+      client = described_class.new(
+        provider: provider,
+        policy: policy,
+        transport_factory: transport_factory,
+        auth_resolver: nil,
+        timeout_seconds: 0.01
+      )
+      allow(fake_transport).to receive(:tools) { Queue.new.pop }
+
+      result = client.probe
+
+      expect(result.status).to eq(:error)
+      expect(result.error).to be_a(RailsAiBridge::Registry::TimeoutError)
+      expect(fake_transport).to have_received(:close)
+    end
+
+    it 'returns a timeout error when the endpoint policy is blocked' do
+      resolver = instance_double(Resolv::DNS)
+      slow_policy = RailsAiBridge::Registry::EndpointPolicy.new(
+        resolver: resolver,
+        allowed_hosts: ['example.com'],
+        allowed_loopback_ports: [3000, 9292],
+        allow_private_networks: false
+      )
+      allow(resolver).to receive(:getaddresses).with('example.com').and_invoke(proc { sleep 1 })
+      client = described_class.new(
+        provider: provider,
+        policy: slow_policy,
+        transport_factory: transport_factory,
+        auth_resolver: nil,
+        timeout_seconds: 0.01
+      )
+
+      result = client.probe
+
+      expect(result.status).to eq(:error)
+      expect(result.error).to be_a(RailsAiBridge::Registry::TimeoutError)
+      expect(result.error.message).to eq('provider probe timed out')
     end
   end
 end

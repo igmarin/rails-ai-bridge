@@ -55,4 +55,17 @@ RSpec.describe 'zeitwerk:check loader selection' do
     expect { task.execute }.to raise_error(/RailsAiBridge Zeitwerk loader not found/)
     expect(other_loader).not_to have_received(:eager_load)
   end
+
+  it 'skips loaders whose dirs exist but do not resolve to the gem lib' do
+    gem_loader = instance_double(Zeitwerk::Loader, dirs: [gem_lib], eager_load: nil)
+    existing_other_dir = File.expand_path('..', gem_lib)
+    other_loader = instance_double(Zeitwerk::Loader, dirs: [existing_other_dir], eager_load: nil)
+
+    allow(Zeitwerk::Registry.loaders).to receive(:each).and_yield(other_loader).and_yield(gem_loader)
+
+    task = Rake::Task['rails_ai_bridge:check_zeitwerk']
+    expect { task.execute }.to output(/Zeitwerk check passed\n/).to_stdout
+    expect(gem_loader).to have_received(:eager_load)
+    expect(other_loader).not_to have_received(:eager_load)
+  end
 end

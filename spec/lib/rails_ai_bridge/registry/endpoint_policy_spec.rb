@@ -19,6 +19,7 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
 
   before do
     allow(resolver).to receive(:getaddresses).and_return([])
+    allow(resolver).to receive(:timeouts=)
   end
 
   describe '#call' do
@@ -114,14 +115,14 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
       expect(result.error.message).to eq('endpoint could not be resolved')
     end
 
-    it 'returns a policy error when the resolver raises a timeout error' do
+    it 'returns a timeout error when the resolver raises a timeout error' do
       allow(resolver).to receive(:getaddresses).and_raise(Timeout::Error.new('resolver timed out'))
 
       result = policy.call('https://example.com/some-tool')
 
       expect(result).not_to be_success
-      expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
-      expect(result.error.message).to eq('endpoint could not be resolved')
+      expect(result.error).to be_a(RailsAiBridge::Registry::TimeoutError)
+      expect(result.error.message).to eq('endpoint resolution timed out')
     end
 
     it 'returns a policy error and logs a sanitized message when the resolver raises unexpectedly' do
@@ -469,6 +470,87 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
 
       expect(result).not_to be_success
       expect(result.error.message).to eq('endpoint is not permitted by policy')
+    end
+
+    it 'limits the number of resolved addresses' do
+      policy = described_class.new(
+        resolver: resolver,
+        allowed_hosts: ['example.com'],
+        allowed_loopback_ports: [3000, 9292],
+        allow_private_networks: false,
+        timeout_seconds: 5,
+        max_resolved_addresses: 2
+      )
+      allow(resolver).to receive(:getaddresses).with('example.com').and_return(%w[192.0.2.1 198.51.100.1 203.0.113.1])
+
+      result = policy.call('https://example.com/some-tool')
+
+      expect(result).not_to be_success
+      expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
+      expect(result.error.message).to eq('endpoint resolved to too many addresses')
+    end
+
+    it 'rejects invalid max_resolved_addresses values' do
+      expect do
+        described_class.new(
+          resolver: resolver,
+          allowed_hosts: ['example.com'],
+          allowed_loopback_ports: [3000, 9292],
+          allow_private_networks: false,
+          max_resolved_addresses: 0
+        )
+      end.to raise_error(RailsAiBridge::ConfigurationError, /must be a positive integer/)
+
+      expect do
+        described_class.new(
+          resolver: resolver,
+          allowed_hosts: ['example.com'],
+          allowed_loopback_ports: [3000, 9292],
+          allow_private_networks: false,
+          max_resolved_addresses: '8'
+        )
+      end.to raise_error(RailsAiBridge::ConfigurationError, /must be a positive integer/)
+    end
+
+    it 'times out DNS resolution that exceeds the configured timeout' do
+      policy = described_class.new(
+        resolver: resolver,
+        allowed_hosts: ['example.com'],
+        allowed_loopback_ports: [3000, 9292],
+        allow_private_networks: false,
+        timeout_seconds: 0.01,
+        max_resolved_addresses: 8
+      )
+      allow(resolver).to receive(:getaddresses).with('example.com').and_invoke(proc { sleep 1 })
+
+      result = policy.call('https://example.com/some-tool')
+
+      expect(result).not_to be_success
+      expect(result.error).to be_a(RailsAiBridge::Registry::TimeoutError)
+      expect(result.error.message).to eq('endpoint resolution timed out')
+    end
+
+    it 'does not convert a client-level timeout error' do
+      allow(resolver).to receive(:getaddresses)
+        .and_raise(RailsAiBridge::Registry::TimeoutError.new('client timeout'))
+
+      expect { policy.call('https://example.com/some-tool') }
+        .to raise_error(RailsAiBridge::Registry::TimeoutError, 'client timeout')
+    end
+
+    it 'sets the resolver per-query timeout when one is configured' do
+      policy = described_class.new(
+        resolver: resolver,
+        allowed_hosts: ['example.com'],
+        allowed_loopback_ports: [3000, 9292],
+        allow_private_networks: false,
+        timeout_seconds: 0.05
+      )
+      allow(resolver).to receive(:getaddresses).with('example.com').and_return(['192.0.2.1'])
+
+      policy.call('https://example.com/some-tool')
+
+      expect(resolver).to have_received(:timeouts=).with([0.05])
     end
   end
 end

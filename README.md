@@ -601,7 +601,8 @@ end
 | `context_providers.max_response_bytes` | `1_048_576` | Maximum provider response body size in bytes before normalization |
 | `context_providers.max_providers` | `8` | Maximum providers to call in one invocation |
 | `context_providers.max_tools_per_provider` | `16` | Maximum tools to call per provider |
-| `context_providers.auth_resolver` | `nil` | Optional `->(provider_name, canonical_endpoint) { headers_hash }` for downstream auth |
+| `context_providers.max_resolved_addresses` | `8` | Maximum number of addresses accepted from DNS per provider endpoint |
+| `context_providers.auth_resolver` | `nil` | Optional `->(endpoint, canonical_uri) { headers_hash }` for downstream auth; called with the raw manifest endpoint and the canonical, allowlisted URI |
 
 Other HTTP MCP knobs live only on the nested object, for example `RailsAiBridge.configuration.mcp.authorize`, `mcp.mode`, `mcp.security_profile`, and `mcp.require_auth_in_production` — see [docs/GUIDE.md](docs/GUIDE.md) and [docs/mcp-security.md](docs/mcp-security.md).
 </details>
@@ -886,7 +887,7 @@ Bug reports and pull requests: [github.com/igmarin/rails-ai-bridge/issues](https
 
 ## Acknowledgments & Origins
 
-This gem ships as **rails-ai-bridge** (Ruby **`RailsAiBridge`**, version **4.3.0**). Earlier iterations of the same codebase were distributed as `rails-ai-context`.
+This gem ships as **rails-ai-bridge** (Ruby **`RailsAiBridge`**, version **5.0.0**). Earlier iterations of the same codebase were distributed as `rails-ai-context`.
 
 RailsMCP evolved from 
 [crisnahine/rails-ai-context](https://github.com/crisnahine/rails-ai-context),
