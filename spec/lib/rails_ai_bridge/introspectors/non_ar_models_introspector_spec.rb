@@ -76,8 +76,7 @@ RSpec.describe RailsAiBridge::Introspectors::NonArModelsIntrospector do
       end
 
       after do
-        # rubocop:disable-next RSpec/RemoveConst
-        Object.send(:remove_const, custom_context[:constant_name]) if Object.const_defined?(custom_context[:constant_name], false)
+        Object.send(:remove_const, custom_context[:constant_name]) if Object.const_defined?(custom_context[:constant_name], false) # rubocop:disable RSpec/RemoveConst
         FileUtils.rm_rf(custom_context[:root_path])
       end
 
