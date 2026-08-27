@@ -16,14 +16,14 @@ RSpec.describe RailsAiBridge::ModelSemanticClassifier do
     end
 
     it 'skips abstract, unnamed, and unresolvable models when scanning descendants' do
-      abstract = double('abstract', abstract_class?: true, name: 'Abstract', reflect_on_all_associations: [])
-      unnamed = double('unnamed', abstract_class?: false, name: nil, reflect_on_all_associations: [])
-      plain = double('plain', abstract_class?: false, name: 'Plain',
-                              reflect_on_all_associations: [double('assoc', options: {})],
-                              reflect_on_association: nil)
-      dangling = double('dangling', abstract_class?: false, name: 'Dangling',
-                                    reflect_on_all_associations: [double('assoc', options: { through: :missing })],
-                                    reflect_on_association: nil)
+      abstract = class_double(ActiveRecord::Base, abstract_class?: true, name: 'Abstract', reflect_on_all_associations: [])
+      unnamed = class_double(ActiveRecord::Base, abstract_class?: false, name: nil, reflect_on_all_associations: [])
+      plain = class_double(ActiveRecord::Base, abstract_class?: false, name: 'Plain',
+                                               reflect_on_all_associations: [instance_double(ActiveRecord::Reflection::ThroughReflection, options: {})],
+                                               reflect_on_association: nil)
+      dangling = class_double(ActiveRecord::Base, abstract_class?: false, name: 'Dangling',
+                                                  reflect_on_all_associations: [instance_double(ActiveRecord::Reflection::ThroughReflection, options: { through: :missing })],
+                                                  reflect_on_association: nil)
 
       allow(ActiveRecord::Base).to receive(:descendants).and_return([abstract, unnamed, plain, dangling])
 
@@ -31,7 +31,7 @@ RSpec.describe RailsAiBridge::ModelSemanticClassifier do
     end
 
     it 'skips descendants whose reflection raises' do
-      broken = double('broken', abstract_class?: false, name: 'Broken')
+      broken = class_double(ActiveRecord::Base, abstract_class?: false, name: 'Broken')
       allow(broken).to receive(:reflect_on_all_associations).and_raise('boom')
 
       allow(ActiveRecord::Base).to receive(:descendants).and_return([broken])
@@ -83,7 +83,7 @@ RSpec.describe RailsAiBridge::ModelSemanticClassifier do
     end
 
     it 'classifies a model with no loadable columns as supporting' do
-      model = double('model', name: 'Columnless', column_names: [])
+      model = class_double(ActiveRecord::Base, name: 'Columnless', column_names: [])
 
       result = described_class.new.call(model)
 
@@ -92,7 +92,7 @@ RSpec.describe RailsAiBridge::ModelSemanticClassifier do
     end
 
     it 'returns no_columns_loaded when column_names raises' do
-      model = double('model', name: 'Boom')
+      model = class_double(ActiveRecord::Base, name: 'Boom')
       allow(model).to receive(:column_names).and_raise('db unavailable')
 
       result = described_class.new.call(model)
@@ -101,7 +101,7 @@ RSpec.describe RailsAiBridge::ModelSemanticClassifier do
     end
 
     it 'returns a classification_error tier when reflection raises' do
-      model = double('model', name: 'Broken', column_names: %w[id])
+      model = class_double(ActiveRecord::Base, name: 'Broken', column_names: %w[id])
       allow(model).to receive(:reflect_on_all_associations).and_raise('boom')
 
       result = described_class.new.call(model)
@@ -111,11 +111,11 @@ RSpec.describe RailsAiBridge::ModelSemanticClassifier do
     end
 
     it 'classifies a non-through model without payload columns as supporting' do
-      assoc = double('belongs', macro: :belongs_to, foreign_key: 'user_id')
-      model = double('model', name: 'Tagging',
-                              column_names: %w[id user_id created_at updated_at],
-                              reflect_on_all_associations: [assoc],
-                              inheritance_column: 'type')
+      assoc = instance_double(ActiveRecord::Reflection::BelongsToReflection, macro: :belongs_to, foreign_key: 'user_id')
+      model = class_double(ActiveRecord::Base, name: 'Tagging',
+                                               column_names: %w[id user_id created_at updated_at],
+                                               reflect_on_all_associations: [assoc],
+                                               inheritance_column: 'type')
 
       result = described_class.new.call(model)
 
@@ -124,11 +124,11 @@ RSpec.describe RailsAiBridge::ModelSemanticClassifier do
     end
 
     it 'classifies a through model with fewer than two belongs_to as supporting' do
-      assoc = double('belongs', macro: :belongs_to, foreign_key: 'user_id')
-      model = double('model', name: 'Follower',
-                              column_names: %w[id user_id note lock_version],
-                              reflect_on_all_associations: [assoc],
-                              inheritance_column: 'type')
+      assoc = instance_double(ActiveRecord::Reflection::BelongsToReflection, macro: :belongs_to, foreign_key: 'user_id')
+      model = class_double(ActiveRecord::Base, name: 'Follower',
+                                               column_names: %w[id user_id note lock_version],
+                                               reflect_on_all_associations: [assoc],
+                                               inheritance_column: 'type')
       classifier = described_class.new(through_model_names: Set.new(['Follower']))
 
       result = classifier.call(model)
@@ -138,10 +138,10 @@ RSpec.describe RailsAiBridge::ModelSemanticClassifier do
     end
 
     it 'treats the inheritance column and lock_version as metadata' do
-      model = double('model', name: 'StiModel',
-                              column_names: %w[id type lock_version],
-                              reflect_on_all_associations: [],
-                              inheritance_column: 'type')
+      model = class_double(ActiveRecord::Base, name: 'StiModel',
+                                               column_names: %w[id type lock_version],
+                                               reflect_on_all_associations: [],
+                                               inheritance_column: 'type')
       classifier = described_class.new(through_model_names: Set.new(['StiModel']))
 
       result = classifier.call(model)

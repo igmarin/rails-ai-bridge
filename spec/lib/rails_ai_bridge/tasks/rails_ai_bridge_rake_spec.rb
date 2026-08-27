@@ -2,6 +2,7 @@
 
 require 'spec_helper'
 require 'rake'
+require_relative '../../../support/rake_spec_helpers'
 
 RSpec.describe 'rails_ai_bridge rake tasks' do
   let(:rake) { Rake.application }
@@ -382,24 +383,21 @@ RSpec.describe 'rails_ai_bridge rake tasks' do
 
   describe 'CONTEXT_MODE env var' do
     it 'overrides the configured context mode' do
-      ENV['CONTEXT_MODE'] = 'compact'
-
-      expect { rake['ai:bridge'].invoke }.to output(/📐 Context mode: compact/).to_stdout
-      expect(RailsAiBridge.configuration.context_mode).to eq(:compact)
-    ensure
-      ENV.delete('CONTEXT_MODE')
+      # The group-level +after+ hook restores the previous context_mode.
+      with_env('CONTEXT_MODE' => 'compact') do
+        expect { rake['ai:bridge'].invoke }.to output(/📐 Context mode: compact/).to_stdout
+        expect(RailsAiBridge.configuration.context_mode).to eq(:compact)
+      end
     end
   end
 
   describe 'CONFIRM env var' do
     it 'passes on_conflict: :prompt when CONFIRM is truthy' do
-      ENV['CONFIRM'] = '1'
+      with_env('CONFIRM' => '1') do
+        rake['ai:bridge'].invoke
 
-      rake['ai:bridge'].invoke
-
-      expect(RailsAiBridge).to have_received(:generate_context).with(format: :all, split_rules: true, on_conflict: :prompt)
-    ensure
-      ENV.delete('CONFIRM')
+        expect(RailsAiBridge).to have_received(:generate_context).with(format: :all, split_rules: true, on_conflict: :prompt)
+      end
     end
   end
 
@@ -495,22 +493,16 @@ RSpec.describe 'rails_ai_bridge rake tasks' do
       doctor_result = { score: 100, checks: [] }
       doctor_instance = double('Doctor', run: doctor_result)
       expect(RailsAiBridge::Doctor).to receive(:new).with(network: true).and_return(doctor_instance)
-      ENV['NETWORK'] = '1'
 
-      rake['ai:doctor'].invoke
-    ensure
-      ENV.delete('NETWORK')
+      with_env('NETWORK' => '1') { rake['ai:doctor'].invoke }
     end
 
     it 'probes providers for ai:check when NETWORK=1' do
       doctor_result = { score: 100, checks: [] }
       doctor_instance = double('Doctor', run: doctor_result)
       expect(RailsAiBridge::Doctor).to receive(:new).with(network: true).and_return(doctor_instance)
-      ENV['NETWORK'] = '1'
 
-      rake['ai:check'].invoke
-    ensure
-      ENV.delete('NETWORK')
+      with_env('NETWORK' => '1') { rake['ai:check'].invoke }
     end
   end
 
@@ -552,11 +544,10 @@ RSpec.describe 'rails_ai_bridge rake tasks' do
 
     it 'resolves a skill name from the SKILL env var' do
       stub_presenter('# code-review (from pack: rails)')
-      ENV['SKILL'] = 'code-review'
 
-      expect { rake['ai:skills:resolve'].invoke }.to output(/# code-review/).to_stdout
-    ensure
-      ENV.delete('SKILL')
+      with_env('SKILL' => 'code-review') do
+        expect { rake['ai:skills:resolve'].invoke }.to output(/# code-review/).to_stdout
+      end
     end
 
     it 'exits 1 with usage instructions when no skill name is given' do
@@ -617,8 +608,10 @@ RSpec.describe 'rails_ai_bridge rake tasks' do
       expect(File.exist?(File.join(cache_dir, 'notes.txt'))).to be(true)
     end
 
-    it 'aborts when the cache dir is a dangerous root' do
-      RailsAiBridge.configuration.registry.skill_cache_dir = Dir.home
+    it 'aborts when the cache dir is a protected root' do
+      # The task refuses to clear caches rooted at "/", the process working
+      # directory, or the home directory; the repo root (Dir.pwd) is one of them.
+      RailsAiBridge.configuration.registry.skill_cache_dir = Dir.pwd
 
       expect { rake['ai:skills:clear_cache'].invoke }.to raise_error(SystemExit, /unsafe path/)
     end

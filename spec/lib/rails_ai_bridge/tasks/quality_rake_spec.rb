@@ -2,6 +2,7 @@
 
 require 'spec_helper'
 require 'rake'
+require_relative '../../../support/rake_spec_helpers'
 
 RSpec.describe 'quality rake tasks' do
   let(:task_path) { File.expand_path('../../../../lib/tasks/quality.rake', __dir__) }
@@ -14,7 +15,6 @@ RSpec.describe 'quality rake tasks' do
 
   after do
     Rake.application = original_rake_application
-    ENV.delete('YARD_MINIMUM_PERCENT')
   end
 
   it 'defines a YARD documentation gate' do
@@ -56,22 +56,20 @@ RSpec.describe 'quality rake tasks' do
     end
 
     it 'honors a custom YARD_MINIMUM_PERCENT' do
-      ENV['YARD_MINIMUM_PERCENT'] = '50'
       stub_yard_output("60.0% documented\n", true)
 
-      expect { Rake::Task['docs:yard'].execute }.to output(/60\.0% documented/).to_stdout
+      with_env('YARD_MINIMUM_PERCENT' => '50') do
+        expect { Rake::Task['docs:yard'].execute }.to output(/60\.0% documented/).to_stdout
+      end
     end
   end
 
   describe 'quality:reek' do
     it 'runs reek against lib/' do
-      # Rake files are evaluated at the top level, so task bodies resolve `sh`
-      # on the main object rather than on the example instance.
-      top_level = TOPLEVEL_BINDING.eval('self')
-      allow(top_level).to receive(:sh).and_return(true)
+      allow(rake_top_level).to receive(:sh).and_return(true)
 
       expect { Rake::Task['quality:reek'].execute }.not_to raise_error
-      expect(top_level).to have_received(:sh).with('reek', 'lib/')
+      expect(rake_top_level).to have_received(:sh).with('reek', 'lib/')
     end
   end
 end
