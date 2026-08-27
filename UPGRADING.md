@@ -41,7 +41,7 @@ Bundler will pull in the new dependency floor (`mcp >= 1.3`, `faraday >= 2.0`,
 
 1. Declare providers and read-only tools in
    `config/rails_ai_bridge/registry.json`.
-2. Enable and allowlist them in the initializer:
+1. Enable and allowlist them in the initializer:
 
    ```ruby
    RailsAiBridge.configure do |config|
@@ -56,7 +56,7 @@ Bundler will pull in the new dependency floor (`mcp >= 1.3`, `faraday >= 2.0`,
    end
    ```
 
-3. Call `rails_get_provider_context` from your AI client, or run
+1. Call `rails_get_provider_context` from your AI client, or run
    `NETWORK=1 rails ai:doctor` to verify reachability.
 
 ### Production guard for private networks
