@@ -15,8 +15,7 @@ Existing v4 installations make no outbound provider requests. Upgrading to v5 do
 
 ### Security
 
-- Bumped `sqlite3` development dependency to `>= 2.9.6` to clear
-- `bundle-audit` advisory GHSA-mwm8-39rw-8826.
+- Bumped `sqlite3` development dependency to `>= 2.9.6` to clear `bundle-audit` advisory GHSA-mwm8-39rw-8826.
 
 ### Added
 
@@ -69,6 +68,8 @@ Existing v4 installations make no outbound provider requests. Upgrading to v5 do
 - **Provider HTTP transport address pinning (INV-6)** — both built-in transport factories (`Tools::GetProviderContext`, `Doctor::Checkers::RegistryChecker`) now install `Registry::PinningHttpAdapter`, a custom Faraday adapter that pins the TCP connection to the first policy-validated IP address while preserving the original Host header and TLS SNI. This closes the DNS-rebinding gap where Faraday re-resolved `uri.host` at connect time and could route to an unapproved address.
 - **Provider HTTP transport construction and timeouts** — both built-in transport factories now pass the canonical URI through `MCP::Client::HTTP`'s `url:` keyword (required since mcp 1.3's keyword-only constructor; positional arguments raised `ArgumentError` at runtime, surfacing only as generic connection failures) and apply per-request connect/read timeouts from `context_providers.timeout_seconds` through the transport's Faraday customizer block.
 - **Production guard for private-network providers** — `Registry::EndpointPolicy` now rejects private (RFC1918 / IPv6 ULA) destinations when `Rails.env.production?` is true, even if `config.context_providers.allow_private_networks` is set to `true`. The override remains available for development but is silently ignored in production to prevent accidental SSRF exposure.
+- **Provider client connects before use** — `Registry::ContextProviderClient#call_tool` and `#probe` now call `MCP::Client#connect` before invoking a tool or listing tools; the built-in transport factories (`Tools::GetProviderContext`, `Doctor::Checkers::RegistryChecker`) wrap `MCP::Client::HTTP` in `MCP::Client`; `call_tool` unwraps the JSON-RPC `result.content` envelope; and `close_transport` falls back to `transport.transport.close` when handed a raw HTTP transport, bounded by the new `DEFAULT_CLEANUP_DEADLINE_SECONDS` constant.
+- **Tool hint checks read `annotations`** — `Registry::ContextProviderClient#find_tool` now reads `destructiveHint` from the remote tool's `annotations` map (exposed by mcp ≥ 1.3) instead of SDK accessor methods, allowing a tool only when it is explicitly non-destructive. A new loopback integration spec (`context_provider_client_loopback_spec.rb`) exercises connect-before-use against a local MCP server; `webrick` was added as a development/test dependency for it.
 
 ## [4.3.0] - 2026-08-16
 
