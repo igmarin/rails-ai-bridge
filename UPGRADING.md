@@ -48,9 +48,10 @@ Bundler will pull in the new dependency floor (`mcp >= 1.3`, `faraday >= 2.0`,
      config.context_providers.enabled = true
      config.context_providers.allowed_hosts = ['context.example.com']
      config.context_providers.auth_resolver = lambda do |_endpoint, canonical_uri|
-       # `token_for` is a placeholder — replace it with a real secret-manager call.
-       # The README's "Provider auth" section shows worked Vault/ENV/KMS examples.
-       { 'Authorization' => "Bearer #{token_for(canonical_uri.host)}" }
+      # Set this in your environment, or replace with a real secret-manager call.
+      # The README's "Provider auth" section shows worked Vault/ENV/KMS examples.
+      token = ENV.fetch('MCP_PROVIDER_TOKEN')
+      { 'Authorization' => "Bearer #{token}" }
      end
    end
    ```
