@@ -304,6 +304,12 @@ RSpec.describe RailsAiBridge::Tools::GetProviderContext do
       expect(connection.options.timeout).to eq(7)
       expect(connection.options.open_timeout).to eq(7)
     end
+
+    it 'binds max_message_bytes to the configured max_response_bytes' do
+      config.max_response_bytes = 2_097_152
+
+      expect(transport.instance_variable_get(:@max_message_bytes)).to eq(2_097_152)
+    end
   end
 
   # ── client construction ────────────────────────────────────────────────────

@@ -155,6 +155,7 @@ module RailsAiBridge
         MCP::Client::HTTP.new(
           url: uri,
           headers: headers,
+          max_message_bytes: providers_config.max_response_bytes,
           max_reconnection_wait: timeout
         ) do |faraday|
           options = faraday.options
