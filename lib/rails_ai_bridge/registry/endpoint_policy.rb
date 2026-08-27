@@ -94,7 +94,12 @@ module RailsAiBridge
         end
       rescue URI::Error
         failure('endpoint is not a valid URL')
-      rescue Resolv::ResolvError, SocketError, Timeout::Error, IPAddr::Error
+      rescue Timeout::Error
+        # DNS or resolver-level timeouts are operation timeouts, not policy
+        # rejections. Return a typed timeout result so callers can classify
+        # them correctly instead of treating them as policy failures.
+        Result.new(success: false, error: RailsAiBridge::Registry::TimeoutError.new('endpoint resolution timed out'))
+      rescue Resolv::ResolvError, SocketError, IPAddr::Error
         resolve_failure
       rescue RailsAiBridge::Registry::TimeoutError
         # Re-raise client-level timeout exceptions so callers can classify the

@@ -115,14 +115,14 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
       expect(result.error.message).to eq('endpoint could not be resolved')
     end
 
-    it 'returns a policy error when the resolver raises a timeout error' do
+    it 'returns a timeout error when the resolver raises a timeout error' do
       allow(resolver).to receive(:getaddresses).and_raise(Timeout::Error.new('resolver timed out'))
 
       result = policy.call('https://example.com/some-tool')
 
       expect(result).not_to be_success
-      expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
-      expect(result.error.message).to eq('endpoint could not be resolved')
+      expect(result.error).to be_a(RailsAiBridge::Registry::TimeoutError)
+      expect(result.error.message).to eq('endpoint resolution timed out')
     end
 
     it 'returns a policy error and logs a sanitized message when the resolver raises unexpectedly' do
@@ -521,13 +521,13 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
         timeout_seconds: 0.01,
         max_resolved_addresses: 8
       )
-      allow(resolver).to receive(:getaddresses).with('example.com') { Queue.new.pop }
+      allow(resolver).to receive(:getaddresses).with('example.com').and_invoke(proc { sleep 1 })
 
       result = policy.call('https://example.com/some-tool')
 
       expect(result).not_to be_success
-      expect(result.error).to be_a(RailsAiBridge::Registry::PolicyError)
-      expect(result.error.message).to eq('endpoint could not be resolved')
+      expect(result.error).to be_a(RailsAiBridge::Registry::TimeoutError)
+      expect(result.error.message).to eq('endpoint resolution timed out')
     end
 
     it 'does not convert a client-level timeout error' do
