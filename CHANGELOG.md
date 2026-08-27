@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [5.0.1] - 2026-08-27
+## [5.0.0] - 2026-08-27
+
+### Migration from v4
+
+Existing v4 installations make no outbound provider requests. Upgrading to v5 does not enable requests, change `rails_get_context`, or require a manifest change. Hosts that want providers must add provider declarations, explicitly enable `config.context_providers.enabled`, configure exact allowed hosts, and provide downstream auth through the resolver. To disable during rollout or as an emergency shutdown: set `config.context_providers.enabled = false`. Note that removing the `allowed_hosts` array alone does not stop loopback endpoints on allowed ports; setting `enabled = false` is the complete shutdown.
+
+### Security
+
+- Bumped `sqlite3` development dependency to `>= 2.9.6` to clear
+- `bundle-audit` advisory GHSA-mwm8-39rw-8826.
 
 ### Added
 
@@ -23,29 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The task only eager-loads the gem's own Zeitwerk loader, not host-app loaders.
 - Explicit v5 provider dependency floors documented in the gemspec:
   `mcp >= 1.3`, `faraday >= 2.0`, and `event_stream_parser >= 1.0`.
-
-### Fixed
-
-- `lib/rails_ai_bridge.rb` now requires `active_support` and
-  `active_support/core_ext/module/delegation` so the gem can be required
-  outside a full Rails boot (fixes `undefined method 'delegate'` in standalone
-  use).
-
-### Security
-
-- Bumped `sqlite3` development dependency to `>= 2.9.6` to clear
-  `bundle-audit` advisory GHSA-mwm8-39rw-8826.
-
-## [5.0.0] - 2026-08-26
-
-v5 adds optional outbound context providers — a way to read context from declared external MCP services. Provider traffic is disabled by default, limited to an explicit host allowlist, and allowed to call only remote tools that advertise read-only, non-destructive behavior. The local `rails_get_context` tool remains in-process and is not affected.
-
-### Migration from v4
-
-Existing v4 installations make no outbound provider requests. Upgrading to v5 does not enable requests, change `rails_get_context`, or require a manifest change. Hosts that want providers must add provider declarations, explicitly enable `config.context_providers.enabled`, configure exact allowed hosts, and provide downstream auth through the resolver. To disable during rollout or as an emergency shutdown: set `config.context_providers.enabled = false`. Note that removing the `allowed_hosts` array alone does not stop loopback endpoints on allowed ports; setting `enabled = false` is the complete shutdown.
-
-### Added
-
+- v5 adds optional outbound context providers — a way to read context from declared external MCP services. Provider traffic is disabled by default, limited to an explicit host allowlist, and allowed to call only remote tools that advertise read-only, non-destructive behavior. The local `rails_get_context` tool remains in-process and is not affected.
 - **AppScope runtime seam** — `RailsAiBridge::AppScope` provides a thread-local application scope (`with_app(app) { ... }` / `current_app`) so that CLI, tests, and standalone processes can scope a different app without hardcoding `Rails.application`. Defaults to `Rails.application` for backward compatibility. All MCP tools, `ContextProvider`, `Resources`, `CacheWarmer`, `Doctor`, `Watcher`, serializers, and the public API (`introspect`, `generate_context`, `start_mcp_server`) now resolve the app through `AppScope.current_app`.
 - **Watcher nil-app guard** — `Watcher#initialize` now raises `ArgumentError` when no application is available instead of storing `nil` and failing later with `NoMethodError` on `app.root`.
 - **ContextProviders configuration** (#180) — `RailsAiBridge.configure { |c| c.context_providers }` exposes outbound context-provider safety controls: `enabled` (default `false`), `allowed_hosts`, `allowed_loopback_ports`, `allow_private_networks`, `auth_resolver`, `timeout_seconds`, `aggregation_budget_seconds`, `max_response_bytes`, `max_providers`, and `max_tools_per_provider`. Numeric limits are validated at load time.
@@ -66,6 +53,11 @@ Existing v4 installations make no outbound provider requests. Upgrading to v5 do
 - **Gemspec dependencies for v5** — `mcp` minimum raised from `1.0` to `1.3` (provider client depends on `MCP::Client::HTTP` from 1.3+). `faraday >= 2.0, < 3.0` added as explicit dependency (MCP SDK uses it but does not declare it). `event_stream_parser >= 1.0, < 2.0` added as explicit dependency (MCP SDK uses it for SSE parsing but does not declare it).
 - **RuboCop Performance plugin enabled** — `rubocop-performance` (~> 1.27) added as an explicit development dependency and loaded as a RuboCop plugin. 77 offenses autocorrected (TimesMap, StringInclude, MapCompact, DeleteSuffix/DeletePrefix, StringReplacement, RedundantBlockCall). 4 CollectionLiteralInLoop offenses fixed by extracting immutable literals to constants. `rubocop-rails` constraint tightened to `~> 2.37`.
 - **Ruby 4.0 canary in CI** — CI matrix includes a non-blocking Ruby 4.0 / Rails 8.1 canary job to catch compatibility issues early without blocking the pipeline.
+- `lib/rails_ai_bridge.rb` now requires `active_support` and
+  `active_support/core_ext/module/delegation` so the gem can be required
+  outside a full Rails boot (fixes `undefined method 'delegate'` in standalone
+  use).
+
 ### Fixed
 
 - **Successful provider content redaction (AC-11)** — `ContextProviderClient#call_tool` now redacts reflected credential values in successful provider content before returning the result. Previously `MessageSanitizer` only ran on error messages; reflected `Authorization` / `Bearer` / credential fields in successful provider responses could reach `rails_get_provider_context`. Content is recursively sanitized for String, Hash, and Array types — including Hash keys (a response such as `{ "Authorization: Bearer leak" => "ok" }` previously returned the credential unchanged).
