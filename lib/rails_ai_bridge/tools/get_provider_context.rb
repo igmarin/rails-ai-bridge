@@ -125,6 +125,7 @@ module RailsAiBridge
       # @param provider_def [Registry::ContextProviderDefinition]
       # @return [Registry::ContextProviderClient]
       def self.build_client(provider_def)
+        timeout = providers_config.timeout_seconds
         Registry::ContextProviderClient.new(
           provider: provider_def,
           policy: Registry::EndpointPolicy.new(
@@ -132,13 +133,13 @@ module RailsAiBridge
             allowed_hosts: providers_config.allowed_hosts,
             allowed_loopback_ports: providers_config.allowed_loopback_ports,
             allow_private_networks: providers_config.allow_private_networks,
-            timeout_seconds: providers_config.timeout_seconds,
+            timeout_seconds: timeout,
             max_resolved_addresses: providers_config.max_resolved_addresses
           ),
           transport_factory: method(:default_transport_factory),
           auth_resolver: providers_config.auth_resolver,
-          timeout_seconds: providers_config.timeout_seconds,
-          cleanup_deadline_seconds: [5.0, providers_config.timeout_seconds].min
+          timeout_seconds: timeout,
+          cleanup_deadline_seconds: [5.0, timeout].min
         )
       end
       private_class_method :build_client

@@ -331,6 +331,7 @@ detectors:
     - RailsAiBridge::Tools::SearchSemantic#self.format_results
   FeatureEnvy:
     exclude:
+    - RailsAiBridge::Registry::ContextProviderClient#close_transport
     - RailsAiBridge::Config::Introspection#excluded_table?
     - RailsAiBridge::Registry::ContextAggregator#fetch_tool
     - RailsAiBridge::Registry::ContextAggregator#validate_no_mapping_collisions!
@@ -495,6 +496,8 @@ detectors:
     - RailsAiBridge::IntrospectionError
   LongParameterList:
     exclude:
+    - RailsAiBridge::Registry::ContextProviderClient#initialize
+    - RailsAiBridge::Registry::EndpointPolicy#initialize
     - RailsAiBridge::Doctor::Checkers::BaseChecker#check
     - RailsAiBridge::Doctor::Checkers::BaseChecker#new_check
     - RailsAiBridge::Doctor::Checkers::BridgeFreshnessChecker#accumulate_file_result
@@ -692,6 +695,8 @@ detectors:
     - RailsAiBridge::Server
   TooManyInstanceVariables:
     exclude:
+    - RailsAiBridge::Registry::ContextProviderClient
+    - RailsAiBridge::Registry::EndpointPolicy
     - RailsAiBridge::Config::ContextProviders
     - RailsAiBridge::Config::Introspection
     - RailsAiBridge::Config::Mcp
@@ -730,6 +735,7 @@ detectors:
     - RailsAiBridge::Tools::GetRoutes::ResponseFormatter
   TooManyStatements:
     exclude:
+    - RailsAiBridge::Registry::ContextProviderClient#close_transport
     - initialize
     - RailsAiBridge::Registry::ContextAggregator#fetch_all
     - RailsAiBridge::Registry::ContextAggregator#fetch_one
@@ -1158,6 +1164,7 @@ detectors:
     - RailsAiBridge::Watcher#start
   UtilityFunction:
     exclude:
+    - RailsAiBridge::Registry::ContextProviderClient#clamp_cleanup_deadline
     - RailsAiBridge::Config::Registry#legacy_lockfile_path
     - RailsAiBridge::Registry::ContextAggregator#elapsed_ms
     - RailsAiBridge::Registry::ContextAggregator#error_result

@@ -68,9 +68,10 @@ module RailsAiBridge
         host = normalize_host(raw_host)
         host_label = host.inspect
         raw_addresses = resolve_with_timeout(host).map(&:to_s)
-        return failure("no addresses resolved for #{host_label}") if raw_addresses.empty?
+        address_count = raw_addresses.length
+        return failure("no addresses resolved for #{host_label}") if address_count.zero?
 
-        return failure('endpoint resolved to too many addresses') if @max_resolved_addresses && raw_addresses.length > @max_resolved_addresses
+        return failure('endpoint resolved to too many addresses') if @max_resolved_addresses && address_count > @max_resolved_addresses
 
         approved = filter_addresses(raw_addresses, uri, host)
         # Fail closed when any resolved address is rejected. Approving only the
@@ -78,7 +79,7 @@ module RailsAiBridge
         # and connect to a blocked address, so every answer must pass policy.
         if approved.empty?
           failure('endpoint is not permitted by policy')
-        elsif approved.length < raw_addresses.length
+        elsif approved.length < address_count
           failure('endpoint resolved to a mix of permitted and blocked addresses')
         else
           # AC-2b: remote HTTPS is restricted to the default port so an allowlisted
@@ -107,11 +108,10 @@ module RailsAiBridge
       # @param host [String] normalized host name
       # @return [Array<Object>] addresses returned by the resolver
       def resolve_with_timeout(host)
-        if @timeout_seconds
-          Timeout.timeout(@timeout_seconds) { @resolver.getaddresses(host) }
-        else
-          @resolver.getaddresses(host)
-        end
+        resolve = proc { @resolver.getaddresses(host) }
+        return resolve.call unless @timeout_seconds
+
+        Timeout.timeout(@timeout_seconds, &resolve)
       end
 
       # @return [Result]

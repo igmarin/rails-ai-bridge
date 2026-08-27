@@ -305,5 +305,54 @@ RSpec.describe RailsAiBridge::Tools::GetProviderContext do
       expect(connection.options.open_timeout).to eq(7)
     end
   end
+
+  # ── client construction ────────────────────────────────────────────────────
+
+  describe '.build_client' do
+    before do
+      config.timeout_seconds = 3.0
+      config.max_resolved_addresses = 4
+      config.auth_resolver = ->(endpoint, _canonical_uri) { { 'X-Provider' => endpoint } }
+      config.allowed_loopback_ports = [3000]
+      config.allow_private_networks = true
+    end
+
+    it 'propagates timeout and max_resolved_addresses to the policy' do
+      client = described_class.send(:build_client, provider)
+      policy = client.instance_variable_get(:@policy)
+
+      expect(policy.instance_variable_get(:@timeout_seconds)).to eq(3.0)
+      expect(policy.instance_variable_get(:@max_resolved_addresses)).to eq(4)
+    end
+
+    it 'caps cleanup_deadline_seconds at the per-tool timeout' do
+      client = described_class.send(:build_client, provider)
+
+      expect(client.instance_variable_get(:@timeout_seconds)).to eq(3.0)
+      expect(client.instance_variable_get(:@cleanup_deadline_seconds)).to eq(3.0)
+    end
+
+    it 'uses 5.0 as the cleanup deadline when the timeout is larger' do
+      config.timeout_seconds = 10.0
+      client = described_class.send(:build_client, provider)
+
+      expect(client.instance_variable_get(:@cleanup_deadline_seconds)).to eq(5.0)
+    end
+
+    it 'passes the auth resolver through to the client' do
+      client = described_class.send(:build_client, provider)
+
+      expect(client.instance_variable_get(:@auth_resolver)).to eq(config.auth_resolver)
+    end
+
+    it 'sets max_reconnection_wait on the transport factory' do
+      client = described_class.send(:build_client, provider)
+      factory = client.instance_variable_get(:@transport_factory)
+
+      expect(factory).to be_a(Method)
+      transport = factory.call(URI.parse('https://example.com/mcp'), ['192.0.2.1'], {})
+      expect(transport.instance_variable_get(:@max_reconnection_wait)).to eq(3.0)
+    end
+  end
 end
 # rubocop:enable RSpec/MultipleMemoizedHelpers

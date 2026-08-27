@@ -80,18 +80,15 @@ module RailsAiBridge
       def probe(timeout: nil)
         endpoint = @provider.endpoint
         transport = nil
+        effective_timeout = timeout || @timeout_seconds
         begin
-          policy_result = @policy.call(endpoint)
+          policy_result = with_timeout(effective_timeout) { @policy.call(endpoint) }
           return Result.new(status: :error, error: policy_result.error) unless policy_result.success?
 
           canonical_uri = policy_result.uri
           headers = resolve_auth(endpoint, canonical_uri)
-          transport = @transport_factory.call(canonical_uri, policy_result.addresses, headers)
-          if timeout
-            Timeout.timeout(timeout) { transport.tools }
-          else
-            transport.tools
-          end
+          transport = with_timeout(timeout) { @transport_factory.call(canonical_uri, policy_result.addresses, headers) }
+          with_timeout(timeout) { transport.tools }
           Result.new(status: :success, content: nil, provenance: provenance_for(canonical_uri), error: nil)
         rescue RailsAiBridge::Registry::ContextProviderError => error
           Result.new(status: :error, error: error)
@@ -116,13 +113,14 @@ module RailsAiBridge
         [cleanup_deadline_seconds, timeout_seconds].min
       end
 
+      # @param timeout [Numeric, nil] the timeout to apply; defaults to the configured timeout
       # @param block [Proc] the operation to time-box
       # @return [Object] the block result
-      # @raise [Timeout::Error] when the configured timeout expires
-      def with_timeout(&)
-        return yield unless @timeout_seconds
+      # @raise [Timeout::Error] when the timeout expires
+      def with_timeout(timeout = @timeout_seconds, &)
+        return yield unless timeout
 
-        Timeout.timeout(@timeout_seconds, &)
+        Timeout.timeout(timeout, &)
       end
 
       # @param endpoint [String] the raw provider endpoint
@@ -142,16 +140,27 @@ module RailsAiBridge
       def close_transport(transport)
         return unless transport
 
-        if @cleanup_deadline_seconds
-          Timeout.timeout(@cleanup_deadline_seconds) { transport.close }
-        else
-          transport.close
-        end
-      rescue Timeout::Error
-        Rails.logger&.warn { 'ContextProviderClient transport.close exceeded cleanup deadline' }
+        perform_close(transport)
       rescue StandardError => error
         # Intentionally swallow close failures so the original result is preserved.
-        Rails.logger&.warn { "ContextProviderClient transport.close failed (#{error.class}): #{sanitize_message(error.message)}" }
+        Rails.logger&.warn do
+          if error.is_a?(Timeout::Error)
+            'ContextProviderClient transport.close exceeded cleanup deadline'
+          else
+            "ContextProviderClient transport.close failed (#{error.class}): #{sanitize_message(error.message)}"
+          end
+        end
+      end
+
+      # @param transport [Object] the active transport
+      # @return [void]
+      def perform_close(transport)
+        close = proc { transport.close }
+        if @cleanup_deadline_seconds
+          Timeout.timeout(@cleanup_deadline_seconds, &close)
+        else
+          close.call
+        end
       end
 
       # @param tool_name [String]
