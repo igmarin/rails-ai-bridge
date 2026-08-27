@@ -424,5 +424,23 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
       expect(result.content).to eq('ok')
       expect(fake_transport).to have_received(:close)
     end
+
+    it 'applies the configured timeout when probe is called without an explicit timeout' do
+      client = described_class.new(
+        provider: provider,
+        policy: policy,
+        transport_factory: transport_factory,
+        auth_resolver: nil,
+        timeout_seconds: 0.01
+      )
+      allow(fake_transport).to receive(:tools) { Queue.new.pop }
+
+      result = client.probe
+
+      expect(result.status).to eq(:error)
+      expect(result.error).to be_a(RailsAiBridge::Registry::TimeoutError)
+      expect(fake_transport).to have_received(:close)
+    end
+
   end
 end

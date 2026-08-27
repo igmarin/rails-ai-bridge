@@ -75,7 +75,7 @@ module RailsAiBridge
       # Lightweight reachability probe: validates the endpoint, opens a
       # transport, lists tools, and closes. Does not call any tool.
       #
-      # @param timeout [Numeric, nil] per-probe timeout in seconds; nil skips timeout
+      # @param timeout [Numeric, nil] per-probe timeout in seconds; nil falls back to the configured per-tool timeout
       # @return [Result]
       def probe(timeout: nil)
         endpoint = @provider.endpoint
@@ -87,8 +87,8 @@ module RailsAiBridge
 
           canonical_uri = policy_result.uri
           headers = resolve_auth(endpoint, canonical_uri)
-          transport = with_timeout(timeout) { @transport_factory.call(canonical_uri, policy_result.addresses, headers) }
-          with_timeout(timeout) { transport.tools }
+          transport = with_timeout(effective_timeout) { @transport_factory.call(canonical_uri, policy_result.addresses, headers) }
+          with_timeout(effective_timeout) { transport.tools }
           Result.new(status: :success, content: nil, provenance: provenance_for(canonical_uri), error: nil)
         rescue RailsAiBridge::Registry::ContextProviderError => error
           Result.new(status: :error, error: error)
