@@ -19,6 +19,7 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
 
   before do
     allow(resolver).to receive(:getaddresses).and_return([])
+    allow(resolver).to receive(:timeouts=)
   end
 
   describe '#call' do
@@ -535,6 +536,21 @@ RSpec.describe RailsAiBridge::Registry::EndpointPolicy do
 
       expect { policy.call('https://example.com/some-tool') }
         .to raise_error(RailsAiBridge::Registry::TimeoutError, 'client timeout')
+    end
+
+    it 'sets the resolver per-query timeout when one is configured' do
+      policy = described_class.new(
+        resolver: resolver,
+        allowed_hosts: ['example.com'],
+        allowed_loopback_ports: [3000, 9292],
+        allow_private_networks: false,
+        timeout_seconds: 0.05
+      )
+      allow(resolver).to receive(:getaddresses).with('example.com').and_return(['192.0.2.1'])
+
+      policy.call('https://example.com/some-tool')
+
+      expect(resolver).to have_received(:timeouts=).with([0.05])
     end
   end
 end

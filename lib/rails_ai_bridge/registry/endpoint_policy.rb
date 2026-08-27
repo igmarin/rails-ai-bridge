@@ -109,13 +109,29 @@ module RailsAiBridge
 
       # Resolves the host with an optional timeout to prevent DNS stalls.
       #
+      # When the resolver is a Resolv::DNS, the per-query timeout list is
+      # configured so the resolver itself enforces the deadline.  For other
+      # resolvers, the call is wrapped in Timeout.timeout as a fallback.
+      #
       # @param host [String] normalized host name
       # @return [Array<Object>] addresses returned by the resolver
       def resolve_with_timeout(host)
-        resolve = proc { @resolver.getaddresses(host) }
-        return resolve.call unless @timeout_seconds
+        configure_resolver_timeout
 
-        Timeout.timeout(@timeout_seconds, &resolve)
+        get_addresses = proc { @resolver.getaddresses(host) }
+        return get_addresses.call unless @timeout_seconds
+
+        Timeout.timeout(@timeout_seconds, &get_addresses)
+      end
+
+      # @return [void]
+      def configure_resolver_timeout
+        return unless @timeout_seconds
+
+        @resolver.timeouts = [@timeout_seconds]
+      rescue NoMethodError
+        # Resolver does not support per-query timeouts; fall back to Timeout.timeout.
+        nil
       end
 
       # @return [Result]
