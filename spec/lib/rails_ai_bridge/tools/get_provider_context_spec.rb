@@ -281,7 +281,8 @@ RSpec.describe RailsAiBridge::Tools::GetProviderContext do
 
   describe '.default_transport_factory' do
     let(:canonical_uri) { URI.parse('https://example.com/mcp') }
-    let(:transport) { described_class.send(:default_transport_factory, canonical_uri, ['192.0.2.1'], {}) }
+    let(:client) { described_class.send(:default_transport_factory, canonical_uri, ['192.0.2.1'], {}) }
+    let(:transport) { client.transport }
 
     after do
       transport.close
@@ -289,7 +290,8 @@ RSpec.describe RailsAiBridge::Tools::GetProviderContext do
       nil
     end
 
-    it 'builds an MCP HTTP transport bound to the canonical URL via the url keyword' do
+    it 'builds an MCP client wrapping an HTTP transport bound to the canonical URL' do
+      expect(client).to be_a(MCP::Client)
       expect(transport).to be_a(MCP::Client::HTTP)
       expect(transport.url.to_s).to eq('https://example.com/mcp')
     end
@@ -356,8 +358,9 @@ RSpec.describe RailsAiBridge::Tools::GetProviderContext do
       factory = client.instance_variable_get(:@transport_factory)
 
       expect(factory).to be_a(Method)
-      transport = factory.call(URI.parse('https://example.com/mcp'), ['192.0.2.1'], {})
-      expect(transport.instance_variable_get(:@max_reconnection_wait)).to eq(3.0)
+      transport_client = factory.call(URI.parse('https://example.com/mcp'), ['192.0.2.1'], {})
+      expect(transport_client).to be_a(MCP::Client)
+      expect(transport_client.transport.instance_variable_get(:@max_reconnection_wait)).to eq(3.0)
     end
   end
 end
