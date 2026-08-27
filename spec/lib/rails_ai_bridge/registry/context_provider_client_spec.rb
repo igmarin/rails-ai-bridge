@@ -441,6 +441,5 @@ RSpec.describe RailsAiBridge::Registry::ContextProviderClient do
       expect(result.error).to be_a(RailsAiBridge::Registry::TimeoutError)
       expect(fake_transport).to have_received(:close)
     end
-
   end
 end

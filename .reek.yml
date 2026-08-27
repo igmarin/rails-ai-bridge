@@ -87,6 +87,7 @@ detectors:
     - RailsAiBridge::Services::FileManagementService#validate_path!
   ControlParameter:
     exclude:
+    - RailsAiBridge::Registry::ContextProviderClient#probe
     - RailsAiBridge::ContextProvider#rebuild
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#call
     - RailsAiBridge::Doctor::Checkers::BaseChecker#check
