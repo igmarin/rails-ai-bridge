@@ -379,4 +379,248 @@ RSpec.describe 'rails_ai_bridge rake tasks' do
       $stdout = original
     end
   end
+
+  describe 'CONTEXT_MODE env var' do
+    it 'overrides the configured context mode' do
+      ENV['CONTEXT_MODE'] = 'compact'
+
+      expect { rake['ai:bridge'].invoke }.to output(/📐 Context mode: compact/).to_stdout
+      expect(RailsAiBridge.configuration.context_mode).to eq(:compact)
+    ensure
+      ENV.delete('CONTEXT_MODE')
+    end
+  end
+
+  describe 'CONFIRM env var' do
+    it 'passes on_conflict: :prompt when CONFIRM is truthy' do
+      ENV['CONFIRM'] = '1'
+
+      rake['ai:bridge'].invoke
+
+      expect(RailsAiBridge).to have_received(:generate_context).with(format: :all, split_rules: true, on_conflict: :prompt)
+    ensure
+      ENV.delete('CONFIRM')
+    end
+  end
+
+  describe 'ai:inspect edge cases' do
+    def introspect_hash(overrides = {})
+      {
+        app_name: 'TestApp',
+        rails_version: '7.1.3',
+        ruby_version: '3.3.0',
+        schema: { adapter: 'postgresql', total_tables: 5 },
+        models: { 'User' => {} },
+        routes: { total_routes: 10 },
+        jobs: { jobs: [], mailers: [] },
+        conventions: { architecture: ['Service Objects'] }
+      }.merge(overrides)
+    end
+
+    it 'omits the database line when schema is absent' do
+      allow(RailsAiBridge).to receive(:introspect).and_return(introspect_hash(schema: nil))
+
+      expect { rake['ai:inspect'].invoke }.not_to output(/📦 Database/).to_stdout
+    end
+
+    it 'omits the database line when schema has an error' do
+      allow(RailsAiBridge).to receive(:introspect).and_return(introspect_hash(schema: { error: 'boom' }))
+
+      expect { rake['ai:inspect'].invoke }.not_to output(/📦 Database/).to_stdout
+    end
+
+    it 'prints the model count when models is a non-Hash collection' do
+      allow(RailsAiBridge).to receive(:introspect).and_return(introspect_hash(models: %w[User Post]))
+
+      expect { rake['ai:inspect'].invoke }.to output(/🏗️  Models: 2/).to_stdout
+    end
+
+    it 'omits the models line when models has an error' do
+      allow(RailsAiBridge).to receive(:introspect).and_return(introspect_hash(models: { error: 'boom' }))
+
+      expect { rake['ai:inspect'].invoke }.not_to output(/🏗️  Models/).to_stdout
+    end
+
+    it 'omits the models line when models is absent' do
+      allow(RailsAiBridge).to receive(:introspect).and_return(introspect_hash(models: nil))
+
+      expect { rake['ai:inspect'].invoke }.not_to output(/🏗️  Models/).to_stdout
+    end
+
+    it 'omits the routes line when routes is absent' do
+      allow(RailsAiBridge).to receive(:introspect).and_return(introspect_hash(routes: nil))
+
+      expect { rake['ai:inspect'].invoke }.not_to output(/🛤️  Routes/).to_stdout
+    end
+
+    it 'omits the routes line when routes has an error' do
+      allow(RailsAiBridge).to receive(:introspect).and_return(introspect_hash(routes: { error: 'boom' }))
+
+      expect { rake['ai:inspect'].invoke }.not_to output(/🛤️  Routes/).to_stdout
+    end
+
+    it 'omits the jobs lines when jobs is absent' do
+      allow(RailsAiBridge).to receive(:introspect).and_return(introspect_hash(jobs: nil))
+
+      expect { rake['ai:inspect'].invoke }.not_to output(/⚡ Jobs/).to_stdout
+    end
+
+    it 'prints zero jobs when the jobs list is missing' do
+      allow(RailsAiBridge).to receive(:introspect).and_return(introspect_hash(jobs: { mailers: [] }))
+
+      expect { rake['ai:inspect'].invoke }.to output(/⚡ Jobs: 0/).to_stdout
+    end
+
+    it 'omits the architecture line when conventions are absent' do
+      allow(RailsAiBridge).to receive(:introspect).and_return(introspect_hash(conventions: nil))
+
+      expect { rake['ai:inspect'].invoke }.not_to output(/🏛️  Architecture/).to_stdout
+    end
+
+    it 'omits the architecture line when the architecture list is empty' do
+      allow(RailsAiBridge).to receive(:introspect).and_return(introspect_hash(conventions: { architecture: [] }))
+
+      expect { rake['ai:inspect'].invoke }.not_to output(/🏛️  Architecture/).to_stdout
+    end
+
+    it 'omits the architecture line when architecture is absent' do
+      allow(RailsAiBridge).to receive(:introspect).and_return(introspect_hash(conventions: {}))
+
+      expect { rake['ai:inspect'].invoke }.not_to output(/🏛️  Architecture/).to_stdout
+    end
+  end
+
+  describe 'NETWORK env var' do
+    it 'probes providers for ai:doctor when NETWORK=1' do
+      doctor_result = { score: 100, checks: [] }
+      doctor_instance = double('Doctor', run: doctor_result)
+      expect(RailsAiBridge::Doctor).to receive(:new).with(network: true).and_return(doctor_instance)
+      ENV['NETWORK'] = '1'
+
+      rake['ai:doctor'].invoke
+    ensure
+      ENV.delete('NETWORK')
+    end
+
+    it 'probes providers for ai:check when NETWORK=1' do
+      doctor_result = { score: 100, checks: [] }
+      doctor_instance = double('Doctor', run: doctor_result)
+      expect(RailsAiBridge::Doctor).to receive(:new).with(network: true).and_return(doctor_instance)
+      ENV['NETWORK'] = '1'
+
+      rake['ai:check'].invoke
+    ensure
+      ENV.delete('NETWORK')
+    end
+  end
+
+  describe 'ai:registry:validate without version' do
+    around do |example|
+      registry = RailsAiBridge.configuration.registry
+      original_path = registry.registry_manifest_path
+      tmp_dir = Dir.mktmpdir
+      registry.registry_manifest_path = File.join(tmp_dir, 'registry.json')
+
+      example.run
+    ensure
+      registry.registry_manifest_path = original_path
+      FileUtils.rm_rf(tmp_dir)
+    end
+
+    it 'reports the version as unspecified when the manifest has none' do
+      File.write(
+        RailsAiBridge.configuration.registry.registry_manifest_path,
+        JSON.generate('packs' => { 'core' => { 'source' => 'igmarin/ruby-core-skills' } })
+      )
+
+      expect { rake['ai:registry:validate'].invoke }.to output(/version: unspecified/).to_stdout
+    end
+  end
+
+  describe 'ai:skills:resolve' do
+    def stub_presenter(output)
+      resolver = instance_double(RailsAiBridge::Registry::Resolver)
+      presenter = instance_double(RailsAiBridge::Registry::RakePresenter, resolve_skill_output: output)
+      allow(RailsAiBridge::Registry::RakePresenter).to receive_messages(require_resolver!: resolver, new: presenter)
+    end
+
+    it 'prints the resolved skill output and exits normally' do
+      stub_presenter('# code-review (from pack: rails)')
+
+      expect { rake['ai:skills:resolve'].invoke('rails', 'code-review') }.to output(/# code-review/).to_stdout
+    end
+
+    it 'resolves a skill name from the SKILL env var' do
+      stub_presenter('# code-review (from pack: rails)')
+      ENV['SKILL'] = 'code-review'
+
+      expect { rake['ai:skills:resolve'].invoke }.to output(/# code-review/).to_stdout
+    ensure
+      ENV.delete('SKILL')
+    end
+
+    it 'exits 1 with usage instructions when no skill name is given' do
+      stub_presenter('unused')
+
+      expect { rake['ai:skills:resolve'].invoke }
+        .to raise_error(SystemExit) { |error| expect(error.status).to eq(1) }
+        .and output(/Usage: rails "ai:skills:resolve\[pack_name,skill_name\]"/).to_stderr
+    end
+
+    it 'exits 1 when the skill is not found' do
+      stub_presenter("Skill 'missing' not found in any loaded pack.\n")
+
+      expect { rake['ai:skills:resolve'].invoke('rails', 'missing') }
+        .to raise_error(SystemExit) { |error| expect(error.status).to eq(1) }
+    end
+  end
+
+  describe 'ai:skills:clear_cache' do
+    around do |example|
+      registry = RailsAiBridge.configuration.registry
+      original_cache_dir = registry.skill_cache_dir
+      tmp_dir = Dir.mktmpdir
+      registry.skill_cache_dir = tmp_dir
+
+      example.run
+    ensure
+      registry.skill_cache_dir = original_cache_dir
+      FileUtils.rm_rf(tmp_dir)
+    end
+
+    it 'aborts when the cache dir is blank' do
+      RailsAiBridge.configuration.registry.skill_cache_dir = ''
+
+      expect { rake['ai:skills:clear_cache'].invoke }.to raise_error(SystemExit, /skill_cache_dir is empty/)
+    end
+
+    it 'exits 0 when the cache dir does not exist' do
+      RailsAiBridge.configuration.registry.skill_cache_dir = File.join(Dir.tmpdir, 'rails-ai-bridge-no-such-cache-dir')
+
+      expect { rake['ai:skills:clear_cache'].invoke }
+        .to raise_error(SystemExit) { |error| expect(error.status).to eq(0) }
+        .and output(/Cache directory does not exist/).to_stdout
+    end
+
+    it 'removes cached pack directories and invalidates the resolver cache' do
+      cache_dir = RailsAiBridge.configuration.registry.skill_cache_dir.to_s
+      FileUtils.mkdir_p(File.join(cache_dir, 'core'))
+      FileUtils.mkdir_p(File.join(cache_dir, 'rails'))
+      File.write(File.join(cache_dir, 'notes.txt'), 'not a pack')
+
+      allow(RailsAiBridge::Registry).to receive(:invalidate_resolver_cache!)
+
+      expect { rake['ai:skills:clear_cache'].invoke }.to output(/Cleared 2 cached pack\(s\)/).to_stdout
+
+      expect(Dir.exist?(File.join(cache_dir, 'core'))).to be(false)
+      expect(Dir.exist?(File.join(cache_dir, 'rails'))).to be(false)
+      expect(File.exist?(File.join(cache_dir, 'notes.txt'))).to be(true)
+    end
+
+    it 'aborts when the cache dir is a dangerous root' do
+      RailsAiBridge.configuration.registry.skill_cache_dir = Dir.home
+
+      expect { rake['ai:skills:clear_cache'].invoke }.to raise_error(SystemExit, /unsafe path/)
+    end
+  end
 end
