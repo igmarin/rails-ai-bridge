@@ -56,5 +56,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'faraday', '>= 2.0', '< 3.0'
 
   # Semantic code analysis via Shopify's rubydex
-  spec.add_dependency 'rubydex', '~> 0.3.0'
+  spec.add_dependency 'rubydex', '>= 0.3', '< 0.5'
 end
