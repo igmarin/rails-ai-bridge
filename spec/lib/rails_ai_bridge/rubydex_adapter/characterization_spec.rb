@@ -1,6 +1,28 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+require 'tmpdir'
+
+RSpec.describe 'installed Rubydex 0.4 gem' do
+  it 'is 0.4.x, constructs Graph with no args, and indexes a class' do
+    require 'rubydex'
+
+    version = Gem::Version.new(Rubydex::VERSION)
+    expect(version).to be >= Gem::Version.new('0.4.0')
+    expect(version).to be < Gem::Version.new('0.5.0')
+
+    Dir.mktmpdir('rubydex04') do |dir|
+      File.write(File.join(dir, 'user.rb'), "class User; def name; end; end\n")
+      graph = RailsAiBridge::RubydexAdapter::Indexer.build_index(dir)
+
+      expect(graph).to be_a(Rubydex::Graph)
+      decl = graph['User']
+      expect(decl).not_to be_nil
+      expect(decl.name).to eq('User')
+    end
+  end
+end
+
 
 # Characterization specs that pin the contract between RubydexAdapter and
 # the Rubydex 0.4 graph API (Graph.new with no args, declarations, definitions,

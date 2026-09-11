@@ -7,12 +7,14 @@ require 'mcp'
 # through the rails-ai-bridge Server class with the official Ruby MCP SDK.
 #
 # Current SDK: mcp 1.x (gemspec constraint: >= 1.3, < 2.0).
-# CI resolves the latest 1.x from RubyGems because Gemfile.lock is gitignored.
+# Gemfile.lock is gitignored, so CI installs the latest 1.x. Protocol
+# characterization is the constructor, transport, and lifecycle surface below
+# — not an exact patch string (that broke the matrix when 1.4.0 shipped).
 #
 # These specs pin:
 #   - MCP::Server constructor signature and kwargs
 #   - Transport class availability and construction
-#   - Protocol version advertised by the SDK (1.x, not a patch pin)
+#   - SDK version in the supported 1.x range
 #   - The 2026-07-28 stateless lifecycle support
 RSpec.describe 'MCP protocol characterization (SDK 1.x)' do
   let(:app) { 'TestApp' }
@@ -37,14 +39,9 @@ RSpec.describe 'MCP protocol characterization (SDK 1.x)' do
   # ---- SDK version ----
 
   describe 'SDK version' do
-    it 'is at least the gemspec floor' do
-      version = Gem.loaded_specs['mcp']&.version || Gem::Version.new(MCP::VERSION)
+    it 'is within the gemspec range' do
+      version = Gem::Version.new(MCP::VERSION)
       expect(version).to be >= Gem::Version.new('1.3.0')
-    end
-
-    it 'is within the 1.x stable range' do
-      version = Gem.loaded_specs['mcp']&.version || Gem::Version.new(MCP::VERSION)
-      expect(version).to be >= Gem::Version.new('1.0.0')
       expect(version).to be < Gem::Version.new('2.0.0')
     end
   end

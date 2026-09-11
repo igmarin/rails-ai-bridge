@@ -113,14 +113,12 @@ NETWORK=1 rails ai:doctor  # with provider probes
 
 ---
 
-## Upgrading MCP SDK to 1.3.0 (age-gated: mergeable Aug 29)
+## MCP SDK 1.3 floor (historical — shipped in 5.0.0)
 
-**Current:** `mcp >= 1.0, < 2.0` (installed: 1.3.0)
-**Target:** `mcp >= 1.3, < 2.0`
-
-The installed version is already 1.3.0; the gemspec lower bound needs
-tightening from `>= 1.0` to `>= 1.3` to ensure all hosts pick up the
-1.2.0+ stateless lifecycle and 1.3.0 resource list handler features.
+This age-gated note is obsolete. v5.0.0 already raised the gemspec to
+`mcp >= 1.3, < 2.0`. v5.1.0 keeps that range and was tested with mcp 1.5.1.
+Hosts on any 1.3–1.5.x need no extra MCP step. The 1.1 → 1.3 changelog below
+is kept as background only.
 
 ### What changed in MCP 1.1.0 → 1.2.0 → 1.3.0
 
@@ -160,31 +158,6 @@ Source: [CHANGELOG.md](https://github.com/modelcontextprotocol/ruby-sdk/blob/mai
 - **Added:** 2026-07-28 as Latest Protocol Version (#476)
 - **Added:** Server tool annotations exposed on `MCP::Client::Tool` (#445)
 - **Fixed:** Explicit tool response content preserved (#469)
-
-### MCP migration steps
-
-1. **Update the gemspec constraint** from `>= 1.0, < 2.0` to `>= 1.3, < 2.0`
-   (after Aug 29).
-2. **Run `bundle update mcp`** — most hosts already resolve 1.3.0; this
-   tightens the floor.
-3. **Run characterization specs** under `spec/lib/rails_ai_bridge/mcp/`:
-   - `protocol_characterization_spec.rb` — SDK version, server constructor,
-     transport classes, 2026-07-28 lifecycle method surface
-   - `tool_annotations_spec.rb` — all 19 tool annotation hints
-   - `resource_lists_spec.rb` — resource/template construction and read handler
-   - `error_responses_spec.rb` — 404/401/403/429 error shapes, response bounds
-4. **Verify `resources_list_handler`** — new in 1.3.0. If the bridge wants
-   context-dependent resource lists, register a handler via
-   `server.resources_list_handler { |params| ... }`.
-5. **Check for duplicate request id rejection** — 1.3.0 rejects duplicate
-   in-flight JSON-RPC request ids (#521). This is a server-side change that
-   should be transparent to the bridge, but verify no test relies on
-   duplicate ids being accepted.
-6. **Verify exception message masking** — 1.2.0 stopped leaking exception
-   messages to clients via JSON-RPC error data (#486). Ensure error
-   responses still contain useful information for debugging.
-7. **Smoke-test stdio and HTTP transports** — start `rails ai:serve` and
-   verify tool calls and resource reads work end-to-end.
 
 ### MCP characterization specs
 

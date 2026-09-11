@@ -16,7 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   still works; the adapter did not need a `Config` object. Characterization
   specs now pin the 0.4 graph API contract.
 - MCP protocol characterization no longer pins `MCP::VERSION` to `1.3.0`. The
-  gemspec stays `mcp >= 1.3, < 2.0`; CI was tested against **mcp 1.5.1**.
+  gemspec stays `mcp >= 1.3, < 2.0`; the spec asserts that range via
+  `MCP::VERSION`. Constructor, transport, and 2026-07-28 lifecycle examples
+  remain the protocol contract. CI was tested against **mcp 1.5.1**.
+- Rubydex characterization adds an example against the installed 0.4.x gem:
+  `Graph.new` with no args indexes a class and `graph['User']` resolves.
 - Dependabot no longer groups or auto-opens rubydex minor/major constraint
   updates. Patch updates (for example 0.4.1 → 0.4.2) still open.
 - rs-guard review workflow skips `dependabot[bot]` PRs (those PRs do not
