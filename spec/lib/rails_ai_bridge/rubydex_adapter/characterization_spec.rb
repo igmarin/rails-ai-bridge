@@ -23,7 +23,6 @@ RSpec.describe 'installed Rubydex 0.4 gem' do
   end
 end
 
-
 # Characterization specs that pin the contract between RubydexAdapter and
 # the Rubydex 0.4 graph API (Graph.new with no args, declarations, definitions,
 # locations, documents).
