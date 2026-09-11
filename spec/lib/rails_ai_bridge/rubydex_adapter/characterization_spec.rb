@@ -3,20 +3,12 @@
 require 'spec_helper'
 
 # Characterization specs that pin the contract between RubydexAdapter and
-# the Rubydex 0.3.0 graph API. When upgrading to Rubydex 0.4.0, these specs
-# will surface any breaking changes in the graph, declaration, definition,
-# location, or document object shapes.
-#
-# The 0.4.0 changelog notes these breaking changes:
-#   - "Make Config a proper object" (#965) — may change Graph initialization
-#   - "Return Cypher query results as graph objects" (#873) — may change
-#     query return types
-#   - "Extract declaration core" (#944) — may change declaration shape
-#   - "Extract NamespaceStore" (#945) — may change namespace resolution
+# the Rubydex 0.4 graph API (Graph.new with no args, declarations, definitions,
+# locations, documents).
 #
 # These specs use mock doubles to isolate the adapter from the real Rubydex
 # engine, pinning the *method names* and *return shapes* the adapter relies on.
-RSpec.describe 'Rubydex 0.3 graph API contract' do
+RSpec.describe 'Rubydex 0.4 graph API contract' do
   let(:root) { '/tmp/test_root' }
   let(:adapter) { RailsAiBridge::RubydexAdapter.new(root) }
 
