@@ -1,12 +1,11 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+require 'rubydex'
 require 'tmpdir'
 
 RSpec.describe 'installed Rubydex 0.4 gem' do
   it 'is 0.4.x, constructs Graph with no args, and indexes a class' do
-    require 'rubydex'
-
     version = Gem::Version.new(Rubydex::VERSION)
     expect(version).to be >= Gem::Version.new('0.4.0')
     expect(version).to be < Gem::Version.new('0.5.0')

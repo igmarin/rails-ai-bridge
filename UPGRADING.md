@@ -21,9 +21,17 @@ any 1.3–1.5.x need no extra step.
 
 ### Rolling back
 
-Pin `gem 'rails-ai-bridge', '~> 5.0.0'` and `bundle update rails-ai-bridge
---conservative`. If you already updated rubydex to 0.4.x, pin
-`gem 'rubydex', '~> 0.3.0'` only if you also stay on rails-ai-bridge 5.0.x.
+Rolling back to 5.0.x also requires rubydex 0.3.x (`rails-ai-bridge` 5.0.x
+depends on `rubydex ~> 0.3.0`). Pin both, then update them together:
+
+```ruby
+gem 'rails-ai-bridge', '~> 5.0.0'
+gem 'rubydex', '~> 0.3.0'
+```
+
+```bash
+bundle update rails-ai-bridge rubydex
+```
 
 ---
 
