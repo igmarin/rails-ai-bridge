@@ -44,6 +44,12 @@ RSpec.describe 'MCP protocol characterization (SDK 1.x)' do
       expect(version).to be >= Gem::Version.new('1.3.0')
       expect(version).to be < Gem::Version.new('2.0.0')
     end
+
+    it 'matches the loaded mcp gem' do
+      loaded = Gem.loaded_specs['mcp']&.version
+      expect(loaded).not_to be_nil
+      expect(loaded).to eq(Gem::Version.new(MCP::VERSION))
+    end
   end
 
   # ---- Server construction ----

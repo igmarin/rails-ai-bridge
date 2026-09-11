@@ -23,12 +23,8 @@ RSpec.describe 'installed Rubydex 0.4 gem' do
   end
 end
 
-# Characterization specs that pin the contract between RubydexAdapter and
-# the Rubydex 0.4 graph API (Graph.new with no args, declarations, definitions,
-# locations, documents).
-#
-# These specs use mock doubles to isolate the adapter from the real Rubydex
-# engine, pinning the *method names* and *return shapes* the adapter relies on.
+# Mock-based characterization of the adapter's graph API (method names and
+# return shapes). The example above exercises the real installed 0.4 gem.
 RSpec.describe 'Rubydex 0.4 graph API contract' do
   let(:root) { '/tmp/test_root' }
   let(:adapter) { RailsAiBridge::RubydexAdapter.new(root) }
