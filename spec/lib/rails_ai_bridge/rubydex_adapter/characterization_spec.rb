@@ -1,22 +1,30 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+require 'rubydex'
+require 'tmpdir'
 
-# Characterization specs that pin the contract between RubydexAdapter and
-# the Rubydex 0.3.0 graph API. When upgrading to Rubydex 0.4.0, these specs
-# will surface any breaking changes in the graph, declaration, definition,
-# location, or document object shapes.
-#
-# The 0.4.0 changelog notes these breaking changes:
-#   - "Make Config a proper object" (#965) — may change Graph initialization
-#   - "Return Cypher query results as graph objects" (#873) — may change
-#     query return types
-#   - "Extract declaration core" (#944) — may change declaration shape
-#   - "Extract NamespaceStore" (#945) — may change namespace resolution
-#
-# These specs use mock doubles to isolate the adapter from the real Rubydex
-# engine, pinning the *method names* and *return shapes* the adapter relies on.
-RSpec.describe 'Rubydex 0.3 graph API contract' do
+RSpec.describe 'installed Rubydex 0.4 gem' do
+  it 'is 0.4.x, constructs Graph with no args, and indexes a class' do
+    version = Gem::Version.new(Rubydex::VERSION)
+    expect(version).to be >= Gem::Version.new('0.4.0')
+    expect(version).to be < Gem::Version.new('0.5.0')
+
+    Dir.mktmpdir('rubydex04') do |dir|
+      File.write(File.join(dir, 'user.rb'), "class User; def name; end; end\n")
+      graph = RailsAiBridge::RubydexAdapter::Indexer.build_index(dir)
+
+      expect(graph).to be_a(Rubydex::Graph)
+      decl = graph['User']
+      expect(decl).not_to be_nil
+      expect(decl.name).to eq('User')
+    end
+  end
+end
+
+# Mock-based characterization of the adapter's graph API (method names and
+# return shapes). The example above exercises the real installed 0.4 gem.
+RSpec.describe 'Rubydex 0.4 graph API contract' do
   let(:root) { '/tmp/test_root' }
   let(:adapter) { RailsAiBridge::RubydexAdapter.new(root) }
 

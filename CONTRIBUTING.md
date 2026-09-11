@@ -73,6 +73,10 @@ bundle exec rubocop --parallel # Lint check
 4. Update CHANGELOG.md under an `## [Unreleased]` section
 5. Open a PR with a clear title and description
 
+The rs-guard review workflow skips `dependabot[bot]` PRs. Those PRs do not
+receive `DEEPSEEK_API_KEY`, so the job would fail after compiling rs-guard.
+Dependabot updates are reviewed by CI (RSpec, RuboCop, bundle-audit) only.
+
 ## Reporting Bugs
 
 Open an issue at https://github.com/igmarin/rails-ai-bridge/issues with:

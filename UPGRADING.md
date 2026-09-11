@@ -1,5 +1,40 @@
 # Upgrading rails-ai-bridge
 
+## Upgrading from 5.0.0 to 5.1.0
+
+**One action required if you are pinned to `rubydex` 0.3.x:**
+
+The `rubydex` gem constraint moved from `~> 0.3.0` to `~> 0.4.0`. After upgrading
+rails-ai-bridge, update the lockfile:
+
+```bash
+bundle update rails-ai-bridge rubydex
+```
+
+`Rubydex::Graph.new` with no arguments still works on 0.4.1; no application or
+initializer changes are required. Semantic search (`rails_search_semantic`)
+is unchanged.
+
+The official MCP SDK range remains `>= 1.3, < 2.0`. This release was tested
+with mcp 1.5.1 (HTTP client JSON parse fix for json 3.0). Hosts already on
+any 1.3–1.5.x need no extra step.
+
+### Rolling back
+
+Rolling back to 5.0.x also requires rubydex 0.3.x (`rails-ai-bridge` 5.0.x
+depends on `rubydex ~> 0.3.0`). Pin both, then update them together:
+
+```ruby
+gem 'rails-ai-bridge', '~> 5.0.0'
+gem 'rubydex', '~> 0.3.0'
+```
+
+```bash
+bundle update rails-ai-bridge rubydex
+```
+
+---
+
 ## Upgrading from 4.3.0 to 5.0.0
 
 **No application-code or configuration changes are required to upgrade.** v5 is intentionally
@@ -86,92 +121,12 @@ NETWORK=1 rails ai:doctor  # with provider probes
 
 ---
 
-## Upgrading Rubydex to 0.4.0 (age-gated: mergeable Aug 28)
+## MCP SDK 1.3 floor (historical — shipped in 5.0.0)
 
-**Current:** `rubydex ~> 0.3.0` (installed: 0.3.0)
-**Target:** `rubydex ~> 0.4.0`
-
-### What changed in Rubydex 0.4.0
-
-Source: [v0.3.0...v0.4.0](https://github.com/Shopify/rubydex/compare/v0.3.0...v0.4.0)
-
-**Breaking changes:**
-
-- **`Config` is now a proper object** (#965) — `Rubydex::Graph.new` may accept
-  or require a `Config` instance instead of being constructed with no args.
-  The adapter currently calls `Rubydex::Graph.new` with no arguments in
-  `Indexer.build_index`; this may need updating.
-- **Cypher query results return graph objects** (#873) — query return types
-  may have changed from plain arrays/hashes to graph object wrappers.
-- **Declaration core extracted** (#944) — declaration object shape may have
-  changed; the serializer relies on `decl.name`, `decl.unqualified_name`,
-  `decl.definitions`, `decl.ancestors`, `decl.descendants`, `decl.owner`,
-  and `decl.class.name`.
-- **`NamespaceStore` extracted** (#945) — namespace resolution internals
-  changed; may affect `graph[name]` lookups.
-
-**Enhancements:**
-
-- Eagerly compute name depths into `Name` (#948)
-- Remove Mixin vec clones from ancestor linearization (#949)
-- Add linter configuration and configurable Rubydex linter (#972, #974)
-- Add severity and related information to diagnostics (#973)
-- Index RBS attribute methods (#970)
-
-**Bug fixes:**
-
-- Enqueue retry if `Object` ancestors are incomplete (#950)
-- Visit `module_function` bodies once in `OperationBuilder` (#994)
-- Fix `extend self` in anonymous modules (#1001)
-- Linearize ancestors for implicitly created namespaces (#1005)
-
-### Rubydex migration steps
-
-1. **Update the gemspec constraint** from `~> 0.3.0` to `~> 0.4.0` (after Aug 28).
-2. **Run `bundle update rubydex`** and verify the installed version is 0.4.x.
-3. **Check `Rubydex::Graph.new`** — if `Config` is now required, update
-   `Indexer.build_index` to construct and pass a `Config` object.
-4. **Run characterization specs** under
-   `spec/lib/rails_ai_bridge/rubydex_adapter/characterization_spec.rb` —
-   these pin the graph API surface (method names, return shapes) and will
-   fail if any breaking changes affect the adapter.
-5. **Verify declaration/definition shapes** — the serializer's
-   `declaration_type` method uses `decl.class.name` pattern matching
-   (`/class/`, `/module/`, `/method/`, `/constant/`). If class names change
-   in 0.4.0, update `TYPE_PATTERNS` in `serializer.rb`.
-6. **Test incremental reindex** — the `IncrementalIndexer` calls
-   `graph.delete_document`, `graph.index_source`, `graph.document`, and
-   `graph.resolve`. Verify these methods still exist with the same signatures.
-7. **Smoke-test `rails_search_semantic` tool** — this is the primary
-   user-facing consumer of the Rubydex adapter.
-
-### Rubydex characterization specs
-
-The following spec files pin current behavior to catch regressions:
-
-- `spec/lib/rails_ai_bridge/rubydex_adapter/characterization_spec.rb` —
-  full graph API contract (indexing, search, declarations, definitions,
-  references, locations, ancestors/descendants, graceful failure)
-- `spec/lib/rails_ai_bridge/rubydex_adapter_spec.rb` — adapter unit tests
-- `spec/lib/rails_ai_bridge/rubydex_adapter/incremental_indexer_spec.rb` —
-  incremental rebuild and persistence behavior
-- `spec/lib/rails_ai_bridge/rubydex_adapter/serializer_spec.rb` —
-  declaration/definition serialization shapes
-- `spec/lib/rails_ai_bridge/rubydex_adapter/indexer_spec.rb` —
-  file discovery and graph construction
-- `spec/lib/rails_ai_bridge/rubydex_adapter/method_counter_spec.rb` —
-  method counting logic
-
----
-
-## Upgrading MCP SDK to 1.3.0 (age-gated: mergeable Aug 29)
-
-**Current:** `mcp >= 1.0, < 2.0` (installed: 1.3.0)
-**Target:** `mcp >= 1.3, < 2.0`
-
-The installed version is already 1.3.0; the gemspec lower bound needs
-tightening from `>= 1.0` to `>= 1.3` to ensure all hosts pick up the
-1.2.0+ stateless lifecycle and 1.3.0 resource list handler features.
+This age-gated note is obsolete. v5.0.0 already raised the gemspec to
+`mcp >= 1.3, < 2.0`. v5.1.0 keeps that range and was tested with mcp 1.5.1.
+Hosts on any 1.3–1.5.x need no extra MCP step. The 1.1 → 1.3 changelog below
+is kept as background only.
 
 ### What changed in MCP 1.1.0 → 1.2.0 → 1.3.0
 
@@ -211,31 +166,6 @@ Source: [CHANGELOG.md](https://github.com/modelcontextprotocol/ruby-sdk/blob/mai
 - **Added:** 2026-07-28 as Latest Protocol Version (#476)
 - **Added:** Server tool annotations exposed on `MCP::Client::Tool` (#445)
 - **Fixed:** Explicit tool response content preserved (#469)
-
-### MCP migration steps
-
-1. **Update the gemspec constraint** from `>= 1.0, < 2.0` to `>= 1.3, < 2.0`
-   (after Aug 29).
-2. **Run `bundle update mcp`** — most hosts already resolve 1.3.0; this
-   tightens the floor.
-3. **Run characterization specs** under `spec/lib/rails_ai_bridge/mcp/`:
-   - `protocol_characterization_spec.rb` — SDK version, server constructor,
-     transport classes, 2026-07-28 lifecycle method surface
-   - `tool_annotations_spec.rb` — all 19 tool annotation hints
-   - `resource_lists_spec.rb` — resource/template construction and read handler
-   - `error_responses_spec.rb` — 404/401/403/429 error shapes, response bounds
-4. **Verify `resources_list_handler`** — new in 1.3.0. If the bridge wants
-   context-dependent resource lists, register a handler via
-   `server.resources_list_handler { |params| ... }`.
-5. **Check for duplicate request id rejection** — 1.3.0 rejects duplicate
-   in-flight JSON-RPC request ids (#521). This is a server-side change that
-   should be transparent to the bridge, but verify no test relies on
-   duplicate ids being accepted.
-6. **Verify exception message masking** — 1.2.0 stopped leaking exception
-   messages to clients via JSON-RPC error data (#486). Ensure error
-   responses still contain useful information for debugging.
-7. **Smoke-test stdio and HTTP transports** — start `rails ai:serve` and
-   verify tool calls and resource reads work end-to-end.
 
 ### MCP characterization specs
 
