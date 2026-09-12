@@ -6,7 +6,7 @@ source 'https://rubygems.org'
 gemspec
 
 group :development, :test do
-  gem 'archspec', '~> 1.0.1'
+  gem 'archspec', '~> 1.1.0'
   gem 'bundler-audit', '~> 0.9'
   gem 'combustion', '~> 1.3'
   gem 'rails', '~> 8.1'
