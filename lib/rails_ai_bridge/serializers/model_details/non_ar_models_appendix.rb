@@ -4,7 +4,7 @@ module RailsAiBridge
   module Serializers
     module ModelDetails
       # Shared Markdown helpers for appending non-ActiveRecord +app/models+ classes to
-      # {Tools::GetModelDetails} output and Claude rules files.
+      # {RailsAiBridge::Tools::GetModelDetails} output and Claude rules files.
       module NonArModelsAppendix
         module_function
 

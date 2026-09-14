@@ -759,7 +759,7 @@ RailsAiBridge.configure do |config|
   # Fingerprint / section snapshot TTL (seconds). Default is 5 — raise for HTTP MCP.
   # config.snapshot_ttl = 30
 
-  # Cap PathResolver glob/file listings (sorted, then taken). Default 2000.
+  # Cap Introspectors::PathResolver glob/file listings (sorted, then taken). Default 2000.
   # config.max_files_per_path = 2000
 
   # --- Exclusions ---
@@ -809,7 +809,7 @@ Introspection listings and caches stay bounded by default: `cache_ttl` is **30s*
 for cached introspection results, `snapshot_ttl` is **5s** for the fingerprint /
 section snapshot (do not raise the default globally — set `config.snapshot_ttl = 30`
 on a long-lived HTTP MCP process if consecutive tool calls should skip filesystem
-walks), `max_files_per_path` is **2000** (`PathResolver#glob_for` / `#files_for`
+walks), `max_files_per_path` is **2000** (`Introspectors::PathResolver#glob_for` / `#files_for`
 sort then take), and `parallel_introspection` is **off**.
 
 ### Options reference
@@ -823,7 +823,7 @@ sort then take), and `parallel_introspection` is **off**.
 | `max_tool_response_chars` | Integer | `120_000` | Safety cap for MCP tool responses |
 | `cache_ttl` | Integer | `30` | Cache TTL in seconds for introspection results |
 | `snapshot_ttl` | Integer | `5` | Fingerprint / section snapshot TTL in seconds; raise for HTTP MCP, keep 5s for CLI |
-| `max_files_per_path` | Integer | `2000` | Max paths returned by `PathResolver#glob_for` / `#files_for` (sorted, then taken) |
+| `max_files_per_path` | Integer | `2000` | Max paths returned by `Introspectors::PathResolver#glob_for` / `#files_for` (sorted, then taken) |
 | `excluded_models` | Array | internal Rails models | Models to skip |
 | `core_models` | Array | `[]` | Model names tagged as `core_entity` in introspection output and `.claude/rules/rails-context.md`. Used by `RailsAiBridge::Introspectors::ModelSemanticClassifier` to mark primary domain models. |
 | `introspectors` | Array | 9 core symbols | Which introspectors to run. Add `:non_ar_models` to include non-ActiveRecord classes under `app/models`. |
