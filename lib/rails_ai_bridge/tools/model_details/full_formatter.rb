@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders ActiveRecord model names with table names, tiers, and full association lists.
       class FullFormatter
         # @param models [Hash{String => Hash}] payloads may include +:table_name+, +:semantic_tier+, +:associations+, +:error+
-        # @param non_ar_models [Hash, nil] optional +:non_ar_models+ section; appended via {NonArModelsAppendix}
+        # @param non_ar_models [Hash, nil] optional +:non_ar_models+ section; appended via {Serializers::ModelDetails::NonArModelsAppendix}
         def initialize(models:, non_ar_models: nil)
           @models = models
           @non_ar_models = non_ar_models
@@ -33,7 +33,7 @@ module RailsAiBridge
           end
 
           lines << '' << '_Use `model:"Name"` for validations, scopes, callbacks, and more._'
-          lines.join("\n") + NonArModelsAppendix.append_markdown(@non_ar_models)
+          lines.join("\n") + Serializers::ModelDetails::NonArModelsAppendix.append_markdown(@non_ar_models)
         end
       end
     end

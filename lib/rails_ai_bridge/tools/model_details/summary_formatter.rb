@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders a bare list of ActiveRecord model names with optional semantic-tier annotations.
       class SummaryFormatter
         # @param models [Hash{String => Hash}] model name => introspection payload (may include +:semantic_tier+)
-        # @param non_ar_models [Hash, nil] optional +:non_ar_models+ section; appended via {NonArModelsAppendix}
+        # @param non_ar_models [Hash, nil] optional +:non_ar_models+ section; appended via {Serializers::ModelDetails::NonArModelsAppendix}
         def initialize(models:, non_ar_models: nil)
           @models = models
           @non_ar_models = non_ar_models
@@ -23,7 +23,7 @@ module RailsAiBridge
             "- #{m}#{suffix}"
           end.join("\n")
           base = "# Available models (#{@models.size})\n\n#{model_list}\n\n_Use `model:\"Name\"` for full detail._"
-          base + NonArModelsAppendix.append_markdown(@non_ar_models)
+          base + Serializers::ModelDetails::NonArModelsAppendix.append_markdown(@non_ar_models)
         end
       end
     end

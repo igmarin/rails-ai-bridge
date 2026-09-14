@@ -6,7 +6,7 @@ module RailsAiBridge
       # Renders ActiveRecord model names with association and validation counts (and optional tier).
       class StandardFormatter
         # @param models [Hash{String => Hash}] payloads may include +:associations+, +:validations+, +:semantic_tier+, +:error+
-        # @param non_ar_models [Hash, nil] optional +:non_ar_models+ section; appended via {NonArModelsAppendix}
+        # @param non_ar_models [Hash, nil] optional +:non_ar_models+ section; appended via {Serializers::ModelDetails::NonArModelsAppendix}
         def initialize(models:, non_ar_models: nil)
           @models = models
           @non_ar_models = non_ar_models
@@ -31,7 +31,7 @@ module RailsAiBridge
           end
 
           lines << '' << '_Use `model:"Name"` for full detail, or `detail:"full"` for association lists._'
-          lines.join("\n") + NonArModelsAppendix.append_markdown(@non_ar_models)
+          lines.join("\n") + Serializers::ModelDetails::NonArModelsAppendix.append_markdown(@non_ar_models)
         end
       end
     end

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module RailsAiBridge
-  module Tools
+  module Serializers
     module ModelDetails
       # Shared Markdown helpers for appending non-ActiveRecord +app/models+ classes to
       # {Tools::GetModelDetails} output and Claude rules files.

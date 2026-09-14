@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-RSpec.describe RailsAiBridge::Tools::ModelDetails::NonArModelsAppendix do
+RSpec.describe RailsAiBridge::Serializers::ModelDetails::NonArModelsAppendix do
   describe '.entries_from' do
     it 'returns rows for symbol keys' do
       section = { non_ar_models: [{ name: 'Foo' }] }

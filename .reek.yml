@@ -1034,7 +1034,7 @@ detectors:
     - RailsAiBridge::Tools::ListRegistry::RegistryCatalogFormatter#format_catalog
     - RailsAiBridge::Tools::ListRegistry::RegistryCatalogFormatter#format_packs
     - RailsAiBridge::Tools::ModelDetails::FullFormatter#call
-    - RailsAiBridge::Tools::ModelDetails::NonArModelsAppendix#append_markdown
+    - RailsAiBridge::Serializers::ModelDetails::NonArModelsAppendix#append_markdown
     - RailsAiBridge::Tools::ModelDetails::SingleModelFormatter#append_source_macros
     - RailsAiBridge::Tools::ModelDetails::SingleModelFormatter#call
     - RailsAiBridge::Tools::ModelDetails::StandardFormatter#call

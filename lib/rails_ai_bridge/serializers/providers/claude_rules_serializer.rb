@@ -168,7 +168,7 @@ module RailsAiBridge
 
         ##
         # Builds a Markdown reference listing ActiveRecord models (when any) and optional
-        # non-AR +app/models+ classes from {Tools::ModelDetails::NonArModelsAppendix}.
+        # non-AR +app/models+ classes from {Serializers::ModelDetails::NonArModelsAppendix}.
         #
         # Non-AR rows follow the same compact cap as semantic tier lists ({semantic_tier_names_cap} /
         # {SEMANTIC_TIER_LIST_CAP}); +:full+ {Configuration#context_mode} lists all rows.
@@ -180,7 +180,7 @@ module RailsAiBridge
           return nil unless models.is_a?(Hash) && !models[:error]
 
           non_ar_section = context[:non_ar_models]
-          non_ar_entries = RailsAiBridge::Tools::ModelDetails::NonArModelsAppendix.entries_from(non_ar_section)
+          non_ar_entries = RailsAiBridge::Serializers::ModelDetails::NonArModelsAppendix.entries_from(non_ar_section)
           return nil if models.empty? && non_ar_entries.empty?
 
           lines = [
@@ -215,7 +215,7 @@ module RailsAiBridge
         # an overflow hint (same pattern as {append_tier_model_bullets}). In +:full+ mode, lists every row.
         #
         # @param lines [Array<String>] mutable buffer for {render_models_reference}
-        # @param entries [Array<Hash>] normalized rows from {Tools::ModelDetails::NonArModelsAppendix.entries_from}
+        # @param entries [Array<Hash>] normalized rows from {Serializers::ModelDetails::NonArModelsAppendix.entries_from}
         # @param cap [Integer, nil] maximum rows when compact; +nil+ lists all entries
         # @return [void]
         def append_non_ar_models_to_rules(lines, entries, cap)
@@ -227,7 +227,7 @@ module RailsAiBridge
           visible.each do |row|
             name = row[:name] || row['name']
             path = row[:relative_path] || row['relative_path']
-            tag = row[:tag] || row['tag'] || RailsAiBridge::Tools::ModelDetails::NonArModelsAppendix::DEFAULT_TAG
+            tag = row[:tag] || row['tag'] || RailsAiBridge::Serializers::ModelDetails::NonArModelsAppendix::DEFAULT_TAG
             lines << "- **[#{tag}]** `#{name}` — `#{path}`"
           end
 
