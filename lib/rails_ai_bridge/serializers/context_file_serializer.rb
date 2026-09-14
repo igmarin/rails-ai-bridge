@@ -35,16 +35,23 @@ module RailsAiBridge
       # @param fingerprint [String] 12-char source fingerprint computed by the caller
       #   with +Fingerprinter.source_fingerprint(app)+ (required)
       # @param write_options [Hash] optional write options, merged over
-      #   {DEFAULT_WRITE_OPTIONS}: +:format+ [Symbol, Array<Symbol>] format(s) to generate
-      #   (default +:all+); +:split_rules+ [Boolean] whether to generate per-assistant rule
-      #   directories (default +true+); +:on_conflict+ [:overwrite, :skip, :prompt, #call]
-      #   conflict resolution strategy, any object responding to +:call+ is invoked with the
-      #   filepath and must return a truthy value to allow overwriting (default
-      #   +:overwrite+); +:managed_region+ [Boolean, nil] confine generated output to a
-      #   marked region so hand-authored content in the file survives, +nil+ inherits
+      #   {DEFAULT_WRITE_OPTIONS}
+      # @option write_options [Symbol, Array<Symbol>] :format format(s) to generate (default +:all+)
+      # @option write_options [Boolean] :split_rules whether to generate per-assistant rule
+      #   directories (default +true+)
+      # @option write_options [:overwrite, :skip, :prompt, #call] :on_conflict conflict
+      #   resolution strategy; any object responding to +:call+ is invoked with the filepath
+      #   and must return a truthy value to allow overwriting (default +:overwrite+)
+      # @option write_options [Boolean, nil] :managed_region confine generated output to a
+      #   marked region so hand-authored content in the file survives; +nil+ inherits
       #   +config.output.managed_region+ (default +nil+)
-      # @raise [ArgumentError] when +on_conflict+ is not a recognised symbol or callable
+      # @raise [ArgumentError] when +on_conflict+ is not a recognised symbol or callable,
+      #   when +fingerprint+ is nil or empty, or when an unknown write option key is given
       def initialize(context, fingerprint:, **write_options)
+        unknown = write_options.keys - DEFAULT_WRITE_OPTIONS.keys
+        raise ArgumentError, "Unknown write option(s): #{unknown.join(', ')}" unless unknown.empty?
+        raise ArgumentError, 'fingerprint: is required; compute it with Fingerprinter.source_fingerprint(AppScope.current_app)' unless fingerprint
+
         options = DEFAULT_WRITE_OPTIONS.merge(write_options)
         @context     = context
         @format      = options[:format]

@@ -24,8 +24,9 @@ module RailsAiBridge
       #
       # @param context_data [Hash] Introspection data to pass to the serializer
       # @param format [Symbol] Output format (e.g. `:all`, `:claude`, `:cursor`)
-      # @param serializer_class [Class] Serializer class; must respond to `#new(context_data, format:, fingerprint:)` and
-      #   instances must respond to `#call`
+      # @param serializer_class [Class] Serializer class; must respond to
+      #   `#new(context_data, fingerprint:, **write_options)` (+:format+ is passed as a
+      #   write option) and instances must respond to `#call`
       # @return [RailsAiBridge::Service::Result] On success, `data` is `{ written: Array, skipped: Array }`;
       #   on `StandardError`, `success?` is false and `errors` contains the message
       def self.call(context_data, format: :all, serializer_class: Serializers::ContextFileSerializer)
@@ -33,9 +34,11 @@ module RailsAiBridge
       end
 
       # @param context_data [Hash] Introspection data to serialize
+      # @param context_data [Hash] Introspection data to serialize
       # @param serializer_class [Class] Serializer class (see {.call})
       # @param format [Symbol] Output format passed to the serializer
-      # @param fingerprint [String, nil] source fingerprint passed to the serializer (see {.call})
+      # @param fingerprint [String, nil] source fingerprint passed to the serializer; when
+      #   nil, computed from +Fingerprinter.source_fingerprint(AppScope.current_app)+ at call time
       def initialize(context_data, serializer_class: Serializers::ContextFileSerializer, format: :all, fingerprint: nil)
         super()
         @context_data = context_data
