@@ -19,12 +19,6 @@ module RailsAiBridge
         # @param output_dir [String] Root directory where `.cursor/rules` is created.
         # @return [Hash<Symbol, Array<String>>] +:written+ and +:skipped+ arrays of absolute file paths.
         def call(output_dir)
-          rules_dir = File.join(output_dir, '.cursor', 'rules')
-          FileUtils.mkdir_p(rules_dir)
-
-          written = []
-          skipped = []
-
           files = {
             'rails-engineering.mdc' => render_engineering_rule,
             'rails-project.mdc' => render_project_rule,
@@ -33,19 +27,7 @@ module RailsAiBridge
             'rails-mcp-tools.mdc' => render_mcp_tools_rule
           }
 
-          files.each do |filename, content|
-            next unless content
-
-            filepath = File.join(rules_dir, filename)
-            if File.exist?(filepath) && File.read(filepath) == content
-              skipped << filepath
-            else
-              File.write(filepath, content)
-              written << filepath
-            end
-          end
-
-          { written: written, skipped: skipped }
+          RuleFileWriter.new(File.join(output_dir, '.cursor', 'rules')).call(files)
         end
 
         private
