@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Hosted YARD API documentation: a `docs` workflow publishes generated
+  YARD docs to GitHub Pages on every `v*` tag push (same checkout/setup-ruby
+  pinning style as the existing workflows, reuses the `docs:yard` coverage
+  gate); README gains an "API Documentation" link (fixes #262).
 - Positioning page `docs/COMPARISON.md` comparing rails-ai-bridge with
   rails-ai-context, rails-mcp-server, woods, and rails-hyperdrive
   (feature table, download counts, when-to-choose-which), plus a short
