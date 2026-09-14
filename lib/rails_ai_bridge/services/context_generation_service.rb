@@ -34,7 +34,6 @@ module RailsAiBridge
       end
 
       # @param context_data [Hash] Introspection data to serialize
-      # @param context_data [Hash] Introspection data to serialize
       # @param serializer_class [Class] Serializer class (see {.call})
       # @param format [Symbol] Output format passed to the serializer
       # @param fingerprint [String, nil] source fingerprint passed to the serializer; when

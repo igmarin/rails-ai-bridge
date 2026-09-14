@@ -50,7 +50,7 @@ module RailsAiBridge
       def initialize(context, fingerprint:, **write_options)
         unknown = write_options.keys - DEFAULT_WRITE_OPTIONS.keys
         raise ArgumentError, "Unknown write option(s): #{unknown.join(', ')}" unless unknown.empty?
-        raise ArgumentError, 'fingerprint: is required; compute it with Fingerprinter.source_fingerprint(AppScope.current_app)' unless fingerprint
+        raise ArgumentError, 'fingerprint: is required; compute it with Fingerprinter.source_fingerprint(AppScope.current_app)' if fingerprint.to_s.empty?
 
         options = DEFAULT_WRITE_OPTIONS.merge(write_options)
         @context     = context

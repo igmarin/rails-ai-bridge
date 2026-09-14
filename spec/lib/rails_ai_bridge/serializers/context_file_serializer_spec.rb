@@ -226,6 +226,12 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
       end.to raise_error(ArgumentError, /fingerprint/)
     end
 
+    it 'raises ArgumentError when fingerprint is an empty string' do
+      expect do
+        described_class.new(context, format: :claude, fingerprint: '')
+      end.to raise_error(ArgumentError, /fingerprint/)
+    end
+
     it 'raises ArgumentError for an unknown write option' do
       expect do
         described_class.new(context, fingerprint: 'a1b2c3d4e5f6', formt: :claude)

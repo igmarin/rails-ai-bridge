@@ -46,7 +46,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`format:`, `split_rules:`, `on_conflict:`, `managed_region:`) are accepted
   as a `**write_options` group). `ContextGenerationService.call` no longer
   takes a `fingerprint:` override — the fingerprint is always computed at
-  call time; inject one via `.new`. The archspec todo baseline and all
+  call time; inject one via `.new`. Unknown serializer write options now
+  raise `ArgumentError` (matching the previous explicit-keyword behavior).
+  The archspec todo baseline and all
   36 inline `archspec:disable` suppressions are gone;
   `bundle exec archspec check` reports zero violations.
 
