@@ -963,6 +963,7 @@ detectors:
     - RailsAiBridge::Serializers::Providers::CursorRulesSerializer#render_models_rule
     - RailsAiBridge::Serializers::Providers::DevinRulesSerializer#call
     - RailsAiBridge::Serializers::Providers::DevinSerializer#render
+    - RailsAiBridge::Serializers::RuleFileWriter#call
     - RailsAiBridge::Serializers::SharedAssistantGuidance#claude_full_footer_lines
     - RailsAiBridge::Serializers::SharedAssistantGuidance#compact_engineering_rules_footer_lines
     - RailsAiBridge::Serializers::SharedAssistantGuidance#cursor_engineering_mdc_body_lines

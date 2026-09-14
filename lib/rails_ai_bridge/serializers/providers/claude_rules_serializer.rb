@@ -17,24 +17,14 @@ module RailsAiBridge
           @context = context
         end
 
-        # Writes schema, models, and MCP reference files when content changes.
+        # Writes Claude rules Markdown files into the given output directory, creating or
+        # updating files under `.claude/rules`; only files whose generated content changed
+        # are written.
         #
         # @param output_dir [String] Root directory where `.claude/rules` is created.
-        ##
-        # Write Claude rules Markdown files into the given output directory, updating only files whose generated content changed.
-        # @param [String] output_dir - Root directory where the `.claude/rules` files will be created.
-        ##
-        # Writes Claude rule Markdown files into the given output directory, creating or updating files under ".claude/rules".
-        # @param [String] output_dir - Base directory where the ".claude/rules" folder will be created.
         # @return [Hash{Symbol => Array<String>}] Absolute file paths grouped by
         #   whether they were written or skipped because content was unchanged.
         def call(output_dir)
-          rules_dir = File.join(output_dir, '.claude', 'rules')
-          FileUtils.mkdir_p(rules_dir)
-
-          written = []
-          skipped = []
-
           files = {
             'rails-context.md' => render_context_reference,
             'rails-schema.md' => render_schema_reference,
@@ -42,31 +32,19 @@ module RailsAiBridge
             'rails-mcp-tools.md' => render_mcp_tools_reference
           }
 
-          files.each do |filename, content|
-            next unless content
-
-            filepath = File.join(rules_dir, filename)
-            if File.exist?(filepath) && File.read(filepath) == content
-              skipped << filepath
-            else
-              File.write(filepath, content)
-              written << filepath
-            end
-          end
-
-          { written: written, skipped: skipped }
+          RuleFileWriter.new(File.join(output_dir, '.claude', 'rules')).call(files)
         end
 
         private
 
-        ##
-        # Builds a Markdown summary of the application's semantic model context for Claude rules.
+        # Builds a Markdown summary of the application's semantic model context for
+        # Claude auto-discovery.
         #
-        # Includes application metadata, a model classification guide, and model names grouped by semantic tier.
-        ##
-        # Builds a Markdown summary of the application's Rails semantic context
-        # for Claude auto-discovery.
-        # @return [String, nil] The generated Markdown string, or nil when models are missing or contain an error.
+        # Includes application metadata, a model classification guide, and model
+        # names grouped by semantic tier.
+        #
+        # @return [String, nil] The generated Markdown string, or nil when models
+        #   are missing or contain an error.
         def render_context_reference
           models = context[:models]
           return nil if models.is_a?(Hash) && models[:error]
@@ -123,17 +101,11 @@ module RailsAiBridge
           lines.join("\n")
         end
 
-        # @param models [Hash]
-        ##
-        # Group model names by semantic tier.
-        # Skips models whose metadata is a Hash containing `:error`. If a model's `:semantic_tier` is missing, the model is placed under the `"supporting"` tier.
-        # @param [Hash{String=>Object}] models - Mapping of model name to metadata (typically a Hash with optional `:semantic_tier` and/or `:error`).
-        ##
         # Groups model names by their semantic tier.
         #
-        # @param [Hash{String => Hash, String => Object}] models - Model metadata
-        #   keyed by name. Error entries are skipped; blank tiers become
-        #   "supporting".
+        # Error entries are skipped; blank tiers become "supporting".
+        #
+        # @param models [Hash] Model metadata keyed by name.
         # @return [Hash{String => Array<String>}] A hash where each key is a semantic tier and each value is an array of model names assigned to that tier.
         def group_models_by_semantic_tier(models)
           ContextSummary.models_grouped_by_semantic_tier(models, context: context)
@@ -163,10 +135,8 @@ module RailsAiBridge
           lines << "- … +#{remaining} more (use `rails_get_model_details(detail:\"summary\")` for full list)"
         end
 
-        ##
-        # Produce a Markdown listing of database tables from the context schema.
-        ##
         # Produces a Markdown listing of database tables with column counts and primary keys.
+        #
         # @return [String, nil] Markdown table summaries, or `nil` when schema
         #   context is missing, errored, or empty.
         def render_schema_reference

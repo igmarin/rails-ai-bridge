@@ -22,33 +22,15 @@ module RailsAiBridge
         # @param output_dir [String] Root directory (typically the Rails app root) where `.devin/rules` is created.
         # @return [Hash<Symbol, Array<String>>] +:written+ and +:skipped+ arrays of absolute file paths.
         def call(output_dir)
-          rules_dir = File.join(output_dir, '.devin', 'rules')
-          FileUtils.mkdir_p(rules_dir)
-
-          written = []
-          skipped = []
-
           files = {
             'rails-context.md' => render_context_rule,
             'rails-mcp-tools.md' => render_mcp_tools_rule
           }
 
-          files.each do |filename, content|
-            next unless content
+          # Enforce Devin's 6K limit
+          files.transform_values! { |content| content && content[0...MAX_CHARS_PER_FILE] }
 
-            # Enforce Devin's 6K limit
-            content = content[0...MAX_CHARS_PER_FILE] if content.length > MAX_CHARS_PER_FILE
-
-            filepath = File.join(rules_dir, filename)
-            if File.exist?(filepath) && File.read(filepath) == content
-              skipped << filepath
-            else
-              File.write(filepath, content)
-              written << filepath
-            end
-          end
-
-          { written: written, skipped: skipped }
+          RuleFileWriter.new(File.join(output_dir, '.devin', 'rules')).call(files)
         end
 
         private

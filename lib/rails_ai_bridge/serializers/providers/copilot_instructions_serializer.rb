@@ -19,31 +19,13 @@ module RailsAiBridge
         # @param output_dir [String] Root directory where `.github/instructions` is created.
         # @return [Hash<Symbol, Array<String>>] +:written+ and +:skipped+ arrays of absolute file paths.
         def call(output_dir)
-          dir = File.join(output_dir, '.github', 'instructions')
-          FileUtils.mkdir_p(dir)
-
-          written = []
-          skipped = []
-
           files = {
             'rails-models.instructions.md' => render_models_instructions,
             'rails-controllers.instructions.md' => render_controllers_instructions,
             'rails-mcp-tools.instructions.md' => render_mcp_tools_instructions
           }
 
-          files.each do |filename, content|
-            next unless content
-
-            filepath = File.join(dir, filename)
-            if File.exist?(filepath) && File.read(filepath) == content
-              skipped << filepath
-            else
-              File.write(filepath, content)
-              written << filepath
-            end
-          end
-
-          { written: written, skipped: skipped }
+          RuleFileWriter.new(File.join(output_dir, '.github', 'instructions')).call(files)
         end
 
         private
