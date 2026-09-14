@@ -57,6 +57,24 @@ RSpec.describe RailsAiBridge::Tools::Query do
     it 'runs a plain SELECT' do
       expect(text_of(described_class.call(sql: 'SELECT name FROM rb_query_things'))).to include('alpha')
     end
+
+    %w[EXPLAIN SHOW CALL DO COPY VALUES].each do |verb|
+      it "rejects #{verb} as a non-SELECT verb" do
+        sql = case verb
+              when 'EXPLAIN' then 'EXPLAIN SELECT 1'
+              when 'SHOW' then 'SHOW TABLES'
+              when 'CALL' then 'CALL some_proc()'
+              when 'DO' then 'DO $$ BEGIN NULL; END $$'
+              when 'COPY' then 'COPY rb_query_things TO STDOUT'
+              else 'VALUES (1)'
+              end
+        expect(text_of(described_class.call(sql: sql))).to include('error')
+      end
+    end
+
+    it 'rejects a leading SQL comment even when the rest is SELECT' do
+      expect(text_of(described_class.call(sql: '/* x */ SELECT name FROM rb_query_things'))).to include('error')
+    end
   end
 
   describe 'row cap' do
@@ -79,6 +97,20 @@ RSpec.describe RailsAiBridge::Tools::Query do
     it 'returns a timeout error when the execution exceeds the statement timeout' do
       allow(Timeout).to receive(:timeout).and_raise(Timeout::Error)
       expect(text_of(described_class.call(sql: 'SELECT name FROM rb_query_things'))).to include('timed out')
+    end
+
+    it 'sets PostgreSQL statement_timeout instead of relying only on Timeout.timeout' do
+      connection = instance_double(ActiveRecord::ConnectionAdapters::AbstractAdapter, adapter_name: 'PostgreSQL')
+      allow(ApplicationRecord).to receive(:connection).and_return(connection)
+      allow(connection).to receive(:transaction).and_yield
+      allow(connection).to receive(:execute)
+      allow(connection).to receive(:select_all).and_return(ActiveRecord::Result.new(['x'], []))
+      allow(Timeout).to receive(:timeout)
+
+      described_class.call(sql: 'SELECT 1')
+
+      expect(connection).to have_received(:execute).with('SET LOCAL statement_timeout = 5000')
+      expect(Timeout).not_to have_received(:timeout)
     end
   end
 

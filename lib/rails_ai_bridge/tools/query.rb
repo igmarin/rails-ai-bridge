@@ -100,8 +100,28 @@ module RailsAiBridge
       # @return [Object] the block's result
       # @raise [Timeout::Error] when execution exceeds TIMEOUT_SECONDS
       def self.with_timeout(&)
-        Timeout.timeout(TIMEOUT_SECONDS, &)
+        connection = ApplicationRecord.connection
+        if connection.adapter_name.match?(/postgre/i)
+          with_postgres_timeout(connection, &)
+        else
+          Timeout.timeout(TIMEOUT_SECONDS, &)
+        end
       end
+
+      # Caps the statement on PostgreSQL via SET LOCAL (Timeout.timeout cannot
+      # interrupt a stuck libpq call). Other adapters keep the Ruby timeout.
+      #
+      # @param connection [ActiveRecord::ConnectionAdapters::AbstractAdapter]
+      # @yield the statement execution
+      # @return [Object] the block's result
+      def self.with_postgres_timeout(connection, &)
+        ms = (TIMEOUT_SECONDS * 1000).to_i
+        connection.transaction do
+          connection.execute("SET LOCAL statement_timeout = #{ms}")
+          yield
+        end
+      end
+      private_class_method :with_postgres_timeout
 
       # Redacts values under credential-like column names.
       #

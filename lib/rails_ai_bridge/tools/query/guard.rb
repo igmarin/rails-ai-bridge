@@ -14,12 +14,15 @@ module RailsAiBridge
         # statement. One trailing semicolon is tolerated; any inner semicolon
         # is not (a semicolon inside a string literal is rejected too — v1 is
         # conservative because parsing SQL literals is error-prone).
+        #
+        # The statement must start with SELECT (leading whitespace only). Comments,
+        # EXPLAIN, SHOW, VALUES, WITH, and other verbs are rejected — a denylist
+        # of mutating keywords is not enough.
         REJECTION_RULES = [
           [/\A\s*\z/, 'SQL must not be empty'],
           [/;\s*\S/, 'only a single statement is allowed (no semicolons)'],
           [/\A\s*with\b/i, 'WITH (CTE) queries are not allowed; rewrite as a plain SELECT'],
-          [/\A\s*(insert|update|delete|alter|create|drop|truncate|replace|pragma|attach|begin|commit|rollback|grant|revoke|vacuum|analyze|reindex)\b/i,
-           'only SELECT statements are allowed'],
+          [/\A(?!\s*select\b)/i, 'only SELECT statements are allowed'],
           [/\bfor\s+(update|share|no\s+key\s+update|key\s+share)\b/i, 'only non-locking, non-mutating SELECT statements are allowed'],
           [/\binto\b/i, 'only non-locking, non-mutating SELECT statements are allowed']
         ].freeze
