@@ -78,25 +78,26 @@ module RailsAiBridge
       # @return [String, nil] safe size bucket label
       def label
         return @value if SAFE_LABELS.include?(@value)
-        return nil if @value.is_a?(Numeric) && @value.negative?
-        return nil unless rows
-        return nil if rows.negative?
+        return nil if unparsable_or_negative?
 
         BUCKETS.find { |range, _bucket| range.cover?(rows) }&.last || 'hot'
       end
 
       private
 
-      def rows
-        # `defined?` (not `||=`) so a parsed nil result stays memoized.
-        return @rows if defined?(@rows)
+      def unparsable_or_negative?
+        return true if @value.is_a?(Numeric) && @value.negative?
+        return true unless rows
 
-        @rows =
-          case @value
-          when Integer then @value
-          when Numeric then @value.to_i
-          when String then Integer(@value, exception: false)
-          end
+        rows.negative?
+      end
+
+      def rows
+        case @value
+        when Integer then @value
+        when Numeric then @value.to_i
+        when String then Integer(@value, exception: false)
+        end
       end
     end
   end
