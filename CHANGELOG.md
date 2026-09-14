@@ -17,7 +17,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   mix). Parity and release-consistency specs now guard the `server.json`
   version and tool counts (fixes #245).
 
-
 ## [5.1.0] - 2026-09-11
 
 ### Changed
