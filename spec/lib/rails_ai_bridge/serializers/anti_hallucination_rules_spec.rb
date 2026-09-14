@@ -62,6 +62,12 @@ RSpec.describe 'anti-hallucination rules injection' do
       end
     end
 
+    it 'renders the rules block exactly once' do
+      with_rules(true) do
+        expect(payload.scan(heading).size).to eq(1)
+      end
+    end
+
     it 'omits the rules block when disabled' do
       with_rules(false) do
         expect(payload).not_to include(heading)
@@ -159,6 +165,66 @@ RSpec.describe 'anti-hallucination rules injection' do
 
       generated = RailsAiBridge::Serializers::ManagedRegion.extract(File.read(File.join(dir, 'CLAUDE.md')))
       expect(generated).to include(heading)
+    end
+  end
+end
+
+RSpec.describe RailsAiBridge::Serializers::AntiHallucinationRules do
+  around do |example|
+    original = RailsAiBridge.configuration.anti_hallucination_rules
+    example.run
+  ensure
+    RailsAiBridge.configuration.anti_hallucination_rules = original
+  end
+
+  describe '.rules' do
+    it 'returns the rule bullets when enabled' do
+      RailsAiBridge.configuration.anti_hallucination_rules = true
+      expect(described_class.rules).to all(start_with('- '))
+      expect(described_class.rules.size).to eq(6)
+    end
+
+    it 'returns an empty array when disabled' do
+      RailsAiBridge.configuration.anti_hallucination_rules = false
+      expect(described_class.rules).to be_empty
+    end
+  end
+
+  describe '.markdown_lines' do
+    it 'opens with the named heading and closes with a blank line when enabled' do
+      RailsAiBridge.configuration.anti_hallucination_rules = true
+      expect(described_class.markdown_lines.first).to eq(described_class::HEADING)
+      expect(described_class.markdown_lines.last).to eq('')
+    end
+
+    it 'returns no lines when disabled' do
+      RailsAiBridge.configuration.anti_hallucination_rules = false
+      expect(described_class.markdown_lines).to be_empty
+    end
+  end
+
+  describe '.markdown_block' do
+    it 'joins the section without a trailing newline when enabled' do
+      RailsAiBridge.configuration.anti_hallucination_rules = true
+      expect(described_class.markdown_block).to end_with('- Re-query after writes. Stale tool output lies.')
+    end
+
+    it 'returns nil when disabled' do
+      RailsAiBridge.configuration.anti_hallucination_rules = false
+      expect(described_class.markdown_block).to be_nil
+    end
+  end
+
+  describe 'SectionFormatter' do
+    it 'renders the markdown block' do
+      RailsAiBridge.configuration.anti_hallucination_rules = true
+      expect(described_class::SectionFormatter.new({}).call)
+        .to eq(described_class.markdown_block)
+    end
+
+    it 'renders nil so MarkdownSerializer filter_map skips it when disabled' do
+      RailsAiBridge.configuration.anti_hallucination_rules = false
+      expect(described_class::SectionFormatter.new({}).call).to be_nil
     end
   end
 end

@@ -67,8 +67,6 @@ module RailsAiBridge
           lines << "- **Environment:** #{context[:environment]}" if context[:environment].present?
           lines << ''
 
-          lines.concat(SharedAssistantGuidance.anti_hallucination_rules_lines)
-
           lines << '## Model classification'
           lines << ''
           lines << 'Tags guide AI attention:'
