@@ -25,6 +25,11 @@ RSpec.describe RailsAiBridge::DatabaseSize do
     it 'returns nil for negative counts (invalid statistics sentinels)' do
       expect(described_class.bucket(-1)).to be_nil
       expect(described_class.bucket(-10_000_000)).to be_nil
+      expect(described_class.bucket(-0.5)).to be_nil
+    end
+
+    it 'truncates positive float counts' do
+      expect(described_class.bucket(1_500_000.0)).to eq('large')
     end
 
     it 'passes precomputed safe labels through unchanged' do

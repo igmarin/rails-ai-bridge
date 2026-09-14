@@ -78,6 +78,7 @@ module RailsAiBridge
       # @return [String, nil] safe size bucket label
       def label
         return @value if SAFE_LABELS.include?(@value)
+        return nil if @value.is_a?(Numeric) && @value.negative?
         return nil unless rows
         return nil if rows.negative?
 
@@ -87,7 +88,9 @@ module RailsAiBridge
       private
 
       def rows
-        @rows ||=
+        return @rows if defined?(@rows)
+
+        @rows =
           case @value
           when Integer then @value
           when Numeric then @value.to_i
