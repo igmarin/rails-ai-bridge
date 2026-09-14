@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-RSpec.describe RailsAiBridge::PathResolver do
+RSpec.describe RailsAiBridge::Introspectors::PathResolver do
   let(:fixture) do
     root_path = Dir.mktmpdir('rails-ai-bridge-path-resolver')
     root = Pathname.new(root_path)

@@ -1,8 +1,8 @@
 ---
 violations:
-- id: 6fda8887f939e495063d7a26
+- id: 8cee1e8d17b49986537542a1
   rule: dependencies.no_cycles
-  path: lib/rails_ai_bridge/introspectors/action_text_introspector.rb
-  line: 12
+  path: lib/rails_ai_bridge/introspectors/controller_introspector.rb
+  line: 60
   message: 'component dependency cycle among 6 components: introspectors, mcp_transport,
     rubydex, runtime_context, serializers, tools'
