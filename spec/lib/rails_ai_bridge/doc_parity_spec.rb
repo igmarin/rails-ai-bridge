@@ -9,6 +9,8 @@ require 'spec_helper'
 RSpec.describe 'documentation parity with source constants' do
   let(:readme_path) { File.expand_path('../../../README.md', __dir__) }
   let(:readme_content) { File.read(readme_path) }
+  let(:server_json) { JSON.parse(File.read(File.expand_path('../../../server.json', __dir__))) }
+  let(:contributing_content) { File.read(File.expand_path('../../../CONTRIBUTING.md', __dir__)) }
 
   describe 'MCP tool count' do
     it 'matches the number of tools in README.md' do
@@ -24,6 +26,37 @@ RSpec.describe 'documentation parity with source constants' do
                                   "README.md says #{documented_count} tools but " \
                                   "RailsAiBridge::Server::TOOLS has #{actual_count}. " \
                                   'Update README.md to match.'
+    end
+  end
+
+  describe 'server.json tool count' do
+    it 'matches the number of tools in Server::TOOLS' do
+      actual_count = RailsAiBridge::Server::TOOLS.size
+      match = server_json['description'].match(/(\d+)\s+read-only\s+tools/)
+
+      expect(match).not_to be_nil,
+                           'server.json description must state the tool count as "N read-only tools"'
+
+      documented_count = match[1].to_i
+      expect(documented_count).to eq(actual_count),
+                                  "server.json says #{documented_count} tools but " \
+                                  "RailsAiBridge::Server::TOOLS has #{actual_count}. " \
+                                  'Update server.json to match.'
+    end
+  end
+
+  describe 'CONTRIBUTING.md tool count' do
+    it 'matches the number of tools in Server::TOOLS' do
+      actual_count = RailsAiBridge::Server::TOOLS.size
+      counts = contributing_content.scan(/(\d+)\s+built-in MCP tools/).flatten.map(&:to_i)
+
+      expect(counts).not_to be_empty,
+                            'CONTRIBUTING.md must state the tool count as "N built-in MCP tools"'
+
+      expect(counts).to all(eq(actual_count)),
+                        "CONTRIBUTING.md mentions tool counts #{counts.inspect} but " \
+                        "RailsAiBridge::Server::TOOLS has #{actual_count}. " \
+                        'Update CONTRIBUTING.md to match.'
     end
   end
 

@@ -2,11 +2,11 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.igmarin/rails-ai-bridge",
   "title": "Rails AI Bridge",
-  "description": "Auto-expose Rails app structure to AI via MCP. Zero config, 13 read-only tools, skill pack registry.",
+  "description": "Auto-expose Rails app structure to AI via MCP. Zero config, 20 read-only tools, skill pack registry.",
   "repository": {
     "url": "https://github.com/igmarin/rails-ai-bridge",
     "source": "github"
   },
-  "version": "3.0.0",
+  "version": "5.1.0",
   "websiteUrl": "https://github.com/igmarin/rails-ai-bridge"
 }
