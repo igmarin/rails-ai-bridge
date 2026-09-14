@@ -832,6 +832,19 @@ The gem parses `db/schema.rb` as text when no database is connected. Works in CI
 
 ---
 
+## How it compares
+
+Several Rails projects map an app for AI tools; they optimize for different
+things. rails-ai-context leads on tool breadth (45 tools, CLI mode, Prism
+confidence tags), rails-mcp-server on multi-project exploration, woods on
+persistent dependency-graph analysis, and rails-hyperdrive on a
+companion-gem content ecosystem. rails-ai-bridge focuses on compact
+per-assistant context files for 7 targets, SHA256 diff-aware regeneration,
+strict read-only tools, and outbound provider federation with SSRF
+controls — and does not yet ship a dependency graph, SQL read path, CLI
+mode, or multi-project support. See [docs/COMPARISON.md](docs/COMPARISON.md)
+for the full feature table with sources and download counts.
+
 ## vs. Other Ruby MCP Projects
 
 | Project | Approach | rails-ai-bridge |

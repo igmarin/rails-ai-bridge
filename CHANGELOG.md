@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Positioning page `docs/COMPARISON.md` comparing rails-ai-bridge with
+  rails-ai-context, rails-mcp-server, woods, and rails-hyperdrive
+  (feature table, download counts, when-to-choose-which), plus a short
+  "How it compares" section in the README (fixes #263).
 - Runnable example app under `examples/demo_app` — a minimal Rails 8 app
   (3 models, 3 controllers, 3 tables) that boots without a database and
   demonstrates install, context generation for all 7 assistant targets, and
