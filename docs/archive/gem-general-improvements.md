@@ -2,7 +2,7 @@
 
 > **Status:** Done in **4.1**. Historical only — not an open backlog.
 >
-> Shipped in [4.1.0](../CHANGELOG.md#410---2026-08-11): manifest validation (#123),
+> Shipped in [4.1.0](../../CHANGELOG.md#410---2026-08-11): manifest validation (#123),
 > pack lockfile (later path defaults in 4.2 #155), rake JSON (#128), full SHA-256 cache
 > keys (#122), transitive `depends_on` (#126), JWT MCP auth docs (#129), structured
 > registry git logging (#131). Treat this file as an archive of that planning, not as

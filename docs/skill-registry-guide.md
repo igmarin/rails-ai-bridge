@@ -1,6 +1,6 @@
 # Skill Registry Guide
 
-This guide walks you through setting up and using the rails-ai-bridge skill registry. If you want the dry technical reference instead, see [docs/registry-resolution.md](registry-resolution.md).
+This guide walks you through setting up and using the rails-ai-bridge skill registry. If you want the dry technical reference instead, see [docs/port-registry-resolution.md](port-registry-resolution.md).
 
 ## What problem this solves
 
