@@ -12,7 +12,7 @@ Status of `server.json` (verified at authoring time; re-run Step 2 before publis
 
 - `mcp-publisher validate server.json` → ✅ valid against
   https://registry.modelcontextprotocol.io
-- `version` `5.1.0` matches `RailsAiBridge::VERSION` (parity spec guards
+- `version` `5.1.1` matches `RailsAiBridge::VERSION` (parity spec guards
   this; see #245)
 - `name` `io.github.igmarin/rails-ai-bridge` matches the required
   reverse-DNS pattern and the GitHub namespace ownership rule
