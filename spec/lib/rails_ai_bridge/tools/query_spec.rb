@@ -16,8 +16,11 @@ RSpec.describe RailsAiBridge::Tools::Query do
       t.string :password_digest
       t.string :encrypted_password
       t.string :secret_access_key
+      t.string :author
     end
-    connection.execute "INSERT INTO rb_query_variants (password_digest, encrypted_password, secret_access_key) VALUES ('digest-value', 'encrypted-value', 'key-value')"
+    connection.execute 'INSERT INTO rb_query_variants ' \
+                       '(password_digest, encrypted_password, secret_access_key, author) ' \
+                       "VALUES ('digest-value', 'encrypted-value', 'key-value', 'Jane Doe')"
   end
 
   after do
@@ -175,6 +178,12 @@ RSpec.describe RailsAiBridge::Tools::Query do
     it 'redacts secret_access_key values' do
       result = described_class.call(sql: 'SELECT secret_access_key FROM rb_query_variants')
       expect(text_of(result)).to include('[redacted]')
+    end
+
+    it 'does not redact non-credential columns like author' do
+      result = described_class.call(sql: 'SELECT author FROM rb_query_variants')
+      expect(text_of(result)).not_to include('[redacted]')
+      expect(text_of(result)).to include('Jane Doe')
     end
   end
 

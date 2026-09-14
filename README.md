@@ -275,7 +275,7 @@ This keeps context focused and avoids unnecessary token usage while still allowi
 
 ## MCP Tools
 
-The gem exposes **22 built-in tools** via MCP that AI clients call on-demand (hosts can append more via `config.additional_tools`).
+The gem exposes **22 built-in tool classes** via MCP — 20 registered by default, 2 data-access tools behind `config.enable_data_tools` (hosts can append more via `config.additional_tools`):
 
 > **Operator callout — data-access tools are opt-in.** `rails_query` and
 > `rails_read_logs` are **disabled by default** (`config.enable_data_tools = false`)

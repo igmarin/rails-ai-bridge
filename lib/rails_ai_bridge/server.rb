@@ -58,6 +58,8 @@ module RailsAiBridge
     # Data-access tools reach live application data (database rows, log files)
     # and bypass MCP introspection exclusions. They stay in TOOLS but are only
     # registered when config.enable_data_tools is true (default: false).
+    #
+    # @return [Array<Class>] tool classes gated behind config.enable_data_tools
     DATA_TOOLS = [
       Tools::Query,
       Tools::ReadLogs
