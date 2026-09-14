@@ -10,10 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - `DatabaseSize.bucket` and `DatabaseSize.bucket_for_table` no longer classify
-  invalid row counts as the `hot` bucket. Negative counts (e.g. stale or
-  unanalyzed PostgreSQL statistics sentinels) and non-numeric values now
-  return `nil` instead of being bucketed as `hot` (fallback) or `small`
-  (`to_i` coercion). Callers already treat `nil` as "no size data".
+  invalid row counts as the `hot` bucket. Negative counts, including negative
+  fractional counts (e.g. stale or unanalyzed PostgreSQL statistics sentinels),
+  and non-numeric values now return `nil` instead of being bucketed as `hot`
+  (fallback) or `small` (`to_i` truncation/coercion). Callers already treat
+  `nil` as "no size data".
 
 - `server.json` no longer drifts from the released gem: its `version` now
   matches `RailsAiBridge::VERSION` (was stale at `3.0.0`) and the description

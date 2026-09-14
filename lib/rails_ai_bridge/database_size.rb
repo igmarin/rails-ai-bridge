@@ -88,6 +88,7 @@ module RailsAiBridge
       private
 
       def rows
+        # `defined?` (not `||=`) so a parsed nil result stays memoized.
         return @rows if defined?(@rows)
 
         @rows =
