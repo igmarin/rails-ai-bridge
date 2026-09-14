@@ -13,6 +13,9 @@
 #
 # See https://archspecrb.dev for the full DSL guide.
 
+# Baseline the known 6-component SCC cycle (issue #250) — remove via Fix 1-5 in #250.
+todo 'archspec_todo.yml'
+
 source 'lib/rails_ai_bridge/**/*.rb'
 
 # Configuration layer — user-facing settings and presets.
