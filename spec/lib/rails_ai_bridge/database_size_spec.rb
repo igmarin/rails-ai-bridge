@@ -22,8 +22,14 @@ RSpec.describe RailsAiBridge::DatabaseSize do
       expect(described_class.bucket(25_000_000)).to eq('hot')
     end
 
-    it 'maps negative counts to hot' do
-      expect(described_class.bucket(-1)).to eq('hot')
+    it 'returns nil for negative counts (invalid statistics sentinels)' do
+      expect(described_class.bucket(-1)).to be_nil
+      expect(described_class.bucket(-10_000_000)).to be_nil
+      expect(described_class.bucket(-0.5)).to be_nil
+    end
+
+    it 'truncates positive float counts' do
+      expect(described_class.bucket(1_500_000.0)).to eq('large')
     end
 
     it 'passes precomputed safe labels through unchanged' do
@@ -33,9 +39,12 @@ RSpec.describe RailsAiBridge::DatabaseSize do
       expect(described_class.bucket('hot')).to eq('hot')
     end
 
-    it 'coerces unknown values through to_i' do
+    it 'parses numeric strings' do
       expect(described_class.bucket('75000')).to eq('medium')
-      expect(described_class.bucket('gigantic')).to eq('small')
+    end
+
+    it 'returns nil for non-numeric strings' do
+      expect(described_class.bucket('gigantic')).to be_nil
     end
   end
 
@@ -56,6 +65,30 @@ RSpec.describe RailsAiBridge::DatabaseSize do
       }
 
       expect(described_class.bucket_for_table(context, 'users')).to eq('hot')
+    end
+
+    it 'returns nil for an invalid precomputed size bucket label' do
+      context = {
+        database_stats: {
+          tables: [
+            { table: 'users', approximate_rows: 12, size_bucket: 'gigantic' }
+          ]
+        }
+      }
+
+      expect(described_class.bucket_for_table(context, 'users')).to be_nil
+    end
+
+    it 'buckets numeric string approximate_rows' do
+      context = {
+        database_stats: {
+          tables: [
+            { table: 'events', approximate_rows: '75000' }
+          ]
+        }
+      }
+
+      expect(described_class.bucket_for_table(context, 'events')).to eq('medium')
     end
 
     it 'matches string-keyed table rows' do

@@ -8,7 +8,8 @@ module RailsAiBridge
   # layer and the serializer layer can use it without introspectors depending
   # on serializers (an ArchSpec boundary violation).
   class DatabaseSize
-    # @param row_count [Integer, nil]
+    # @param row_count [Integer, Float, String, nil] approximate row count,
+    #   precomputed safe label, or numeric string
     # @return [String, nil] safe size bucket label
     def self.bucket(row_count)
       BucketLabel.new(row_count).label
@@ -25,7 +26,8 @@ module RailsAiBridge
       @context = context
     end
 
-    # @param row_count [Integer, nil]
+    # @param row_count [Integer, Float, String, nil] approximate row count,
+    #   precomputed safe label, or numeric string
     # @return [String, nil] safe size bucket label
     delegate :bucket, to: :class
 
@@ -76,15 +78,26 @@ module RailsAiBridge
       # @return [String, nil] safe size bucket label
       def label
         return @value if SAFE_LABELS.include?(@value)
-        return nil unless rows
+        return nil if unparsable_or_negative?
 
         BUCKETS.find { |range, _bucket| range.cover?(rows) }&.last || 'hot'
       end
 
       private
 
+      def unparsable_or_negative?
+        return true if @value.is_a?(Numeric) && @value.negative?
+        return true unless rows
+
+        rows.negative?
+      end
+
       def rows
-        @rows ||= @value&.to_i
+        case @value
+        when Integer then @value
+        when Numeric then @value.to_i
+        when String then Integer(@value, exception: false)
+        end
       end
     end
   end
