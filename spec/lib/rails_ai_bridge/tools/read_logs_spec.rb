@@ -71,8 +71,15 @@ RSpec.describe RailsAiBridge::Tools::ReadLogs do
     end
 
     it 'caps lines at a hard maximum regardless of request' do
-      result = described_class.call(file: 'production.log', lines: 1_000_000)
-      expect(text_of(result).lines.size).to be <= described_class::MAX_LINES
+      big = log_dir.join('big.log')
+      total = described_class::MAX_LINES + 100
+      File.write(big, Array.new(total) { |i| "row #{i}" }.join("\n") << "\n")
+      payload = JSON.parse(text_of(described_class.call(file: 'big.log', lines: 1_000_000)))
+      expect(payload['lines'].size).to eq(described_class::MAX_LINES)
+      expect(payload['total_lines']).to eq(total)
+      expect(payload['lines'].last).to eq("row #{total - 1}")
+    ensure
+      FileUtils.rm_f(big)
     end
   end
 
@@ -80,6 +87,19 @@ RSpec.describe RailsAiBridge::Tools::ReadLogs do
     it 'redacts credential patterns before returning' do
       expect(text_of(described_class.call(file: 'production.log'))).not_to include('supersecret123')
       expect(text_of(described_class.call(file: 'production.log'))).to include('[redacted]')
+    end
+  end
+
+  describe 'invalid utf-8 at the byte cap' do
+    it 'returns a redacted tail when the byte cap splits a multibyte character' do
+      wide = log_dir.join('utf8.log')
+      line = ('a' * 1_999) + ('é' * 100)
+      File.write(wide, "#{line}\nplain tail line\n")
+      payload = JSON.parse(text_of(described_class.call(file: 'utf8.log')))
+      expect(payload).not_to have_key('error')
+      expect(payload['lines'].last).to eq('plain tail line')
+    ensure
+      FileUtils.rm_f(wide)
     end
   end
 
@@ -99,6 +119,18 @@ RSpec.describe RailsAiBridge::Tools::ReadLogs do
   end
 
   describe 'error contract' do
+    it 'redacts error messages written to the Rails log' do
+      formatter = instance_double(described_class::TailFormatter)
+      allow(described_class::TailFormatter).to receive(:new).and_return(formatter)
+      allow(formatter).to receive(:format).and_raise(StandardError, 'boom token=supersecret123')
+      logged = []
+      allow(Rails.logger).to receive(:error) { |*args| logged.concat(args) }
+
+      described_class.call(file: 'production.log')
+
+      expect(logged.join("\n")).not_to include('supersecret123')
+    end
+
     it 'returns a JSON payload with an error key for missing files' do
       payload = JSON.parse(text_of(described_class.call(file: 'no_such_file_rails_ai_bridge.log')))
       expect(payload).to have_key('error')

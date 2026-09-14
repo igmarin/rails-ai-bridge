@@ -26,7 +26,7 @@ module RailsAiBridge
       # Default detail-level tails.
       LINES_BY_DETAIL = { 'summary' => 0, 'standard' => 50, 'full' => MAX_LINES }.freeze
 
-      # Fallback tail for an unrecognized detail level.
+      # Fallback tail length for an unrecognized detail level.
       DEFAULT_LINES = 50
 
       input_schema(
@@ -69,39 +69,33 @@ module RailsAiBridge
         execution_failure(error)
       end
 
-      # Builds and formats the response for a located log file.
-      #
-      # @param log_path [Pathname] resolved log file path
-      # @param lines [Integer, nil] requested tail length
-      # @param detail [String] detail level
-      # @return [MCP::Tool::Response] compact JSON payload
-      def self.respond(log_path, lines, detail)
+      private_class_method def self.respond(log_path, lines, detail)
         payload = TailFormatter.new(log_path, lines: lines, detail: detail).format
         text_response(payload.to_json)
       end
 
-      # Builds an error response following the {"error": message} contract.
-      #
-      # @param message [String] error message
-      # @return [MCP::Tool::Response]
-      def self.error_response(message)
+      private_class_method def self.error_response(message)
         text_response({ error: message }.to_json)
       end
 
-      # Logs a failed read with message and backtrace head, then returns the
-      # sanitized error.
+      # Logs a failed read with sanitized message and backtrace head, then
+      # returns the sanitized error.
       #
       # @param error [StandardError] raised error
       # @return [MCP::Tool::Response] sanitized error payload
-      def self.execution_failure(error)
-        message = error.message
+      private_class_method def self.execution_failure(error)
+        message = Registry::MessageSanitizer.sanitize(error.message)
         logger = Rails.logger
         logger.error(message)
         logger.error(error.backtrace.first(5).join("\n"))
-        error_response(Registry::MessageSanitizer.sanitize(message))
+        error_response(message)
       end
 
       # Formats a log tail: file metadata plus the redacted, capped tail lines.
+      #
+      # The file is consumed in a single streaming pass; tail lines are kept in
+      # a buffer capped at the requested length, so memory stays bounded no
+      # matter how large the log file is.
       class TailFormatter
         # @param log_path [Pathname] resolved log file path
         # @param lines [Integer, nil] requested tail length
@@ -114,16 +108,29 @@ module RailsAiBridge
 
         # Builds the payload.
         #
-        # @return [Hash] compact payload with +file+, +size_bytes+, +tail_lines+
+        # @return [Hash] compact payload with +file+, +size_bytes+, +total_lines+
+        #   and (for non-summary detail) redacted tail +lines+
         def format
+          tail_lines = []
+          total = 0
+          cap = @detail == 'summary' ? 0 : tail_length
+
+          @log_path.each_line do |line|
+            total += 1
+            next if cap.zero?
+
+            tail_lines << redact(line)
+            tail_lines.shift while tail_lines.size > cap
+          end
+
           payload = {
             file: @log_path.basename.to_s,
             size_bytes: @log_path.size,
-            total_lines: total_lines
+            total_lines: total
           }
-          return payload if @detail == 'summary'
+          return payload if cap.zero?
 
-          payload.merge(lines: redacted_tail(tail_length))
+          payload.merge(lines: tail_lines)
         end
 
         private
@@ -137,22 +144,13 @@ module RailsAiBridge
           requested.clamp(1, ReadLogs::MAX_LINES)
         end
 
-        # Number of lines in the file.
+        # Byte-caps, scrubs, and redacts a single line.
         #
-        # @return [Integer]
-        def total_lines
-          @log_path.each_line.count
-        end
-
-        # Last +length+ lines, byte-capped per line and redacted.
-        #
-        # @param length [Integer] number of tail lines
-        # @return [Array<String>] redacted tail lines
-        def redacted_tail(length)
-          @log_path.each_line.to_a.last(length).map do |line|
-            trimmed = line.byteslice(0, ReadLogs::MAX_LINE_BYTES)
-            Registry::MessageSanitizer.sanitize(trimmed.chomp)
-          end
+        # @param line [String] raw line from the log file
+        # @return [String] redacted line
+        def redact(line)
+          trimmed = line.byteslice(0, ReadLogs::MAX_LINE_BYTES).scrub
+          Registry::MessageSanitizer.sanitize(trimmed.chomp)
         end
       end
     end
