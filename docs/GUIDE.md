@@ -191,8 +191,9 @@ The same engineering baseline intentionally appears in Copilot, Codex, and Curso
 Every generated file opens with a `## Anti-hallucination rules` section (right after the
 freshness header / document intro) telling the assistant to verify before it writes:
 query the `rails_*` MCP tools for columns, associations, and routes; mark guesses with
-`[ASSUMPTION]`; re-query after writes. The same six rules are also embedded in
-`.ai-context.json` as an `anti_hallucination_rules` array key.
+`[ASSUMPTION]`; re-query after writes. The same rules are also embedded in
+`.ai-context.json` as an `anti_hallucination_rules` array key. The wording lives in
+`RailsAiBridge::Serializers::AntiHallucinationRules` — a single source of truth.
 
 The block is injected into all markdown outputs (main context files **and** the
 split-rules files under `.claude/rules/`, `.cursor/rules/`, `.devin/rules/`, `.codex/`,

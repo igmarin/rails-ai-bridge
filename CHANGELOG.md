@@ -17,16 +17,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `## Anti-hallucination rules`, rendered by the single
   `RailsAiBridge::Serializers::AntiHallucinationRules` collaborator and controlled by
   `config.output.anti_hallucination_rules`, default `true`): the 7 main context files
-  (`CLAUDE.md`, `AGENTS.md`, `.cursorrules`, `.devinrules`, copilot-instructions.md,
+  (`CLAUDE.md`, `AGENTS.md`, `.cursorrules`, `.devinrules`, `.github/copilot-instructions.md`,
   `GEMINI.md`, and `.ai-context.json`, which gains an `anti_hallucination_rules` array
   key) plus the 5 split-rules serializers (`.claude/rules/`, `.cursor/rules/`,
   `.devin/rules/`, `.codex/`, `.github/instructions/`). The block sits near the top —
   after the freshness header / document intro — so compact-mode trimming and Devin's
   character cap cannot drop it, and it is always inside the managed region when
-  `config.output.managed_region` is enabled. Compact Claude/Gemini output previously
-  placed the block in the footer under the heading `## Anti-hallucination`; it now uses
-  the consistent named section at the top (the old heading remains a prefix of the new
-  one, and the rule lines are unchanged).
+  `config.output.managed_region` is enabled.
+
+### Changed
+
+- Compact Claude and Gemini output previously placed the anti-hallucination block in the
+  footer under the heading `## Anti-hallucination`; it now uses the consistent named
+  section (`## Anti-hallucination rules`) at the top of the file. The rule lines are
+  unchanged.
 
 ## [5.1.1] - 2026-09-14
 
