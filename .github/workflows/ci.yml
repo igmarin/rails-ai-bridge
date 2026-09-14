@@ -210,6 +210,7 @@ jobs:
           bundler-cache: true
 
       - name: Generate context files and run doctor
+        working-directory: examples/demo_app
         run: |
           bundle exec bin/rails ai:bridge
           bundle exec bin/rails ai:doctor
