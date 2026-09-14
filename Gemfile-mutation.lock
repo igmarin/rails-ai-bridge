@@ -384,7 +384,7 @@ GEM
     rubydex (0.4.1-x86_64-linux)
     securerandom (0.4.1)
     sexp_processor (4.17.5)
-    simplecov (1.1.1)
+    simplecov (1.2.0)
     simpleidn (0.2.3)
     skunk (0.5.4)
       rubycritic (>= 4.5.2, < 5.0)
@@ -452,7 +452,7 @@ DEPENDENCIES
   rubocop-rails (~> 2.37)
   rubocop-rails-omakase (~> 1.0)
   rubocop-rspec (~> 3.10)
-  simplecov (~> 1.1.0)
+  simplecov (~> 1.2.0)
   skunk (~> 0.5)
   sqlite3 (~> 2.9, >= 2.9.6)
   webrick (~> 1.9)
@@ -584,7 +584,7 @@ CHECKSUMS
   rubydex (0.4.1-x86_64-linux) sha256=4e2c8398c9fc585485b54edd28f5ecf76b5a02255e177b6f8402e9d2afffd51b
   securerandom (0.4.1) sha256=cc5193d414a4341b6e225f0cb4446aceca8e50d5e1888743fac16987638ea0b1
   sexp_processor (4.17.5) sha256=ae2b48ba98353d5d465ce8759836b7a05f2e12c5879fcd14d7815b026de32f0e
-  simplecov (1.1.1) sha256=25825ef13f0b2e74694d769817dad6ab8e90131dabdaa666e522fea105521e78
+  simplecov (1.2.0) sha256=ea6acd05eece5a41990e2a5171c57d15700d329326c7666c85ee8c6a0dd0977e
   simpleidn (0.2.3) sha256=08ce96f03fa1605286be22651ba0fc9c0b2d6272c9b27a260bc88be05b0d2c29
   skunk (0.5.4) sha256=627331dc78aec1fdf614feabcf05a88ca84025e364be27aeddca5d7531d1b682
   sorbet-runtime (0.6.13444) sha256=1b97769d5c585faac9b6c11736e0966ae64a7c352c053d43a9c254e2a7532350
