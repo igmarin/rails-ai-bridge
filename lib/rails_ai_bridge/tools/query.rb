@@ -27,7 +27,7 @@ module RailsAiBridge
       TIMEOUT_SECONDS = 5.0
 
       # Column names matching this pattern are redacted unconditionally.
-      CREDENTIAL_COLUMN_PATTERN = /(?i)(password|passwd|secret|token|api_?key|auth(?!or))/
+      CREDENTIAL_COLUMN_PATTERN = /(?i)(password|passwd|secret|token|api_?key|auth(?!or(?:$|_)))/
 
       # Placeholder written for redacted column values.
       REDACTED = '[redacted]'

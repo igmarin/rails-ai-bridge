@@ -17,10 +17,13 @@ RSpec.describe RailsAiBridge::Tools::Query do
       t.string :encrypted_password
       t.string :secret_access_key
       t.string :author
+      t.string :author_id
+      t.string :authorization
+      t.string :oauth_authorization_code
     end
     connection.execute 'INSERT INTO rb_query_variants ' \
-                       '(password_digest, encrypted_password, secret_access_key, author) ' \
-                       "VALUES ('digest-value', 'encrypted-value', 'key-value', 'Jane Doe')"
+                       '(password_digest, encrypted_password, secret_access_key, author, author_id, authorization, oauth_authorization_code) ' \
+                       "VALUES ('digest-value', 'encrypted-value', 'key-value', 'Jane Doe', '7', 'Bearer x', 'code-1')"
   end
 
   after do
@@ -184,6 +187,21 @@ RSpec.describe RailsAiBridge::Tools::Query do
       result = described_class.call(sql: 'SELECT author FROM rb_query_variants')
       expect(text_of(result)).not_to include('[redacted]')
       expect(text_of(result)).to include('Jane Doe')
+    end
+
+    it 'does not redact author_id metadata columns' do
+      result = described_class.call(sql: 'SELECT author_id FROM rb_query_variants')
+      expect(text_of(result)).not_to include('[redacted]')
+    end
+
+    it 'still redacts authorization columns' do
+      result = described_class.call(sql: 'SELECT authorization FROM rb_query_variants')
+      expect(text_of(result)).to include('[redacted]')
+    end
+
+    it 'still redacts oauth_authorization_code columns' do
+      result = described_class.call(sql: 'SELECT oauth_authorization_code FROM rb_query_variants')
+      expect(text_of(result)).to include('[redacted]')
     end
   end
 
