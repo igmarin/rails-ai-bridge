@@ -40,11 +40,7 @@ module RailsAiBridge
         @split_rules = split_rules
         @conflict_policy = ConflictPolicy.build(on_conflict)
         @fingerprint = fingerprint
-        # archspec:disable dependencies.forbid -- FP: RailsAiBridge namespace accessor, not a cross-component dependency
-        # archspec:disable dependencies.no_cycles -- FP: cycle from namespace reopening, not a real cross-component cycle
         @managed_region = managed_region.nil? ? RailsAiBridge.configuration.managed_region : managed_region
-        # archspec:enable dependencies.forbid
-        # archspec:enable dependencies.no_cycles
       end
 
       # Write context files to the configured output directory, skipping unchanged ones.
@@ -54,7 +50,6 @@ module RailsAiBridge
       #   no fingerprint was provided to {#initialize}
       def call
         formats = format == :all ? FORMAT_MAP.keys : Array(format)
-        # archspec:disable-next-line dependencies.forbid -- FP: RailsAiBridge is the reopened gem namespace; .configuration accessor is not a cross-component dependency
         output_dir = RailsAiBridge.configuration.output_dir_for(AppScope.current_app)
         written = []
         skipped = []

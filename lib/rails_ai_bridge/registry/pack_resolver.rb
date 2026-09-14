@@ -55,7 +55,6 @@ module RailsAiBridge
       private
 
       def default_lockfile
-        # archspec:disable-next-line dependencies.forbid -- FP: RailsAiBridge is the reopened gem namespace; .configuration accessor is not a cross-component dependency
         Lockfile.load(RailsAiBridge.configuration.registry.lockfile_path)
       end
 
@@ -72,7 +71,6 @@ module RailsAiBridge
       def verify_pack!(name, base_path)
         return unless @lockfile&.any?
 
-        # archspec:disable-next-line dependencies.forbid -- FP: RailsAiBridge is the reopened gem namespace; .configuration accessor is not a cross-component dependency
         mode = RailsAiBridge.configuration.registry.lockfile_verification
         return if mode == :disabled
 
@@ -232,7 +230,6 @@ module RailsAiBridge
 
       # @return [Boolean] whether transitive dependency loading is enabled
       def auto_load_dependencies?
-        # archspec:disable-next-line dependencies.forbid -- FP: RailsAiBridge is the reopened gem namespace; .configuration accessor is not a cross-component dependency
         RailsAiBridge.configuration.registry.auto_load_dependencies
       end
 
