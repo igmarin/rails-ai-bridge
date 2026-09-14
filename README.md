@@ -863,7 +863,7 @@ The docs are layered so new users do not need to read everything at once.
 |---|---|
 | A quick install and mental model | This README |
 | See it working on a tiny app | [docs/EXAMPLES.md](docs/EXAMPLES.md) and [examples/](examples/) |
-| Full API reference (YARD) | [https://igmarin.github.io/rails-ai-bridge/](https://igmarin.github.io/rails-ai-bridge/) — published on the first `v*` tag after this lands |
+| Full API reference (YARD) | [https://igmarin.github.io/rails-ai-bridge/](https://igmarin.github.io/rails-ai-bridge/) — available after the first `v*` tag release |
 | How to get better AI output day to day | [docs/BEST_PRACTICES.md](docs/BEST_PRACTICES.md) |
 | Every command, config option, generated file, and MCP parameter | [docs/GUIDE.md](docs/GUIDE.md) |
 | Complete Devin setup — MCP wiring, skills, troubleshooting | [docs/devin-setup.md](docs/devin-setup.md) |
