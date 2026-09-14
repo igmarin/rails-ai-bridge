@@ -9,7 +9,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
     it 'writes files for all formats including split rules' do
       Dir.mktmpdir do |dir|
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
-        serializer = described_class.new(context, format: :all)
+        serializer = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :all)
         result = serializer.call
         # Main files + split rules/support files for all supported assistants.
         expect(result[:written].size).to be >= 6
@@ -20,8 +20,8 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
     it 'skips unchanged files on second run' do
       Dir.mktmpdir do |dir|
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
-        described_class.new(context, format: :claude).call
-        result = described_class.new(context, format: :claude).call
+        described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :claude).call
+        result = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :claude).call
         # 1 main file + 4 .claude/rules/ files = 5 total skipped when unchanged
         expect(result[:skipped].size).to be >= 1
         expect(result[:written]).to be_empty
@@ -31,7 +31,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
     it 'writes a single format with split rules' do
       Dir.mktmpdir do |dir|
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
-        serializer = described_class.new(context, format: :claude)
+        serializer = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :claude)
         result = serializer.call
         # 1 CLAUDE.md + 4 .claude/rules/ files (minimum written set varies)
         expect(result[:written].size).to be >= 1
@@ -42,7 +42,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
     it 'generates .claude/rules/ when writing claude format' do
       Dir.mktmpdir do |dir|
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
-        serializer = described_class.new(context, format: :claude)
+        serializer = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :claude)
         result = serializer.call
         claude_rules = result[:written].select { |f| f.include?('.claude/rules/') }
         expect(claude_rules).not_to be_empty
@@ -52,7 +52,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
     it 'generates .cursor/rules/ when writing cursor format' do
       Dir.mktmpdir do |dir|
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
-        serializer = described_class.new(context, format: :cursor)
+        serializer = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :cursor)
         result = serializer.call
         cursor_rules = result[:written].select { |f| f.include?('.cursor/rules/') }
         expect(cursor_rules).not_to be_empty
@@ -62,7 +62,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
     it 'generates .devin/rules/ when writing devin format' do
       Dir.mktmpdir do |dir|
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
-        serializer = described_class.new(context, format: :devin)
+        serializer = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :devin)
         result = serializer.call
         devin_rules = result[:written].select { |f| f.include?('.devin/rules/') }
         expect(devin_rules).not_to be_empty
@@ -72,7 +72,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
     it 'generates .github/instructions/ when writing copilot format' do
       Dir.mktmpdir do |dir|
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
-        serializer = described_class.new(context, format: :copilot)
+        serializer = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :copilot)
         result = serializer.call
         copilot_instructions = result[:written].select { |f| f.include?('.github/instructions/') }
         expect(copilot_instructions).not_to be_empty
@@ -82,7 +82,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
     it 'generates AGENTS.md and .codex support file when writing codex format' do
       Dir.mktmpdir do |dir|
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
-        serializer = described_class.new(context, format: :codex)
+        serializer = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :codex)
         result = serializer.call
         expect(result[:written].any? { |f| f.end_with?('AGENTS.md') }).to be true
         expect(result[:written].any? { |f| f.include?('.codex/README.md') }).to be true
@@ -92,7 +92,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
     it 'generates GEMINI.md when writing gemini format' do
       Dir.mktmpdir do |dir|
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
-        serializer = described_class.new(context, format: :gemini)
+        serializer = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :gemini)
         result = serializer.call
         expect(result[:written].any? { |f| f.end_with?('GEMINI.md') }).to be true
       end
@@ -101,7 +101,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
     it 'can skip split rule generation when split_rules is false' do
       Dir.mktmpdir do |dir|
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
-        serializer = described_class.new(context, format: :cursor, split_rules: false)
+        serializer = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :cursor, split_rules: false)
         result = serializer.call
         expect(result[:written].none? { |f| f.include?('.cursor/rules/') }).to be true
         expect(result[:written]).not_to be_empty
@@ -112,7 +112,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
     it 'dispatches cursor format to RulesSerializer' do
       Dir.mktmpdir do |dir|
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
-        serializer = described_class.new(context, format: :cursor)
+        serializer = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :cursor)
         result = serializer.call
         cursorrules_file = result[:written].find { |f| f.end_with?('.cursorrules') }
         expect(File.read(cursorrules_file)).to include('Project Rules')
@@ -122,7 +122,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
     it 'raises for unknown format' do
       Dir.mktmpdir do |dir|
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
-        serializer = described_class.new(context, format: :bogus)
+        serializer = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :bogus)
         expect { serializer.call }.to raise_error(ArgumentError, /Unknown format/)
       end
     end
@@ -142,7 +142,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
       Dir.mktmpdir do |dir|
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
         seed_file(dir, 'CLAUDE.md')
-        result = described_class.new(context, format: :claude, split_rules: false).call
+        result = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :claude, split_rules: false).call
         expect(result[:written].any? { |f| f.end_with?('CLAUDE.md') }).to be true
         expect(result[:skipped]).to be_empty
         expect(File.read(File.join(dir, 'CLAUDE.md'))).not_to eq(existing_content)
@@ -153,7 +153,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
       Dir.mktmpdir do |dir|
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
         seed_file(dir, 'CLAUDE.md')
-        result = described_class.new(context, format: :claude, split_rules: false, on_conflict: :skip).call
+        result = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :claude, split_rules: false, on_conflict: :skip).call
         expect(result[:written]).to be_empty
         expect(result[:skipped].any? { |f| f.end_with?('CLAUDE.md') }).to be true
         expect(File.read(File.join(dir, 'CLAUDE.md'))).to eq(existing_content)
@@ -168,7 +168,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
         allow($stdin).to receive(:gets).and_return("y\n")
         allow($stdout).to receive(:print)
         allow($stdout).to receive(:flush)
-        result = described_class.new(context, format: :claude, split_rules: false, on_conflict: :prompt).call
+        result = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :claude, split_rules: false, on_conflict: :prompt).call
         expect(result[:written].any? { |f| f.end_with?('CLAUDE.md') }).to be true
         expect(File.read(File.join(dir, 'CLAUDE.md'))).not_to eq(existing_content)
       end
@@ -181,7 +181,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
         allow($stdin).to receive(:gets).and_return("n\n")
         allow($stdout).to receive(:print)
         allow($stdout).to receive(:flush)
-        result = described_class.new(context, format: :claude, split_rules: false, on_conflict: :prompt).call
+        result = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :claude, split_rules: false, on_conflict: :prompt).call
         expect(result[:written]).to be_empty
         expect(result[:skipped].any? { |f| f.end_with?('CLAUDE.md') }).to be true
         expect(File.read(File.join(dir, 'CLAUDE.md'))).to eq(existing_content)
@@ -193,7 +193,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
         seed_file(dir, 'CLAUDE.md')
         resolver = ->(filepath) { filepath.end_with?('CLAUDE.md') }
-        result = described_class.new(context, format: :claude, split_rules: false, on_conflict: resolver).call
+        result = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :claude, split_rules: false, on_conflict: resolver).call
         expect(result[:written].any? { |f| f.end_with?('CLAUDE.md') }).to be true
         expect(File.read(File.join(dir, 'CLAUDE.md'))).not_to eq(existing_content)
       end
@@ -207,7 +207,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
       Dir.mktmpdir do |dir|
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
         seed_file(dir, 'CLAUDE.md')
-        result = described_class.new(context, format: :claude, split_rules: false,
+        result = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :claude, split_rules: false,
                                               on_conflict: callable_class.new('CLAUDE.md')).call
         expect(result[:written].any? { |f| f.end_with?('CLAUDE.md') }).to be true
         expect(File.read(File.join(dir, 'CLAUDE.md'))).not_to eq(existing_content)
@@ -227,7 +227,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
 
       def generate(dir, **options)
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
-        described_class.new(context, format: :claude, split_rules: false, **options).call
+        described_class.new(context, format: :claude, split_rules: false, **{ fingerprint: 'a1b2c3d4e5f6' }.merge(options)).call
       end
 
       it 'is off by default, so an existing file is still rewritten in full' do
@@ -254,7 +254,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
       it 'appends the block to a pre-existing unmarked file instead of clobbering it' do
         Dir.mktmpdir do |dir|
           seed_file(dir, 'CLAUDE.md', hand_authored)
-          generate(dir, managed_region: true)
+          generate(dir, managed_region: true, fingerprint: 'f6e5d4c3b2a1')
 
           content = File.read(claude_path(dir))
           expect(content).to start_with(hand_authored)
@@ -276,7 +276,6 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
 
       it 'keeps the embedded timestamp when opting in with an unchanged fingerprint' do
         Dir.mktmpdir do |dir|
-          allow(RailsAiBridge::Fingerprinter).to receive(:source_fingerprint).and_return('a1b2c3d4e5f6')
           travel_to(Time.utc(2026, 1, 1, 12, 0, 0)) do
             generate(dir)
             embedded = RailsAiBridge::FreshnessHeader.extract_timestamp(File.read(claude_path(dir)))
@@ -303,8 +302,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
           generate(dir, managed_region: true)
           File.write(claude_path(dir), "#{hand_authored}\n#{File.read(claude_path(dir))}\nTrailing note.\n")
 
-          allow(RailsAiBridge::Fingerprinter).to receive(:source_fingerprint).and_return('f6e5d4c3b2a1')
-          generate(dir, managed_region: true)
+          generate(dir, managed_region: true, fingerprint: 'f6e5d4c3b2a1')
 
           content = File.read(claude_path(dir))
           expect(content).to start_with(hand_authored)
@@ -331,7 +329,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
       it 'never adds markers to JSON output' do
         Dir.mktmpdir do |dir|
           allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
-          described_class.new(context, format: :json, split_rules: false, managed_region: true).call
+          described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :json, split_rules: false, managed_region: true).call
 
           json_path = File.join(dir, '.ai-context.json')
           expect(File.read(json_path)).not_to include('BEGIN rails-ai-bridge')
@@ -364,7 +362,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
       it 'injects markdown comments in CLAUDE.md' do
         Dir.mktmpdir do |dir|
           allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
-          described_class.new(context, format: :claude, split_rules: false).call
+          described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :claude, split_rules: false).call
 
           claude_content = File.read(File.join(dir, 'CLAUDE.md'))
           expect(claude_content).to start_with('<!-- Generated at:')
@@ -380,7 +378,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
       it 'injects _meta key in JSON files' do
         Dir.mktmpdir do |dir|
           allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
-          described_class.new(context, format: :json, split_rules: false).call
+          described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :json, split_rules: false).call
 
           json_path = File.join(dir, '.ai-context.json')
           json_data = JSON.parse(File.read(json_path))
@@ -397,17 +395,15 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
           allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
 
           # Compute a real source fingerprint and mock it
-          allow(RailsAiBridge::Fingerprinter).to receive(:source_fingerprint).and_return('a1b2c3d4e5f6')
-          described_class.new(context, format: :claude, split_rules: false).call
+          described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :claude, split_rules: false).call
 
           # Second call should skip since it is unchanged
-          result1 = described_class.new(context, format: :claude, split_rules: false).call
+          result1 = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :claude, split_rules: false).call
           expect(result1[:skipped].size).to eq(1)
           expect(result1[:written]).to be_empty
 
           # Modify fingerprint
-          allow(RailsAiBridge::Fingerprinter).to receive(:source_fingerprint).and_return('f6e5d4c3b2a1')
-          result2 = described_class.new(context, format: :claude, split_rules: false).call
+          result2 = described_class.new(context, fingerprint: 'f6e5d4c3b2a1', format: :claude, split_rules: false).call
 
           # Should not skip; should rewrite because fingerprint changed
           expect(result2[:written].size).to eq(1)

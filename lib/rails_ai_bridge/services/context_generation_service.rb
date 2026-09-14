@@ -22,22 +22,26 @@ module RailsAiBridge
       #
       # @param context_data [Hash] Introspection data to pass to the serializer
       # @param format [Symbol] Output format (e.g. `:all`, `:claude`, `:cursor`)
-      # @param serializer_class [Class] Serializer class; must respond to `#new(context_data, format:)` and
+      # @param fingerprint [String, nil] 12-char source fingerprint; when nil, computed from
+      #   +Fingerprinter.source_fingerprint(AppScope.current_app)+ at call time
+      # @param serializer_class [Class] Serializer class; must respond to `#new(context_data, format:, fingerprint:)` and
       #   instances must respond to `#call`
       # @return [RailsAiBridge::Service::Result] On success, `data` is `{ written: Array, skipped: Array }`;
       #   on `StandardError`, `success?` is false and `errors` contains the message
-      def self.call(context_data, format: :all, serializer_class: Serializers::ContextFileSerializer)
-        new(context_data, serializer_class: serializer_class, format: format).call
+      def self.call(context_data, format: :all, serializer_class: Serializers::ContextFileSerializer, fingerprint: nil)
+        new(context_data, serializer_class: serializer_class, format: format, fingerprint: fingerprint).call
       end
 
       # @param context_data [Hash] Introspection data to serialize
       # @param serializer_class [Class] Serializer class (see {.call})
       # @param format [Symbol] Output format passed to the serializer
-      def initialize(context_data, serializer_class: Serializers::ContextFileSerializer, format: :all)
+      # @param fingerprint [String, nil] source fingerprint passed to the serializer (see {.call})
+      def initialize(context_data, serializer_class: Serializers::ContextFileSerializer, format: :all, fingerprint: nil)
         super()
         @context_data = context_data
         @serializer_class = serializer_class
         @format = format
+        @fingerprint = fingerprint
       end
 
       # Runs the serializer and wraps the outcome in a {RailsAiBridge::Service::Result}.
@@ -47,7 +51,8 @@ module RailsAiBridge
       #
       # @return [RailsAiBridge::Service::Result] Success with normalized `data`, or failure with errors
       def call
-        serializer = @serializer_class.new(@context_data, format: @format)
+        fingerprint = @fingerprint || Fingerprinter.source_fingerprint(AppScope.current_app)
+        serializer = @serializer_class.new(@context_data, format: @format, fingerprint: fingerprint)
         serialization_result = serializer.call
 
         normalized = {

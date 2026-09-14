@@ -31,12 +31,15 @@ module RailsAiBridge
       #   truthy value to allow overwriting
       # @param managed_region [Boolean, nil] confine generated output to a marked region so
       #   hand-authored content in the file survives; +nil+ inherits +config.output.managed_region+
+      # @param fingerprint [String, nil] 12-char source fingerprint computed by the caller
+      #   with +Fingerprinter.source_fingerprint(app)+; +#call+ raises when nil
       # @raise [ArgumentError] when +on_conflict+ is not a recognised symbol or callable
-      def initialize(context, format: :all, split_rules: true, on_conflict: :overwrite, managed_region: nil)
+      def initialize(context, format: :all, split_rules: true, on_conflict: :overwrite, managed_region: nil, fingerprint: nil)
         @context     = context
         @format      = format
         @split_rules = split_rules
         @conflict_policy = ConflictPolicy.build(on_conflict)
+        @fingerprint = fingerprint
         # archspec:disable dependencies.forbid -- FP: RailsAiBridge namespace accessor, not a cross-component dependency
         # archspec:disable dependencies.no_cycles -- FP: cycle from namespace reopening, not a real cross-component cycle
         @managed_region = managed_region.nil? ? RailsAiBridge.configuration.managed_region : managed_region
@@ -56,7 +59,8 @@ module RailsAiBridge
         skipped = []
 
         timestamp_now = Time.now.utc.iso8601
-        fingerprint = Fingerprinter.source_fingerprint(AppScope.current_app)
+        raise ArgumentError, "fingerprint: is required; compute it with Fingerprinter.source_fingerprint(AppScope.current_app)" if @fingerprint.nil?
+        fingerprint = @fingerprint
 
         formats.each do |fmt|
           process_format(fmt, output_dir, timestamp_now, fingerprint, written, skipped)
