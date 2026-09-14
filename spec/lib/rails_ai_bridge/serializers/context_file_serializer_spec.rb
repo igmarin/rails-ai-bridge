@@ -216,13 +216,13 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
 
     it 'raises ArgumentError when fingerprint was not provided' do
       expect do
-        described_class.new(context, format: :claude).call
+        described_class.new(context, format: :claude)
       end.to raise_error(ArgumentError, /fingerprint/)
     end
 
     it 'raises ArgumentError for an invalid on_conflict value' do
       expect do
-        described_class.new(context, on_conflict: :invalid_value)
+        described_class.new(context, fingerprint: 'a1b2c3d4e5f6', on_conflict: :invalid_value)
       end.to raise_error(ArgumentError, /on_conflict must be/)
     end
 

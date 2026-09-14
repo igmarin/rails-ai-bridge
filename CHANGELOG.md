@@ -40,9 +40,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to `RailsAiBridge::Introspectors::ModelSemanticClassifier`. Removed the
   `RailsAiBridge::Service` superclass from
   `RubydexAdapter::IncrementalIndexer` (duck-types the Result contract) and
-  gave `ContextFileSerializer` a caller-supplied `fingerprint:` kwarg
+  gave `ContextFileSerializer` a caller-supplied required `fingerprint:` kwarg
   (`ContextGenerationService` computes and passes it; custom serializer
-  classes must now accept `fingerprint:`). The archspec todo baseline and all
+  classes must now accept `fingerprint:`; the remaining write options
+  (`format:`, `split_rules:`, `on_conflict:`, `managed_region:`) are accepted
+  as a `**write_options` group). `ContextGenerationService.call` no longer
+  takes a `fingerprint:` override — the fingerprint is always computed at
+  call time; inject one via `.new`. The archspec todo baseline and all
   36 inline `archspec:disable` suppressions are gone;
   `bundle exec archspec check` reports zero violations.
 
