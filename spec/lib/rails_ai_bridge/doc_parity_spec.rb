@@ -72,6 +72,34 @@ RSpec.describe 'documentation parity with source constants' do
     end
   end
 
+  describe 'AGENTS.md / CLAUDE.md preset and style claims' do
+    let(:agents_content) { File.read(File.expand_path('../../../AGENTS.md', __dir__)) }
+    let(:claude_content) { File.read(File.expand_path('../../../CLAUDE.md', __dir__)) }
+
+    it 'does not describe non_ar_models as opt-in-only' do
+      expect(RailsAiBridge::Configuration::PRESETS[:full]).to include(:non_ar_models),
+                                                              ':full no longer includes non_ar_models; ' \
+                                                              'update AGENTS.md/CLAUDE.md wording.'
+
+      [agents_content, claude_content].each do |content|
+        expect(content).not_to include('`non_ar_models` not listed in those presets'),
+                               'AGENTS.md/CLAUDE.md must not claim non_ar_models is excluded from ' \
+                               'the presets; it ships in :full.'
+        expect(content).not_to include('optional extras such as `database_stats`, `non_ar_models`'),
+                               'AGENTS.md/CLAUDE.md must not list non_ar_models as an optional ' \
+                               'extra; it ships in :full.'
+      end
+    end
+
+    it 'does not claim the project follows the rubocop-rails-omakase style' do
+      [agents_content, claude_content].each do |content|
+        expect(content).not_to match(/rubocop[- ]rails[- ]omakase/),
+                               'AGENTS.md/CLAUDE.md must not claim the rubocop-rails-omakase style; ' \
+                               '.rubocop.yml uses its own custom limits.'
+      end
+    end
+  end
+
   describe ':standard preset introspector count' do
     it 'matches the count documented in AGENTS.md and CLAUDE.md' do
       actual_count = RailsAiBridge::Configuration::PRESETS[:standard].size

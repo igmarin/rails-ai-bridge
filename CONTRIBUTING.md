@@ -49,7 +49,7 @@ lib/rails_ai_bridge/
 
 ## Code Style
 
-- Follow `rubocop-rails-omakase` style (run `bundle exec rubocop`)
+- Follow RuboCop with the project's custom limits (see `.rubocop.yml` — plugins performance/rails/rspec; method length, ABC size and class length limits are deliberately more permissive than the omakase defaults); run `bundle exec rubocop`
 - Optional complexity check: `bundle exec skunk lib/rails_ai_bridge/…` (gem in `:development`/`:test`) — keep new or refactored files lean (project goal: Skunk score around **≤ 25** where practical).
 
 - Ruby 3.2+ features welcome (pattern matching, etc.)
