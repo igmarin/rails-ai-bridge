@@ -7,7 +7,8 @@ module RailsAiBridge
       class HttpStructuredLogChecker < BaseChecker
         # @return [Doctor::Check] +:pass+ when auto-mount is off or logs are on; +:warn+ otherwise
         def call
-          unless RailsAiBridge.configuration.auto_mount
+          config = RailsAiBridge.configuration
+          unless config.auto_mount
             return new_check(
               name: 'HTTP structured logs',
               status: :pass,
@@ -18,7 +19,7 @@ module RailsAiBridge
 
           check(
             'HTTP structured logs',
-            RailsAiBridge.configuration.mcp.http_log_json,
+            config.mcp.http_log_json,
             pass: { message: 'HTTP MCP structured logs are enabled (http_log_json)' },
             fail: {
               status: :warn,
