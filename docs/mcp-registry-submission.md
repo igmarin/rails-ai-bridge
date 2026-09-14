@@ -8,7 +8,7 @@ step is left, and it requires the maintainer's GitHub account (the
 `io.github.igmarin/` namespace can only be published by `igmarin` or a
 GitHub Action running in igmarin's repos).
 
-Status of `server.json` (verified 2026-09-14):
+Status of `server.json` (verified at authoring time; re-run Step 2 before publishing):
 
 - `mcp-publisher validate server.json` → ✅ valid against
   https://registry.modelcontextprotocol.io
@@ -36,8 +36,8 @@ Status of `server.json` (verified 2026-09-14):
 
 ```bash
 brew install mcp-publisher
-# or:
-curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher && sudo mv mcp-publisher /usr/local/bin/
+# or, without sudo (extracts into the current directory):
+curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher && ./mcp-publisher --help
 ```
 
 Verify:
@@ -59,7 +59,7 @@ Validating against https://registry.modelcontextprotocol.io...
 ✅ server.json is valid
 ```
 
-(Already confirmed on 2026-09-14 with `mcp-publisher` 1.8.1.)
+(Already confirmed at authoring time with `mcp-publisher` 1.8.1.)
 
 ## Step 3 — Re-check version sync, then commit any bump
 
@@ -102,8 +102,8 @@ with the published version.
 
 ## Step 7 — Update these docs
 
-1. Replace the placeholder badge/link in `README.md` (search for
-   "MCP Registry") with a live link to
+1. Update the `README.md` badge (search for "MCP Registry") from the
+   grey-blue `submission_ready` state to a green `listed` badge linking to
    `https://registry.modelcontextprotocol.io` search results.
 2. Move the `[Unreleased]` CHANGELOG entry about the registry submission
    under the released version if it is still unreleased at publish time.

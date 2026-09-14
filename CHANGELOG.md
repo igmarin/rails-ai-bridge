@@ -9,11 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- MCP Registry submission readiness: `server.json` validated against the
-  official registry schema (`mcp-publisher validate` passes; version and
-  tool count verified against the gem), plus
-  `docs/mcp-registry-submission.md` with the exact maintainer publish steps
-  (fixes #261).
+- MCP Registry submission readiness: `server.json` passes
+  `mcp-publisher validate` (verification steps and captured output in
+  `docs/mcp-registry-submission.md`), plus that guide's exact maintainer
+  publish steps (fixes #261).
 - Hosted YARD API documentation: a `docs` workflow publishes generated
   YARD docs to GitHub Pages on every `v*` tag push (same checkout/setup-ruby
   pinning style as the existing workflows, reuses the `docs:yard` coverage
