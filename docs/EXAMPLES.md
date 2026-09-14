@@ -150,6 +150,11 @@ JSON-RPC (`tools/call`) — the same path an AI client uses.
 (no database connection). With a live database the same tool tags output
 `[VERIFIED]`.
 
+Note that the static parser counts only bare `add_index` statements in this
+mode — inline `t.index` declarations inside a table block (as used in this
+schema) are not reported, which is why every table shows `0 indexes`. The
+counted columns and tables are accurate.
+
 ### `rails_get_routes` (detail: standard)
 
 ```text
@@ -203,6 +208,11 @@ feature — the "working on X" tool:
 
 - **PostsController** — create, index, show; filters: verify_authenticity_token, verify_same_origin_request
 ```
+
+Association, validation, and callback facts come from the loaded model classes
+(reflection), which is why they are tagged `[VERIFIED]` even though the app
+never opens a database connection — the tag marks how the fact was sourced,
+and model-source reflection is verified, unlike the static schema text parse.
 
 ## 5. Check readiness
 

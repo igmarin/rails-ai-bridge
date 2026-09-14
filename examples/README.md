@@ -58,3 +58,10 @@ rails ai:bridge
 ```
 
 The demo app exists to show what you get before you run it on your codebase.
+
+### Versions used for the captured output
+
+The output snippets in [docs/EXAMPLES.md](../docs/EXAMPLES.md) were captured
+with the repository checkout at the time of writing (Ruby 4.0.6, Rails
+8.1.3.1, gem version 5.1.0). The gem itself requires Ruby >= 3.2 and
+Rails >= 7.1; your generated files will embed your own versions.
