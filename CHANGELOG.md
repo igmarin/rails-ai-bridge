@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   documents the `:full` preset as 27 introspectors (was a corrupted 26/27
   mix). Parity and release-consistency specs now guard the `server.json`
   version and tool counts (fixes #245).
+
 ### Changed
 
 - **Docs cleanup (#246).** README quick start no longer says the gem is
@@ -26,7 +27,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `docs/registry-resolution.md` are deleted. Completed planning docs
   `docs/gem-general-improvements.md` and `docs/review-workflow-report.md`
   moved to `docs/archive/`. Junk file `test_table.md` removed.
-(docs: repo hygiene — README quick start, doc consolidation, archive, junk removal)
+
+- **Docs truth (#247).** AGENTS.md, CLAUDE.md, and CONTRIBUTING.md no longer
+  claim the project follows the `rubocop-rails-omakase` style — `.rubocop.yml`
+  uses its own custom limits (performance/rails/rspec plugins; method length,
+  ABC size and class length limits deliberately more permissive). AGENTS.md
+  and CLAUDE.md no longer describe `non_ar_models` as opt-in-only — it ships
+  in the `:full` preset; only `database_stats` and `semantic` are opt-in-only
+  (fixed the same claim in the `Introspector::BUILTIN_INTROSPECTORS` YARD
+  comment). `doc_parity_spec.rb` gains guard examples for both claims.
+
 
 ## [5.1.0] - 2026-09-11
 
