@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-RSpec.describe RailsAiBridge::ModelSemanticClassifier do
+RSpec.describe RailsAiBridge::Introspectors::ModelSemanticClassifier do
   before do
     # Force Zeitwerk to load the join models and their parent models so +through:+
     # reflections are registered before .through_join_model_names scans descendants.

@@ -51,12 +51,12 @@ RSpec.describe RailsAiBridge::Introspectors::ActiveStorageIntrospector do
 
     it 'treats direct upload scan path errors as no direct uploads' do
       resolver = instance_double(
-        RailsAiBridge::PathResolver,
+        RailsAiBridge::Introspectors::PathResolver,
         files_for: [],
         glob_for: nil
       )
       allow(resolver).to receive(:glob_for).and_raise(StandardError, 'path failure')
-      allow(RailsAiBridge::PathResolver).to receive(:new).and_return(resolver)
+      allow(RailsAiBridge::Introspectors::PathResolver).to receive(:new).and_return(resolver)
 
       expect(described_class.new(Rails.application).call[:direct_upload]).to be false
     end

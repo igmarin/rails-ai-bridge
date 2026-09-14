@@ -121,7 +121,8 @@ module RailsAiBridge
                                              format: options.fetch(:format, :all),
                                              split_rules: options.fetch(:split_rules, true),
                                              on_conflict: options.fetch(:on_conflict, :overwrite),
-                                             managed_region: options.fetch(:managed_region, nil))
+                                             managed_region: options.fetch(:managed_region, nil),
+                                             fingerprint: Fingerprinter.source_fingerprint(AppScope.current_app))
     end
 
     public

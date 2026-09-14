@@ -122,7 +122,7 @@ module RailsAiBridge
       # @param context [ViewContext] root/app path resolution context
       # @return [Array<String>] absolute view root paths
       def view_roots(context)
-        return PathResolver.new(context.app).directories_for('app/views') if configured_app_paths?(context)
+        return Introspectors::PathResolver.new(context.app).directories_for('app/views') if configured_app_paths?(context)
 
         [File.expand_path('app/views', context.root.to_s)]
       end

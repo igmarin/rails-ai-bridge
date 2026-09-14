@@ -14,7 +14,7 @@ module RailsAiBridge
     #
     # Optionally persists file mtimes to disk so change detection works
     # across process restarts.
-    class IncrementalIndexer < RailsAiBridge::Service
+    class IncrementalIndexer
       # Filename used to persist the integer-second mtime snapshot on disk.
       #
       # @return [String]

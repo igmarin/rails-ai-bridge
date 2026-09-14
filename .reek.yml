@@ -99,8 +99,8 @@ detectors:
     - RailsAiBridge::FreshnessHeader#extract_metadata_for
     - RailsAiBridge::Introspectors::MiddlewareIntrospector#categorize_middleware
     - RailsAiBridge::Mcp::HttpRateLimiter#initialize
-    - RailsAiBridge::ModelSemanticClassifier#classify_with_payload
-    - RailsAiBridge::ModelSemanticClassifier#classify_without_payload
+    - RailsAiBridge::Introspectors::ModelSemanticClassifier#classify_with_payload
+    - RailsAiBridge::Introspectors::ModelSemanticClassifier#classify_without_payload
     - RailsAiBridge::Registry::ContextAggregator#aggregate_status
     - RailsAiBridge::Registry::ContextProviderClient#find_tool
     - RailsAiBridge::Registry::PackResolver#initialize
@@ -197,7 +197,7 @@ detectors:
     - RailsAiBridge::Mcp::CacheRateLimiter#increment
     - RailsAiBridge::Mcp::HttpRateLimiter#allow?
     - RailsAiBridge::Mcp::HttpStructuredLog#target_logger
-    - RailsAiBridge::ModelSemanticClassifier#call
+    - RailsAiBridge::Introspectors::ModelSemanticClassifier#call
     - RailsAiBridge::Registry::ContextAggregator#fetch_all
     - RailsAiBridge::Registry::ContextAggregator#fetch_provider
     - RailsAiBridge::Registry::ContextAggregator#fetch_tool
@@ -390,7 +390,7 @@ detectors:
     - RailsAiBridge::Introspectors::TurboIntrospector#extract_model_broadcasts
     - RailsAiBridge::Introspectors::ViewIntrospector#detect_template_engines
     - RailsAiBridge::Mcp::CacheRateLimiter#fallback_increment
-    - RailsAiBridge::PathResolver#path_inside_real_root?
+    - RailsAiBridge::Introspectors::PathResolver#path_inside_real_root?
     - RailsAiBridge::Registry::Lockfile#to_json
     - RailsAiBridge::Registry::PackResolver#gather_active_packs
     - RailsAiBridge::Registry::PackResolver#trace_dependency_cycle
@@ -476,7 +476,7 @@ detectors:
     exclude:
     - RailsAiBridge::Generators::InstallGenerator
     - RailsAiBridge::Fingerprinter::CachedSnapshot
-    - RailsAiBridge::PathResolver
+    - RailsAiBridge::Introspectors::PathResolver
     - RailsAiBridge::RubydexAdapter
     - RailsAiBridge::Serializers::ContextFileSerializer::ManagedRegionLayout
     - RailsAiBridge::Serializers::Providers::ClaudeSerializer
@@ -592,8 +592,8 @@ detectors:
     - RailsAiBridge::Introspectors::SeedsIntrospector#detect_seeded_models
     - RailsAiBridge::Introspectors::TestIntrospector#detect_test_helpers
     - RailsAiBridge::Introspectors::TurboIntrospector#extract_turbo_frames
-    - RailsAiBridge::ModelSemanticClassifier#self.through_join_model_names
-    - RailsAiBridge::PathResolver#glob_for
+    - RailsAiBridge::Introspectors::ModelSemanticClassifier#self.through_join_model_names
+    - RailsAiBridge::Introspectors::PathResolver#glob_for
     - RailsAiBridge::Registry::Resolver#build_deprecated_index
     - RailsAiBridge::Registry::Resolver#build_summary_map
     - RailsAiBridge::Registry::Resolver#validate_dependencies
@@ -644,7 +644,7 @@ detectors:
     - RailsAiBridge::Mcp::Auth::Strategies::Jwt#initialize
     - RailsAiBridge::Mcp::Authenticator#call
     - RailsAiBridge::Mcp::HttpStructuredLog#emit
-    - RailsAiBridge::PathResolver#max_files_per_path
+    - RailsAiBridge::Introspectors::PathResolver#max_files_per_path
     - RailsAiBridge::Registry::Lockfile#load
     - RailsAiBridge::Registry::RakePresenter#initialize
     - RailsAiBridge::Registry::SkillSourceResolver#pull_stale?
@@ -729,7 +729,7 @@ detectors:
     - RailsAiBridge::Introspectors::ModelIntrospector::SourceMacroExtractor
     - RailsAiBridge::Introspectors::ModelIntrospector
     - RailsAiBridge::Introspectors::Schema::StaticStructureSqlParser
-    - RailsAiBridge::PathResolver
+    - RailsAiBridge::Introspectors::PathResolver
     - RailsAiBridge::RubydexAdapter::IncrementalIndexer
     - RailsAiBridge::RubydexAdapter
     - RailsAiBridge::Serializers::Providers::BaseProviderSerializer
@@ -869,10 +869,10 @@ detectors:
     - RailsAiBridge::Mcp::Authenticator#resolve_strategy
     - RailsAiBridge::Mcp::HttpRateLimiter#allow?
     - RailsAiBridge::Mcp::HttpStructuredLog#emit
-    - RailsAiBridge::ModelSemanticClassifier#call
-    - RailsAiBridge::ModelSemanticClassifier#metadata_column_names
-    - RailsAiBridge::ModelSemanticClassifier#self.through_join_model_names
-    - RailsAiBridge::PathResolver#glob_for
+    - RailsAiBridge::Introspectors::ModelSemanticClassifier#call
+    - RailsAiBridge::Introspectors::ModelSemanticClassifier#metadata_column_names
+    - RailsAiBridge::Introspectors::ModelSemanticClassifier#self.through_join_model_names
+    - RailsAiBridge::Introspectors::PathResolver#glob_for
     - RailsAiBridge::Registry::FrontmatterParser#self.extract_frontmatter_lines
     - RailsAiBridge::Registry::Lockfile#load
     - RailsAiBridge::Registry::PackResolver#expand_transitive_dependencies
@@ -1034,7 +1034,7 @@ detectors:
     - RailsAiBridge::Tools::ListRegistry::RegistryCatalogFormatter#format_catalog
     - RailsAiBridge::Tools::ListRegistry::RegistryCatalogFormatter#format_packs
     - RailsAiBridge::Tools::ModelDetails::FullFormatter#call
-    - RailsAiBridge::Tools::ModelDetails::NonArModelsAppendix#append_markdown
+    - RailsAiBridge::Serializers::ModelDetails::NonArModelsAppendix#append_markdown
     - RailsAiBridge::Tools::ModelDetails::SingleModelFormatter#append_source_macros
     - RailsAiBridge::Tools::ModelDetails::SingleModelFormatter#call
     - RailsAiBridge::Tools::ModelDetails::StandardFormatter#call
@@ -1095,8 +1095,8 @@ detectors:
     - RailsAiBridge::Mcp::HttpRateLimiter#allow?
     - RailsAiBridge::Mcp::HttpRateLimiter#initialize
     - RailsAiBridge::Mcp::HttpStructuredLog#emit
-    - RailsAiBridge::ModelSemanticClassifier#call
-    - RailsAiBridge::ModelSemanticClassifier#metadata_column_names
+    - RailsAiBridge::Introspectors::ModelSemanticClassifier#call
+    - RailsAiBridge::Introspectors::ModelSemanticClassifier#metadata_column_names
     - RailsAiBridge::Registry::PackResolver#gather_active_packs
     - RailsAiBridge::Registry::PackResolver#warn_missing_dependencies
     - RailsAiBridge::RubydexAdapter#codebase_stats
@@ -1245,9 +1245,9 @@ detectors:
     - RailsAiBridge::Introspectors::StimulusIntrospector#extract_values
     - RailsAiBridge::Mcp::Auth::BaseStrategy#extract_bearer
     - RailsAiBridge::Mcp::Auth::Strategies::BearerToken#secure_compare
-    - RailsAiBridge::ModelSemanticClassifier#metadata_column_names
-    - RailsAiBridge::ModelSemanticClassifier#safe_column_names
-    - RailsAiBridge::ModelSemanticClassifier#tier
+    - RailsAiBridge::Introspectors::ModelSemanticClassifier#metadata_column_names
+    - RailsAiBridge::Introspectors::ModelSemanticClassifier#safe_column_names
+    - RailsAiBridge::Introspectors::ModelSemanticClassifier#tier
     - RailsAiBridge::Registry::PackResolver#auto_load_dependencies?
     - RailsAiBridge::Registry::PackResolver#compute_priority
     - RailsAiBridge::Registry::PackResolver#default_lockfile

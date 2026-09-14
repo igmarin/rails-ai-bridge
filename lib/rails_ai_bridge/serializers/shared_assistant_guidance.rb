@@ -151,7 +151,6 @@ module RailsAiBridge
         return nil unless app
 
         base = app.root.to_s
-        # archspec:disable-next-line dependencies.forbid -- FP: RailsAiBridge is the reopened gem namespace; .configuration accessor is not a cross-component dependency
         cfg = RailsAiBridge.configuration
         raw = cfg.assistant_overrides_path
         if raw.nil? || raw.to_s.empty?
@@ -235,7 +234,6 @@ module RailsAiBridge
 
       # @return [Boolean] +true+ when compact output should include the shared anti-hallucination block
       def anti_hallucination_rules_enabled?
-        # archspec:disable-next-line dependencies.forbid -- FP: RailsAiBridge is the reopened gem namespace; .configuration accessor is not a cross-component dependency
         RailsAiBridge.configuration.anti_hallucination_rules
       end
     end

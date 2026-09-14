@@ -23,25 +23,43 @@ module RailsAiBridge
       # Managed regions are markdown-comment delimited, so JSON output never participates.
       UNMANAGEABLE_FORMATS = %i[json].freeze
 
+      # Defaults applied when the caller omits the corresponding write option.
+      DEFAULT_WRITE_OPTIONS = {
+        format: :all,
+        split_rules: true,
+        on_conflict: :overwrite,
+        managed_region: nil
+      }.freeze
+
       # @param context [Hash] introspection context from {RailsAiBridge.introspect}
-      # @param format [Symbol, Array<Symbol>] format(s) to generate
-      # @param split_rules [Boolean] whether to generate per-assistant rule directories
-      # @param on_conflict [:overwrite, :skip, :prompt, #call] conflict resolution strategy;
-      #   any object responding to +:call+ is invoked with the filepath and must return a
-      #   truthy value to allow overwriting
-      # @param managed_region [Boolean, nil] confine generated output to a marked region so
-      #   hand-authored content in the file survives; +nil+ inherits +config.output.managed_region+
-      # @raise [ArgumentError] when +on_conflict+ is not a recognised symbol or callable
-      def initialize(context, format: :all, split_rules: true, on_conflict: :overwrite, managed_region: nil)
+      # @param fingerprint [String] 12-char source fingerprint computed by the caller
+      #   with +Fingerprinter.source_fingerprint(app)+ (required)
+      # @param write_options [Hash] optional write options, merged over
+      #   {DEFAULT_WRITE_OPTIONS}
+      # @option write_options [Symbol, Array<Symbol>] :format format(s) to generate (default +:all+)
+      # @option write_options [Boolean] :split_rules whether to generate per-assistant rule
+      #   directories (default +true+)
+      # @option write_options [:overwrite, :skip, :prompt, #call] :on_conflict conflict
+      #   resolution strategy; any object responding to +:call+ is invoked with the filepath
+      #   and must return a truthy value to allow overwriting (default +:overwrite+)
+      # @option write_options [Boolean, nil] :managed_region confine generated output to a
+      #   marked region so hand-authored content in the file survives; +nil+ inherits
+      #   +config.output.managed_region+ (default +nil+)
+      # @raise [ArgumentError] when +on_conflict+ is not a recognised symbol or callable,
+      #   when +fingerprint+ is nil or empty, or when an unknown write option key is given
+      def initialize(context, fingerprint:, **write_options)
+        unknown = write_options.keys - DEFAULT_WRITE_OPTIONS.keys
+        raise ArgumentError, "Unknown write option(s): #{unknown.join(', ')}" unless unknown.empty?
+        raise ArgumentError, 'fingerprint: is required; compute it with Fingerprinter.source_fingerprint(AppScope.current_app)' if !fingerprint || fingerprint.to_s.empty?
+
+        options = DEFAULT_WRITE_OPTIONS.merge(write_options)
         @context     = context
-        @format      = format
-        @split_rules = split_rules
-        @conflict_policy = ConflictPolicy.build(on_conflict)
-        # archspec:disable dependencies.forbid -- FP: RailsAiBridge namespace accessor, not a cross-component dependency
-        # archspec:disable dependencies.no_cycles -- FP: cycle from namespace reopening, not a real cross-component cycle
+        @format      = options[:format]
+        @split_rules = options[:split_rules]
+        @conflict_policy = ConflictPolicy.build(options[:on_conflict])
+        @fingerprint = fingerprint
+        managed_region = options[:managed_region]
         @managed_region = managed_region.nil? ? RailsAiBridge.configuration.managed_region : managed_region
-        # archspec:enable dependencies.forbid
-        # archspec:enable dependencies.no_cycles
       end
 
       # Write context files to the configured output directory, skipping unchanged ones.
@@ -50,16 +68,14 @@ module RailsAiBridge
       # @raise [ArgumentError] when an unrecognised format symbol is encountered
       def call
         formats = format == :all ? FORMAT_MAP.keys : Array(format)
-        # archspec:disable-next-line dependencies.forbid -- FP: RailsAiBridge is the reopened gem namespace; .configuration accessor is not a cross-component dependency
         output_dir = RailsAiBridge.configuration.output_dir_for(AppScope.current_app)
         written = []
         skipped = []
 
         timestamp_now = Time.now.utc.iso8601
-        fingerprint = Fingerprinter.source_fingerprint(AppScope.current_app)
 
         formats.each do |fmt|
-          process_format(fmt, output_dir, timestamp_now, fingerprint, written, skipped)
+          process_format(fmt, output_dir, timestamp_now, @fingerprint, written, skipped)
         end
 
         generate_split_rules(formats, output_dir, written, skipped) if split_rules

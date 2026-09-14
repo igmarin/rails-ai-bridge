@@ -78,7 +78,7 @@ module RailsAiBridge
 
         # @return [String] user-facing message listing available ActiveRecord and non-AR +app/models+ class names (sorted, deduplicated)
         def model_not_found_message
-          pojo_names = ModelDetails::NonArModelsAppendix.entries_from(@non_ar_models).filter_map do |e|
+          pojo_names = Serializers::ModelDetails::NonArModelsAppendix.entries_from(@non_ar_models).filter_map do |e|
             n = e[:name] || e['name']
             n.to_s.presence
           end
@@ -129,7 +129,7 @@ module RailsAiBridge
         def pojo_entry
           return @pojo_entry if defined?(@pojo_entry)
 
-          @pojo_entry = ModelDetails::NonArModelsAppendix.entries_from(@non_ar_models).find do |e|
+          @pojo_entry = Serializers::ModelDetails::NonArModelsAppendix.entries_from(@non_ar_models).find do |e|
             name = e[:name] || e['name']
             name.to_s.casecmp?(@model.to_s)
           end
@@ -139,7 +139,7 @@ module RailsAiBridge
           e = pojo_entry
           name = e[:name] || e['name']
           path = e[:relative_path] || e['relative_path']
-          tag = e[:tag] || e['tag'] || ModelDetails::NonArModelsAppendix::DEFAULT_TAG
+          tag = e[:tag] || e['tag'] || Serializers::ModelDetails::NonArModelsAppendix::DEFAULT_TAG
           <<~MD.strip
             # #{name} (#{tag})
 

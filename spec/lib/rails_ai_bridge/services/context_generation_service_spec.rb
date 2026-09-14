@@ -9,9 +9,13 @@ RSpec.describe RailsAiBridge::Services::ContextGenerationService do
   let(:serializer_class) { RailsAiBridge::Serializers::ContextFileSerializer }
   let(:serializer_instance) { instance_double(serializer_class) }
 
+  before do
+    allow(RailsAiBridge::Fingerprinter).to receive(:source_fingerprint).and_return('a1b2c3d4e5f6')
+  end
+
   describe '.call' do
     it 'generates context files with default serializer' do
-      allow(serializer_class).to receive(:new).with(context_data, format: :all).and_return(serializer_instance)
+      allow(serializer_class).to receive(:new).with(context_data, format: :all, fingerprint: 'a1b2c3d4e5f6').and_return(serializer_instance)
       allow(serializer_instance).to receive(:call).and_return({
                                                                 written: ['/tmp/CLAUDE.md'],
                                                                 skipped: []
@@ -25,7 +29,7 @@ RSpec.describe RailsAiBridge::Services::ContextGenerationService do
     end
 
     it 'accepts custom format parameter' do
-      allow(serializer_class).to receive(:new).with(context_data, format: :claude).and_return(serializer_instance)
+      allow(serializer_class).to receive(:new).with(context_data, format: :claude, fingerprint: 'a1b2c3d4e5f6').and_return(serializer_instance)
       allow(serializer_instance).to receive(:call).and_return({ written: [], skipped: [] })
 
       result = described_class.call(context_data, format: :claude)
@@ -47,7 +51,7 @@ RSpec.describe RailsAiBridge::Services::ContextGenerationService do
     subject { described_class.new(context_data) }
 
     it 'uses default format when not specified' do
-      allow(serializer_class).to receive(:new).with(context_data, format: :all).and_return(serializer_instance)
+      allow(serializer_class).to receive(:new).with(context_data, format: :all, fingerprint: 'a1b2c3d4e5f6').and_return(serializer_instance)
       allow(serializer_instance).to receive(:call).and_return({ written: ['file1.md'], skipped: ['file2.md'] })
 
       result = subject.call
@@ -58,7 +62,7 @@ RSpec.describe RailsAiBridge::Services::ContextGenerationService do
 
     it 'allows custom serializer class' do
       custom_serializer = double('CustomSerializer')
-      allow(custom_serializer).to receive(:new).with(context_data, format: :json).and_return(custom_serializer)
+      allow(custom_serializer).to receive(:new).with(context_data, format: :json, fingerprint: 'a1b2c3d4e5f6').and_return(custom_serializer)
       allow(custom_serializer).to receive(:call).and_return({ written: ['output.json'] })
 
       service = described_class.new(context_data,
@@ -70,7 +74,7 @@ RSpec.describe RailsAiBridge::Services::ContextGenerationService do
     end
 
     it 'normalizes nil serializer return to empty written and skipped arrays' do
-      allow(serializer_class).to receive(:new).with(context_data, format: :all).and_return(serializer_instance)
+      allow(serializer_class).to receive(:new).with(context_data, format: :all, fingerprint: 'a1b2c3d4e5f6').and_return(serializer_instance)
       allow(serializer_instance).to receive(:call).and_return(nil)
 
       result = subject.call
@@ -80,7 +84,7 @@ RSpec.describe RailsAiBridge::Services::ContextGenerationService do
     end
 
     it 'normalizes non-Hash serializer return to empty written and skipped arrays' do
-      allow(serializer_class).to receive(:new).with(context_data, format: :all).and_return(serializer_instance)
+      allow(serializer_class).to receive(:new).with(context_data, format: :all, fingerprint: 'a1b2c3d4e5f6').and_return(serializer_instance)
       allow(serializer_instance).to receive(:call).and_return('unexpected')
 
       result = subject.call
@@ -90,7 +94,7 @@ RSpec.describe RailsAiBridge::Services::ContextGenerationService do
     end
 
     it 'fills missing :written or :skipped keys with empty arrays' do
-      allow(serializer_class).to receive(:new).with(context_data, format: :all).and_return(serializer_instance)
+      allow(serializer_class).to receive(:new).with(context_data, format: :all, fingerprint: 'a1b2c3d4e5f6').and_return(serializer_instance)
       allow(serializer_instance).to receive(:call).and_return({ written: ['a.md'] })
 
       result = subject.call
@@ -100,7 +104,7 @@ RSpec.describe RailsAiBridge::Services::ContextGenerationService do
     end
 
     it 'normalizes hash with only :skipped to empty :written' do
-      allow(serializer_class).to receive(:new).with(context_data, format: :all).and_return(serializer_instance)
+      allow(serializer_class).to receive(:new).with(context_data, format: :all, fingerprint: 'a1b2c3d4e5f6').and_return(serializer_instance)
       allow(serializer_instance).to receive(:call).and_return({ skipped: ['b.md'] })
 
       result = subject.call
@@ -110,7 +114,7 @@ RSpec.describe RailsAiBridge::Services::ContextGenerationService do
     end
 
     it 'wraps a single path in :written as a one-element array' do
-      allow(serializer_class).to receive(:new).with(context_data, format: :all).and_return(serializer_instance)
+      allow(serializer_class).to receive(:new).with(context_data, format: :all, fingerprint: 'a1b2c3d4e5f6').and_return(serializer_instance)
       allow(serializer_instance).to receive(:call).and_return({ written: '/tmp/one.md', skipped: nil })
 
       result = subject.call
@@ -122,7 +126,7 @@ RSpec.describe RailsAiBridge::Services::ContextGenerationService do
 
   describe 'result structure' do
     it 'returns Service::Result with written and skipped files' do
-      allow(serializer_class).to receive(:new).with(context_data, format: :all).and_return(serializer_instance)
+      allow(serializer_class).to receive(:new).with(context_data, format: :all, fingerprint: 'a1b2c3d4e5f6').and_return(serializer_instance)
       allow(serializer_instance).to receive(:call).and_return({
                                                                 written: ['/tmp/CLAUDE.md', '/tmp/.cursorrules'],
                                                                 skipped: ['/tmp/CODEX.md']

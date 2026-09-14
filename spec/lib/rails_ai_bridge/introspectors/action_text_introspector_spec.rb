@@ -86,8 +86,8 @@ RSpec.describe RailsAiBridge::Introspectors::ActionTextIntrospector do
       end
 
       before do
-        resolver = instance_double(RailsAiBridge::PathResolver)
-        allow(RailsAiBridge::PathResolver).to receive(:new).and_return(resolver)
+        resolver = instance_double(RailsAiBridge::Introspectors::PathResolver)
+        allow(RailsAiBridge::Introspectors::PathResolver).to receive(:new).and_return(resolver)
         allow(resolver).to receive(:files_for).and_raise(StandardError, 'boom')
       end
 
