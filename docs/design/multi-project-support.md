@@ -60,11 +60,19 @@ MCP client -> parent Server (mcp_transport)
 
 ### New tool: `rails_switch_project`
 
-- First stateful tool: annotations `read_only_hint: false, destructive_hint: false,
+- **Read-only guarantee scope**: AGENTS.md's "read-only tools only" convention guards the **host
+  application** (no DB writes, no DDL, no shell). `rails_switch_project` honors that: it mutates
+  *server session routing state only* — which project subsequent tool calls target — and never
+  touches host state. Annotations: `destructive_hint: false, read_only_hint: false,
   idempotent_hint: true` (switching to the same project is a no-op), `open_world_hint: true` (it
-  reaches outside the current process). Registered in `Server::TOOLS`; excluded from
-  `ToolResultCache` via `ToolResultCache::NON_CACHEABLE` (same treatment as
-  `rails_get_provider_context`), since its effect is server state.
+  reaches outside the current process). The annotation deviation from other tools is deliberate and
+  surfaced for review (Open question 4): an alternative is transport-level session control outside
+  the tool surface, which would forfeit the discoverability an MCP tool gives clients.
+- Registered in `Server::TOOLS`; excluded from `ToolResultCache` via
+  `ToolResultCache::NON_CACHEABLE` (same treatment as `rails_get_provider_context`), since its
+  effect is server state.
+- Returns `MCP::Tool::Response` per SDK convention; a degraded project (child crashed, boot
+  timeout) yields an error message in the response body — the parent never raises through.
 - Param `project` (string slug). Response: confirmation + the project's section availability
   (static-capable now vs boot-required after child boot) + context freshness fingerprint.
 - Unknown slug: error message listing available slugs (mirrors `model_not_found_message` style).
@@ -119,8 +127,10 @@ input — same posture `Registry::EndpointPolicy` applies to provider endpoints.
   root are rejected at registration (`File.realpath` check); slugs cannot escape (`..` impossible by
   regex).
 - **Untrusted project metadata**: `projects_file`, `.ruby-version`, `.tool-versions`, `mise.toml`
-  are parsed read-only, never evaluated; no `YAML.unsafe_load`; values feed fixed argv (no shell
-  string, no interpolation into `system`-style calls). The resolver emits
+  are parsed read-only, never evaluated; `projects_file` uses `YAML.safe_load` with a limited
+  `permitted_classes` set; version/tool values pass a strict allowlist regex
+  (`/\A[a-z0-9._-]+\z/i`) before becoming argv elements; values feed fixed argv (no shell string,
+  no interpolation into `system`-style calls). The resolver emits
   `['mise', 'exec', '--', 'bundle', 'exec', ...]`-style argv arrays.
 - **Child process hygiene**: children inherit a **minimal env** (PATH, HOME, GEM_HOME/RBENV-*
   as resolved by the shim layer) — parent secrets are not propagated; child stdout/stderr are
@@ -209,3 +219,7 @@ scoping + auth fail-closed -> (7) docs/parity.
    how are conflicting `disabled_introspection_categories` resolved?
 3. Default child-idle timeout: 60s proposed — long enough to avoid thrash, short enough to bound
    memory; should idle children instead park (SIGSTOP) and resume on demand?
+4. Does `rails_switch_project` (stateful over server session state, but read-only over the host
+   app) require amending the AGENTS.md "read-only tools only" wording to "read-only over the host
+   application", or should project switching move to transport-level session control outside the
+   `rails_` tool namespace?
