@@ -102,7 +102,7 @@ RSpec.describe RailsAiBridge::Tools::Query do
     it 'sets PostgreSQL statement_timeout instead of relying only on Timeout.timeout' do
       connection = instance_double(ActiveRecord::ConnectionAdapters::AbstractAdapter, adapter_name: 'PostgreSQL')
       allow(ApplicationRecord).to receive(:connection).and_return(connection)
-      allow(connection).to receive(:transaction).and_yield
+      allow(connection).to receive(:transaction).with(requires_new: true).and_yield
       allow(connection).to receive(:execute)
       allow(connection).to receive(:select_all).and_return(ActiveRecord::Result.new(['x'], []))
       allow(Timeout).to receive(:timeout)
@@ -110,7 +110,19 @@ RSpec.describe RailsAiBridge::Tools::Query do
       described_class.call(sql: 'SELECT 1')
 
       expect(connection).to have_received(:execute).with('SET LOCAL statement_timeout = 5000')
+      expect(connection).to have_received(:execute).with('SET TRANSACTION READ ONLY')
       expect(Timeout).not_to have_received(:timeout)
+    end
+
+    it 'returns a timeout error when PostgreSQL cancels the statement' do
+      connection = instance_double(ActiveRecord::ConnectionAdapters::AbstractAdapter, adapter_name: 'PostgreSQL')
+      allow(ApplicationRecord).to receive(:connection).and_return(connection)
+      allow(connection).to receive(:transaction).with(requires_new: true).and_yield
+      allow(connection).to receive(:execute)
+      allow(connection).to receive(:select_all)
+        .and_raise(ActiveRecord::QueryCanceled, 'canceling statement due to statement timeout')
+
+      expect(text_of(described_class.call(sql: 'SELECT 1'))).to include('timed out')
     end
   end
 

@@ -90,7 +90,7 @@ module RailsAiBridge
       # @return [ActiveRecord::Result, MCP::Tool::Response] query result or timeout error
       def self.run_with_timeout(sql)
         with_timeout { ApplicationRecord.connection.select_all(sql.to_s) }
-      rescue Timeout::Error
+      rescue Timeout::Error, ActiveRecord::QueryCanceled
         timeout_error
       end
 
@@ -101,7 +101,7 @@ module RailsAiBridge
       # @raise [Timeout::Error] when execution exceeds TIMEOUT_SECONDS
       def self.with_timeout(&)
         connection = ApplicationRecord.connection
-        if connection.adapter_name.match?(/postgre/i)
+        if postgres_adapter?(connection)
           with_postgres_timeout(connection, &)
         else
           Timeout.timeout(TIMEOUT_SECONDS, &)
@@ -116,12 +116,18 @@ module RailsAiBridge
       # @return [Object] the block's result
       def self.with_postgres_timeout(connection, &)
         ms = (TIMEOUT_SECONDS * 1000).to_i
-        connection.transaction do
+        connection.transaction(requires_new: true) do
           connection.execute("SET LOCAL statement_timeout = #{ms}")
+          connection.execute('SET TRANSACTION READ ONLY')
           yield
         end
       end
       private_class_method :with_postgres_timeout
+
+      def self.postgres_adapter?(connection)
+        connection.adapter_name.match?(/\A(PostgreSQL|PostGIS)\z/i)
+      end
+      private_class_method :postgres_adapter?
 
       # Redacts values under credential-like column names.
       #
