@@ -57,15 +57,15 @@ RSpec.describe RailsAiBridge::Tools::ReadLogs do
     end
 
     it 'rejects a symlink inside log/ that points outside the log directory' do
-      outside_file = Rails.root.join('config/secrets.yml')
-      FileUtils.mkdir_p(outside_file.dirname)
-      File.write(outside_file, "secret: value\n")
-      symlink = log_dir.join('escape.log')
-      File.symlink(outside_file, symlink)
-      expect(text_of(described_class.call(file: 'escape.log'))).to include('error')
-    ensure
-      FileUtils.rm_f(symlink)
-      FileUtils.rm_f(outside_file)
+      Dir.mktmpdir do |tmpdir|
+        outside_file = Pathname.new(tmpdir).join('secrets.yml')
+        File.write(outside_file, "secret: value\n")
+        symlink = log_dir.join('escape.log')
+        File.symlink(outside_file, symlink)
+        expect(text_of(described_class.call(file: 'escape.log'))).to include('error')
+      ensure
+        FileUtils.rm_f(symlink)
+      end
     end
   end
 

@@ -36,7 +36,7 @@ module RailsAiBridge
           detail: {
             type: 'string',
             enum: %w[summary standard full],
-            description: 'summary: file metadata only (size). standard: tail of 50 lines. ' \
+            description: 'summary: file metadata (name, size). standard: tail of 50 lines. ' \
                          'full: tail of up to 400 lines.'
           }
         },
@@ -112,7 +112,10 @@ module RailsAiBridge
         # @return [String] redacted line
         def self.redact(line)
           trimmed = line.force_encoding(Encoding::UTF_8).scrub
-          Registry::MessageSanitizer.sanitize(trimmed.chomp)
+          sanitized = Registry::MessageSanitizer.sanitize(trimmed.chomp)
+          # Apply MAX_LINE_BYTES after sanitization (sanitization can expand byte length)
+          capped = sanitized.byteslice(0, ReadLogs::MAX_LINE_BYTES)
+          capped.force_encoding(Encoding::UTF_8).scrub
         end
 
         # Appends a redacted line to the tail buffer, maintaining the cap.
