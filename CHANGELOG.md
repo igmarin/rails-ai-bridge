@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `password_digest`, `encrypted_password`, `secret_access_key`) are now replaced
   with `[redacted]` unconditionally instead of only when the value itself looks
   secret-like. Non-credential author-metadata columns (`author`, `author_id`)
-  keep their values; `authorization`-style columns stay redacted.
+  keep their values; `authorization`-style columns are redacted.
 - `rails_query` keyword guard now also rejects MySQL `LOCK IN SHARE MODE`
   (alongside the existing `FOR UPDATE`/`FOR SHARE` and `SELECT ... INTO`
   rejections). On PostgreSQL, execution runs inside `SET TRANSACTION READ ONLY`

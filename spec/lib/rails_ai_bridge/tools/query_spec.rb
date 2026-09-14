@@ -23,7 +23,7 @@ RSpec.describe RailsAiBridge::Tools::Query do
     end
     connection.execute 'INSERT INTO rb_query_variants ' \
                        '(password_digest, encrypted_password, secret_access_key, author, author_id, authorization, oauth_authorization_code) ' \
-                       "VALUES ('digest-value', 'encrypted-value', 'key-value', 'Jane Doe', '7', 'Bearer x', 'code-1')"
+                       "VALUES ('digest-value', 'encrypted-value', 'key-value', 'Jane Doe', '7', 'auth-token-123', 'oauth-code-456')"
   end
 
   after do
