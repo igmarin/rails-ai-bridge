@@ -47,10 +47,6 @@ RSpec.describe RailsAiBridge::Services::ContextGenerationService do
     end
   end
 
-  before do
-    allow(RailsAiBridge::Fingerprinter).to receive(:source_fingerprint).and_return('a1b2c3d4e5f6')
-  end
-
   describe '#call' do
     subject { described_class.new(context_data) }
 

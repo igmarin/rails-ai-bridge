@@ -214,6 +214,12 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
       end
     end
 
+    it 'raises ArgumentError when fingerprint was not provided' do
+      expect do
+        described_class.new(context, format: :claude).call
+      end.to raise_error(ArgumentError, /fingerprint/)
+    end
+
     it 'raises ArgumentError for an invalid on_conflict value' do
       expect do
         described_class.new(context, on_conflict: :invalid_value)
@@ -227,7 +233,8 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
 
       def generate(dir, **options)
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
-        described_class.new(context, format: :claude, split_rules: false, **{ fingerprint: 'a1b2c3d4e5f6' }.merge(options)).call
+        fingerprint = options.delete(:fingerprint) { 'a1b2c3d4e5f6' }
+        described_class.new(context, format: :claude, split_rules: false, fingerprint: fingerprint, **options).call
       end
 
       it 'is off by default, so an existing file is still rewritten in full' do

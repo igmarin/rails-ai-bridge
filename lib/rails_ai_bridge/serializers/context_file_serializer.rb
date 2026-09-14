@@ -50,7 +50,8 @@ module RailsAiBridge
       # Write context files to the configured output directory, skipping unchanged ones.
       #
       # @return [Hash{Symbol => Array<String>}] +:written+ paths and +:skipped+ paths
-      # @raise [ArgumentError] when an unrecognised format symbol is encountered
+      # @raise [ArgumentError] when an unrecognised format symbol is encountered or when
+      #   no fingerprint was provided to {#initialize}
       def call
         formats = format == :all ? FORMAT_MAP.keys : Array(format)
         # archspec:disable-next-line dependencies.forbid -- FP: RailsAiBridge is the reopened gem namespace; .configuration accessor is not a cross-component dependency
@@ -59,7 +60,8 @@ module RailsAiBridge
         skipped = []
 
         timestamp_now = Time.now.utc.iso8601
-        raise ArgumentError, "fingerprint: is required; compute it with Fingerprinter.source_fingerprint(AppScope.current_app)" if @fingerprint.nil?
+        raise ArgumentError, 'fingerprint: is required; compute it with Fingerprinter.source_fingerprint(AppScope.current_app)' if @fingerprint.nil?
+
         fingerprint = @fingerprint
 
         formats.each do |fmt|
