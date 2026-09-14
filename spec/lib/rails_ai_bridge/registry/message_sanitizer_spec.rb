@@ -119,5 +119,12 @@ RSpec.describe RailsAiBridge::Registry::MessageSanitizer do
       expect(result).to include('[redacted]')
       expect(result).not_to include('sk-live-12345')
     end
+
+    it 'redacts RAILS_MASTER_KEY assignments' do
+      result = described_class.sanitize('booting with RAILS_MASTER_KEY=a1b2c3d4e5f6')
+
+      expect(result).to include('[redacted]')
+      expect(result).not_to include('a1b2c3d4e5f6')
+    end
   end
 end

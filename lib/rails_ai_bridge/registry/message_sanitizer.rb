@@ -18,6 +18,7 @@ module RailsAiBridge
                .gsub(/(?i:bearer\s+[^\s]+)/, '[redacted]')
                .gsub(/(?i:"(access_token|token|password|secret|api_key|apikey|authorization|auth_token)"\s*[:=]\s*"?[^",\s}]+)/, '[redacted]')
                .gsub(/(?i:(access_token|token|password|secret|api_key|apikey|authorization|auth_token)\s*[:=]\s*"?[^\s,}]+)/, '[redacted]')
+               .gsub(/(?i:RAILS_MASTER_KEY\s*[:=]\s*"?[^\s,}]+)/, '[redacted]')
       end
     end
   end

@@ -104,12 +104,19 @@ module RailsAiBridge
           build_payload(total, tail_lines)
         end
 
+        # :reek:TooManyStatements
         def process_lines(tail_lines, cap)
           total = 0
-          @file_io.each_line(ReadLogs::MAX_LINE_BYTES) do |line|
-            total += 1
-            TailFormatter.append_to_tail(tail_lines, line, cap)
+          in_truncated_line = false
+
+          @file_io.each_line(ReadLogs::MAX_LINE_BYTES) do |chunk|
+            unless in_truncated_line
+              total += 1
+              self.class.append_to_tail(tail_lines, chunk, cap)
+            end
+            in_truncated_line = !chunk.end_with?("\n")
           end
+
           total
         end
 

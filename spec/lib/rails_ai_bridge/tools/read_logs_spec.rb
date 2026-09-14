@@ -112,7 +112,7 @@ RSpec.describe RailsAiBridge::Tools::ReadLogs do
       payload = JSON.parse(text_of(described_class.call(file: 'invalid_utf8.log')))
       expect(payload).not_to have_key('error')
       expect(payload['lines']).to include('tail line')
-      expect(payload['lines'].any? { |l| l.include?('') || l.include?('invalid bytes') }).to be(true)
+      expect(payload['lines']).to include("\uFFFD\uFFFD invalid bytes")
     ensure
       FileUtils.rm_f(invalid)
     end
@@ -132,6 +132,22 @@ RSpec.describe RailsAiBridge::Tools::ReadLogs do
       max_len = payload['lines'].map(&:length).max
       expect(max_len).to be <= described_class::MAX_LINE_BYTES
       expect(payload['lines'].last).to eq('tail')
+    ensure
+      FileUtils.rm_f(long_line)
+    end
+
+    it 'counts long lines as single lines in total_lines, not multiple chunks' do
+      long_line = log_dir.join('long_line_count.log')
+      File.open(long_line, 'wb') do |f|
+        f.write("line1\n")
+        f.write('x' * 5000) # 5000 bytes, will be split into 3 chunks
+        f.write("\n")
+        f.write("line3\n")
+      end
+      payload = JSON.parse(text_of(described_class.call(file: 'long_line_count.log')))
+      expect(payload).not_to have_key('error')
+      expect(payload['total_lines']).to eq(3) # 3 actual lines, not 5 chunks
+      expect(payload['lines'].size).to eq(3)
     ensure
       FileUtils.rm_f(long_line)
     end
