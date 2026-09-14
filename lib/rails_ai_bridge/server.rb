@@ -37,6 +37,8 @@ module RailsAiBridge
       Tools::GetGems,
       Tools::SearchCode,
       Tools::SearchSemantic,
+      Tools::Query,
+      Tools::ReadLogs,
       Tools::ExplainSymbol,
       Tools::GetConventions,
       Tools::GetControllers,

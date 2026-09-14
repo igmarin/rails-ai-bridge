@@ -76,7 +76,7 @@ flowchart LR
 
 1. **Introspect**: built-in scanners read your Rails app structure: schema, models, routes, controllers, gems, tests, conventions, and optional full-stack details.
 2. **Generate**: `rails ai:bridge` writes compact, assistant-specific files such as `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/`, and Copilot instructions.
-3. **Serve**: `rails ai:serve` exposes 21 read-only `rails_*` tools so an assistant can drill into exact details on demand.
+3. **Serve**: `rails ai:serve` exposes 22 read-only `rails_*` tools so an assistant can drill into exact details on demand.
 
 This creates two complementary layers:
 
@@ -275,7 +275,7 @@ This keeps context focused and avoids unnecessary token usage while still allowi
 
 ## MCP Tools
 
-The gem exposes **21 built-in tools** via MCP that AI clients call on-demand (hosts can append more via `config.additional_tools`):
+The gem exposes **22 built-in tools** via MCP that AI clients call on-demand (hosts can append more via `config.additional_tools`):
 
 | Tool | What it returns |
 |------|----------------|
@@ -291,6 +291,8 @@ The gem exposes **21 built-in tools** via MCP that AI clients call on-demand (ho
 | `rails_search_code` | Ripgrep (or Ruby) search under `Rails.root` with allowlisted extensions, pattern size cap, and optional wall-clock timeout |
 | `rails_get_view` | View layouts, templates, partials; optional per-file detail under the configured `app/views` path |
 | `rails_search_semantic` | Semantic code search using rubydex — find declarations by name with types, locations, and relationships |
+| `rails_query` | Run a single read-only SELECT statement on the app database: SELECT-only allowlist, 100-row cap, 5s timeout, credential-like columns redacted |
+| `rails_read_logs` | Redacted tail of a log file under `log/`: traversal-safe path allowlist, line/byte caps, credential redaction |
 | `rails_explain_symbol` | Local CodeGraph explanation for a `symbol` or `query` when `.codegraph/` exists; otherwise setup instructions |
 | `rails_get_stimulus` | Stimulus controllers: targets, values, actions, outlets (requires `:stimulus` introspector) |
 | `rails_list_registry` | Skill pack catalog — list skills, agents, or active packs; requires `config/rails_ai_bridge/registry.json` |
@@ -299,7 +301,6 @@ The gem exposes **21 built-in tools** via MCP that AI clients call on-demand (ho
 | `rails_use_agent` | Loads an agent/workflow framed as an activation directive (follow it end to end) |
 | `rails_list_context_providers` | Context providers declared in the registry manifest — external services (e.g. MCP servers) the bridge can query for project context; shows type, endpoint, optional flag, and tool specs |
 | `rails_get_provider_context` | Fetches context from declared external MCP providers. Requires `context_providers.enabled = true` and an explicit host allowlist. Separate from `rails_get_context` (local in-process composite) |
-| `rails_read_logs` | Redacted tail of a log file under `Rails.root/log` — path allowlist, line/byte caps, credential redaction, invalid UTF-8 scrubbing, and final-component symlink protection |
 
 All tools are **read-only** — they never modify your application or database.
 

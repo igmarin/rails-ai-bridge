@@ -295,7 +295,7 @@ end
 
 ## MCP Tools — Full Reference
 
-All **20 built-in tools** are **read-only** and **idempotent** — they never modify your application or database. Hosts can append more via `config.additional_tools`.
+All **22 built-in tools** are **read-only** and **idempotent** — they never modify your application or database. Hosts can append more via `config.additional_tools`.
 
 ### rails_get_schema
 
@@ -520,6 +520,34 @@ rails_search_semantic(query: "Service", max_results: 30)
 ```
 
 **Notable:** Results include ancestors, descendants, and inline definitions when available, making this a richer alternative to `rails_search_code` for understanding code structure and relationships.
+
+### rails_query
+
+Runs a single read-only SELECT statement on the app's established ActiveRecord connection and returns compact JSON.
+
+**Parameters:**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `sql` | string | **Required.** A single plain SELECT statement. Semicolons, CTEs (`WITH`), and mutating/locking clauses are rejected. |
+| `row_limit` | integer | Max rows (hard cap 100). Defaults: 20 (standard), 100 (full). |
+| `detail` | string | `summary` (columns + row count), `standard` (default), `full`. |
+
+**Security:** SELECT-only allowlist (CTEs rejected in v1 — mutating CTEs allow writes inside `WITH`). Hard 100-row cap, 5s statement timeout, credential-like columns (`password`, `token`, `secret`, `api_key`, `auth`) redacted via `MessageSanitizer`. Runs on the app's existing connection.
+
+### rails_read_logs
+
+Returns a redacted tail of a log file under the app's `log/` directory as compact JSON.
+
+**Parameters:**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `file` | string | **Required.** Log file name relative to `log/` (e.g. `production.log`, `nested/app.log`). |
+| `lines` | integer | Tail length (hard cap 400). Defaults: 50 (standard), 400 (full). |
+| `detail` | string | `summary` (metadata only), `standard` (default), `full`. |
+
+**Security:** Only files under `Rails.root/log` resolve (expanded-path prefix check — `../`, absolute paths, and dot-segment tricks are rejected). Per-line byte cap. Every line is redacted via `MessageSanitizer`.
 
 ### rails_explain_symbol
 

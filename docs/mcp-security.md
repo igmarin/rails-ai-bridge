@@ -181,6 +181,40 @@ RailsAiBridge.configure { |c| c.context_providers.enabled = false }
 
 Or remove the `allowed_hosts` array — no host matches, all provider calls fail before DNS.
 
+## Data-access tools: rails_query and rails_read_logs
+
+Two built-in tools reach beyond static introspection: `rails_query` (database reads) and
+`rails_read_logs` (log files). Both follow the same boundary: allowlist first, cap
+everything, redact output.
+
+### rails_query — SELECT-only SQL
+
+| Mitigation | Detail |
+|------------|--------|
+| SELECT-only allowlist | The statement must start with `SELECT`. `INSERT`, `UPDATE`, `DELETE`, `ALTER`, `CREATE`, `DROP`, `TRUNCATE`, `REPLACE`, `PRAGMA`, `ATTACH`, and transaction control verbs are rejected. |
+| CTEs rejected in v1 | `WITH` queries are rejected because mutating CTEs (wCTEs) allow writes inside a `WITH` clause; dialect-safe wCTE detection is error-prone. Rewrite as a plain `SELECT`. |
+| Single statement | Any inner semicolon is rejected — conservatively, including semicolons inside string literals. |
+| No locking, no DDL side effects | `FOR UPDATE` / `FOR SHARE` row locks and `SELECT ... INTO` (table creation) are rejected. |
+| Row cap | At most 100 rows are returned (`MAX_ROWS`), with a `truncated` flag when more matched. |
+| Statement timeout | Execution is wrapped in a 5-second wall-clock timeout. |
+| Credential redaction | Values under credential-like columns (`password`, `passwd`, `secret`, `token`, `api_key`, `apikey`, `auth`) are redacted via `Registry::MessageSanitizer` before the response leaves the process. |
+| Existing connection only | Queries run on the app's established `ApplicationRecord` connection; the bridge never opens its own database connection. |
+| Error contract | Failures return `{"error": message}`; messages are sanitized so raw SQL fragments or driver errors do not leak connection details. |
+
+### rails_read_logs — log tail with path allowlist
+
+| Mitigation | Detail |
+|------------|--------|
+| Path allowlist | Only paths under `Rails.root/log` resolve. The check expands `..` segments and follows symlinks, then verifies a directory-prefix match, so `../`, absolute paths, and dot-segment tricks are all rejected. |
+| Line cap | At most 400 lines are returned (`MAX_LINES`); detail levels default to 50 (`standard`) or 400 (`full`). |
+| Byte cap | Each returned line is capped at 2000 bytes. |
+| Credential redaction | Every returned line passes through `Registry::MessageSanitizer` (bearer headers, `token=`/`password=` pairs, URLs). |
+| Error contract | Missing files return `{"error": "log file not found: ..."}` — no filesystem structure leaks beyond the requested name. |
+
+Both tools inherit the general read-only guarantee (`read_only_hint: true`,
+`destructive_hint: false`, `idempotent_hint: true`) and the same exposure advice as the
+other tools: prefer stdio, or bind the HTTP endpoint to loopback with authentication.
+
 ## Residual risk checklist (operators)
 
 Use this before exposing HTTP MCP beyond a single-developer machine:

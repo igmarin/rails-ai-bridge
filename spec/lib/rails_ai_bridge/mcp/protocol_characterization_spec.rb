@@ -265,8 +265,8 @@ RSpec.describe 'MCP protocol characterization (SDK 1.x)' do
   # ---- Tool count ----
 
   describe 'built-in tool registration' do
-    it 'registers exactly 21 built-in tools' do
-      expect(RailsAiBridge::Server::TOOLS.length).to eq(21)
+    it 'registers exactly 22 built-in tools' do
+      expect(RailsAiBridge::Server::TOOLS.length).to eq(22)
     end
 
     it 'all tool names are prefixed with rails_' do

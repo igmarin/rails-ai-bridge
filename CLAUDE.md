@@ -13,7 +13,7 @@ committed context files. It does not write to the host database.
   `Introspector::BUILTIN_INTROSPECTORS` (`:full` already includes
   `non_ar_models`; opt-in-only symbols not in any preset: `database_stats`,
   `semantic`).
-- `lib/rails_ai_bridge/tools/` — 20 built-in MCP tools using the official mcp SDK
+- `lib/rails_ai_bridge/tools/` — 22 built-in MCP tools using the official mcp SDK
   (hosts can add more via `additional_tools`)
 - `lib/rails_ai_bridge/serializers/` — Output formatters (claude, claude_rules,
   codex, cursor_rules, devin, devin_rules, copilot, copilot_instructions,

@@ -13,7 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   whitespace only). `EXPLAIN`, `SHOW`, `VALUES`, comment-prefixed SQL, and
   other non-SELECT verbs are rejected. On PostgreSQL the tool uses
   `SET LOCAL statement_timeout` plus `SET TRANSACTION READ ONLY` instead of
-  Ruby `Timeout.timeout`.
+  Ruby `Timeout.timeout`. Other adapters keep the Ruby timeout.
+- Compact Claude and Gemini output previously placed the anti-hallucination block in the
+  footer under the heading `## Anti-hallucination`; it now uses the consistent named
+  section (`## Anti-hallucination rules`) at the top of the file. The rule lines are
+  unchanged.
 
 ### Added
 
@@ -39,13 +43,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   after the freshness header / document intro — so compact-mode trimming and Devin's
   character cap cannot drop it, and it is always inside the managed region when
   `config.output.managed_region` is enabled.
-
-### Changed
-
-- Compact Claude and Gemini output previously placed the anti-hallucination block in the
-  footer under the heading `## Anti-hallucination`; it now uses the consistent named
-  section (`## Anti-hallucination rules`) at the top of the file. The rule lines are
-  unchanged.
+- **`rails_query` MCP tool** — runs a single read-only SELECT statement on the app's established ActiveRecord connection. SELECT-only allowlist (CTEs rejected in v1), single-statement enforcement, hard 100-row cap, 5-second statement timeout, and credential-like column redaction via `MessageSanitizer`. Errors follow the `{ error }` contract.
+- **`rails_read_logs` MCP tool** — returns a redacted tail of a log file under `Rails.root/log`. Traversal-safe path allowlist (expanded-path prefix check), 400-line and 2000-byte-per-line caps, `summary`/`standard`/`full` detail levels, and `MessageSanitizer` redaction on every line.
+- Built-in MCP tools: 20 → 22. Both data-access tools are documented in `docs/mcp-security.md`.
 
 ## [5.1.1] - 2026-09-14
 
