@@ -11,6 +11,7 @@ The install generator writes compact context files and starts a read-only MCP se
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/igmarin/rails-ai-bridge?utm_source=oss&utm_medium=github&utm_campaign=igmarin%2Frails-ai-bridge&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/igmarin/rails-ai-bridge)
+[![MCP Registry](https://img.shields.io/badge/MCP_Registry-submission_ready-blue?style=flat-square)](docs/mcp-registry-submission.md)
 
 ---
 
@@ -863,6 +864,7 @@ The docs are layered so new users do not need to read everything at once.
 |---|---|
 | A quick install and mental model | This README |
 | See it working on a tiny app | [docs/EXAMPLES.md](docs/EXAMPLES.md) and [examples/](examples/) |
+| MCP Registry listing steps | [docs/mcp-registry-submission.md](docs/mcp-registry-submission.md) |
 | Full API reference (YARD) | [https://igmarin.github.io/rails-ai-bridge/](https://igmarin.github.io/rails-ai-bridge/) — available after the first `v*` tag release |
 | How to get better AI output day to day | [docs/BEST_PRACTICES.md](docs/BEST_PRACTICES.md) |
 | Every command, config option, generated file, and MCP parameter | [docs/GUIDE.md](docs/GUIDE.md) |
