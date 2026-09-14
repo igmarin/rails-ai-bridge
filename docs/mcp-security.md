@@ -191,6 +191,7 @@ Use this before exposing HTTP MCP beyond a single-developer machine:
 | `cors_origins` includes `*` | CORS disabled unless configured | Prefer exact origins; never combine `*` with browsers on untrusted networks |
 | In-memory rate limit | Per-process only | Use `config.mcp.rate_limiter` / reverse proxy / WAF for multi-worker or multi-host |
 | Information disclosure via tools | Read-only tools still reveal schema/routes/code | Prefer stdio; bind HTTP to `127.0.0.1`; use exclusions/presets for regulated data |
+| HTTP MCP request outcomes not logged | `http_log_json` defaults to false | Set `config.mcp.http_log_json = true`; `rails ai:doctor` warns when `auto_mount` is on and this is still off |
 | Outbound provider calls to external services | Disabled by default | Enable only with exact `allowed_hosts`; use `allow_private_networks = false` (default) in production |
 
 See also [SECURITY.md](../SECURITY.md) for production `auto_mount` requirements and private vulnerability reporting.

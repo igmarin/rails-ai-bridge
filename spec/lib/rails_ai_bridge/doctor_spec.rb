@@ -41,8 +41,13 @@ RSpec.describe RailsAiBridge::Doctor do
       expect(names).to include('View MCP tool', 'Stimulus MCP tool', 'Bridge metadata')
     end
 
-    it 'runs 17 total checks' do
-      expect(result[:checks].size).to eq(17)
+    it 'includes the HTTP structured log check' do
+      names = result[:checks].map(&:name)
+      expect(names).to include('HTTP structured logs')
+    end
+
+    it 'runs 18 total checks' do
+      expect(result[:checks].size).to eq(18)
     end
 
     it 'checks MCP server buildability' do
@@ -83,7 +88,7 @@ RSpec.describe RailsAiBridge::Doctor do
 
       score = doctor.run[:score]
 
-      # 1 fail (0) + 1 pass (10) + 15 others (all pass = 150) = 160 / 170 = 94
+      # 1 fail (0) + 1 pass (10) + 16 others (all pass = 160) = 170 / 180 = 94
       expect(score).to be < 100
     end
 
