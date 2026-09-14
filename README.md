@@ -119,14 +119,14 @@ See [docs/v5/context-providers-design.md](docs/v5/context-providers-design.md) f
 
 ## Quick start
 
-**From RubyGems** (once published):
+**From RubyGems**:
 
 ```bash
 bundle add rails-ai-bridge
 rails generate rails_ai_bridge:install
 ```
 
-**From GitHub** (before or alongside RubyGems):
+**From GitHub** (unreleased changes):
 
 ```bash
 bundle add rails-ai-bridge --github=igmarin/rails-ai-bridge
@@ -854,9 +854,9 @@ The docs are layered so new users do not need to read everything at once.
 | Complete Devin setup — MCP wiring, skills, troubleshooting | [docs/devin-setup.md](docs/devin-setup.md) |
 | HTTP MCP hardening and production safety | [docs/mcp-security.md](docs/mcp-security.md) and [SECURITY.md](SECURITY.md) |
 | Skill packs: setup, sources, pinning, cache, troubleshooting | [docs/skill-registry-guide.md](docs/skill-registry-guide.md) |
-| Skill registry technical reference | [docs/registry-resolution.md](docs/registry-resolution.md) |
+| Skill registry technical reference | [docs/port-registry-resolution.md](docs/port-registry-resolution.md) |
 | Offline mode design plan | [docs/offline-mode.md](docs/offline-mode.md) |
-| Gem improvement roadmap | [docs/gem-general-improvements.md](docs/gem-general-improvements.md) |
+| Gem improvement roadmap (archived) | [docs/archive/gem-general-improvements.md](docs/archive/gem-general-improvements.md) |
 | Upgrade notes between major versions | [UPGRADING.md](UPGRADING.md) |
 | Release history | [CHANGELOG.md](CHANGELOG.md) |
 | Development and contribution workflow | [CONTRIBUTING.md](CONTRIBUTING.md) |

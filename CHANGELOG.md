@@ -16,6 +16,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   documents the `:full` preset as 27 introspectors (was a corrupted 26/27
   mix). Parity and release-consistency specs now guard the `server.json`
   version and tool counts (fixes #245).
+### Changed
+
+- **Docs cleanup (#246).** README quick start no longer says the gem is
+  "once published" (it ships on RubyGems as 5.1.0). The three registry/port
+  planning docs are consolidated into the canonical
+  `docs/port-registry-resolution.md` (as-built record + user-facing
+  "Registry Resolution Reference"); `docs/02-port-registry-resolution.md` and
+  `docs/registry-resolution.md` are deleted. Completed planning docs
+  `docs/gem-general-improvements.md` and `docs/review-workflow-report.md`
+  moved to `docs/archive/`. Junk file `test_table.md` removed.
+(docs: repo hygiene — README quick start, doc consolidation, archive, junk removal)
 
 ## [5.1.0] - 2026-09-11
 
