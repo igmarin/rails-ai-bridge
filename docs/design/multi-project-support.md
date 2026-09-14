@@ -2,6 +2,9 @@
 
 Epic: [#266](https://github.com/igmarin/rails-ai-bridge/issues/266) — v6.0 multi-project / switch_project (milestone #9, phase 3).
 
+Status: draft for review — merging this PR marks the design accepted; implementation sub-issues
+follow.
+
 ## Problem / Motivation
 
 `rails-ai-bridge` is single-project: one booted app per MCP server process, one config. The core
@@ -60,10 +63,12 @@ MCP client -> parent Server (mcp_transport)
 
 ### New tool: `rails_switch_project`
 
-- **Read-only guarantee scope**: AGENTS.md's "read-only tools only" convention guards the **host
-  application** (no DB writes, no DDL, no shell). `rails_switch_project` honors that: it mutates
-  *server session routing state only* — which project subsequent tool calls target — and never
-  touches host state. Annotations: `destructive_hint: false, read_only_hint: false,
+- **Read-only guarantee scope**: the AGENTS.md rule reads "Read-only tools only — all MCP tools
+  are annotated as non-destructive". Its substance guards the **host application** (no DB writes,
+  no DDL, no shell); its letter is the non-destructive annotation, which `rails_switch_project`
+  satisfies (`destructive_hint: false`). The tool mutates *server session routing state only* —
+  which project subsequent tool calls target — and never touches host state.
+  Annotations: `destructive_hint: false, read_only_hint: false,
   idempotent_hint: true` (switching to the same project is a no-op), `open_world_hint: true` (it
   reaches outside the current process). The annotation deviation from other tools is deliberate and
   surfaced for review (Open question 4): an alternative is transport-level session control outside
@@ -124,14 +129,17 @@ Booting a project executes its code; treat everything under an unlisted or liste
 input — same posture `Registry::EndpointPolicy` applies to provider endpoints.
 
 - **Allowlist only**: `roots` is mandatory when `enabled`; symlinks resolving outside a declared
-  root are rejected at registration (`File.realpath` check); slugs cannot escape (`..` impossible by
-  regex).
+  root are rejected at registration, re-validated via `File.realpath` at every switch and again
+  before child boot (guards symlink swaps between registration and boot); slugs cannot escape:
+  `SLUG_RE = /\A[a-z0-9][a-z0-9_-]{0,63}\z/i` — no dots, no slashes, hence no `..` traversal.
 - **Untrusted project metadata**: `projects_file`, `.ruby-version`, `.tool-versions`, `mise.toml`
-  are parsed read-only, never evaluated; `projects_file` uses `YAML.safe_load` with a limited
-  `permitted_classes` set; version/tool values pass a strict allowlist regex
-  (`/\A[a-z0-9._-]+\z/i`) before becoming argv elements; values feed fixed argv (no shell string,
-  no interpolation into `system`-style calls). The resolver emits
-  `['mise', 'exec', '--', 'bundle', 'exec', ...]`-style argv arrays.
+  are parsed read-only, never evaluated; `projects_file` uses `YAML.safe_load` with the default
+  scalar-only permitted classes (no aliases, 64 KiB size cap, any non-scalar tag rejected);
+  version/tool values pass a strict allowlist regex requiring an alphanumeric first character
+  (`/\A[a-z0-9][a-z0-9._-]*\z/i` — no leading dash, so no option injection) before becoming argv
+  elements; values feed fixed argv (no shell string, no interpolation into `system`-style calls).
+  The resolver emits `['mise', 'exec', '--', 'bundle', 'exec', ...]`-style argv arrays, and every
+  metadata-derived value is placed strictly after `--`.
 - **Child process hygiene**: children inherit a **minimal env** (PATH, HOME, GEM_HOME/RBENV-*
   as resolved by the shim layer) — parent secrets are not propagated; child stdout/stderr are
   captured and redacted through `MessageSanitizer` before anything reaches the client; every spawn
@@ -219,7 +227,7 @@ scoping + auth fail-closed -> (7) docs/parity.
    how are conflicting `disabled_introspection_categories` resolved?
 3. Default child-idle timeout: 60s proposed — long enough to avoid thrash, short enough to bound
    memory; should idle children instead park (SIGSTOP) and resume on demand?
-4. Does `rails_switch_project` (stateful over server session state, but read-only over the host
-   app) require amending the AGENTS.md "read-only tools only" wording to "read-only over the host
-   application", or should project switching move to transport-level session control outside the
-   `rails_` tool namespace?
+4. AGENTS.md wording: keep "read-only tools only" as-is (letter = non-destructive annotation,
+   substance = host-app non-mutation — both satisfied by `rails_switch_project`), tighten it to
+   "read-only over the host application", or move project switching to transport-level session
+   control outside the `rails_` tool namespace?
