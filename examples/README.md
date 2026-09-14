@@ -62,6 +62,8 @@ The demo app exists to show what you get before you run it on your codebase.
 ### Versions used for the captured output
 
 The output snippets in [docs/EXAMPLES.md](../docs/EXAMPLES.md) were captured
-with the repository checkout at the time of writing (Ruby 4.0.6, Rails
-8.1.3.1, gem version 5.1.0). The gem itself requires Ruby >= 3.2 and
-Rails >= 7.1; your generated files will embed your own versions.
+by running this app against the gem in this repository, with the versions
+recorded in the generated files own headers (for example, the first line of
+`CLAUDE.md` embeds the gem version, and the header embeds the Ruby and Rails
+versions of the run). The gem itself requires Ruby >= 3.2 and Rails >= 7.1;
+your generated files will embed your own versions.

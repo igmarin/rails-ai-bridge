@@ -153,7 +153,8 @@ JSON-RPC (`tools/call`) — the same path an AI client uses.
 Note that the static parser counts only bare `add_index` statements in this
 mode — inline `t.index` declarations inside a table block (as used in this
 schema) are not reported, which is why every table shows `0 indexes`. The
-counted columns and tables are accurate.
+counted columns and tables are accurate; index counts currently include only
+bare `add_index` statements.
 
 ### `rails_get_routes` (detail: standard)
 
