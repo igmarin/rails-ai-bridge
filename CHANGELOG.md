@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `rails_query` now requires the statement to start with `SELECT` (leading
+  whitespace only). `EXPLAIN`, `SHOW`, `VALUES`, comment-prefixed SQL, and
+  other non-SELECT verbs are rejected. On PostgreSQL the tool uses
+  `SET LOCAL statement_timeout` plus `SET TRANSACTION READ ONLY` instead of
+  Ruby `Timeout.timeout`.
+
 ### Added
 
 - `rails ai:doctor` warns when HTTP MCP is auto-mounted (`config.auto_mount`)
