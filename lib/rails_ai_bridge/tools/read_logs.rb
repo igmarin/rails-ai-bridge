@@ -2,6 +2,15 @@
 
 module RailsAiBridge
   module Tools
+    # MCP tool returning a redacted tail of a log file under the app's +log/+
+    # directory.
+    #
+    # Security contract (strictly read-only):
+    # - only files under Rails.root/log are readable (expanded-path prefix check,
+    #   no ../ traversal)
+    # - line cap (MAX_LINES) and per-line byte cap applied before returning
+    # - every line is redacted through Registry::MessageSanitizer
+    # - errors follow the {"error": message} contract
     class ReadLogs < BaseTool
       tool_name 'rails_read_logs'
       description 'Read the tail of a log file under the Rails app log directory. ' \
@@ -27,7 +36,7 @@ module RailsAiBridge
           detail: {
             type: 'string',
             enum: %w[summary standard full],
-            description: 'summary: file metadata only (size, mtime, line hint). standard: tail of 50 lines. ' \
+            description: 'summary: file metadata only (size). standard: tail of 50 lines. ' \
                          'full: tail of up to 400 lines.'
           }
         },
@@ -36,6 +45,14 @@ module RailsAiBridge
 
       annotations(read_only_hint: true, destructive_hint: false, idempotent_hint: true, open_world_hint: false)
 
+      # Returns the redacted tail of the requested log file as compact JSON.
+      #
+      # @param file [String] log file name relative to the log directory
+      # @param lines [Integer, nil] requested tail length (hard-capped at MAX_LINES)
+      # @param detail [String] +summary+, +standard+, or +full+
+      # @return [MCP::Tool::Response] JSON payload with file metadata and tail
+      #   lines, or {"error": "..."}
+      # @raise [StandardError] never escapes; converted to an error response
       def self.call(file:, lines: nil, detail: 'standard')
         file_io, error = LogLocator.new(file, Rails.root.to_s).locate
         return error_response(error) if error
@@ -58,17 +75,29 @@ module RailsAiBridge
         message = Registry::MessageSanitizer.sanitize(error.message)
         logger = Rails.logger
         logger.error(message)
-        logger.error(error.backtrace.first(5).join("\n"))
+        logger.error(Array(error.backtrace).first(5).join("\n"))
         error_response(message)
       end
 
+      # Formats a log tail: file metadata plus the redacted, capped tail lines.
+      #
+      # The file is consumed in a single streaming pass; tail lines are kept in
+      # a buffer capped at the requested length, so memory stays bounded no
+      # matter how large the log file is.
       class TailFormatter
+        # @param file_io [File] opened log file descriptor (binary mode)
+        # @param lines [Integer, nil] requested tail length
+        # @param detail [String] detail level
         def initialize(file_io, lines:, detail:)
           @file_io = file_io
           @lines = lines
           @detail = detail
         end
 
+        # Builds the payload.
+        #
+        # @return [Hash] compact payload with +file+, +size_bytes+, +total_lines+
+        #   and (for non-summary detail) redacted tail +lines+
         def format
           return build_summary if @detail == 'summary'
 
@@ -77,11 +106,21 @@ module RailsAiBridge
           @file_io.close
         end
 
+        # Byte-caps, scrubs, and redacts a single line.
+        #
+        # @param line [String] raw line from the log file
+        # @return [String] redacted line
         def self.redact(line)
           trimmed = line.force_encoding(Encoding::UTF_8).scrub
           Registry::MessageSanitizer.sanitize(trimmed.chomp)
         end
 
+        # Appends a redacted line to the tail buffer, maintaining the cap.
+        #
+        # @param tail_lines [Array<String>] current tail buffer
+        # @param line [String] raw line to redact and append
+        # @param cap [Integer] maximum buffer size
+        # @return [void]
         def self.append_to_tail(tail_lines, line, cap)
           tail_lines << redact(line)
           tail_lines.shift while tail_lines.size > cap
@@ -91,7 +130,7 @@ module RailsAiBridge
 
         def build_summary
           {
-            file: File.basename(@file_io.path),
+            file: relative_path,
             size_bytes: @file_io.stat.size,
             total_lines: nil
           }
@@ -122,11 +161,16 @@ module RailsAiBridge
 
         def build_payload(total, tail_lines)
           {
-            file: File.basename(@file_io.path),
+            file: relative_path,
             size_bytes: @file_io.stat.size,
             total_lines: total,
             lines: tail_lines
           }
+        end
+
+        def relative_path
+          log_dir = Pathname.new(Rails.root).join('log').to_s
+          Pathname.new(@file_io.path).relative_path_from(Pathname.new(log_dir)).to_s
         end
 
         def tail_length

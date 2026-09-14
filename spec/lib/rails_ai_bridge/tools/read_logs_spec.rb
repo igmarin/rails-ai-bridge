@@ -55,6 +55,18 @@ RSpec.describe RailsAiBridge::Tools::ReadLogs do
     ensure
       FileUtils.rm_rf(nested)
     end
+
+    it 'rejects a symlink inside log/ that points outside the log directory' do
+      outside_file = Rails.root.join('config', 'secrets.yml')
+      FileUtils.mkdir_p(File.dirname(outside_file))
+      File.write(outside_file, "secret: value\n")
+      symlink = log_dir.join('escape.log')
+      File.symlink(outside_file, symlink)
+      expect(text_of(described_class.call(file: 'escape.log'))).to include('error')
+    ensure
+      FileUtils.rm_f(symlink)
+      FileUtils.rm_f(outside_file)
+    end
   end
 
   describe 'tail cap' do
