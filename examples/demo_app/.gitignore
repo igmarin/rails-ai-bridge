@@ -1,0 +1,17 @@
+# Regenerable cache written by rails ai:bridge
+.ai-context.json
+tmp/
+log/
+db/*.sqlite3
+db/*.sqlite3-*
+
+# The demo app intentionally commits its generated bridge files and MCP wiring
+# (this is the demonstration). Negate the repository-root ignores for them.
+!Gemfile.lock
+!.mcp.json
+!.claude/
+!.claude/**
+!.codex/
+!.codex/**
+!.devin/
+!.devin/**

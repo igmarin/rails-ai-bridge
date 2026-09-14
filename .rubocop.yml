@@ -11,6 +11,13 @@ AllCops:
     - "spec/internal/**/*"
     - "gemfiles/**/*"
     - ".mutant.yml"
+    # Generated/rails-boilerplate demo files (rails new, db/schema.rb, bin/,
+    # config boot files) — rails generators emit double-quoted strings and
+    # long blocks by design; keeping them excluded means `rubocop -A` never
+    # rewrites files the demo intentionally shows as generated output.
+    - "examples/demo_app/bin/**/*"
+    - "examples/demo_app/config/**/*"
+    - "examples/demo_app/db/**/*"
 Naming/FileName:
   Exclude:
     - "lib/rails-ai-bridge.rb"

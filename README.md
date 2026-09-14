@@ -849,6 +849,7 @@ The docs are layered so new users do not need to read everything at once.
 | If you need... | Start here |
 |---|---|
 | A quick install and mental model | This README |
+| See it working on a tiny app | [docs/EXAMPLES.md](docs/EXAMPLES.md) and [examples/](examples/) |
 | How to get better AI output day to day | [docs/BEST_PRACTICES.md](docs/BEST_PRACTICES.md) |
 | Every command, config option, generated file, and MCP parameter | [docs/GUIDE.md](docs/GUIDE.md) |
 | Complete Devin setup — MCP wiring, skills, troubleshooting | [docs/devin-setup.md](docs/devin-setup.md) |

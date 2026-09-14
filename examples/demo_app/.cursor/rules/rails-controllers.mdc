@@ -1,0 +1,13 @@
+---
+description: "Controller reference"
+globs:
+  - "app/controllers/**/*.rb"
+alwaysApply: false
+---
+
+# Controllers (2)
+
+- PostsController: GET index, GET index, POST create, GET new, GET edit, GET show
+- CommentsController: POST create, DELETE destroy
+
+Use `rails_get_controllers` MCP tool with controller:"Name" for full detail.

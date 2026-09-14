@@ -1,0 +1,29 @@
+---
+description: "Rails engineering rules — strong params, auth, performance, security"
+alwaysApply: true
+---
+
+# Engineering essentials
+
+## Anti-hallucination
+
+- Verify before you write (column, association, route, helper, gem).
+- Mark assumptions with `[ASSUMPTION]`. Silent guesses are forbidden.
+- This app is not average Rails. Query conventions and gems before scaffolding.
+- Check the inheritance chain (filters, concerns, STI) before editing a controller or model.
+- Empty tool output is information, not permission to invent.
+- Re-query after writes. Stale tool output lies.
+
+- **Strong params**: permit explicitly; never mass-assign raw `params`.
+- **Auth**: protect mutations and sensitive reads; public route ≠ public data.
+- **N+1**: `includes` / `preload` / `eager_load` for associations in views and serializers.
+- **Bounds**: paginate HTTP lists; `find_each` / `in_batches` in jobs; no `Model.all` in requests.
+- **Large tables**: narrow queries; check indexes before new filters/sorts; use `rails_get_schema`.
+- **Security**: no `constantize`/`send`/`eval` on user input; no SQL string interpolation; allow-list redirects.
+- **Tests**: request/system specs for HTTP; confirm runner with `rails_get_test_info`.
+
+Generated files are **snapshots** — prefer `rails_*` MCP tools for current structure.
+Full engineering rules: `.github/copilot-instructions.md` or `AGENTS.md`.
+MCP tool reference: `rails-mcp-tools.mdc`.
+
+- Run `bundle exec rspec` after changes

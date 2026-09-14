@@ -1,0 +1,10 @@
+# frozen_string_literal: true
+
+source 'https://rubygems.org'
+
+# This demo lives inside the rails-ai-bridge repository, so the gem is loaded
+# from the repo itself via a relative path. In your own app, use:
+#   gem 'rails-ai-bridge'
+gem 'rails', '~> 8.1'
+gem 'rails-ai-bridge', path: '../..'
+gem 'sqlite3', '~> 2.9'

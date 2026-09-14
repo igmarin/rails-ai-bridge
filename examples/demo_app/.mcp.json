@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "rails-ai-bridge": {
+      "command": "bundle",
+      "args": [
+        "exec",
+        "rails",
+        "ai:serve"
+      ]
+    }
+  }
+}

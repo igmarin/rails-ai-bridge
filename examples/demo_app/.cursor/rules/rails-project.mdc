@@ -1,0 +1,23 @@
+---
+description: "Rails project context for DemoApp"
+alwaysApply: true
+---
+
+# DemoApp
+
+Rails 8.1.3.1 | Ruby 3.3.12
+
+- Database: static_parse — 3 tables
+- Models: 3
+- Routes: 16 total — 2 controller classes (4 names in routing — can exceed class count when routes reference engines or non-file controllers)
+- Endpoint focus:
+  posts: 9 routes — `rails_get_routes(controller:"posts", detail:"summary")`
+  rails/info: 4 routes — `rails_get_routes(controller:"rails/info", detail:"summary")`
+  comments: 2 routes — `rails_get_routes(controller:"comments", detail:"summary")`
+- database: sqlite3
+- files: activestorage
+- testing: minitest
+- utilities: nokogiri, faraday
+
+Engineering rules: rails-engineering.mdc. MCP tools: rails-mcp-tools.mdc.
+Always call with detail:"summary" first, then drill into specifics.

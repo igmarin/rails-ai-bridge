@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Runnable example app under `examples/demo_app` — a minimal Rails 8 app
+  (3 models, 3 controllers, 3 tables) that boots without a database and
+  demonstrates install, context generation for all 7 assistant targets, and
+  MCP tool calls against the static schema parser. `docs/EXAMPLES.md` walks
+  through it with real captured output (fixes #260).
+
 ### Fixed
 
 - `DatabaseSize.bucket` and `DatabaseSize.bucket_for_table` no longer classify
