@@ -229,7 +229,9 @@ module RailsAiBridge
           end
 
           it 'includes the same rule bullets and trailer as shared compact footer (with Gemini heading)' do
-            shared_md = SharedAssistantGuidance.compact_engineering_rules_footer_lines(footer_ctx).join("\n")
+            shared_md = SharedAssistantGuidance.compact_engineering_rules_footer_lines(
+              footer_ctx, include_anti_hallucination: false
+            ).join("\n")
             expect(output).to eq(shared_md.sub(/^## Rules\n/, "## Behavioral Rules\n"))
           end
 

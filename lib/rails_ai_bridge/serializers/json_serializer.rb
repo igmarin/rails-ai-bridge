@@ -16,7 +16,16 @@ module RailsAiBridge
       #
       # @return [String] pretty-printed JSON representation of the context
       def call
-        JSON.pretty_generate(context)
+        JSON.pretty_generate(serializable_context)
+      end
+
+      private
+
+      # @return [Hash] context plus the anti-hallucination rules array when enabled
+      def serializable_context
+        return context unless AntiHallucinationRules.enabled?
+
+        context.merge(anti_hallucination_rules: AntiHallucinationRules.rules)
       end
     end
   end

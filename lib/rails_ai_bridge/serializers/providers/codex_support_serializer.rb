@@ -29,11 +29,21 @@ module RailsAiBridge
 
         # @return [String] Markdown body for `.codex/README.md`.
         def render_readme
+          [readme_intro, AntiHallucinationRules.markdown_block, readme_body].compact.join("\n\n")
+        end
+
+        # @return [String] Title and purpose of the README.
+        def readme_intro
           <<~MD
             # Codex Setup Notes
 
             This directory contains Codex-specific helper files for `#{context[:app_name]}`.
+          MD
+        end
 
+        # @return [String] Setup guidance body.
+        def readme_body
+          <<~MD
             ## Recommended setup
 
             - Keep `AGENTS.md` committed at the repository root. Codex reads it as project guidance.

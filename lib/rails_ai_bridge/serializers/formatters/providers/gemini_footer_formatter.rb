@@ -13,7 +13,8 @@ module RailsAiBridge
         def call
           SharedAssistantGuidance.compact_engineering_rules_footer_lines(
             context,
-            rules_heading: '## Behavioral Rules'
+            rules_heading: '## Behavioral Rules',
+            include_anti_hallucination: false
           ).join("\n")
         end
       end
