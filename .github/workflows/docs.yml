@@ -16,7 +16,9 @@ jobs:
   yard:
     runs-on: ubuntu-latest
     name: Publish YARD docs to GitHub Pages
+    timeout-minutes: 15
     permissions:
+      contents: read
       pages: write
       id-token: write
     environment:
