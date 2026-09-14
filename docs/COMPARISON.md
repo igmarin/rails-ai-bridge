@@ -3,12 +3,13 @@
 Rails has several projects that turn an app into AI-readable context. They
 overlap, but they optimize for different things. This page states the
 durable differences factually; counts were checked against each project's
-published documentation on 2026-09-14 and will drift with releases.
+published documentation at the time of writing (September 2026) and will
+drift with releases.
 
 Projects compared:
 
 - **rails-ai-bridge** — this gem ([README](../README.md),
-  [docs/GUIDE.md](GUIDE.md))
+  [docs/GUIDE.md](GUIDE.md), https://rubygems.org/gems/rails-ai-bridge)
 - **rails-ai-context** — https://rubygems.org/gems/rails-ai-context
   (docs: https://github.com/crisnahine/rails-ai-context)
 - **rails-mcp-server** — https://github.com/maquina-app/rails-mcp-server,
@@ -33,12 +34,12 @@ Projects compared:
 | Read-only SQL / data access | ✗ (structure introspection only) | `query` tool: read-only SQL with timeout, row limit, column redaction | ✗ | Optional console server for live data, disabled by default | Query DB tool (dev only) |
 | Outbound provider federation | ✅ `rails_get_provider_context`: external MCP providers, host allowlist, SSRF controls, credential redaction, disabled by default | ✗ | ✗ | ✗ | Companion gems are the content channel |
 | Multi-project | ✗ (one app per bridge) | ✗ | ✅ `projects.yml`, `switch_project` | One app per index | One app |
-| Usage stats (RubyGems, 2026-09-14) | New gem; see rubygems.org for current numbers | 43,644 total downloads | 259,094 total downloads | 3,852 total downloads | 8,155 total downloads |
+| Usage stats (RubyGems, September 2026) | New gem; see rubygems.org for current numbers | 43,644 total downloads | 259,094 total downloads | 3,852 total downloads | 8,155 total downloads |
 | Requirements | Ruby ≥ 3.2, Rails ≥ 7.1 | Ruby ≥ 3.1, Rails ≥ 7.0 | Ruby ≥ 3.3 | Ruby ≥ 3.0, Rails 6.0–8.x | Ruby ≥ 3.2 |
 
-Where this table marks rails-ai-bridge with ✗, that is an honest gap, not a
-trade secret: we do not ship a dependency graph, a read-only SQL tool, a CLI
-mode, or multi-project support today.
+Where this table marks rails-ai-bridge with ✗, the feature is not shipped
+today: no dependency graph, read-only SQL tool, CLI mode, or multi-project
+support.
 
 ## What each project is optimizing for
 
@@ -78,7 +79,7 @@ tool surface includes eval and DB query, so treat it as a development-only
 tool. Choose it when you want capability delivered through companion gems
 rather than committed context files.
 
-## Honest summary
+## Summary
 
 - Most tool surface: rails-ai-context (45 tools).
 - Best multi-project story: rails-mcp-server.
@@ -89,6 +90,6 @@ rather than committed context files.
   provider federation with SSRF controls — at the cost of a smaller built-in
   tool set.
 
-Numbers and feature claims above were checked against the linked sources on
-2026-09-14. If you maintain one of these projects and a row is wrong, open an
+Numbers and feature claims above were checked against the linked sources at
+the time of writing (September 2026). If you maintain one of these projects and a row is wrong, open an
 issue — corrections are welcome.

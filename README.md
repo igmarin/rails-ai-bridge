@@ -841,8 +841,8 @@ persistent dependency-graph analysis, and rails-hyperdrive on a
 companion-gem content ecosystem. rails-ai-bridge focuses on compact
 per-assistant context files for 7 targets, SHA256 diff-aware regeneration,
 strict read-only tools, and outbound provider federation with SSRF
-controls — and honestly lacks a dependency graph, SQL read path, CLI mode,
-and multi-project support today. See [docs/COMPARISON.md](docs/COMPARISON.md)
+controls — and does not yet ship a dependency graph, SQL read path, CLI
+mode, or multi-project support. See [docs/COMPARISON.md](docs/COMPARISON.md)
 for the full feature table with sources and download counts.
 
 ## vs. Other Ruby MCP Projects
