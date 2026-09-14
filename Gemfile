@@ -17,7 +17,7 @@ group :development, :test do
   gem 'rubocop-rails', '~> 2.37'
   gem 'rubocop-rails-omakase', '~> 1.0'
   gem 'rubocop-rspec', '~> 3.10'
-  gem 'simplecov', '~> 1.1.0'
+  gem 'simplecov', '~> 1.2.0'
   gem 'skunk', '~> 0.5'
   gem 'sqlite3', '~> 2.9', '>= 2.9.6'
 end
