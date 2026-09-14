@@ -1,0 +1,11 @@
+# The demo app never connects to a database: rails-ai-bridge parses
+# db/schema.rb as static text. This file only exists so Rails can load
+# database configuration if a tool chooses to.
+default: &default
+  adapter: sqlite3
+development:
+  <<: *default
+  database: db/development.sqlite3
+test:
+  <<: *default
+  database: db/test.sqlite3

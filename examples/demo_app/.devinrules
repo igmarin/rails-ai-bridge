@@ -1,0 +1,54 @@
+<!-- Generated at: 2026-09-14T03:27:55Z | Source fingerprint: 3eb1cd0e0f3b | rails-ai-bridge: v5.1.0 -->
+# DemoApp — Rails 8.1.3.1
+
+## Stack
+- Database: static_parse — 3 tables
+- Models: 3
+- Routes: 16 total — 2 controller classes (4 names in routing — can exceed class count when routes reference engines or non-file controllers)
+- Endpoint focus: posts: 9 routes — `rails_get_routes(controller:"posts", detail:"summary")`; rails/info: 4 routes — `rails_get_routes(controller:"rails/info", detail:"summary")`; comments: 2 routes — `rails_get_routes(controller:"comments", detail:"summary")`
+- Migrations: 0 total, 0 pending
+
+database: sqlite3
+files: activestorage
+testing: minitest
+utilities: nokogiri, faraday
+
+## Key Models
+- Post [cols: title:string, body:text, published:boolean]
+- User [cols: email:string, name:string]
+- Comment [cols: body:text, post:references]
+
+## Key Config Files
+- `config/database.yml`
+- `config/application.rb`
+- `Gemfile`
+
+## Key Considerations
+- Performance: N+1s, indexes. Use `rails_get_schema`.
+- Security: Sanitize input, strong params.
+- Data Drift: Use MCP tools for live data.
+
+## Commands
+- `bin/dev` — dev server
+- `bundle exec rspec` — run tests
+- `bundle exec rubocop` — linter
+- `rails db:migrate` — migrations
+
+## MCP Tools (detail:"summary"|"standard"|"full")
+- rails_get_schema(table:"name"|detail:"sum"|limit:N)
+- rails_get_model_details(model:"Name"|detail:"sum")
+- rails_get_routes(controller:"name"|detail:"sum"|limit:N)
+- rails_get_controllers(controller:"Name"|detail:"sum")
+- rails_get_config — cache, session, middleware
+- rails_get_test_info — framework, factories, CI
+- rails_get_gems — categorized gems
+- rails_get_conventions — architecture patterns
+- `rails_search_code(pattern:"regex"|file_type:"rb"|max_results:N)`
+Start with detail:"summary", then drill into specifics.
+
+## Behavioral Rules
+- Adhere to Conventions
+- Schema as Source of Truth
+- Respect Existing Logic
+- Write Tests
+- Verify Correctness with `rubocop` and tests

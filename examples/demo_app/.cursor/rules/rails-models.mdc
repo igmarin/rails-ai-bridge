@@ -1,0 +1,14 @@
+---
+description: "ActiveRecord models reference"
+globs:
+  - "app/models/**/*.rb"
+alwaysApply: false
+---
+
+# Models (3)
+
+- Post (2 associations, table: posts) [cols: title:string, body:text, published:boolean]
+- Comment (1 associations, table: comments) [cols: body:text, post:references]
+- User (1 associations, table: users) [cols: email:string, name:string]
+
+Use `rails_get_model_details` MCP tool with model:"Name" for full detail.
