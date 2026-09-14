@@ -2,31 +2,15 @@
 
 module RailsAiBridge
   module Tools
-    # MCP tool returning a redacted tail of a log file under the app's +log/
-    # directory.
-    #
-    # Security contract (strictly read-only):
-    # - only files under Rails.root/log are readable (expanded-path prefix check,
-    #   no ../ traversal)
-    # - line cap (MAX_LINES) and per-line byte cap applied before returning
-    # - every line is redacted through Registry::MessageSanitizer
-    # - errors follow the {"error": message} contract
     class ReadLogs < BaseTool
       tool_name 'rails_read_logs'
       description 'Read the tail of a log file under the Rails app log directory. ' \
                   'Lines are capped and credential patterns are redacted. Useful for ' \
                   'investigating errors, stack traces, and request failures.'
 
-      # Hard upper bound for returned lines regardless of client input.
       MAX_LINES = 400
-
-      # Byte cap for any single returned line.
       MAX_LINE_BYTES = 2000
-
-      # Default detail-level tails.
       LINES_BY_DETAIL = { 'summary' => 0, 'standard' => 50, 'full' => MAX_LINES }.freeze
-
-      # Fallback tail length for an unrecognized detail level.
       DEFAULT_LINES = 50
 
       input_schema(
@@ -52,25 +36,17 @@ module RailsAiBridge
 
       annotations(read_only_hint: true, destructive_hint: false, idempotent_hint: true, open_world_hint: false)
 
-      # Returns the redacted tail of the requested log file as compact JSON.
-      #
-      # @param file [String] log file name relative to the log directory
-      # @param lines [Integer, nil] requested tail length (hard-capped at MAX_LINES)
-      # @param detail [String] +summary+, +standard+, or +full+
-      # @return [MCP::Tool::Response] JSON payload with file metadata and tail
-      #   lines, or {"error": "..."}
-      # @raise [StandardError] never escapes; converted to an error response
       def self.call(file:, lines: nil, detail: 'standard')
-        log_path, error = LogLocator.new(file, Rails.root.to_s).locate
+        file_io, error = LogLocator.new(file, Rails.root.to_s).locate
         return error_response(error) if error
 
-        respond(log_path, lines, detail)
+        respond(file_io, lines, detail)
       rescue StandardError => error
         execution_failure(error)
       end
 
-      private_class_method def self.respond(log_path, lines, detail)
-        payload = TailFormatter.new(log_path, lines: lines, detail: detail).format
+      private_class_method def self.respond(file_io, lines, detail)
+        payload = TailFormatter.new(file_io, lines: lines, detail: detail).format
         text_response(payload.to_json)
       end
 
@@ -78,11 +54,6 @@ module RailsAiBridge
         text_response({ error: message }.to_json)
       end
 
-      # Logs a failed read with sanitized message and backtrace head, then
-      # returns the sanitized error.
-      #
-      # @param error [StandardError] raised error
-      # @return [MCP::Tool::Response] sanitized error payload
       private_class_method def self.execution_failure(error)
         message = Registry::MessageSanitizer.sanitize(error.message)
         logger = Rails.logger
@@ -91,66 +62,70 @@ module RailsAiBridge
         error_response(message)
       end
 
-      # Formats a log tail: file metadata plus the redacted, capped tail lines.
-      #
-      # The file is consumed in a single streaming pass; tail lines are kept in
-      # a buffer capped at the requested length, so memory stays bounded no
-      # matter how large the log file is.
       class TailFormatter
-        # @param log_path [Pathname] resolved log file path
-        # @param lines [Integer, nil] requested tail length
-        # @param detail [String] detail level
-        def initialize(log_path, lines:, detail:)
-          @log_path = log_path
+        def initialize(file_io, lines:, detail:)
+          @file_io = file_io
           @lines = lines
           @detail = detail
         end
 
-        # Builds the payload.
-        #
-        # @return [Hash] compact payload with +file+, +size_bytes+, +total_lines+
-        #   and (for non-summary detail) redacted tail +lines+
         def format
-          tail_lines = []
-          total = 0
-          cap = @detail == 'summary' ? 0 : tail_length
+          return build_summary if @detail == 'summary'
 
-          @log_path.each_line do |line|
-            total += 1
-            next if cap.zero?
+          build_tail
+        ensure
+          @file_io.close
+        end
 
-            tail_lines << redact(line)
-            tail_lines.shift while tail_lines.size > cap
-          end
+        def self.redact(line)
+          trimmed = line.force_encoding(Encoding::UTF_8).scrub
+          Registry::MessageSanitizer.sanitize(trimmed.chomp)
+        end
 
-          payload = {
-            file: @log_path.basename.to_s,
-            size_bytes: @log_path.size,
-            total_lines: total
-          }
-          return payload if cap.zero?
-
-          payload.merge(lines: tail_lines)
+        def self.append_to_tail(tail_lines, line, cap)
+          tail_lines << redact(line)
+          tail_lines.shift while tail_lines.size > cap
         end
 
         private
 
-        # Effective tail length from the request or the detail-level default.
-        #
-        # @return [Integer]
+        def build_summary
+          {
+            file: File.basename(@file_io.path),
+            size_bytes: @file_io.stat.size,
+            total_lines: nil
+          }
+        end
+
+        def build_tail
+          tail_lines = []
+          cap = tail_length
+          total = process_lines(tail_lines, cap)
+          build_payload(total, tail_lines)
+        end
+
+        def process_lines(tail_lines, cap)
+          total = 0
+          @file_io.each_line(ReadLogs::MAX_LINE_BYTES) do |line|
+            total += 1
+            TailFormatter.append_to_tail(tail_lines, line, cap)
+          end
+          total
+        end
+
+        def build_payload(total, tail_lines)
+          {
+            file: File.basename(@file_io.path),
+            size_bytes: @file_io.stat.size,
+            total_lines: total,
+            lines: tail_lines
+          }
+        end
+
         def tail_length
           requested = @lines.to_i
           requested = LINES_BY_DETAIL.fetch(@detail, DEFAULT_LINES) if requested < 1
           requested.clamp(1, ReadLogs::MAX_LINES)
-        end
-
-        # Byte-caps, scrubs, and redacts a single line.
-        #
-        # @param line [String] raw line from the log file
-        # @return [String] redacted line
-        def redact(line)
-          trimmed = line.byteslice(0, ReadLogs::MAX_LINE_BYTES).scrub
-          Registry::MessageSanitizer.sanitize(trimmed.chomp)
         end
       end
     end

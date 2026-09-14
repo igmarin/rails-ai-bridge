@@ -90,7 +90,7 @@ RSpec.describe RailsAiBridge::Tools::ReadLogs do
     end
   end
 
-  describe 'invalid utf-8 at the byte cap' do
+  describe 'invalid utf-8 handling' do
     it 'returns a redacted tail when the byte cap splits a multibyte character' do
       wide = log_dir.join('utf8.log')
       line = ('a' * 1_999) + ('é' * 100)
@@ -100,6 +100,40 @@ RSpec.describe RailsAiBridge::Tools::ReadLogs do
       expect(payload['lines'].last).to eq('plain tail line')
     ensure
       FileUtils.rm_f(wide)
+    end
+
+    it 'scrubs genuinely invalid bytes instead of raising ArgumentError' do
+      invalid = log_dir.join('invalid_utf8.log')
+      File.open(invalid, 'wb') do |f|
+        f.write("good line\n")
+        f.write("\xFF\xFE invalid bytes\n")
+        f.write("tail line\n")
+      end
+      payload = JSON.parse(text_of(described_class.call(file: 'invalid_utf8.log')))
+      expect(payload).not_to have_key('error')
+      expect(payload['lines']).to include('tail line')
+      expect(payload['lines'].any? { |l| l.include?('') || l.include?('invalid bytes') }).to be(true)
+    ensure
+      FileUtils.rm_f(invalid)
+    end
+  end
+
+  describe 'per-line memory bound' do
+    it 'bounds each line to MAX_LINE_BYTES even when the file contains longer lines' do
+      long_line = log_dir.join('long_line.log')
+      File.open(long_line, 'wb') do |f|
+        f.write("short\n")
+        f.write('x' * 5000)
+        f.write("\n")
+        f.write("tail\n")
+      end
+      payload = JSON.parse(text_of(described_class.call(file: 'long_line.log')))
+      expect(payload).not_to have_key('error')
+      max_len = payload['lines'].map(&:length).max
+      expect(max_len).to be <= described_class::MAX_LINE_BYTES
+      expect(payload['lines'].last).to eq('tail')
+    ensure
+      FileUtils.rm_f(long_line)
     end
   end
 

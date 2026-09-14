@@ -8,13 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- `rails_read_logs` streams the log file in a single bounded pass instead of
-  materializing the whole file into memory (tail buffer stays capped at
-  `MAX_LINES`), scrubs invalid UTF-8 at the per-line byte cap (replacement
-  characters instead of `invalid byte sequence in UTF-8` errors), and redacts
-  error messages before they are written to `Rails.logger`. The internal-only
-  `ReadLogs.respond`, `error_response`, and `execution_failure` helpers are
-  now private class methods.
 
 - `rails_query` now requires the statement to start with `SELECT` (leading
   whitespace only). `EXPLAIN`, `SHOW`, `VALUES`, comment-prefixed SQL, and
@@ -24,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `rails_read_logs` streams the log file in a single bounded pass instead of
+  materializing the whole file into memory (tail buffer stays capped at
+  `MAX_LINES`), scrubs invalid UTF-8 at the per-line byte cap (replacement
+  characters instead of `invalid byte sequence in UTF-8` errors), and redacts
+  error messages before they are written to `Rails.logger`. The internal-only
+  `ReadLogs.respond`, `error_response`, and `execution_failure` helpers are
+  now private class methods.
 - `rails ai:doctor` warns when HTTP MCP is auto-mounted (`config.auto_mount`)
   but `config.mcp.http_log_json` is still false, so 401/403/429/handled
   outcomes from `HttpTransportApp` would not emit structured JSON lines.
