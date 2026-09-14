@@ -27,6 +27,7 @@ component :core, in: %w[
   lib/rails_ai_bridge/service/**/*.rb
   lib/rails_ai_bridge/exclusion_helper.rb
   lib/rails_ai_bridge/database_size.rb
+  lib/rails_ai_bridge/service_errors.rb
 ]
 
 # Configuration layer — user-facing settings and presets.
@@ -54,7 +55,6 @@ component :runtime_context, in: %w[
   lib/rails_ai_bridge/fingerprinter/**/*.rb
   lib/rails_ai_bridge/freshness_header.rb
   lib/rails_ai_bridge/instrumentation.rb
-  lib/rails_ai_bridge/service_errors.rb
   lib/rails_ai_bridge/tasks/**/*.rb
   lib/rails_ai_bridge/tool_result_cache.rb
   lib/rails_ai_bridge/view_file_analyzer.rb
@@ -75,7 +75,7 @@ component :host_integration, in: %w[
   lib/rails_ai_bridge/services/**/*.rb
 ]
 
-# MCP tools — the 19 built-in tools exposed over the MCP protocol.
+# MCP tools — the 20 built-in tools exposed over the MCP protocol.
 component :tools, in: 'lib/rails_ai_bridge/tools/**/*.rb'
 
 # Output formatters — serialize introspection payloads to per-assistant files.
@@ -114,12 +114,14 @@ core.cannot_use :config, :introspectors, :runtime_context, :tools, :serializers,
                 :registry, :mcp_transport, :rubydex, :host_integration
 
 # Config sits directly above core; it must not reach up into any upper layer.
-config.cannot_use :tools, :serializers, :mcp_transport, :introspectors, :host_integration
+config.cannot_use :runtime_context, :tools, :serializers, :mcp_transport, :introspectors,
+                  :host_integration
 
 # Runtime context, tools, and transport sit below host integration wiring;
 # they must not reach up into it.
 runtime_context.cannot_use :host_integration
 tools.cannot_use :host_integration
+mcp_transport.cannot_use :host_integration
 
 # Registry and rubydex are leaf adapters; they must not depend on the
 # tooling, formatting, or transport layers.
