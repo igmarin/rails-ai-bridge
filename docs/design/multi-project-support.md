@@ -133,8 +133,10 @@ input — same posture `Registry::EndpointPolicy` applies to provider endpoints.
   before child boot (guards symlink swaps between registration and boot); slugs cannot escape:
   `SLUG_RE = /\A[a-z0-9][a-z0-9_-]{0,63}\z/i` — no dots, no slashes, hence no `..` traversal.
 - **Untrusted project metadata**: `projects_file`, `.ruby-version`, `.tool-versions`, `mise.toml`
-  are parsed read-only, never evaluated; `projects_file` uses `YAML.safe_load` with the default
-  scalar-only permitted classes (no aliases, 64 KiB size cap, any non-scalar tag rejected);
+  are parsed read-only, never evaluated; `projects_file` is rejected up front if larger than
+  64 KiB (explicit pre-parse size check — `safe_load` has no size cap), then parsed with
+  `YAML.safe_load` using the default scalar-only permitted classes (no aliases, any non-scalar
+  tag rejected);
   version/tool values pass a strict allowlist regex requiring an alphanumeric first character
   (`/\A[a-z0-9][a-z0-9._-]*\z/i` — no leading dash, so no option injection) before becoming argv
   elements; values feed fixed argv (no shell string, no interpolation into `system`-style calls).
