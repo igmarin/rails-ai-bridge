@@ -23,7 +23,8 @@ module RailsAiBridge
       check_view_mcp_tool: Checkers::ViewMcpToolChecker,
       check_stimulus_mcp_tool: Checkers::StimulusMcpToolChecker,
       check_bridge_metadata: Checkers::BridgeMetadataChecker,
-      check_registry: Checkers::RegistryChecker
+      check_registry: Checkers::RegistryChecker,
+      check_http_structured_log: Checkers::HttpStructuredLogChecker
     }.freeze
 
     STATIC_UNAVAILABLE_CHECKS = {
