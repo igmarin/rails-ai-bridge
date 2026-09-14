@@ -24,6 +24,15 @@ RSpec.describe 'release consistency between VERSION and version-bearing files' d
                         'Update lib/rails_ai_bridge/version.rb or the CHANGELOG so they match.'
   end
 
+  it 'keeps the server.json version in sync' do
+    server_json = JSON.parse(File.read(File.expand_path('../../../server.json', __dir__)))
+
+    expect(server_json['version']).to eq(RailsAiBridge::VERSION),
+                                      "server.json version is #{server_json['version'].inspect} but " \
+                                      "RailsAiBridge::VERSION is #{RailsAiBridge::VERSION.inspect}. " \
+                                      'Update server.json so they match.'
+  end
+
   it 'keeps the lockfile rails-ai-bridge entries in sync' do
     %w[Gemfile.lock Gemfile-mutation.lock].each do |lockfile|
       content = File.read(File.expand_path("../../../#{lockfile}", __dir__))

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `server.json` no longer drifts from the released gem: its `version` now
+  matches `RailsAiBridge::VERSION` (was stale at `3.0.0`) and the description
+  reports the real 20 read-only tools (was 13). `CONTRIBUTING.md`, `GEMINI.md`,
+  and `docs/GUIDE.md` tool counts corrected from 19 to 20; `GEMINI.md` also
+  documents the `:full` preset as 27 introspectors (was a corrupted 26/27
+  mix). Parity and release-consistency specs now guard the `server.json`
+  version and tool counts (fixes #245).
+
 ## [5.1.0] - 2026-09-11
 
 ### Changed
