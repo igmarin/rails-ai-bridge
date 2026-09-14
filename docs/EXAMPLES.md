@@ -102,7 +102,7 @@ One run writes context for all 7 assistant targets. The committed files in
 | Devin | `.devinrules` + `.devin/rules/*.md` | 53 lines (≤5,800 chars) |
 | GitHub Copilot | `.github/copilot-instructions.md` + `.github/instructions/*.md` | 136 lines |
 | Gemini | `GEMINI.md` | 111 lines |
-| JSON (generic) | `.ai-context.json` (regenerable cache, not committed) | — |
+| JSON cache (not an assistant) | `.ai-context.json` (regenerable cache, not committed) | — |
 
 Sample of the generated `CLAUDE.md` (real output):
 
@@ -236,6 +236,10 @@ Captured output (abridged):
 
 AI Readiness Score: 85/100
 ```
+
+The doctor counts model *files*, so `4 model files` includes
+`app/models/application_record.rb`; the app itself has 3 domain models
+(`User`, `Post`, `Comment`), as listed in the generated files.
 
 ---
 

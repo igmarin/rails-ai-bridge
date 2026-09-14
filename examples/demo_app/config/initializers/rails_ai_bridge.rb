@@ -65,6 +65,10 @@ RailsAiBridge.configure do |config|
   # Effect: these models get promoted in AI context. Use your 3-7 most central models.
   # config.core_models += %w[User Order Project]
 
+  # The demo's two primary domain models. This is why generated context tags
+  # User and Post as core_entity while Comment stays supporting:
+  config.core_models += %w[User Post]
+
   # ---------------------------------------------------------------------------
   # Context output
   # ---------------------------------------------------------------------------

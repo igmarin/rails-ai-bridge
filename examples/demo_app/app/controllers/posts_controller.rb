@@ -6,7 +6,7 @@ class PostsController < ApplicationController
   end
 
   def show
-    @post = Post.find(params[:id])
+    @post = Post.find(params.expect(:id))
   end
 
   def create
@@ -17,6 +17,6 @@ class PostsController < ApplicationController
   private
 
   def post_params
-    params.require(:post).permit(:title, :body, :published)
+    params.expect(post: %i[title body published])
   end
 end

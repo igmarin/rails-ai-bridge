@@ -6,5 +6,5 @@ source 'https://rubygems.org'
 # from the repo itself via a relative path. In your own app, use:
 #   gem 'rails-ai-bridge'
 gem 'rails', '~> 8.1'
-gem 'sqlite3', '~> 2.9'
 gem 'rails-ai-bridge', path: '../..'
+gem 'sqlite3', '~> 2.9'

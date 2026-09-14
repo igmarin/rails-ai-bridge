@@ -192,6 +192,28 @@ jobs:
             exit 1
           } || echo "Skunk score ${score} within threshold (<=20)"
 
+  # Boots examples/demo_app (Ruby pinned via examples/demo_app/.ruby-version)
+  # and runs the commands documented in docs/EXAMPLES.md so the walkthrough
+  # cannot silently rot.
+  examples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          working-directory: examples/demo_app
+          bundler-cache: true
+
+      - name: Generate context files and run doctor
+        run: |
+          bundle exec bin/rails ai:bridge
+          bundle exec bin/rails ai:doctor
+
   audit:
     runs-on: ubuntu-latest
     steps:

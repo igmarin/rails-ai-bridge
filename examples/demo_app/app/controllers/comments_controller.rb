@@ -2,13 +2,13 @@
 
 class CommentsController < ApplicationController
   def create
-    @post = Post.find(params[:post_id] || params[:comment][:post_id])
+    @post = Post.find(params[:post_id] || params.expect(:comment)[:post_id])
     @comment = @post.comments.create!(comment_params)
     redirect_to @post
   end
 
   def destroy
-    @comment = Comment.find(params[:id])
+    @comment = Comment.find(params.expect(:id))
     @comment.destroy
     redirect_to @comment.post
   end
@@ -16,6 +16,6 @@ class CommentsController < ApplicationController
   private
 
   def comment_params
-    params.require(:comment).permit(:body)
+    params.expect(comment: [:body])
   end
 end
