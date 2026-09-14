@@ -34,6 +34,7 @@ module RailsAiBridge
           lines = []
           lines << "# #{context[:app_name]} — Rails #{context[:rails_version]}"
           lines << ''
+          lines.concat(SharedAssistantGuidance.anti_hallucination_rules_lines)
 
           # Stack (very compact)
           lines.concat(render_stack_overview)

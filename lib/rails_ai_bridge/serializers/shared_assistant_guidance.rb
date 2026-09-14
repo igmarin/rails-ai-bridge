@@ -14,24 +14,12 @@ module RailsAiBridge
       OMIT_MERGE_FIRST_LINE = /\A<!--\s*rails-ai-bridge:omit-merge\s*-->\z/i
 
       # Shared heading used by compact assistant files.
-      ANTI_HALLUCINATION_HEADING = '## Anti-hallucination'
+      ANTI_HALLUCINATION_HEADING = AntiHallucinationRules::HEADING
 
       # @return [Array<String>] markdown lines including heading and trailing blank line,
       #   or +[]+ when {Config::Output#anti_hallucination_rules} is off
       def anti_hallucination_rules_lines
-        return [] unless anti_hallucination_rules_enabled?
-
-        [
-          ANTI_HALLUCINATION_HEADING,
-          '',
-          '- Verify before you write (column, association, route, helper, gem).',
-          '- Mark assumptions with `[ASSUMPTION]`. Silent guesses are forbidden.',
-          '- This app is not average Rails. Query conventions and gems before scaffolding.',
-          '- Check the inheritance chain (filters, concerns, STI) before editing a controller or model.',
-          '- Empty tool output is information, not permission to invent.',
-          '- Re-query after writes. Stale tool output lies.',
-          ''
-        ]
+        AntiHallucinationRules.markdown_lines
       end
 
       # @return [Array<String>] markdown lines including heading and trailing blank line

@@ -28,6 +28,7 @@ module RailsAiBridge
       def section_classes
         [
           @header_class,
+          AntiHallucinationRules::SectionFormatter,
           Formatters::Sections::AppOverviewFormatter,
           Formatters::Sections::SchemaFormatter,
           Formatters::Sections::ModelsFormatter,

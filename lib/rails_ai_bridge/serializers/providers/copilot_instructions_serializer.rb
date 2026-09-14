@@ -95,7 +95,12 @@ module RailsAiBridge
             '',
             'This project has MCP tools for live introspection.',
             '**Start with `detail:"summary"`, then drill into specifics.**',
-            '',
+            ''
+          ]
+
+          lines.concat(SharedAssistantGuidance.anti_hallucination_rules_lines)
+
+          lines.push(
             '## Detail levels (schema, routes, models, controllers)',
             '- `summary` — names + counts (default limit: 50)',
             '- `standard` — names + key details (default limit: 15, this is the default)',
@@ -128,7 +133,7 @@ module RailsAiBridge
             '- `rails_get_gems` — notable gems categorized by function',
             '- `rails_get_conventions` — architecture patterns, directory structure',
             '- `rails_search_code(pattern:"regex", file_type:"rb", max_results:20)` — codebase search'
-          ]
+          )
 
           lines.join("\n")
         end

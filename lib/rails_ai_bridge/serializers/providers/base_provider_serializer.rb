@@ -34,7 +34,7 @@ module RailsAiBridge
         # @return [String] Compact markdown body.
         def render_compact
           lines = []
-          lines.concat(render_header)
+          lines.concat(intro_sections)
           lines.concat(render_stack_overview)
           lines.concat(render_key_models)
           lines.concat(render_notable_gems)
@@ -47,6 +47,18 @@ module RailsAiBridge
           lines.concat(render_footer)
 
           line_enforcer.enforce(lines).join("\n")
+        end
+
+        # Document intro: header followed by the anti-hallucination rules,
+        # which must sit near the top so bottom-trimming never drops them.
+        #
+        # @return [Array<String>] header lines, blank separator, rules lines
+        def intro_sections
+          [
+            *render_header,
+            '',
+            *SharedAssistantGuidance.anti_hallucination_rules_lines
+          ]
         end
 
         # Renders the header section of the context file.
@@ -227,7 +239,7 @@ module RailsAiBridge
         #
         # @return [Array<String>] Lines for the footer section.
         def render_footer
-          SharedAssistantGuidance.compact_engineering_rules_footer_lines(context)
+          SharedAssistantGuidance.compact_engineering_rules_footer_lines(context, include_anti_hallucination: false)
         end
 
         private
