@@ -26,6 +26,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Architecture: broke the 6-component dependency cycle (#250).** Extracted a
+  dependency-free `:core` component (`Service`, `Service::Result`,
+  `ServiceErrors`, `ExclusionHelper`, `DatabaseSize`); introduced a
+  `host_integration` component for `engine.rb`, `doctor/**`, and the service
+  orchestrators (`services/**`); grouped `resources.rb` under `mcp_transport`
+  (resources are part of the MCP protocol surface that `Server` wires at
+  construction). Moved `NonArModelsAppendix` to
+  `RailsAiBridge::Serializers::ModelDetails::NonArModelsAppendix`,
+  `PathResolver` and `ModelSemanticClassifier` to
+  `RailsAiBridge::Introspectors::` (`PathResolver` is now
+  `RailsAiBridge::Introspectors::PathResolver`), and `ModelSemanticClassifier`
+  to `RailsAiBridge::Introspectors::ModelSemanticClassifier`. Removed the
+  `RailsAiBridge::Service` superclass from
+  `RubydexAdapter::IncrementalIndexer` (duck-types the Result contract) and
+  gave `ContextFileSerializer` a caller-supplied `fingerprint:` kwarg
+  (`ContextGenerationService` computes and passes it; custom serializer
+  classes must now accept `fingerprint:`). The archspec todo baseline and all
+  36 inline `archspec:disable` suppressions are gone;
+  `bundle exec archspec check` reports zero violations.
+
 - **Docs cleanup (#246).** README quick start no longer says the gem is
   "once published" (it ships on RubyGems as 5.1.0). The three registry/port
   planning docs are consolidated into the canonical

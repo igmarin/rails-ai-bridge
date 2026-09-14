@@ -825,7 +825,7 @@ sort then take), and `parallel_introspection` is **off**.
 | `snapshot_ttl` | Integer | `5` | Fingerprint / section snapshot TTL in seconds; raise for HTTP MCP, keep 5s for CLI |
 | `max_files_per_path` | Integer | `2000` | Max paths returned by `PathResolver#glob_for` / `#files_for` (sorted, then taken) |
 | `excluded_models` | Array | internal Rails models | Models to skip |
-| `core_models` | Array | `[]` | Model names tagged as `core_entity` in introspection output and `.claude/rules/rails-context.md`. Used by `RailsAiBridge::ModelSemanticClassifier` to mark primary domain models. |
+| `core_models` | Array | `[]` | Model names tagged as `core_entity` in introspection output and `.claude/rules/rails-context.md`. Used by `RailsAiBridge::Introspectors::ModelSemanticClassifier` to mark primary domain models. |
 | `introspectors` | Array | 9 core symbols | Which introspectors to run. Add `:non_ar_models` to include non-ActiveRecord classes under `app/models`. |
 | `excluded_paths` | Array | `node_modules tmp log vendor .git` | Paths excluded from code search |
 | `output_dir` | String | `nil` (Rails.root) | Where to write context files |

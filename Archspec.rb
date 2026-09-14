@@ -13,10 +13,6 @@
 #
 # See https://archspecrb.dev for the full DSL guide.
 
-# Baseline the known SCC cycle (issue #250) — removed by the #250 refactor;
-# the todo file is deleted once the check reports zero violations.
-todo 'archspec_todo.yml'
-
 source 'lib/rails_ai_bridge/**/*.rb'
 
 # Core primitives — dependency-free value types and pure helpers (Service,
