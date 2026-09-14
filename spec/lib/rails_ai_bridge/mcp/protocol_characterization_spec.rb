@@ -26,6 +26,7 @@ RSpec.describe 'MCP protocol characterization (SDK 1.x)' do
         server_name: 'Test Server',
         server_version: '1.0.0',
         additional_tools: [],
+        enable_data_tools: false,
         http_bind: 'localhost',
         http_port: 3000,
         http_path: '/mcp',

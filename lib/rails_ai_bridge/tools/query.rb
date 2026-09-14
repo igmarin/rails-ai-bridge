@@ -26,8 +26,11 @@ module RailsAiBridge
       # Wall-clock cap for statement execution.
       TIMEOUT_SECONDS = 5.0
 
-      # Column names matching this pattern have their values redacted.
+      # Column names matching this pattern are redacted unconditionally.
       CREDENTIAL_COLUMN_PATTERN = /(?i)(password|passwd|secret|token|api_?key|auth)/
+
+      # Placeholder written for redacted column values.
+      REDACTED = '[redacted]'
 
       input_schema(
         properties: {
@@ -129,11 +132,14 @@ module RailsAiBridge
       end
       private_class_method :postgres_adapter?
 
-      # Redacts values under credential-like column names.
+      # Redacts every value under a credential-like column name. The column
+      # name alone is enough — the value is replaced unconditionally so that
+      # opaque or non-secret-looking contents (password_digest, tokens) never
+      # leave the process.
       #
       # @param columns [Array<String>] result column names
       # @param rows [Array<Hash>] result rows
-      # @return [Array<Hash>] rows with credential-like values sanitized
+      # @return [Array<Hash>] rows with credential-like columns redacted
       def self.redact_columns(columns, rows)
         redacted = columns.grep(CREDENTIAL_COLUMN_PATTERN)
         return rows if redacted.empty?
@@ -141,14 +147,13 @@ module RailsAiBridge
         rows.map { |row| redact_row(row, redacted) }
       end
 
-      # Redacts the credential-like columns of a single row.
+      # Replaces the credential-like columns of a single row with [redacted].
       #
       # @param row [Hash] result row keyed by column name
       # @param columns [Array<String>] credential-like column names
-      # @return [Hash] row with sanitized values for the given columns
+      # @return [Hash] row with the given columns redacted
       def self.redact_row(row, columns)
-        sanitized = columns.index_with { |column| Registry::MessageSanitizer.sanitize(row[column].to_s) }
-        row.merge(sanitized)
+        row.merge(columns.index_with { REDACTED })
       end
 
       # Builds an error response following the {"error": message} contract.

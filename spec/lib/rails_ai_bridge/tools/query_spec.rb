@@ -12,10 +12,17 @@ RSpec.describe RailsAiBridge::Tools::Query do
     end
     connection.execute "INSERT INTO rb_query_things (name, password) VALUES ('alpha', 'Bearer abc123secret')"
     connection.execute "INSERT INTO rb_query_things (name, password) VALUES ('beta', 'plainvalue')"
+    connection.create_table :rb_query_variants, force: true do |t|
+      t.string :password_digest
+      t.string :encrypted_password
+      t.string :secret_access_key
+    end
+    connection.execute "INSERT INTO rb_query_variants (password_digest, encrypted_password, secret_access_key) VALUES ('digest-value', 'encrypted-value', 'key-value')"
   end
 
   after do
     connection.drop_table :rb_query_things, if_exists: true
+    connection.drop_table :rb_query_variants, if_exists: true
   end
 
   def text_of(result)
@@ -52,6 +59,26 @@ RSpec.describe RailsAiBridge::Tools::Query do
                          end}"
         expect(text_of(described_class.call(sql: sql))).to include('error')
       end
+    end
+
+    it 'rejects FOR UPDATE locking clauses' do
+      expect(text_of(described_class.call(sql: 'SELECT name FROM rb_query_things FOR UPDATE'))).to include('error')
+    end
+
+    it 'rejects FOR SHARE locking clauses' do
+      expect(text_of(described_class.call(sql: 'SELECT name FROM rb_query_things FOR SHARE'))).to include('error')
+    end
+
+    it 'rejects MySQL LOCK IN SHARE MODE locking clauses' do
+      expect(text_of(described_class.call(sql: 'SELECT name FROM rb_query_things LOCK IN SHARE MODE'))).to include('error')
+    end
+
+    it 'rejects SELECT INTO (table creation)' do
+      expect(text_of(described_class.call(sql: 'SELECT name INTO dump_table FROM rb_query_things'))).to include('error')
+    end
+
+    it 'rejects SELECT ... INTO OUTFILE' do
+      expect(text_of(described_class.call(sql: "SELECT name INTO OUTFILE '/tmp/dump.csv' FROM rb_query_things"))).to include('error')
     end
 
     it 'runs a plain SELECT' do
@@ -131,6 +158,23 @@ RSpec.describe RailsAiBridge::Tools::Query do
       result = described_class.call(sql: 'SELECT name, password FROM rb_query_things')
       expect(text_of(result)).to include('[redacted]')
       expect(text_of(result)).not_to include('Bearer abc123secret')
+    end
+  end
+
+  describe 'credential column redaction variants' do
+    it 'redacts password_digest values' do
+      result = described_class.call(sql: 'SELECT password_digest FROM rb_query_variants')
+      expect(text_of(result)).to include('[redacted]')
+    end
+
+    it 'redacts encrypted_password values' do
+      result = described_class.call(sql: 'SELECT encrypted_password FROM rb_query_variants')
+      expect(text_of(result)).to include('[redacted]')
+    end
+
+    it 'redacts secret_access_key values' do
+      result = described_class.call(sql: 'SELECT secret_access_key FROM rb_query_variants')
+      expect(text_of(result)).to include('[redacted]')
     end
   end
 

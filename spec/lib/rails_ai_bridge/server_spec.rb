@@ -16,6 +16,7 @@ RSpec.describe RailsAiBridge::Server do
         http_bind: 'localhost',
         http_port: 3000,
         http_path: '/mcp',
+        enable_data_tools: false,
         mcp: double(tool_result_cache_ttl: 0)
       )
     )
@@ -50,6 +51,29 @@ RSpec.describe RailsAiBridge::Server do
     end
   end
 
+  describe 'data tool opt-in (rails_query, rails_read_logs)' do
+    it 'excludes data-access tools from tool_classes by default' do
+      names = server.tool_classes.map(&:tool_name)
+
+      expect(names).not_to include('rails_query')
+      expect(names).not_to include('rails_read_logs')
+    end
+
+    it 'registers data-access tools when enable_data_tools is true' do
+      allow(RailsAiBridge.configuration).to receive(:enable_data_tools).and_return(true)
+
+      names = server.tool_classes.map(&:tool_name)
+
+      expect(names).to include('rails_query', 'rails_read_logs')
+    end
+
+    it 'keeps the data-access tools in the TOOLS constant for opt-in registration' do
+      expect(RailsAiBridge::Server::DATA_TOOLS).to contain_exactly(
+        RailsAiBridge::Tools::Query, RailsAiBridge::Tools::ReadLogs
+      )
+    end
+  end
+
   describe '#tool_classes' do
     it 'returns built-in tools plus additional tools' do
       additional_tools = [double(tool_name: 'custom_tool')]
@@ -57,7 +81,7 @@ RSpec.describe RailsAiBridge::Server do
 
       tool_classes = server.tool_classes
 
-      expect(tool_classes).to include(*RailsAiBridge::Server::TOOLS)
+      expect(tool_classes).to include(*(RailsAiBridge::Server::TOOLS - RailsAiBridge::Server::DATA_TOOLS))
       expect(tool_classes).to include(*additional_tools)
     end
 
@@ -66,7 +90,7 @@ RSpec.describe RailsAiBridge::Server do
 
       tool_classes = server.tool_classes
 
-      expect(tool_classes).to eq(RailsAiBridge::Server::TOOLS)
+      expect(tool_classes).to eq(RailsAiBridge::Server::TOOLS - RailsAiBridge::Server::DATA_TOOLS)
     end
 
     it 'returns a wrapper for every built-in tool' do
@@ -74,8 +98,8 @@ RSpec.describe RailsAiBridge::Server do
 
       tool_classes = server.tool_classes
 
-      expect(tool_classes.length).to eq(RailsAiBridge::Server::TOOLS.length)
-      expect(tool_classes.map(&:tool_name)).to eq(RailsAiBridge::Server::TOOLS.map(&:tool_name))
+      expect(tool_classes.length).to eq(RailsAiBridge::Server::TOOLS.length - RailsAiBridge::Server::DATA_TOOLS.length)
+      expect(tool_classes.map(&:tool_name)).to eq((RailsAiBridge::Server::TOOLS - RailsAiBridge::Server::DATA_TOOLS).map(&:tool_name))
     end
 
     it 'wraps every tool with Instrumentation::InstrumentedTool' do

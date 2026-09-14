@@ -87,6 +87,7 @@ module RailsAiBridge
                    :http_bind, :http_bind=,
                    :http_port, :http_port=,
                    :auto_mount, :auto_mount=,
+                   :enable_data_tools, :enable_data_tools=,
                    :additional_tools, :additional_tools=,
                    :additional_resources, :additional_resources=
 

@@ -533,7 +533,9 @@ Runs a single read-only SELECT statement on the app's established ActiveRecord c
 | `row_limit` | integer | Max rows (hard cap 100). Defaults: 20 (standard), 100 (full). |
 | `detail` | string | `summary` (columns + row count), `standard` (default), `full`. |
 
-**Security:** SELECT-only allowlist (CTEs rejected in v1 — mutating CTEs allow writes inside `WITH`). Hard 100-row cap, 5s statement timeout, credential-like columns (`password`, `token`, `secret`, `api_key`, `auth`) redacted via `MessageSanitizer`. Runs on the app's existing connection.
+**Opt-in:** registered only when `config.enable_data_tools = true` (default `false`).
+
+**Security:** SELECT-only allowlist (CTEs rejected in v1 — mutating CTEs allow writes inside `WITH`); `FOR UPDATE`/`FOR SHARE`/`LOCK IN SHARE MODE` and `SELECT ... INTO` (including `INTO OUTFILE`) rejected. On PostgreSQL the statement runs inside a `READ ONLY` transaction with `statement_timeout`; on other adapters the keyword guard is best-effort. Hard 100-row cap, 5s statement timeout. Credential-like columns (`password`, `token`, `secret`, `api_key`, `auth`, `password_digest`, `secret_access_key`, …) are replaced with `[redacted]` — best-effort: column aliases can bypass the match. Runs on the app's existing connection, so introspection exclusions (`excluded_models`/`excluded_tables`) do not restrict it.
 
 ### rails_read_logs
 
@@ -546,6 +548,8 @@ Returns a redacted tail of a log file under the app's `log/` directory as compac
 | `file` | string | **Required.** Log file name relative to `log/` (e.g. `production.log`, `nested/app.log`). |
 | `lines` | integer | Tail length (hard cap 400). Defaults: 50 (standard), 400 (full). |
 | `detail` | string | `summary` (metadata only), `standard` (default), `full`. |
+
+**Opt-in:** registered only when `config.enable_data_tools = true` (default `false`).
 
 **Security:** Only files under `Rails.root/log` resolve (expanded-path prefix check — `../`, absolute paths, and dot-segment tricks are rejected). Per-line byte cap. Every line is redacted via `MessageSanitizer`.
 
@@ -878,6 +882,7 @@ sort then take), and `parallel_introspection` is **off**.
 | `excluded_paths` | Array | `node_modules tmp log vendor .git` | Paths excluded from code search |
 | `output_dir` | String | `nil` (Rails.root) | Where to write context files |
 | `auto_mount` | Boolean | `false` | Auto-mount HTTP MCP endpoint |
+| `enable_data_tools` | Boolean | `false` | Register `rails_query` + `rails_read_logs` (live DB/log access) |
 | `http_path` | String | `"/mcp"` | HTTP endpoint path |
 | `http_bind` | String | `"127.0.0.1"` | HTTP bind address |
 | `http_port` | Integer | `6029` | HTTP server port |

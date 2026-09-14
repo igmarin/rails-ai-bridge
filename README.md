@@ -275,7 +275,23 @@ This keeps context focused and avoids unnecessary token usage while still allowi
 
 ## MCP Tools
 
-The gem exposes **22 built-in tools** via MCP that AI clients call on-demand (hosts can append more via `config.additional_tools`):
+The gem exposes **22 built-in tools** via MCP that AI clients call on-demand (hosts can append more via `config.additional_tools`).
+
+> **Operator callout — data-access tools are opt-in.** `rails_query` and
+> `rails_read_logs` are **disabled by default** (`config.enable_data_tools = false`)
+> because they read live application data: `rails_query` runs on the app's database
+> connection, so it can read rows from tables that MCP introspection excludes
+> (`config.excluded_models` / `excluded_tables` do not restrict it), and
+> `rails_read_logs` returns raw log contents. Enable them deliberately with
+>
+> ```ruby
+> # config/initializers/rails_ai_bridge.rb
+> RailsAiBridge.configure { |config| config.enable_data_tools = true }
+> ```
+>
+> and keep the exposure controls from [docs/mcp-security.md](docs/mcp-security.md)
+> in place (authentication, loopback binding, redaction). To disable them again,
+> remove the flag (or set it to `false`) and restart.
 
 | Tool | What it returns |
 |------|----------------|
@@ -291,8 +307,8 @@ The gem exposes **22 built-in tools** via MCP that AI clients call on-demand (ho
 | `rails_search_code` | Ripgrep (or Ruby) search under `Rails.root` with allowlisted extensions, pattern size cap, and optional wall-clock timeout |
 | `rails_get_view` | View layouts, templates, partials; optional per-file detail under the configured `app/views` path |
 | `rails_search_semantic` | Semantic code search using rubydex — find declarations by name with types, locations, and relationships |
-| `rails_query` | Run a single read-only SELECT statement on the app database: SELECT-only allowlist, 100-row cap, 5s timeout, credential-like columns redacted |
-| `rails_read_logs` | Redacted tail of a log file under `log/`: traversal-safe path allowlist, line/byte caps, credential redaction |
+| `rails_query` | Opt-in. Run a single read-only SELECT statement on the app database: SELECT-only allowlist (no `INTO`/locking clauses), read-only transaction on PostgreSQL, 100-row cap, 5s timeout, credential-like columns redacted |
+| `rails_read_logs` | Opt-in. Redacted tail of a log file under `log/`: traversal-safe path allowlist, line/byte caps, credential redaction |
 | `rails_explain_symbol` | Local CodeGraph explanation for a `symbol` or `query` when `.codegraph/` exists; otherwise setup instructions |
 | `rails_get_stimulus` | Stimulus controllers: targets, values, actions, outlets (requires `:stimulus` introspector) |
 | `rails_list_registry` | Skill pack catalog — list skills, agents, or active packs; requires `config/rails_ai_bridge/registry.json` |
@@ -563,6 +579,7 @@ end
 | `core_models` | `[]` | Model names tagged as `core_entity` in introspection and `.claude/rules/` |
 | `excluded_paths` | `node_modules tmp log vendor .git` | Paths excluded from code search |
 | `auto_mount` | `false` | Auto-mount HTTP MCP endpoint |
+| `enable_data_tools` | `false` | Register `rails_query` and `rails_read_logs` (live database/log access; bypasses introspection exclusions) |
 | `allow_auto_mount_in_production` | `false` | Allow `auto_mount` in production (requires MCP token) |
 | `http_mcp_token` | `nil` | Bearer token for HTTP MCP; `ENV["RAILS_AI_BRIDGE_MCP_TOKEN"]` overrides when set |
 | `search_code_allowed_file_types` | `[]` | Extra extensions allowed for `rails_search_code` `file_type` |
