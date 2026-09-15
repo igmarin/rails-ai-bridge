@@ -99,7 +99,7 @@ RSpec.describe RailsAiBridge::Tools::ReadLogs do
     it 'returns the requested tail from the final scan window' do
       large = log_dir.join('large.log')
       File.open(large, 'wb') do |f|
-        f.write("old record\n" * (described_class::MAX_TAIL_SCAN_BYTES / 11 + 1))
+        f.write("old record\n" * ((described_class::MAX_TAIL_SCAN_BYTES / 11) + 1))
         f.write("penultimate tail\nlast tail\n")
       end
 

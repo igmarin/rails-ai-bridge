@@ -160,9 +160,7 @@ module RailsAiBridge
           in_truncated_line = skip_first_record
 
           @file_io.each_line(ReadLogs::MAX_LINE_BYTES) do |chunk|
-            unless in_truncated_line
-              self.class.append_to_tail(tail_lines, chunk, cap)
-            end
+            self.class.append_to_tail(tail_lines, chunk, cap) unless in_truncated_line
             in_truncated_line = !chunk.end_with?("\n")
           end
         end
