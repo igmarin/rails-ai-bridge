@@ -25,6 +25,7 @@ module RailsAiBridge
       # @return [Boolean] register the data-access tools (rails_query, rails_read_logs).
       #   Disabled by default: these tools reach live application data (database rows,
       #   log files) and bypass MCP introspection exclusions, so hosts must opt in.
+      # :reek:Attribute -- configuration requires a public writer for initializer setup.
       attr_accessor :enable_data_tools
 
       # @return [Array<Class>] additional MCP tool classes appended to the built-in list
