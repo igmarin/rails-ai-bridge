@@ -72,6 +72,15 @@ module RailsAiBridge
       @transport_type = transport
     end
 
+    # Built-in tools visible to clients. The data-access tools (DATA_TOOLS) are
+    # opt-in via config.enable_data_tools because they expose live data that
+    # MCP introspection exclusions cannot restrict.
+    #
+    # @return [Array<Class>] built-in tool classes honoring the data-tool flag
+    def self.builtin_tools
+      RailsAiBridge.configuration.enable_data_tools ? TOOLS : TOOLS - DATA_TOOLS
+    end
+
     # Returns all available tool classes including additional configured tools.
     # Data-access tools are only included when config.enable_data_tools is true.
     # When tool result caching is enabled, built-in and additional tools are wrapped
@@ -110,15 +119,6 @@ module RailsAiBridge
     end
 
     private
-
-    # Built-in tools visible to clients. The data-access tools (DATA_TOOLS) are
-    # opt-in via config.enable_data_tools because they expose live data that
-    # MCP introspection exclusions cannot restrict.
-    #
-    # @return [Array<Class>] built-in tool classes honoring the data-tool flag
-    def self.builtin_tools
-      RailsAiBridge.configuration.enable_data_tools ? TOOLS : TOOLS - DATA_TOOLS
-    end
 
     # Creates the MCP server with configuration and tools.
     # @param config [RailsAiBridge::Configuration] bridge configuration
