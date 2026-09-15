@@ -218,6 +218,14 @@ RSpec.describe RailsAiBridge::Tools::Query do
       payload = JSON.parse(text_of(described_class.call(sql: 'SELECT nope FROM missing_table_xyz')))
       expect(payload).to have_key('error')
     end
+
+    it 'returns a sanitized error without writing to the application log' do
+      allow(described_class).to receive(:run_with_timeout).and_raise(StandardError, 'boom token=supersecret123')
+      expect(Rails.logger).not_to receive(:error)
+
+      payload = JSON.parse(text_of(described_class.call(sql: 'SELECT 1')))
+      expect(payload.fetch('error')).not_to include('supersecret123')
+    end
   end
 
   describe 'annotations' do

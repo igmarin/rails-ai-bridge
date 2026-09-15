@@ -169,16 +169,13 @@ module RailsAiBridge
         error_response("Query timed out after #{TIMEOUT_SECONDS} seconds.")
       end
 
-      # Logs a failed execution and returns its sanitized message.
+      # Returns a sanitized execution failure without mutating the application
+      # log through this read-only tool.
       #
       # @param error [StandardError] raised error
       # @return [MCP::Tool::Response] sanitized error payload
       def self.execution_failure(error)
-        message = error.message
-        logger = Rails.logger
-        logger.error(message)
-        logger.error(error.backtrace.first(5).join("\n"))
-        error_response(Registry::MessageSanitizer.sanitize(message))
+        error_response(Registry::MessageSanitizer.sanitize(error.message))
       end
     end
   end
