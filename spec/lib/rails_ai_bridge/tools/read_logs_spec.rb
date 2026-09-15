@@ -181,16 +181,15 @@ RSpec.describe RailsAiBridge::Tools::ReadLogs do
   end
 
   describe 'error contract' do
-    it 'redacts error messages written to the Rails log' do
+    it 'returns a sanitized error without writing to the application log' do
       formatter = instance_double(described_class::TailFormatter)
       allow(described_class::TailFormatter).to receive(:new).and_return(formatter)
       allow(formatter).to receive(:format).and_raise(StandardError, 'boom token=supersecret123')
-      logged = []
-      allow(Rails.logger).to receive(:error) { |*args| logged.concat(args) }
 
-      described_class.call(file: 'production.log')
+      expect(Rails.logger).not_to receive(:error)
 
-      expect(logged.join("\n")).not_to include('supersecret123')
+      payload = JSON.parse(text_of(described_class.call(file: 'production.log')))
+      expect(payload.fetch('error')).not_to include('supersecret123')
     end
 
     it 'returns a JSON payload with an error key for missing files' do

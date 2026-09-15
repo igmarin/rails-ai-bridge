@@ -73,9 +73,6 @@ module RailsAiBridge
 
       private_class_method def self.execution_failure(error)
         message = Registry::MessageSanitizer.sanitize(error.message)
-        logger = Rails.logger
-        logger.error(message)
-        logger.error(Array(error.backtrace).first(5).join("\n"))
         error_response(message)
       end
 
@@ -146,6 +143,8 @@ module RailsAiBridge
           build_payload(total, tail_lines)
         end
 
+        # A streaming state machine is necessary here: IO#each_line can split
+        # an oversized physical record at MAX_LINE_BYTES.
         # :reek:TooManyStatements
         def process_lines(tail_lines, cap)
           total = 0

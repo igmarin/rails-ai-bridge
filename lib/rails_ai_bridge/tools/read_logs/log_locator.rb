@@ -17,8 +17,8 @@ module RailsAiBridge
           @log_dir = Pathname.new(File.expand_path(File.join(root, 'log')))
         end
 
-        # Resolves the file against the log directory and opens it immediately
-        # in binary mode to prevent TOCTOU race conditions.
+        # Resolves the file against the log directory and opens it in binary
+        # mode without following a final-component symlink.
         #
         # @return [Array(File, nil), Array(nil, String)] opened file descriptor
         #   plus nil, or nil plus an error message
@@ -30,13 +30,17 @@ module RailsAiBridge
           [nil, "error: log file not found: #{sanitize_filename}"]
         end
 
-        # Opens the validated candidate file in binary mode.
+        # Opens the validated candidate file in binary mode without following a
+        # final-component symlink. The log directory is application-owned and
+        # must not be writable by untrusted users; Ruby has no portable openat
+        # API for atomically resolving every parent component from a directory
+        # descriptor.
         #
         # @param candidate [Pathname] validated file path
         # @return [Array(File, nil)] opened file descriptor plus nil
         # rubocop:disable Style/FileOpen
         def self.open_file(candidate)
-          file_io = File.open(candidate, 'rb')
+          file_io = File.open(candidate, File::RDONLY | File::NOFOLLOW)
           # rubocop:enable Style/FileOpen
           [file_io, nil]
         end
@@ -52,7 +56,7 @@ module RailsAiBridge
           error = candidate_error(candidate)
           return [nil, error] if error
 
-          self.class.open_file(candidate)
+          self.class.open_file(candidate.realpath)
         end
 
         # First rejection reason for the candidate path, if any.

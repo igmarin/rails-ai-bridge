@@ -299,7 +299,7 @@ The gem exposes **21 built-in tools** via MCP that AI clients call on-demand (ho
 | `rails_use_agent` | Loads an agent/workflow framed as an activation directive (follow it end to end) |
 | `rails_list_context_providers` | Context providers declared in the registry manifest — external services (e.g. MCP servers) the bridge can query for project context; shows type, endpoint, optional flag, and tool specs |
 | `rails_get_provider_context` | Fetches context from declared external MCP providers. Requires `context_providers.enabled = true` and an explicit host allowlist. Separate from `rails_get_context` (local in-process composite) |
-| `rails_read_logs` | Redacted tail of a log file under `Rails.root/log` — path allowlist, line/byte caps, credential redaction, invalid UTF-8 scrubbing, TOCTOU-safe file descriptor passing |
+| `rails_read_logs` | Redacted tail of a log file under `Rails.root/log` — path allowlist, line/byte caps, credential redaction, invalid UTF-8 scrubbing, and final-component symlink protection |
 
 All tools are **read-only** — they never modify your application or database.
 
