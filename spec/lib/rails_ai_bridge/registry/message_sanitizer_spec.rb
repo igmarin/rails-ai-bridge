@@ -119,5 +119,41 @@ RSpec.describe RailsAiBridge::Registry::MessageSanitizer do
       expect(result).to include('[redacted]')
       expect(result).not_to include('sk-live-12345')
     end
+
+    it 'redacts RAILS_MASTER_KEY assignments' do
+      result = described_class.sanitize('booting with RAILS_MASTER_KEY=a1b2c3d4e5f6')
+
+      expect(result).to include('[redacted]')
+      expect(result).not_to include('a1b2c3d4e5f6')
+    end
+
+    it 'redacts compound credential names like STRIPE_SECRET_KEY' do
+      result = described_class.sanitize('STRIPE_SECRET_KEY=sk_live_abc123xyz')
+
+      expect(result).to include('[redacted]')
+      expect(result).not_to include('sk_live_abc123xyz')
+    end
+
+    it 'redacts compound credential names like AWS_SECRET_ACCESS_KEY' do
+      result = described_class.sanitize('AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY')
+
+      expect(result).to include('[redacted]')
+      expect(result).not_to include('wJalrXUtnFEMI')
+    end
+
+    it 'redacts compound credential names like JWT_PRIVATE_KEY' do
+      result = described_class.sanitize('JWT_PRIVATE_KEY=-----BEGIN RSA PRIVATE KEY-----')
+
+      expect(result).to include('[redacted]')
+      expect(result).not_to include('BEGIN RSA PRIVATE KEY')
+    end
+
+    it 'redacts complete quoted compound credential values containing whitespace' do
+      result = described_class.sanitize('JWT_PRIVATE_KEY="-----BEGIN PRIVATE KEY----- secret material"')
+
+      expect(result).to include('[redacted]')
+      expect(result).not_to include('BEGIN PRIVATE KEY')
+      expect(result).not_to include('secret material')
+    end
   end
 end
