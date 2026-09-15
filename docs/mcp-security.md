@@ -212,6 +212,7 @@ treat the MCP endpoint with production-grade authentication when the flag is on.
 | Credential redaction | Values under credential-like columns (`password`, `passwd`, `secret`, `token`, `api_key`, `apikey`, `auth` — including `password_digest`, `encrypted_password`, `secret_access_key`) are replaced with `[redacted]` before the response leaves the process. This is **best-effort**: column aliases (`SELECT password AS harmless_name`) bypass column-name matching, and values in non-credential-named columns are not inspected. Redaction is a mitigation, not a guarantee — opt-in plus least-privilege DB access remain the primary controls. |
 | Existing connection only | Queries run on the app's established `ApplicationRecord` connection; the bridge never opens its own database connection. |
 | Error contract | Failures return `{"error": message}`; messages are sanitized so raw SQL fragments or driver errors do not leak connection details. |
+| Server-side file reads (PostgreSQL) | The keyword guard cannot block functions: `SELECT pg_read_file(...)`, `pg_ls_dir`, or `lo_export` pass the SELECT-only check. These require superuser or `pg_read_server_files`/`pg_write_server_files`/`pg_execute_server_program` role membership, so the mitigation is operational — run the app on a least-privilege database role, which production apps should already do. |
 
 ### rails_read_logs — log tail with path allowlist
 

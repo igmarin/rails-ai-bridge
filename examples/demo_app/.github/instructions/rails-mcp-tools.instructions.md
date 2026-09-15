@@ -7,6 +7,15 @@ applyTo: "**/*"
 This project has MCP tools for live introspection.
 **Start with `detail:"summary"`, then drill into specifics.**
 
+## Anti-hallucination rules
+
+- Verify before you write (column, association, route, helper, gem).
+- Mark assumptions with `[ASSUMPTION]`. Silent guesses are forbidden.
+- This app is not average Rails. Query conventions and gems before scaffolding.
+- Check the inheritance chain (filters, concerns, STI) before editing a controller or model.
+- Empty tool output is information, not permission to invent.
+- Re-query after writes. Stale tool output lies.
+
 ## Detail levels (schema, routes, models, controllers)
 - `summary` — names + counts (default limit: 50)
 - `standard` — names + key details (default limit: 15, this is the default)

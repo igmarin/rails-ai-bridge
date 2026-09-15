@@ -2,6 +2,16 @@
 
 This directory contains Codex-specific helper files for `DemoApp`.
 
+
+## Anti-hallucination rules
+
+- Verify before you write (column, association, route, helper, gem).
+- Mark assumptions with `[ASSUMPTION]`. Silent guesses are forbidden.
+- This app is not average Rails. Query conventions and gems before scaffolding.
+- Check the inheritance chain (filters, concerns, STI) before editing a controller or model.
+- Empty tool output is information, not permission to invent.
+- Re-query after writes. Stale tool output lies.
+
 ## Recommended setup
 
 - Keep `AGENTS.md` committed at the repository root. Codex reads it as project guidance.

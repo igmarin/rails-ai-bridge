@@ -1,5 +1,14 @@
 # DemoApp — Rails 8.1.3.1
 
+## Anti-hallucination rules
+
+- Verify before you write (column, association, route, helper, gem).
+- Mark assumptions with `[ASSUMPTION]`. Silent guesses are forbidden.
+- This app is not average Rails. Query conventions and gems before scaffolding.
+- Check the inheritance chain (filters, concerns, STI) before editing a controller or model.
+- Empty tool output is information, not permission to invent.
+- Re-query after writes. Stale tool output lies.
+
 ## Stack
 - Database: static_parse — 3 tables
 - Models: 3

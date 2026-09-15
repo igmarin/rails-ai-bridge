@@ -722,7 +722,7 @@ Built-in MCP tools and resources now read through a shared runtime context provi
 
 ### Rubydex Integration (Semantic Code Analysis)
 
-[Rubydex](https://github.com/Shopify/rubydex) is Shopify's high-performance Ruby static analysis toolkit. rails-ai-bridge leverages rubydex out-of-the-box for semantic code understanding.
+[Rubydex](https://github.com/Shopify/rubydex) is Shopify's high-performance Ruby static analysis toolkit. rails-ai-bridge uses rubydex out-of-the-box for semantic code understanding.
 
 **Setup:**
 

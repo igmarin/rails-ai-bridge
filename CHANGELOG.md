@@ -5,9 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [5.2.0] - 2026-09-14
+
+### Added
+
+- `rails ai:doctor` warns when HTTP MCP is auto-mounted (`config.auto_mount`)
+  but `config.mcp.http_log_json` is still false, so 401/403/429/handled
+  outcomes from `HttpTransportApp` would not emit structured JSON lines.
+- **Anti-hallucination rules in every generated context file (#252/#253/#254).** All
+  generated outputs now carry a shared verify-before-write block (heading
+  `## Anti-hallucination rules`, rendered by the single
+  `RailsAiBridge::Serializers::AntiHallucinationRules` collaborator and controlled by
+  `config.output.anti_hallucination_rules`, default `true`): the 7 main context files
+  (`CLAUDE.md`, `AGENTS.md`, `.cursorrules`, `.devinrules`, `.github/copilot-instructions.md`,
+  `GEMINI.md`, and `.ai-context.json`, which gains an `anti_hallucination_rules` array
+  key) plus the 5 split-rules serializers (`.claude/rules/`, `.cursor/rules/`,
+  `.devin/rules/`, `.codex/`, `.github/instructions/`). The block sits near the top —
+  after the freshness header / document intro — so compact-mode trimming and Devin's
+  character cap cannot drop it, and it is always inside the managed region when
+  `config.output.managed_region` is enabled.
+- **`rails_query` MCP tool** — runs a single read-only SELECT statement on the app's established ActiveRecord connection. SELECT-only allowlist (CTEs rejected in v1), single-statement enforcement, hard 100-row cap, 5-second statement timeout, and credential-like column redaction via `MessageSanitizer`. Errors follow the `{ error }` contract.
+- **`rails_read_logs` MCP tool** — returns a redacted tail of a log file under `Rails.root/log`. Traversal-safe path allowlist (expanded-path prefix check), 400-line and 2000-byte-per-line caps, `summary`/`standard`/`full` detail levels, and `MessageSanitizer` redaction on every line.
+- Built-in MCP tools: 20 → 22. Both data-access tools are documented in `docs/mcp-security.md`.
+- MCP Registry submission readiness: `server.json` passes
+  `mcp-publisher validate` (verification steps and captured output in
+  `docs/mcp-registry-submission.md`), plus that guide's exact maintainer
+  publish steps (fixes #261).
+- Hosted YARD API documentation: a `docs` workflow publishes generated
+  YARD docs to GitHub Pages on every `v*` tag push (same checkout/setup-ruby
+  pinning style as the existing workflows, reuses the `docs:yard` coverage
+  gate); README gains an "API Documentation" link (fixes #262).
+- Positioning page `docs/COMPARISON.md` comparing rails-ai-bridge with
+  rails-ai-context, rails-mcp-server, woods, and rails-hyperdrive
+  (feature table, download counts, when-to-choose-which), plus a short
+  "How it compares" section in the README (fixes #263).
+- Runnable example app under `examples/demo_app` — a minimal Rails 8 app
+  (3 models, 3 controllers, 3 tables) that boots without a database and
+  demonstrates install, context generation for all 7 assistant targets, and
+  MCP tool calls against the static schema parser. `docs/EXAMPLES.md` walks
+  through it with real captured output (fixes #260).
 
 ### Changed
+
 - **`rails_query` and `rails_read_logs` are now opt-in and disabled by default**
   via `config.enable_data_tools` (default `false`). Both tools read live
   application data — `rails_query` runs on the app's database connection and can
@@ -34,7 +73,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   sanitized error responses without writing to the application log. The
   internal-only `ReadLogs.respond`, `error_response`, and `execution_failure`
   helpers are private class methods.
-
 - `rails_query` now requires the statement to start with `SELECT` (leading
   whitespace only). `EXPLAIN`, `SHOW`, `VALUES`, comment-prefixed SQL, and
   other non-SELECT verbs are rejected. On PostgreSQL the tool uses
@@ -44,69 +82,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   footer under the heading `## Anti-hallucination`; it now uses the consistent named
   section (`## Anti-hallucination rules`) at the top of the file. The rule lines are
   unchanged.
-
-### Added
-
-- `rails ai:doctor` warns when HTTP MCP is auto-mounted (`config.auto_mount`)
-  but `config.mcp.http_log_json` is still false, so 401/403/429/handled
-  outcomes from `HttpTransportApp` would not emit structured JSON lines.
-- **Anti-hallucination rules in every generated context file (#252/#253/#254).** All
-  generated outputs now carry a shared verify-before-write block (heading
-  `## Anti-hallucination rules`, rendered by the single
-  `RailsAiBridge::Serializers::AntiHallucinationRules` collaborator and controlled by
-  `config.output.anti_hallucination_rules`, default `true`): the 7 main context files
-  (`CLAUDE.md`, `AGENTS.md`, `.cursorrules`, `.devinrules`, `.github/copilot-instructions.md`,
-  `GEMINI.md`, and `.ai-context.json`, which gains an `anti_hallucination_rules` array
-  key) plus the 5 split-rules serializers (`.claude/rules/`, `.cursor/rules/`,
-  `.devin/rules/`, `.codex/`, `.github/instructions/`). The block sits near the top —
-  after the freshness header / document intro — so compact-mode trimming and Devin's
-  character cap cannot drop it, and it is always inside the managed region when
-  `config.output.managed_region` is enabled.
-- **`rails_query` MCP tool** — runs a single read-only SELECT statement on the app's established ActiveRecord connection. SELECT-only allowlist (CTEs rejected in v1), single-statement enforcement, hard 100-row cap, 5-second statement timeout, and credential-like column redaction via `MessageSanitizer`. Errors follow the `{ error }` contract.
-- **`rails_read_logs` MCP tool** — returns a redacted tail of a log file under `Rails.root/log`. Traversal-safe path allowlist (expanded-path prefix check), 400-line and 2000-byte-per-line caps, `summary`/`standard`/`full` detail levels, and `MessageSanitizer` redaction on every line.
-- Built-in MCP tools: 20 → 22. Both data-access tools are documented in `docs/mcp-security.md`.
-
-## [5.1.1] - 2026-09-14
-
-### Added
-
-- MCP Registry submission readiness: `server.json` passes
-  `mcp-publisher validate` (verification steps and captured output in
-  `docs/mcp-registry-submission.md`), plus that guide's exact maintainer
-  publish steps (fixes #261).
-- Hosted YARD API documentation: a `docs` workflow publishes generated
-  YARD docs to GitHub Pages on every `v*` tag push (same checkout/setup-ruby
-  pinning style as the existing workflows, reuses the `docs:yard` coverage
-  gate); README gains an "API Documentation" link (fixes #262).
-- Positioning page `docs/COMPARISON.md` comparing rails-ai-bridge with
-  rails-ai-context, rails-mcp-server, woods, and rails-hyperdrive
-  (feature table, download counts, when-to-choose-which), plus a short
-  "How it compares" section in the README (fixes #263).
-- Runnable example app under `examples/demo_app` — a minimal Rails 8 app
-  (3 models, 3 controllers, 3 tables) that boots without a database and
-  demonstrates install, context generation for all 7 assistant targets, and
-  MCP tool calls against the static schema parser. `docs/EXAMPLES.md` walks
-  through it with real captured output (fixes #260).
-
-### Fixed
-
-- `DatabaseSize.bucket` and `DatabaseSize.bucket_for_table` no longer classify
-  invalid row counts as the `hot` bucket. Negative counts, including negative
-  fractional counts (e.g. stale or unanalyzed PostgreSQL statistics sentinels),
-  and non-numeric values now return `nil` instead of being bucketed as `hot`
-  (fallback) or `small` (`to_i` truncation/coercion). Callers already treat
-  `nil` as "no size data".
-
-- `server.json` no longer drifts from the released gem: its `version` now
-  matches `RailsAiBridge::VERSION` (was stale at `3.0.0`) and the description
-  reports the real 20 read-only tools (was 13). `CONTRIBUTING.md`, `GEMINI.md`,
-  and `docs/GUIDE.md` tool counts corrected from 19 to 20; `GEMINI.md` also
-  documents the `:full` preset as 27 introspectors (was a corrupted 26/27
-  mix). Parity and release-consistency specs now guard the `server.json`
-  version and tool counts (fixes #245).
-
-### Changed
-
 - **Architecture: broke the 6-component dependency cycle (#250).** Extracted a
   dependency-free `:core` component (`Service`, `Service::Result`,
   `ServiceErrors`, `ExclusionHelper`, `DatabaseSize`); introduced a
@@ -132,7 +107,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The archspec todo baseline and all
   36 inline `archspec:disable` suppressions are gone;
   `bundle exec archspec check` reports zero violations.
-
 - **Docs cleanup (#246).** README quick start no longer says the gem is
   "once published" (it ships on RubyGems as 5.1.0). The three registry/port
   planning docs are consolidated into the canonical
@@ -141,7 +115,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `docs/registry-resolution.md` are deleted. Completed planning docs
   `docs/gem-general-improvements.md` and `docs/review-workflow-report.md`
   moved to `docs/archive/`. Junk file `test_table.md` removed.
-
 - **Docs truth (#247).** AGENTS.md, CLAUDE.md, and CONTRIBUTING.md no longer
   claim the project follows the `rubocop-rails-omakase` style — `.rubocop.yml`
   uses its own custom limits (performance/rails/rspec plugins; method length,
@@ -151,6 +124,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (fixed the same claim in the `Introspector::BUILTIN_INTROSPECTORS` YARD
   comment). `doc_parity_spec.rb` gains guard examples for both claims.
 
+### Fixed
+
+- `DatabaseSize.bucket` and `DatabaseSize.bucket_for_table` no longer classify
+  invalid row counts as the `hot` bucket. Negative counts, including negative
+  fractional counts (e.g. stale or unanalyzed PostgreSQL statistics sentinels),
+  and non-numeric values now return `nil` instead of being bucketed as `hot`
+  (fallback) or `small` (`to_i` truncation/coercion). Callers already treat
+  `nil` as "no size data".
+- `server.json` no longer drifts from the released gem: its `version` now
+  matches `RailsAiBridge::VERSION` (was stale at `3.0.0`) and the description
+  reports the real 20 read-only tools (was 13). `CONTRIBUTING.md`, `GEMINI.md`,
+  and `docs/GUIDE.md` tool counts corrected from 19 to 20; `GEMINI.md` also
+  documents the `:full` preset as 27 introspectors (was a corrupted 26/27
+  mix). Parity and release-consistency specs now guard the `server.json`
+  version and tool counts (fixes #245).
 
 ## [5.1.0] - 2026-09-11
 
