@@ -36,8 +36,8 @@ RSpec.describe 'MCP Tool Integration' do
       RailsAiBridge.configuration.additional_resources = original_resources
     end
 
-    it 'builds with all tools registered' do
-      expect(server.tools.size).to eq(21)
+    it 'builds with all non-data tools registered by default' do
+      expect(server.tools.size).to eq(20)
       expect(server.tools.keys).to contain_exactly(
         'rails_get_schema',
         'rails_get_routes',
@@ -58,9 +58,17 @@ RSpec.describe 'MCP Tool Integration' do
         'rails_use_skill',
         'rails_use_agent',
         'rails_list_context_providers',
-        'rails_get_provider_context',
-        'rails_read_logs'
+        'rails_get_provider_context'
       )
+    end
+
+    it 'registers the data-access tools when enable_data_tools is true' do
+      RailsAiBridge.configuration.enable_data_tools = true
+      server = RailsAiBridge::Server.new(Rails.application).build
+
+      expect(server.tools.keys).to include('rails_query', 'rails_read_logs')
+    ensure
+      RailsAiBridge.configuration.enable_data_tools = false
     end
 
     it 'registers static resources' do

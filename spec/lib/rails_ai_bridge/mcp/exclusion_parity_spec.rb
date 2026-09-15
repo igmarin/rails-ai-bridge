@@ -46,6 +46,9 @@ module MCPExclusionParityTables
     # Required as a listing surface once Server::TOOLS includes this tool (#181).
     'rails_get_context' => :omits_excluded_names,
     'rails_get_provider_context' => :does_not_list_models_or_tables,
+    # rails_query executes client-supplied SQL; it holds no introspected
+    # model/table inventory of its own. rails_read_logs reads app log files.
+    'rails_query' => :does_not_list_models_or_tables,
     'rails_read_logs' => :does_not_list_models_or_tables
   }.freeze
 

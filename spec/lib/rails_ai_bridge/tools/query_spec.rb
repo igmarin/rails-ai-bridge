@@ -12,10 +12,23 @@ RSpec.describe RailsAiBridge::Tools::Query do
     end
     connection.execute "INSERT INTO rb_query_things (name, password) VALUES ('alpha', 'Bearer abc123secret')"
     connection.execute "INSERT INTO rb_query_things (name, password) VALUES ('beta', 'plainvalue')"
+    connection.create_table :rb_query_variants, force: true do |t|
+      t.string :password_digest
+      t.string :encrypted_password
+      t.string :secret_access_key
+      t.string :author
+      t.string :author_id
+      t.string :authorization
+      t.string :oauth_authorization_code
+    end
+    connection.execute 'INSERT INTO rb_query_variants ' \
+                       '(password_digest, encrypted_password, secret_access_key, author, author_id, authorization, oauth_authorization_code) ' \
+                       "VALUES ('digest-value', 'encrypted-value', 'key-value', 'Jane Doe', '7', 'auth-token-123', 'oauth-code-456')"
   end
 
   after do
     connection.drop_table :rb_query_things, if_exists: true
+    connection.drop_table :rb_query_variants, if_exists: true
   end
 
   def text_of(result)
@@ -52,6 +65,26 @@ RSpec.describe RailsAiBridge::Tools::Query do
                          end}"
         expect(text_of(described_class.call(sql: sql))).to include('error')
       end
+    end
+
+    it 'rejects FOR UPDATE locking clauses' do
+      expect(text_of(described_class.call(sql: 'SELECT name FROM rb_query_things FOR UPDATE'))).to include('error')
+    end
+
+    it 'rejects FOR SHARE locking clauses' do
+      expect(text_of(described_class.call(sql: 'SELECT name FROM rb_query_things FOR SHARE'))).to include('error')
+    end
+
+    it 'rejects MySQL LOCK IN SHARE MODE locking clauses' do
+      expect(text_of(described_class.call(sql: 'SELECT name FROM rb_query_things LOCK IN SHARE MODE'))).to include('error')
+    end
+
+    it 'rejects SELECT INTO (table creation)' do
+      expect(text_of(described_class.call(sql: 'SELECT name INTO dump_table FROM rb_query_things'))).to include('error')
+    end
+
+    it 'rejects SELECT ... INTO OUTFILE' do
+      expect(text_of(described_class.call(sql: "SELECT name INTO OUTFILE '/tmp/dump.csv' FROM rb_query_things"))).to include('error')
     end
 
     it 'runs a plain SELECT' do
@@ -134,6 +167,44 @@ RSpec.describe RailsAiBridge::Tools::Query do
     end
   end
 
+  describe 'credential column redaction variants' do
+    it 'redacts password_digest values' do
+      result = described_class.call(sql: 'SELECT password_digest FROM rb_query_variants')
+      expect(text_of(result)).to include('[redacted]')
+    end
+
+    it 'redacts encrypted_password values' do
+      result = described_class.call(sql: 'SELECT encrypted_password FROM rb_query_variants')
+      expect(text_of(result)).to include('[redacted]')
+    end
+
+    it 'redacts secret_access_key values' do
+      result = described_class.call(sql: 'SELECT secret_access_key FROM rb_query_variants')
+      expect(text_of(result)).to include('[redacted]')
+    end
+
+    it 'does not redact non-credential columns like author' do
+      result = described_class.call(sql: 'SELECT author FROM rb_query_variants')
+      expect(text_of(result)).not_to include('[redacted]')
+      expect(text_of(result)).to include('Jane Doe')
+    end
+
+    it 'does not redact author_id metadata columns' do
+      result = described_class.call(sql: 'SELECT author_id FROM rb_query_variants')
+      expect(text_of(result)).not_to include('[redacted]')
+    end
+
+    it 'still redacts authorization columns' do
+      result = described_class.call(sql: 'SELECT authorization FROM rb_query_variants')
+      expect(text_of(result)).to include('[redacted]')
+    end
+
+    it 'still redacts oauth_authorization_code columns' do
+      result = described_class.call(sql: 'SELECT oauth_authorization_code FROM rb_query_variants')
+      expect(text_of(result)).to include('[redacted]')
+    end
+  end
+
   describe 'detail levels' do
     it 'summary returns columns and row count only' do
       payload = JSON.parse(text_of(described_class.call(sql: 'SELECT name, password FROM rb_query_things', detail: 'summary')))
@@ -146,6 +217,14 @@ RSpec.describe RailsAiBridge::Tools::Query do
     it 'returns a JSON payload with an error key for bad SQL' do
       payload = JSON.parse(text_of(described_class.call(sql: 'SELECT nope FROM missing_table_xyz')))
       expect(payload).to have_key('error')
+    end
+
+    it 'returns a sanitized error without writing to the application log' do
+      allow(described_class).to receive(:run_with_timeout).and_raise(StandardError, 'boom token=supersecret123')
+      expect(Rails.logger).not_to receive(:error)
+
+      payload = JSON.parse(text_of(described_class.call(sql: 'SELECT 1')))
+      expect(payload.fetch('error')).not_to include('supersecret123')
     end
   end
 

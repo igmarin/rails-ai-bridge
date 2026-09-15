@@ -29,6 +29,15 @@ RSpec.describe RailsAiBridge::Config::Server do
     expect(server.auto_mount).to be(false)
   end
 
+  it 'defaults enable_data_tools to false' do
+    expect(server.enable_data_tools).to be(false)
+  end
+
+  it 'allows setting enable_data_tools' do
+    server.enable_data_tools = true
+    expect(server.enable_data_tools).to be(true)
+  end
+
   it 'defaults additional_tools to []' do
     expect(server.additional_tools).to eq([])
   end

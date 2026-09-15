@@ -24,6 +24,7 @@ module RailsAiBridge
           [/\A\s*with\b/i, 'WITH (CTE) queries are not allowed; rewrite as a plain SELECT'],
           [/\A(?!\s*select\b)/i, 'only SELECT statements are allowed'],
           [/\bfor\s+(update|share|no\s+key\s+update|key\s+share)\b/i, 'only non-locking, non-mutating SELECT statements are allowed'],
+          [/\block\s+in\s+share\s+mode\b/i, 'only non-locking, non-mutating SELECT statements are allowed'],
           [/\binto\b/i, 'only non-locking, non-mutating SELECT statements are allowed']
         ].freeze
 

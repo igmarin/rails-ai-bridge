@@ -181,6 +181,55 @@ RailsAiBridge.configure { |c| c.context_providers.enabled = false }
 
 Or remove the `allowed_hosts` array — no host matches, all provider calls fail before DNS.
 
+## Data-access tools: rails_query and rails_read_logs
+
+Two built-in tools reach beyond static introspection: `rails_query` (database reads) and
+`rails_read_logs` (log files). Both are **opt-in and disabled by default**
+(`config.enable_data_tools = false`) and follow the same boundary: allowlist first, cap
+everything, redact output.
+
+### Opt-in registration
+
+The two data-access tools are only registered with the MCP server when
+`config.enable_data_tools = true`. The default (`false`) keeps them out of
+`Server#tool_classes`, so an upgrade never silently starts exposing database rows or log
+files to AI clients. `config.excluded_models` / `excluded_tables` do **not** restrict
+`rails_query` — it runs on the app's database connection and can read any table the
+database user can `SELECT` from. Enabling the flag means accepting that exclusion bypass;
+treat the MCP endpoint with production-grade authentication when the flag is on.
+
+### rails_query — SELECT-only SQL
+
+| Mitigation | Detail |
+|------------|--------|
+| SELECT-only allowlist | The statement must start with `SELECT`. `INSERT`, `UPDATE`, `DELETE`, `ALTER`, `CREATE`, `DROP`, `TRUNCATE`, `REPLACE`, `PRAGMA`, `ATTACH`, and transaction control verbs are rejected. |
+| CTEs rejected in v1 | `WITH` queries are rejected because mutating CTEs (wCTEs) allow writes inside a `WITH` clause; dialect-safe wCTE detection is error-prone. Rewrite as a plain `SELECT`. |
+| Single statement | Any inner semicolon is rejected — conservatively, including semicolons inside string literals. |
+| No locking, no DDL side effects | `FOR UPDATE` / `FOR SHARE` / `LOCK IN SHARE MODE` row locks and `SELECT ... INTO` (including MySQL `INTO OUTFILE`/`DUMPFILE`) are rejected by keyword guard. |
+| Row cap | At most 100 rows are returned (`MAX_ROWS`), with a `truncated` flag when more matched. |
+| Read-only transaction (PostgreSQL) | On PostgreSQL the statement runs inside a transaction with `SET TRANSACTION READ ONLY` plus `SET LOCAL statement_timeout = 5000`. The database itself rejects any write the keyword guard might miss. On other adapters (SQLite, MySQL, …) the keyword guard is **best-effort only** — no read-only transaction is enforced; rely on a least-privilege database user for defense in depth. |
+| Statement timeout | On PostgreSQL, `statement_timeout` (5s). On other adapters, Ruby's `Timeout.timeout` (5s). Note that `Timeout.timeout` can leave a pooled connection in an uncertain state on non-PostgreSQL adapters when it interrupts a driver call mid-flight; this is a documented residual risk, mitigated by the short cap and the connection being returned to the pool. |
+| Credential redaction | Values under credential-like columns (`password`, `passwd`, `secret`, `token`, `api_key`, `apikey`, `auth` — including `password_digest`, `encrypted_password`, `secret_access_key`) are replaced with `[redacted]` before the response leaves the process. This is **best-effort**: column aliases (`SELECT password AS harmless_name`) bypass column-name matching, and values in non-credential-named columns are not inspected. Redaction is a mitigation, not a guarantee — opt-in plus least-privilege DB access remain the primary controls. |
+| Existing connection only | Queries run on the app's established `ApplicationRecord` connection; the bridge never opens its own database connection. |
+| Error contract | Failures return `{"error": message}`; messages are sanitized so raw SQL fragments or driver errors do not leak connection details. |
+
+### rails_read_logs — log tail with path allowlist
+
+| Mitigation | Detail |
+|------------|--------|
+| Path allowlist | Only paths under `Rails.root/log` resolve. The check expands `..` segments and follows symlinks, then verifies a directory-prefix match, so `../`, absolute paths, and dot-segment tricks are all rejected. |
+| Line cap | At most 400 lines are returned (`MAX_LINES`); detail levels default to 50 (`standard`) or 400 (`full`). |
+| Byte cap | Each returned line is capped at 2000 bytes. |
+| Credential redaction | Every returned line passes through `Registry::MessageSanitizer` (bearer headers, `token=`/`password=` pairs, URLs). |
+| Error contract | Missing files return `{"error": "log file not found: ..."}` — no filesystem structure leaks beyond the requested name. |
+
+Both tools inherit the general read-only guarantee (`read_only_hint: true`,
+`destructive_hint: false`, `idempotent_hint: true`) and the same exposure advice as the
+other tools: prefer stdio, or bind the HTTP endpoint to loopback with authentication.
+Residual risks to accept before enabling: the keyword guard is best-effort on
+non-PostgreSQL adapters; redaction is best-effort (aliases bypass it); and
+`rails_query` bypasses MCP introspection exclusions by design.
+
 ## Residual risk checklist (operators)
 
 Use this before exposing HTTP MCP beyond a single-developer machine:
@@ -191,6 +240,7 @@ Use this before exposing HTTP MCP beyond a single-developer machine:
 | `cors_origins` includes `*` | CORS disabled unless configured | Prefer exact origins; never combine `*` with browsers on untrusted networks |
 | In-memory rate limit | Per-process only | Use `config.mcp.rate_limiter` / reverse proxy / WAF for multi-worker or multi-host |
 | Information disclosure via tools | Read-only tools still reveal schema/routes/code | Prefer stdio; bind HTTP to `127.0.0.1`; use exclusions/presets for regulated data |
+| `rails_query` / `rails_read_logs` read live data and bypass introspection exclusions | Opt-in, disabled by default | Keep `config.enable_data_tools = false` unless needed; when enabled, use a least-privilege DB user and production authentication |
 | HTTP MCP request outcomes not logged | `http_log_json` defaults to false | Set `config.mcp.http_log_json = true`; `rails ai:doctor` warns when `auto_mount` is on and this is still off |
 | Outbound provider calls to external services | Disabled by default | Enable only with exact `allowed_hosts`; use `allow_private_networks = false` (default) in production |
 

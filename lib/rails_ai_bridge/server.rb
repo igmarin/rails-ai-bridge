@@ -37,6 +37,8 @@ module RailsAiBridge
       Tools::GetGems,
       Tools::SearchCode,
       Tools::SearchSemantic,
+      Tools::Query,
+      Tools::ReadLogs,
       Tools::ExplainSymbol,
       Tools::GetConventions,
       Tools::GetControllers,
@@ -49,7 +51,16 @@ module RailsAiBridge
       Tools::UseSkill,
       Tools::UseAgent,
       Tools::ListContextProviders,
-      Tools::GetProviderContext,
+      Tools::GetProviderContext
+    ].freeze
+
+    # Data-access tools reach live application data (database rows, log files)
+    # and bypass MCP introspection exclusions. They stay in TOOLS but are only
+    # registered when config.enable_data_tools is true (default: false).
+    #
+    # @return [Array<Class>] tool classes gated behind config.enable_data_tools
+    DATA_TOOLS = [
+      Tools::Query,
       Tools::ReadLogs
     ].freeze
 
@@ -61,13 +72,23 @@ module RailsAiBridge
       @transport_type = transport
     end
 
+    # Built-in tools visible to clients. The data-access tools (DATA_TOOLS) are
+    # opt-in via config.enable_data_tools because they expose live data that
+    # MCP introspection exclusions cannot restrict.
+    #
+    # @return [Array<Class>] built-in tool classes honoring the data-tool flag
+    def self.builtin_tools
+      RailsAiBridge.configuration.enable_data_tools ? TOOLS : TOOLS - DATA_TOOLS
+    end
+
     # Returns all available tool classes including additional configured tools.
+    # Data-access tools are only included when config.enable_data_tools is true.
     # When tool result caching is enabled, built-in and additional tools are wrapped
     # so identical argument fingerprints reuse cached +MCP::Tool::Response+ objects.
     #
     # @return [Array<Class, ToolResultCache::CachedTool>] list of tool classes
     def tool_classes
-      (TOOLS + RailsAiBridge.configuration.additional_tools).map do |tool_class|
+      (self.class.builtin_tools + RailsAiBridge.configuration.additional_tools).map do |tool_class|
         Instrumentation::InstrumentedTool.new(ToolResultCache.maybe_wrap(tool_class))
       end
     end

@@ -22,6 +22,12 @@ module RailsAiBridge
       # @return [Boolean] auto-mount MCP HTTP endpoint via Rack middleware
       attr_accessor :auto_mount
 
+      # @return [Boolean] register the data-access tools (rails_query, rails_read_logs).
+      #   Disabled by default: these tools reach live application data (database rows,
+      #   log files) and bypass MCP introspection exclusions, so hosts must opt in.
+      # :reek:Attribute -- configuration requires a public writer for initializer setup.
+      attr_accessor :enable_data_tools
+
       # @return [Array<Class>] additional MCP tool classes appended to the built-in list
       attr_accessor :additional_tools
 
@@ -35,6 +41,7 @@ module RailsAiBridge
         @http_bind          = '127.0.0.1'
         @http_port          = 6029
         @auto_mount         = false
+        @enable_data_tools  = false
         @additional_tools   = []
         @additional_resources = {}
       end
