@@ -19,6 +19,7 @@ module RailsAiBridge
 
       MAX_LINES = 400
       MAX_LINE_BYTES = 2000
+      MAX_TAIL_SCAN_BYTES = MAX_LINES * MAX_LINE_BYTES
       LINES_BY_DETAIL = { 'summary' => 0, 'standard' => 50, 'full' => MAX_LINES }.freeze
       DEFAULT_LINES = 50
 
@@ -110,10 +111,19 @@ module RailsAiBridge
         def self.redact(line)
           trimmed = line.force_encoding(Encoding::UTF_8).scrub
           sanitized = Registry::MessageSanitizer.sanitize(trimmed.chomp)
-          # Apply MAX_LINE_BYTES after sanitization (sanitization can expand byte length)
-          capped = sanitized.byteslice(0, ReadLogs::MAX_LINE_BYTES)
-          capped.force_encoding(Encoding::UTF_8).scrub
+          truncate_utf8(sanitized)
         end
+
+        # Truncates without leaving a partial UTF-8 character at the boundary.
+        #
+        # @param value [String] valid UTF-8 value
+        # @return [String] valid UTF-8 value capped at MAX_LINE_BYTES
+        def self.truncate_utf8(value)
+          capped = value.byteslice(0, ReadLogs::MAX_LINE_BYTES).force_encoding(Encoding::UTF_8)
+          capped = capped.byteslice(0, capped.bytesize - 1).force_encoding(Encoding::UTF_8) until capped.valid_encoding?
+          capped
+        end
+        private_class_method :truncate_utf8
 
         # Appends a redacted line to the tail buffer, maintaining the cap.
         #
@@ -139,35 +149,47 @@ module RailsAiBridge
         def build_tail
           tail_lines = []
           cap = tail_length
-          total = process_lines(tail_lines, cap)
-          build_payload(total, tail_lines)
+          process_lines(tail_lines, cap, skip_first_record: seek_to_tail_window)
+          build_payload(tail_lines)
         end
 
         # A streaming state machine is necessary here: IO#each_line can split
         # an oversized physical record at MAX_LINE_BYTES.
         # :reek:TooManyStatements
-        def process_lines(tail_lines, cap)
-          total = 0
-          in_truncated_line = false
+        def process_lines(tail_lines, cap, skip_first_record:)
+          in_truncated_line = skip_first_record
 
           @file_io.each_line(ReadLogs::MAX_LINE_BYTES) do |chunk|
             unless in_truncated_line
-              total += 1
               self.class.append_to_tail(tail_lines, chunk, cap)
             end
             in_truncated_line = !chunk.end_with?("\n")
           end
-
-          total
         end
 
-        def build_payload(total, tail_lines)
+        def build_payload(tail_lines)
           {
             file: relative_path,
             size_bytes: @file_io.stat.size,
-            total_lines: total,
+            total_lines: nil,
             lines: tail_lines
           }
+        end
+
+        # Seeks to a fixed-size window at the end of the file. When the window
+        # starts in the middle of a physical line, that partial record is
+        # discarded rather than returned as a misleading tail entry.
+        #
+        # @return [Boolean] whether the first streamed record is partial
+        def seek_to_tail_window
+          size = @file_io.stat.size
+          return false if size <= ReadLogs::MAX_TAIL_SCAN_BYTES
+
+          start = size - ReadLogs::MAX_TAIL_SCAN_BYTES
+          @file_io.seek(start - 1)
+          partial_record = @file_io.read(1) != "\n"
+          @file_io.seek(start)
+          partial_record
         end
 
         def relative_path

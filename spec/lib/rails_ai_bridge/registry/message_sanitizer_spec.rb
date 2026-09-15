@@ -147,5 +147,13 @@ RSpec.describe RailsAiBridge::Registry::MessageSanitizer do
       expect(result).to include('[redacted]')
       expect(result).not_to include('BEGIN RSA PRIVATE KEY')
     end
+
+    it 'redacts complete quoted compound credential values containing whitespace' do
+      result = described_class.sanitize('JWT_PRIVATE_KEY="-----BEGIN PRIVATE KEY----- secret material"')
+
+      expect(result).to include('[redacted]')
+      expect(result).not_to include('BEGIN PRIVATE KEY')
+      expect(result).not_to include('secret material')
+    end
   end
 end

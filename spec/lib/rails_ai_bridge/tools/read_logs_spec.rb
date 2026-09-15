@@ -88,10 +88,26 @@ RSpec.describe RailsAiBridge::Tools::ReadLogs do
       File.write(big, Array.new(total) { |i| "row #{i}" }.join("\n") << "\n")
       payload = JSON.parse(text_of(described_class.call(file: 'big.log', lines: 1_000_000)))
       expect(payload['lines'].size).to eq(described_class::MAX_LINES)
-      expect(payload['total_lines']).to eq(total)
+      expect(payload['total_lines']).to be_nil
       expect(payload['lines'].last).to eq("row #{total - 1}")
     ensure
       FileUtils.rm_f(big)
+    end
+  end
+
+  describe 'bounded tail scan' do
+    it 'returns the requested tail from the final scan window' do
+      large = log_dir.join('large.log')
+      File.open(large, 'wb') do |f|
+        f.write("old record\n" * (described_class::MAX_TAIL_SCAN_BYTES / 11 + 1))
+        f.write("penultimate tail\nlast tail\n")
+      end
+
+      payload = JSON.parse(text_of(described_class.call(file: 'large.log', lines: 2)))
+      expect(payload['lines']).to eq(['penultimate tail', 'last tail'])
+      expect(payload['total_lines']).to be_nil
+    ensure
+      FileUtils.rm_f(large)
     end
   end
 
@@ -148,6 +164,14 @@ RSpec.describe RailsAiBridge::Tools::ReadLogs do
       FileUtils.rm_f(long_line)
     end
 
+    it 'keeps the final redacted line valid UTF-8 within MAX_LINE_BYTES' do
+      line = ('a' * (described_class::MAX_LINE_BYTES - 1)).b << "\xC3"
+      redacted = described_class::TailFormatter.redact(line)
+
+      expect(redacted).to be_valid_encoding
+      expect(redacted.bytesize).to be <= described_class::MAX_LINE_BYTES
+    end
+
     it 'counts long lines as single lines in total_lines, not multiple chunks' do
       long_line = log_dir.join('long_line_count.log')
       File.open(long_line, 'wb') do |f|
@@ -158,7 +182,7 @@ RSpec.describe RailsAiBridge::Tools::ReadLogs do
       end
       payload = JSON.parse(text_of(described_class.call(file: 'long_line_count.log')))
       expect(payload).not_to have_key('error')
-      expect(payload['total_lines']).to eq(3) # 3 actual lines, not 5 chunks
+      expect(payload['total_lines']).to be_nil
       expect(payload['lines'].size).to eq(3)
     ensure
       FileUtils.rm_f(long_line)
