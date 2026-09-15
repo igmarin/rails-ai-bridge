@@ -111,19 +111,19 @@ module RailsAiBridge
         def self.redact(line)
           trimmed = line.force_encoding(Encoding::UTF_8).scrub
           sanitized = Registry::MessageSanitizer.sanitize(trimmed.chomp)
-          truncate_utf8(sanitized)
+          truncate_to_valid_encoding(sanitized)
         end
 
         # Truncates without leaving a partial UTF-8 character at the boundary.
         #
         # @param value [String] valid UTF-8 value
         # @return [String] valid UTF-8 value capped at MAX_LINE_BYTES
-        def self.truncate_utf8(value)
+        def self.truncate_to_valid_encoding(value)
           capped = value.byteslice(0, ReadLogs::MAX_LINE_BYTES).force_encoding(Encoding::UTF_8)
           capped = capped.byteslice(0, capped.bytesize - 1).force_encoding(Encoding::UTF_8) until capped.valid_encoding?
           capped
         end
-        private_class_method :truncate_utf8
+        private_class_method :truncate_to_valid_encoding
 
         # Appends a redacted line to the tail buffer, maintaining the cap.
         #
@@ -183,6 +183,10 @@ module RailsAiBridge
           size = @file_io.stat.size
           return false if size <= ReadLogs::MAX_TAIL_SCAN_BYTES
 
+          seek_tail_window(size)
+        end
+
+        def seek_tail_window(size)
           start = size - ReadLogs::MAX_TAIL_SCAN_BYTES
           @file_io.seek(start - 1)
           partial_record = @file_io.read(1) != "\n"
