@@ -9,4 +9,4 @@ source 'https://rubygems.org'
 
 eval_gemfile('Gemfile')
 
-gem 'mutant-rspec', '~> 0.16', require: false
+gem 'mutant-rspec', '~> 0.17.0', require: false
