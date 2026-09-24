@@ -6,6 +6,28 @@ require 'mcp'
 module RailsAiBridge
   # Registers MCP resources and resource templates that expose
   # static introspection data AI clients can read directly.
+  #
+  # == Architectural role: intentional protocol facade
+  #
+  # Resources is deliberately the single read-side gateway between every
+  # data-producing subsystem and the MCP resource surface. Its edges to
+  # ContextProvider (cached context), Registry::RegistryManifest (dynamic
+  # context-provider resources), Serializers::ContextSummary (sanitization),
+  # ViewFileAnalyzer, Server, and Doctor::Checkers::BridgeMetadataChecker
+  # exist because MCP requires one registration and dispatch point — the
+  # subsystems only meet here.
+  #
+  # It is NOT a god module despite high betweenness centrality in graph
+  # analyses: a protocol boundary that declares URIs, dispatches reads,
+  # and sanitizes output is expected to sit between otherwise unrelated
+  # communities. Splitting it would scatter URI ownership and the
+  # sanitization guard across multiple files.
+  #
+  # If a future graph analysis flags this module, check the betweenness
+  # against the "facade at a protocol boundary" pattern before proposing a
+  # split. The one edge to watch instead: sanitize_conventions_section
+  # reaches into Serializers::ContextSummary internals; extract a shared
+  # sanitizer if serializers are refactored.
   module Resources
     # URI pattern for matching model resource URIs (rails://models/{name})
     MODEL_URI_PATTERN = %r{\Arails://models/(.+)\z}
