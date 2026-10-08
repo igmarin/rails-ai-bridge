@@ -291,7 +291,7 @@ RSpec.describe RailsAiBridge::RubydexAdapter::IncrementalIndexer do
     end
 
     it 'skips the generic logging path for ServiceErrors::BaseError' do
-      logger = double('Logger', debug: nil, error: nil)
+      logger = instance_double(Logger, debug: nil, error: nil)
       allow(Rails).to receive(:logger).and_return(logger)
       allow(RailsAiBridge::RubydexAdapter::Indexer).to receive(:build_index)
         .and_raise(RailsAiBridge::ServiceErrors::ValidationError, 'bad input')
