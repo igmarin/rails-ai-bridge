@@ -320,7 +320,7 @@ The gem exposes **22 built-in tool classes** via MCP — 20 registered by defaul
 
 All tools are **read-only** — they never modify your application or database.
 
-**Confidence tags legend.** Some tools label each fact with its evidence. `[VERIFIED]` means the fact is provable at runtime or from the AST. `[INFERRED]` means it comes from a pattern or heuristic. `[STATIC]` is reserved and never emitted. The schema and model tools, the controller tool, and the full detail of `rails_get_view` tag facts, and so do the matching sections of `rails_get_context`. Set `confidence_tags_enabled` to `false` to remove the controller and view tags; schema and model tags stay on. The guide's [Reading confidence tags](docs/GUIDE.md#reading-confidence-tags) section explains the footer and the settings.
+**Confidence tags legend.** Some tools label each fact with its evidence. `[VERIFIED]` means the fact is provable at runtime or from the AST. `[INFERRED]` means it comes from a pattern or heuristic. `[STATIC]` is reserved and never emitted. The schema and model tools, the controller tool, and the full detail of `rails_get_view` tag facts. The matching sections of `rails_get_context` are tagged too. Set `confidence_tags_enabled` to `false` to remove the controller and view tags; schema and model tags stay on. The guide's [Reading confidence tags](docs/GUIDE.md#reading-confidence-tags) section explains the footer and the settings.
 
 ### Smart Detail Levels
 
@@ -606,6 +606,9 @@ end
 | `parallel_introspection` | `false` | Run introspectors concurrently (requires `concurrent-ruby`, which is already a Rails dependency) |
 | `parallel_pool_size` | `4` | Max threads in the parallel pool; capped at the number of active introspectors so no idle threads are created |
 | `parallel_timeout_seconds` | `10` | Per-introspector future timeout (seconds); timed-out introspectors return `{ error: "timed out after Ns" }` without blocking the others |
+| `confidence_tags_enabled` | `true` | Shows `[VERIFIED]` / `[INFERRED]` tags and footers on controller and `rails_get_view` full output. Schema and model tags are always on. |
+| `prism_enabled` | `false` | Reserved. Nothing runs the Prism static pass yet, so this has no effect. |
+| `prism_max_files` | `500` | Reserved. Caps files parsed per Prism run once the pass is wired in. No effect yet. |
 | `registry.registry_manifest_path` | `"config/rails_ai_bridge/registry.json"` | Path to the registry manifest JSON file for skill pack resolution |
 | `registry.skill_cache_dir` | `"~/.rails-ai-bridge/cache"` | Directory for caching git repositories containing skill packs |
 | `registry.skill_packs` | `nil` | Explicit pack names to load, or `nil` for auto-detection based on framework |

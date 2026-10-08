@@ -307,7 +307,7 @@ Some tools label each fact with the evidence behind it.
 Tags appear in two forms:
 
 - **Inline tags** on a single line, such as ``- `name` [INFERRED]`` for a strong param found by regex.
-- **A footer** that counts facts by source, such as `Verification: [VERIFIED] reflection (3) · [INFERRED] regex (2)`. It appears in single-controller output and in full-detail output.
+- **A footer** that counts facts by source, such as `Verification: [VERIFIED] reflection (3) · [INFERRED] regex (2)`. It appears in these outputs: a single controller from `rails_get_controllers` (including the controller section of `rails_get_context`), the `detail: 'full'` view of `rails_get_controllers`, and the `detail: 'full'` view of `rails_get_view`.
 
 The schema and model tools, the controller tool, and the full detail of `rails_get_view` tag facts. The matching sections of `rails_get_context` are tagged too. Other tools don't tag facts yet.
 
