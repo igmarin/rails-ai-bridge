@@ -39,6 +39,7 @@ module RailsAiBridge
       # @option options [Boolean] :persist whether to persist mtimes to disk, default +false+
       # @option options [String, nil] :index_path directory for the mtime JSON file, default +nil+
       # @return [Service::Result] result with +graph+ and +file_mtimes+ in data
+      # @raise [ServiceErrors::BaseError] rescued and returned as a failure result with its message
       # @raise [StandardError] rescued and returned as failure result
       def call(operation, root:, graph: nil, file_mtimes: {}, **options)
         threshold = options.fetch(:threshold, 0.3)
@@ -51,8 +52,10 @@ module RailsAiBridge
         when :reindex
           reindex(root, graph, file_mtimes, threshold, persist, index_path)
         else
-          Service::Result.new(false, errors: ["Unsupported operation: #{operation}"])
+          raise ServiceErrors::ValidationError, "Unsupported operation: #{operation}"
         end
+      rescue ServiceErrors::BaseError => error
+        Service::Result.new(false, errors: [error.message])
       rescue StandardError => error
         log_error(operation, error)
         logger = defined?(Rails) && Rails.respond_to?(:logger) ? Rails.logger : nil

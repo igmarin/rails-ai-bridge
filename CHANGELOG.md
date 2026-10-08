@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ContextGenerationService`, `FileManagementService`). Nothing in the gem used them; they
   were only exercised by their own specs. `RailsAiBridge::Service` and `Service::Result` remain.
 
+### Changed
+
+- `RubydexAdapter::IncrementalIndexer` raises `ServiceErrors::ValidationError` for an
+  unsupported operation and rescues `ServiceErrors::BaseError` into a failure result with
+  the same message. The returned result is unchanged.
+
 ## [5.2.1] - 2026-09-23
 
 ### Changed

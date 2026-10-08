@@ -279,6 +279,16 @@ RSpec.describe RailsAiBridge::RubydexAdapter::IncrementalIndexer do
       expect(result).to be_failure
       expect(result.errors.first).to include('boom')
     end
+
+    it 'maps a ServiceErrors error to a failure result with its raw message' do
+      allow(RailsAiBridge::RubydexAdapter::Indexer).to receive(:build_index)
+        .and_raise(RailsAiBridge::ServiceErrors::ValidationError, 'bad input')
+
+      result = described_class.call(:build, root: root)
+
+      expect(result).to be_failure
+      expect(result.errors).to eq(['bad input'])
+    end
   end
 
   describe 'private methods' do
