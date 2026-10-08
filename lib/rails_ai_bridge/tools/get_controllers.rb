@@ -118,6 +118,8 @@ module RailsAiBridge
           @controllers.keys.sort.each do |name|
             info = @controllers[name]
             lines << "## #{name}"
+            footer = footer_for(info)
+            lines << '' << footer if footer
             lines << "- Actions: #{info[:actions]&.join(', ')}" if info[:actions]&.any?
             lines << "- Filters: #{info[:filters].map { |f| format_listed_filter(f) }.join(', ')}" if info[:filters]&.any?
             if info[:strong_params]&.any?
@@ -152,6 +154,8 @@ module RailsAiBridge
         end
 
         # Summary line counting the filters and strong params this controller renders by provenance.
+        # @param info [Hash] one controller's introspection payload
+        # @return [String, nil] the footer, or +nil+ when tags are disabled or nothing is counted
         def footer_for(info)
           provenances = Array(info[:filters]).pluck(:provenance).map { |source| source || FILTER_FALLBACK }
           provenances += [info[:strong_params_provenance] || STRONG_PARAMS_FALLBACK] * Array(info[:strong_params]).size

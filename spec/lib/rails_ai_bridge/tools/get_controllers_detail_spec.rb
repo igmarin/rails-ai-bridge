@@ -49,6 +49,12 @@ RSpec.describe RailsAiBridge::Tools::GetControllers do
       expect(text).to include('- Strong params: name, email [INFERRED]')
     end
 
+    it 'renders the verification footer in the full view' do
+      text = described_class.call(detail: 'full').content.first[:text]
+
+      expect(text).to include('Verification: [VERIFIED] reflection (1) · [INFERRED] regex (2)')
+    end
+
     it 'keeps verified filter lines free of inline tags, since the footer counts them' do
       text = described_class.call(controller: 'UsersController').content.first[:text]
 
