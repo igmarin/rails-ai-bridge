@@ -266,7 +266,7 @@ RSpec.describe RailsAiBridge::RubydexAdapter::IncrementalIndexer do
       result = described_class.call(:invalid, root: root)
 
       expect(result).to be_failure
-      expect(result.errors).to include('Unsupported operation: invalid')
+      expect(result.errors).to eq(['Unsupported operation: invalid'])
     end
   end
 
