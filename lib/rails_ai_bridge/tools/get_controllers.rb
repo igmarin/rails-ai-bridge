@@ -42,7 +42,9 @@ module RailsAiBridge
       # @private
       # Formats +:controllers+ introspection for {GetControllers}.
       class ResponseFormatter
-        # Strong params come from source regexes, so a payload without their provenance is labeled with it.
+        # Provenance missing from a payload falls back to the origin of its field: filters come from
+        # Rails reflection, strong params come from source regexes.
+        FILTER_FALLBACK = :reflection
         STRONG_PARAMS_FALLBACK = :regex
 
         def initialize(controllers, controller:, detail:)
@@ -150,10 +152,8 @@ module RailsAiBridge
         end
 
         # Summary line counting the filters and strong params this controller renders by provenance.
-        # A missing provenance falls back to the field's origin: filters come from reflection and
-        # strong params come from source regexes.
         def footer_for(info)
-          provenances = Array(info[:filters]).pluck(:provenance).map { |source| source || :reflection }
+          provenances = Array(info[:filters]).pluck(:provenance).map { |source| source || FILTER_FALLBACK }
           provenances += [info[:strong_params_provenance] || STRONG_PARAMS_FALLBACK] * Array(info[:strong_params]).size
           @provenance.footer(provenances)
         end

@@ -83,6 +83,14 @@ RSpec.describe RailsAiBridge::Tools::GetControllers do
 
       expect(text).not_to match(/\[(VERIFIED|INFERRED)\]/)
     end
+
+    it 'renders no tags in the full view when confidence tags are disabled' do
+      RailsAiBridge.configuration.confidence_tags_enabled = false
+      text = described_class.call(detail: 'full').content.first[:text]
+
+      expect(text).to include("- Strong params: name, email\n")
+      expect(text).not_to match(/\[(VERIFIED|INFERRED)\]/)
+    end
   end
 
   describe 'detail parameter' do
