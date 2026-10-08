@@ -32,7 +32,7 @@ module RailsAiBridge
 
       # Summarizes how many facts came from each evidence source.
       #
-      # @param counts [Hash{Symbol, String => Integer}] fact count per source, in display order
+      # @param counts [Hash] fact count per source, keyed by Symbol or String, in display order
       # @return [String, nil] e.g. +"Verification: [VERIFIED] reflection (3) · [INFERRED] regex (2)"+,
       #   or +nil+ when no source has a positive count
       def footer(counts)
