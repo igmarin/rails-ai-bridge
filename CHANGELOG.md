@@ -38,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `confidence_tags_enabled` to `false` for the previous output. Controller introspection facts gain
   additive `provenance` keys. Respond_to formats carry provenance in the payload only, because the
   tool does not render them yet.
-- The controller section of `rails_get_context` at `detail: full` shows the same tags and footer as the controller tool. Summary and standard output are unchanged.
+- The controller section of `rails_get_context` at `detail: full` shows the same tags and footer as the controller tool. That section is unchanged at summary and standard detail.
 - The full view of `rails_get_view` shows confidence tags when `confidence_tags_enabled` is
   on. Helper methods are regex-derived, so they get an `[INFERRED]` tag. A verification footer
   counts the facts the full view renders. Summary and standard output are unchanged. The setting

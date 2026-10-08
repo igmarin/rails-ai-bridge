@@ -170,38 +170,51 @@ RSpec.describe RailsAiBridge::Tools::GetContext do
     end
 
     context 'with confidence tags around the controller section' do
-      around do |example|
-        original = RailsAiBridge.configuration.confidence_tags_enabled
-        RailsAiBridge.configuration.confidence_tags_enabled = true
-        begin
-          example.run
-        ensure
-          RailsAiBridge.configuration.confidence_tags_enabled = original
+      context 'when confidence tags are enabled' do
+        around do |example|
+          original = RailsAiBridge.configuration.confidence_tags_enabled
+          RailsAiBridge.configuration.confidence_tags_enabled = true
+          begin
+            example.run
+          ensure
+            RailsAiBridge.configuration.confidence_tags_enabled = original
+          end
+        end
+
+        it 'adds a controller footer at full detail only' do
+          full = described_class.call(model: 'User', detail: 'full').content.first[:text]
+          standard = described_class.call(model: 'User', detail: 'standard').content.first[:text]
+          summary = described_class.call(model: 'User', detail: 'summary').content.first[:text]
+
+          expect(full).to include('Verification:', '`user_params` [INFERRED]')
+          expect(standard).not_to include('Verification:')
+          expect(summary).not_to include('Verification:')
+          expect(standard).to include('`before_action` **set_user**')
+          expect(standard).not_to match(/`before_action` \*\*set_user\*\*[^\n]*\[(VERIFIED|INFERRED)\]/)
+          expect(summary).to include('**UsersController**')
+          expect(summary).not_to match(/\*\*UsersController\*\*[^\n]*\[(VERIFIED|INFERRED)\]/)
         end
       end
 
-      it 'adds a controller footer at full detail only' do
-        full = described_class.call(model: 'User', detail: 'full').content.first[:text]
-        standard = described_class.call(model: 'User', detail: 'standard').content.first[:text]
-        summary = described_class.call(model: 'User', detail: 'summary').content.first[:text]
+      context 'when confidence tags are disabled' do
+        around do |example|
+          original = RailsAiBridge.configuration.confidence_tags_enabled
+          RailsAiBridge.configuration.confidence_tags_enabled = false
+          begin
+            example.run
+          ensure
+            RailsAiBridge.configuration.confidence_tags_enabled = original
+          end
+        end
 
-        expect(full).to include('Verification:', '`user_params` [INFERRED]')
-        expect(standard).not_to include('Verification:')
-        expect(summary).not_to include('Verification:')
-        expect(standard).to include('`before_action` **set_user**')
-        expect(standard).not_to match(/`before_action` \*\*set_user\*\*[^\n]*\[(VERIFIED|INFERRED)\]/)
-        expect(summary).to include('**UsersController**')
-        expect(summary).not_to match(/\*\*UsersController\*\*[^\n]*\[(VERIFIED|INFERRED)\]/)
-      end
+        it 'removes the controller footer and keeps model tags' do
+          full = described_class.call(model: 'User', detail: 'full').content.first[:text]
+          summary = described_class.call(model: 'User', detail: 'summary').content.first[:text]
 
-      it 'removes the controller footer when confidence tags are disabled, and keeps model tags' do
-        RailsAiBridge.configuration.confidence_tags_enabled = false
-        full = described_class.call(model: 'User', detail: 'full').content.first[:text]
-        summary = described_class.call(model: 'User', detail: 'summary').content.first[:text]
-
-        expect(full).not_to include('Verification:')
-        expect(full).not_to include('`user_params` [INFERRED]')
-        expect(summary).to include('- `has_many` **posts** [VERIFIED]', '- `has_one` **profile** [INFERRED]')
+          expect(full).not_to include('Verification:')
+          expect(full).not_to include('`user_params` [INFERRED]')
+          expect(summary).to include('- `has_many` **posts** [VERIFIED]', '- `has_one` **profile** [INFERRED]')
+        end
       end
     end
 
