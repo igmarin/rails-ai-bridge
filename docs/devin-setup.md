@@ -40,7 +40,7 @@ Run the Devin-specific generator:
 bundle exec rails ai:bridge:devin
 ```
 
-This writes `.devin/rules/rails-context.md`, `.devin/rules/rails-mcp-tools.md`, and `AGENTS.md`. Unchanged files are skipped (SHA256 fingerprinting prevents unnecessary writes).
+This writes `.devin/rules/rails-context.md`, and `.devin/rules/rails-mcp-tools.md`. Run `rails ai:bridge:codex` as well to write `AGENTS.md`, which Devin also reads. Unchanged files are skipped (SHA256 fingerprinting prevents unnecessary writes).
 
 To generate context files for all supported AI tools at once:
 

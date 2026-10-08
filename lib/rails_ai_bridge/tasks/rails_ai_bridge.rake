@@ -92,7 +92,7 @@ module RailsAiBridge
 end
 
 namespace :ai do
-  desc 'Generate AI bridge files (CLAUDE.md, AGENTS.md, GEMINI.md, .cursor/rules/, .github/copilot-instructions.md)'
+  desc 'Generate AI bridge files (CLAUDE.md, AGENTS.md, GEMINI.md, .cursor/rules/, .devin/rules/, .github/copilot-instructions.md)'
   task bridge: :environment do
     require 'rails_ai_bridge'
 

@@ -148,7 +148,7 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
       end
     end
 
-    it 'leaves the .codex/README.md pointer out of AGENTS.md by default' do
+    it 'never points AGENTS.md at .codex/README.md' do
       Dir.mktmpdir do |dir|
         written_names(dir)
 
@@ -162,12 +162,12 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
         allow(RailsAiBridge::Serializers::LegacyAgentFiles).to receive(:warn)
       end
 
-      it 'writes the three deprecated files and points AGENTS.md at the Codex README' do
+      it 'writes the three deprecated files without pointing AGENTS.md at the Codex README' do
         Dir.mktmpdir do |dir|
           names = written_names(dir)
 
           expect(names).to include('.cursorrules', '.devinrules', '.codex/README.md')
-          expect(File.read(File.join(dir, 'AGENTS.md'))).to include('.codex/README.md')
+          expect(File.read(File.join(dir, 'AGENTS.md'))).not_to include('.codex/README.md')
         end
       end
 

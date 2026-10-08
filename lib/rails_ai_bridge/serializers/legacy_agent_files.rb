@@ -10,6 +10,7 @@ module RailsAiBridge
     module LegacyAgentFiles
       MAIN_FORMATS = %i[cursor devin].freeze
       SPLIT_FORMATS = %i[codex].freeze
+      WARN_MUTEX = Mutex.new
       WARNING = '[rails-ai-bridge] DEPRECATION: config.output.legacy_agent_files writes ' \
                 '.cursorrules, .devinrules, and .codex/README.md, which no assistant needs. ' \
                 'They will be removed in 6.0.'
@@ -29,10 +30,13 @@ module RailsAiBridge
         # @return [void]
         def warn_once(formats)
           return unless enabled? && formats.intersect?(MAIN_FORMATS + SPLIT_FORMATS)
-          return if @warned
 
-          @warned = true
-          warn(WARNING)
+          should_warn = WARN_MUTEX.synchronize do
+            next false if @warned
+
+            @warned = true
+          end
+          warn(WARNING) if should_warn
         end
 
         # Clears the once-per-process memo (for specs).

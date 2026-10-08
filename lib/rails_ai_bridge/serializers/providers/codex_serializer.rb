@@ -71,7 +71,6 @@ module RailsAiBridge
           lines << ''
           lines << '## Codex notes'
           lines << '- This repository also includes `.mcp.json` for MCP client setup.'
-          lines << '- See `.codex/README.md` for optional local Codex setup guidance.' if @config.legacy_agent_files
           lines << ''
 
           lines.join("\n")
