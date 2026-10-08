@@ -51,6 +51,8 @@ except (OSError, ValueError):
 if int(sys.argv[2]) != 0 or not isinstance(data, dict):
     sys.exit(2)
 manifest = data.get("manifest") or {}
+if not isinstance(manifest, dict):
+    sys.exit(2)
 state = manifest.get("terminal_state")
 status = data.get("status")
 if status == "skipped" or state == "skipped":
