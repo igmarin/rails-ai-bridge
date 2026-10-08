@@ -28,7 +28,7 @@ module RailsAiBridge
         private
 
         def build_filter(callback)
-          filter = { name: callback.filter.to_s, kind: callback.kind.to_s }
+          filter = { name: callback.filter.to_s, kind: callback.kind.to_s, provenance: :reflection }
           source = source_class_name(callback)
           filter[:source] = source if source
           append_conditions(filter, callback)

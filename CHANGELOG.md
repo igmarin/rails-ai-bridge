@@ -29,6 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unsupported operation and rescues `ServiceErrors::BaseError` into a failure result with
   the same message. The returned result shape is unchanged. Errors that descend from
   `ServiceErrors::BaseError` skip the generic `StandardError` logging path.
+- The controller tool (`rails_get_controllers`) shows confidence tags when `confidence_tags_enabled`
+  is on, which is the default. Filters come from Rails reflection and are `[VERIFIED]`. Strong
+  params are regex-derived and are `[INFERRED]`. A verification footer summarizes both. Set
+  `confidence_tags_enabled` to `false` for the previous output. Controller introspection facts gain
+  additive `provenance` keys.
 - Refreshed the mutation testing lockfile (`Gemfile-mutation.lock`): `mcp` 1.6.0 → 1.7.0 and
   `railties` 8.1.3.1 → 8.1.4, with the matching Rails gems. Runtime dependency requirements
   are unchanged.

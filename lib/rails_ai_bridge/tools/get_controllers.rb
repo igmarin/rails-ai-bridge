@@ -46,6 +46,7 @@ module RailsAiBridge
           @controllers = controllers
           @controller = controller
           @detail = detail
+          @provenance = ProvenanceLines.new(RailsAiBridge.configuration.confidence_tags_enabled)
         end
 
         def controller_not_found?
@@ -114,7 +115,7 @@ module RailsAiBridge
             lines << "## #{name}"
             lines << "- Actions: #{info[:actions]&.join(', ')}" if info[:actions]&.any?
             lines << "- Filters: #{info[:filters].map { |f| format_listed_filter(f) }.join(', ')}" if info[:filters]&.any?
-            lines << "- Strong params: #{info[:strong_params].join(', ')}" if info[:strong_params]&.any?
+            lines << @provenance.tag("- Strong params: #{info[:strong_params].join(', ')}", info[:strong_params_provenance]) if info[:strong_params]&.any?
             lines << ''
           end
           lines.join("\n")
@@ -142,10 +143,19 @@ module RailsAiBridge
           "#{label} (#{filter[:source]})"
         end
 
+        # Summary line counting the filters and strong params this controller renders by provenance.
+        def footer_for(info)
+          provenances = Array(info[:filters]).pluck(:provenance)
+          provenances += [info[:strong_params_provenance]] * Array(info[:strong_params]).size
+          @provenance.footer(provenances)
+        end
+
         def format_single_controller
           lines = ["# #{controller_key}", '']
           lines << "**Parent:** `#{controller_info[:parent_class]}`" if controller_info[:parent_class]
           lines << '**API controller:** yes' if controller_info[:api_controller]
+          footer = footer_for(controller_info)
+          lines << '' << footer if footer
 
           if controller_info[:actions]&.any?
             lines << '' << '## Actions'
@@ -161,7 +171,7 @@ module RailsAiBridge
 
           if controller_info[:strong_params]&.any?
             lines << '' << '## Strong Params'
-            lines << controller_info[:strong_params].map { |p| "- `#{p}`" }.join("\n")
+            lines << controller_info[:strong_params].map { |p| @provenance.tag("- `#{p}`", controller_info[:strong_params_provenance]) }.join("\n")
           end
 
           lines.join("\n")

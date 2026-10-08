@@ -67,8 +67,10 @@ new edges — `StaticPrismScanner` lives in `introspectors/` (glob-covered), rea
 imports tools. `RubydexAdapter` use from introspectors is the existing pattern (`ModelSemanticEnrichment`).
 
 **Which introspectors get tags first** (epic requirement): schema and models are done (#187). Order
-of the remaining rollout: controllers (before_action filters and strong params are regex-derived
-today, so `[INFERRED]`, upgraded to `[VERIFIED]` when Prism proves the filter method exists), then
+of the remaining rollout: controllers. Filters come from Rails reflection (`_process_action_callbacks`),
+so they are `[VERIFIED]`. Strong params and respond_to formats are regex-derived, so they are
+`[INFERRED]`. Prism upgrades strong params to `[VERIFIED]` once the scanner reports their method
+definitions, a follow-up to the step-3 scanner, which currently reports filter macros only. Then
 jobs (sidekiq/activejob class-level config), then views. Routes are runtime-extracted and stay
 implicitly `[VERIFIED]`.
 
@@ -160,9 +162,9 @@ First failing specs (write, run, confirm they fail for the right reason):
    unavailable: `#facts_for(path)` returns `{ error: '...' }`, never raises; with a fixture class,
    emits `provenance: :prism` facts capped by `prism_max_files`.
 4. `spec/lib/rails_ai_bridge/tools/get_controllers_detail_spec.rb` — extend: markdown contains
-   `[INFERRED]` for regex-derived filters when `prism_enabled=false`; `[VERIFIED]` on the same fact
-   when the scanner reports `provenance: :prism` for the fact; absent entirely when
-   `confidence_tags_enabled=false`.
+   `[INFERRED]` for regex-derived strong params; `[VERIFIED]` for reflected filters; a verification
+   footer that counts both; absent entirely when `confidence_tags_enabled=false`. The Prism upgrade of
+   strong params is a follow-up (see the rollout note above).
 
 Implementation order: (1) `ConfidenceTag.footer` -> (2) `Config::StaticAnalysis` + delegators ->
 (3) `StaticPrismScanner` (prism-optional, error-safe) -> (4) provenance on controller introspector ->

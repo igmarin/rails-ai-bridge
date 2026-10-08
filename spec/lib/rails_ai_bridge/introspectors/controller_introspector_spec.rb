@@ -95,6 +95,20 @@ RSpec.describe RailsAiBridge::Introspectors::ControllerIntrospector do
       expect(formats).to contain_exactly('html', 'json')
     end
 
+    it 'tags every filter with reflection provenance' do
+      filters = result[:controllers]['PostsController'][:filters]
+
+      expect(filters).not_to be_empty
+      expect(filters).to all(include(provenance: :reflection))
+    end
+
+    it 'marks regex-derived strong params and respond_to formats with regex provenance' do
+      posts = result[:controllers]['PostsController']
+
+      expect(posts[:strong_params_provenance]).to eq(:regex)
+      expect(posts[:respond_to_formats_provenance]).to eq(:regex)
+    end
+
     it 'detects API controllers' do
       expect(result[:controllers]).to have_key('Api::V1::BaseController')
       api = result[:controllers]['Api::V1::BaseController']
