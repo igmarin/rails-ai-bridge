@@ -16,8 +16,12 @@ concurrency:
 
 jobs:
   review:
-    # Dependabot PRs do not receive repository secrets, so OPENAI_API_KEY is empty.
-    if: github.event.pull_request.draft == false && github.actor != 'dependabot[bot]'
+    # Dependabot and fork PRs do not receive repository secrets, so OPENAI_API_KEY
+    # is empty and the review cannot run. Only same-repo PRs are reviewed.
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.actor != 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:

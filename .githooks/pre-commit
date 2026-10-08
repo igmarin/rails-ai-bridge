@@ -41,16 +41,31 @@ OCR_LLM_URL="${OCR_LLM_URL:-https://api.openai.com/v1/responses}" \
 rc=$?
 
 # Prints blocking findings and exits 1 if any; exits 2 if the review itself failed.
-python3 - "$output" << 'PY'
+python3 - "$output" "$rc" << 'PY'
 import json, sys
 try:
     data = json.load(open(sys.argv[1]))
 except (OSError, ValueError):
     sys.exit(2)
-if data.get("status") == "failed":
+# A nonzero ocr exit is a failed review, even when its output parses.
+if int(sys.argv[2]) != 0 or not isinstance(data, dict):
     sys.exit(2)
-blocking = [c for c in (data.get("comments") or [])
-            if str(c.get("severity", "")).lower() in ("critical", "high")]
+manifest = data.get("manifest") or {}
+state = manifest.get("terminal_state")
+status = data.get("status")
+if status == "skipped" or state == "skipped":
+    sys.exit(0)
+if state is not None and state != "complete":
+    sys.exit(2)
+if state is None and status not in ("success", "completed_with_warnings"):
+    sys.exit(2)
+comments = data.get("comments")
+if comments is None:
+    comments = []
+if not isinstance(comments, list):
+    sys.exit(2)
+blocking = [c for c in comments
+            if isinstance(c, dict) and str(c.get("severity", "")).lower() in ("critical", "high")]
 for c in blocking:
     print(f"  [{c.get('severity')}] {c.get('path') or c.get('file', '?')}: {c.get('message') or c.get('content') or c.get('body', '')}")
 sys.exit(1 if blocking else 0)
