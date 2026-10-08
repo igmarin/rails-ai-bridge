@@ -24,6 +24,7 @@ RSpec.describe RailsAiBridge::Tools::GetControllers do
 
     around do |example|
       original = RailsAiBridge.configuration.confidence_tags_enabled
+      RailsAiBridge.configuration.confidence_tags_enabled = true
       begin
         example.run
       ensure
@@ -71,6 +72,15 @@ RSpec.describe RailsAiBridge::Tools::GetControllers do
 
       expect(text).to include('Verification: [VERIFIED] reflection (1) · [INFERRED] regex (2)')
       expect(text).to include('- `name` [INFERRED]', '- `email` [INFERRED]')
+    end
+
+    it 'renders no footer or tags in the summary and standard lists' do
+      %w[summary standard].each do |detail|
+        text = described_class.call(detail: detail).content.first[:text]
+
+        expect(text).not_to include('Verification:')
+        expect(text).not_to match(/\[(VERIFIED|INFERRED)\]/)
+      end
     end
 
     it 'renders the footer for a single controller at every detail level' do

@@ -158,6 +158,7 @@ RSpec.describe RailsAiBridge::Tools::GetView do
 
     around do |example|
       original = RailsAiBridge.configuration.confidence_tags_enabled
+      RailsAiBridge.configuration.confidence_tags_enabled = true
       begin
         example.run
       ensure

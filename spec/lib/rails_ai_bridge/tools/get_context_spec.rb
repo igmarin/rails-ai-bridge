@@ -169,6 +169,34 @@ RSpec.describe RailsAiBridge::Tools::GetContext do
       end
     end
 
+    context 'with confidence tags around the controller section' do
+      around do |example|
+        original = RailsAiBridge.configuration.confidence_tags_enabled
+        RailsAiBridge.configuration.confidence_tags_enabled = true
+        begin
+          example.run
+        ensure
+          RailsAiBridge.configuration.confidence_tags_enabled = original
+        end
+      end
+
+      it 'adds a controller footer at full detail only' do
+        full = described_class.call(model: 'User', detail: 'full').content.first[:text]
+        summary = described_class.call(model: 'User', detail: 'summary').content.first[:text]
+
+        expect(full).to include('Verification:')
+        expect(summary).not_to include('Verification:')
+      end
+
+      it 'removes the controller footer when confidence tags are disabled, and keeps model tags' do
+        RailsAiBridge.configuration.confidence_tags_enabled = false
+        text = described_class.call(model: 'User', detail: 'full').content.first[:text]
+
+        expect(text).not_to include('Verification:')
+        expect(text).to include('[VERIFIED]')
+      end
+    end
+
     context 'with feature name resolution' do
       let(:params) { { feature: 'posts' } }
 

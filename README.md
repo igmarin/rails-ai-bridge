@@ -570,7 +570,7 @@ end
 <details>
 <summary><strong>All configuration options</strong></summary>
 
-All three static-analysis settings work at the top level, such as `config.confidence_tags_enabled`, and on the sub-object, such as `config.static_analysis.confidence_tags_enabled`. Both paths write the same setting.
+The settings `confidence_tags_enabled`, `prism_enabled`, and `prism_max_files` work at the top level, such as `config.confidence_tags_enabled`, and on the sub-object, such as `config.static_analysis.confidence_tags_enabled`. Both paths write the same setting.
 
 | Option | Default | Description |
 |--------|---------|-------------|
@@ -609,7 +609,7 @@ All three static-analysis settings work at the top level, such as `config.confid
 | `parallel_pool_size` | `4` | Max threads in the parallel pool; capped at the number of active introspectors so no idle threads are created |
 | `parallel_timeout_seconds` | `10` | Per-introspector future timeout (seconds); timed-out introspectors return `{ error: "timed out after Ns" }` without blocking the others |
 | `static_analysis` | `Config::StaticAnalysis` | Sub-object for the confidence and Prism settings below, such as `config.static_analysis.confidence_tags_enabled` |
-| `confidence_tags_enabled` | `true` | Adds tags and footers to single-controller output at any `detail` level, to full-detail `rails_get_controllers` output, to the controller section of `rails_get_context`, and to full-detail `rails_get_view` output. Summary and standard lists have no tags or footers. Schema and model tags are always on. |
+| `confidence_tags_enabled` | `true` | Adds tags and footers to single-controller output at any `detail` level, to full-detail `rails_get_controllers` output, to the controller section of full-detail `rails_get_context` output, and to full-detail `rails_get_view` output. Summary and standard lists have no tags or footers. Schema and model tags are always on. |
 | `prism_enabled` | `false` | Reserved. Nothing runs the Prism static pass yet, so this has no effect. |
 | `prism_max_files` | `500` | Reserved. Caps files parsed per Prism run once the pass is wired in. No effect yet. |
 | `registry.registry_manifest_path` | `"config/rails_ai_bridge/registry.json"` | Path to the registry manifest JSON file for skill pack resolution |
