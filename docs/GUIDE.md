@@ -309,7 +309,7 @@ Tags appear in two forms:
 - **Inline tags** on a single line, such as ``- `name` [INFERRED]`` for a strong param found by regex.
 - **A footer** that counts facts by source, such as `Verification: [VERIFIED] reflection (3) · [INFERRED] regex (2)`. Single-controller output (a request for one controller) gets one under the controller heading at every `detail` level. The controller section of full-detail `rails_get_context` output gets one too. Full-detail output gets one per controller in `rails_get_controllers`, and one at the end of `rails_get_view`. Summary and standard lists have no footer.
 
-The schema and model tools, the controller tool, and the full-detail output of `rails_get_view` tags facts. The matching sections of `rails_get_context` are tagged too. Other tools don't tag facts yet.
+Tagged output: single-controller output at any `detail` level, full-detail `rails_get_controllers` output, the controller section of full-detail `rails_get_context` output, and full-detail `rails_get_view` output. The schema and model tools also tag facts. Controller and view list output at summary and standard detail has no tags or footers. Other tools don't tag facts yet.
 
 To remove the controller and view tags, set `config.confidence_tags_enabled = false` in the `RailsAiBridge.configure` block. Schema and model tags stay on regardless, because they predate the setting.
 
