@@ -188,6 +188,10 @@ RSpec.describe RailsAiBridge::Tools::GetContext do
         expect(full).to include('Verification:', '`user_params` [INFERRED]')
         expect(standard).not_to include('Verification:')
         expect(summary).not_to include('Verification:')
+        expect(standard).to include('`before_action` **set_user**')
+        expect(standard).not_to match(/`before_action` \*\*set_user\*\*[^\n]*\[(VERIFIED|INFERRED)\]/)
+        expect(summary).to include('**UsersController**')
+        expect(summary).not_to match(/\*\*UsersController\*\*[^\n]*\[(VERIFIED|INFERRED)\]/)
       end
 
       it 'removes the controller footer when confidence tags are disabled, and keeps model tags' do
