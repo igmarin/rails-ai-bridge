@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `RailsAiBridge::Tools::ConfidenceTag.footer` builds a one-line verification summary, such as
+  `Verification: [VERIFIED] reflection (3) · [INFERRED] regex (2)`, from a per-source count hash.
+  Sources with a zero count are left out, and the result is `nil` when none remain.
+
 ### Removed
 
 - Removed the unused `Services` layer (`AppIntrospectionService`, `ConfigurationService`,

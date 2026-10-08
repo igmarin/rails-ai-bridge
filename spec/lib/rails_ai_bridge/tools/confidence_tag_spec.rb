@@ -47,6 +47,11 @@ RSpec.describe RailsAiBridge::Tools::ConfidenceTag do
         .to eq('Verification: [VERIFIED] reflection (3) · [INFERRED] regex (2)')
     end
 
+    it 'accepts string source names' do
+      expect(described_class.footer('reflection' => 3, 'regex' => 2))
+        .to eq('Verification: [VERIFIED] reflection (3) · [INFERRED] regex (2)')
+    end
+
     it 'returns nil when there are no counts' do
       expect(described_class.footer({})).to be_nil
     end
