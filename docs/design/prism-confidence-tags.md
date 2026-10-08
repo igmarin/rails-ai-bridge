@@ -109,7 +109,7 @@ Introspector payloads stay backward compatible; provenance is additive:
 
 ```ruby
 # e.g. context[:controllers][:controllers]["UsersController"][:before_actions]
-[{ filter: 'authenticate_user!', provenance: :regex, prism_verified: true }, ...]
+[{ filter: 'authenticate_user!', provenance: :prism }, ...]
 ```
 
 `ConfidenceTag` gains one public helper: `ConfidenceTag.footer(provenance_counts)` returning a
@@ -161,7 +161,7 @@ First failing specs (write, run, confirm they fail for the right reason):
    emits `provenance: :prism` facts capped by `prism_max_files`.
 4. `spec/lib/rails_ai_bridge/tools/get_controllers_detail_spec.rb` — extend: markdown contains
    `[INFERRED]` for regex-derived filters when `prism_enabled=false`; `[VERIFIED]` on the same fact
-   when the scanner marks `prism_verified: true`; absent entirely when
+   when the scanner reports `provenance: :prism` for the fact; absent entirely when
    `confidence_tags_enabled=false`.
 
 Implementation order: (1) `ConfidenceTag.footer` -> (2) `Config::StaticAnalysis` + delegators ->
@@ -203,12 +203,25 @@ Implementation order: (1) `ConfidenceTag.footer` -> (2) `Config::StaticAnalysis`
 - **Tags rendered inside introspectors**: rejected — would make introspectors depend on
   presentation and break the "plain Hashes" rule (`introspectors.cannot_use :serializers, :tools`).
 
-## Open questions
+## Decisions
 
-1. Should `prism_verified` be a boolean per fact, or should provenance be a single symbol per fact
-   with an ordered precedence (`reflection > prism > rubydex > regex`)? Affects JSON payload shape
-   consumers may rely on.
-2. Do we add `gem 'prism'` unconditionally to the gemspec (harmless on 3.3+, enables 3.2) or
-   document it as an optional user dependency?
-3. For the reserved `[STATIC]` tag: emit it in static mode today as `environment: 'static'` implies,
-   or strictly hold it for the backlog static-tier epic?
+Recorded 2026-10-08. These answer the three questions this section used to list.
+
+1. **Provenance shape: one symbol per fact.** Precedence is `reflection > prism > rubydex > regex`.
+   There is no `prism_verified` boolean. The JSON payload carries one `provenance` symbol.
+2. **Prism dependency: optional.** The gemspec does not change. The gem keeps supporting Ruby 3.2,
+   with the static Prism pass off. Users on 3.2 add `prism` to their own Gemfile to enable it. The
+   scanner must degrade silently when Prism is missing (TDD plan item 3).
+3. **`[STATIC]` tag: reserved, not emitted.** It stays out of output until the static-tier backlog
+   epic. This matches the non-goals above.
+
+## Implementation sub-issues
+
+Created from the TDD plan once this doc is merged. One sub-issue per implementation step:
+
+1. `ConfidenceTag.footer` (TDD plan item 1).
+2. `Config::StaticAnalysis` and its flat delegators (item 2).
+3. `StaticPrismScanner`, Prism-optional and error-safe (item 3).
+4. Provenance on the controller introspector (item 4).
+5. Tool rendering: controllers, then jobs, then views (item 5).
+6. Docs parity: README, GUIDE, CHANGELOG, ROADMAP (item 6).
