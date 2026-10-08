@@ -40,4 +40,23 @@ RSpec.describe RailsAiBridge::Tools::ConfidenceTag do
       expect(described_class.tagged('has_many :posts', :reflection)).to eq('has_many :posts [VERIFIED]')
     end
   end
+
+  describe '.footer' do
+    it 'summarizes verified and inferred counts per source' do
+      expect(described_class.footer(reflection: 3, regex: 2))
+        .to eq('Verification: [VERIFIED] reflection (3) · [INFERRED] regex (2)')
+    end
+
+    it 'returns nil when there are no counts' do
+      expect(described_class.footer({})).to be_nil
+    end
+
+    it 'leaves out sources with a zero count' do
+      expect(described_class.footer(reflection: 0, regex: 2)).to eq('Verification: [INFERRED] regex (2)')
+    end
+
+    it 'returns nil when every count is zero' do
+      expect(described_class.footer(reflection: 0)).to be_nil
+    end
+  end
 end
