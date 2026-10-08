@@ -121,6 +121,41 @@ RSpec.describe RailsAiBridge::Introspectors::StaticPrismScanner do
       expect(names).not_to include('inner_params')
     end
 
+    it 'attributes each method to the class that defines it, not to an enclosing class' do
+      nested_path = File.join(dir, 'nested_class_controller.rb')
+      File.write(nested_path, <<~RUBY)
+        class ReportsController < ApplicationController
+          class Helper
+            def report_params; end
+          end
+
+          class << self
+            def export_params; end
+          end
+        end
+      RUBY
+
+      facts = scanner.facts_for(nested_path)[:facts]
+
+      expect(facts).to include(hash_including(kind: :def, name: 'report_params', owner: 'ReportsController::Helper'))
+      expect(facts.pluck(:name)).not_to include('export_params')
+    end
+
+    it 'names a namespaced controller with its enclosing modules' do
+      namespaced_path = File.join(dir, 'admin_reports_controller.rb')
+      File.write(namespaced_path, <<~RUBY)
+        module Admin
+          class ReportsController < ApplicationController
+            def index; end
+          end
+        end
+      RUBY
+
+      facts = scanner.facts_for(namespaced_path)[:facts]
+
+      expect(facts).to include(hash_including(kind: :def, name: 'index', owner: 'Admin::ReportsController'))
+    end
+
     it 'returns an error hash for a missing file instead of raising' do
       expect(scanner.facts_for(File.join(dir, 'missing.rb'))).to have_key(:error)
     end

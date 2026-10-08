@@ -15,6 +15,20 @@ module RailsAiBridge
         skip_before_action skip_after_action skip_around_action
       ].freeze
 
+      # Prism node classes, by short name, mapped to the role each plays in the walk. Names are
+      # strings so this file does not reference Prism when it loads.
+      NODE_ROLES = {
+        'ClassNode' => :class,
+        'ModuleNode' => :module,
+        'SingletonClassNode' => :singleton,
+        'BlockNode' => :block,
+        'DefNode' => :def,
+        'CallNode' => :call
+      }.freeze
+
+      # Scopes whose name becomes part of the owner of the methods inside them.
+      NAMESPACE_ROLES = %i[class module].freeze
+
       # @param max_files [Integer] maximum number of files this scanner reads
       # @param loader [#call] loads the prism library and raises LoadError when it is unavailable
       def initialize(max_files:, loader: -> { require 'prism' })
@@ -58,53 +72,61 @@ module RailsAiBridge
         result = Prism.parse(File.read(path))
         raise ArgumentError, 'file has syntax errors' unless result.success?
 
-        walk(result.value).flat_map { |node| node_facts(node) }.map { |fact| fact.merge(file: path) }
+        root = result.value
+        (filter_facts_in(root) + method_facts(root)).map { |fact| fact.merge(file: path) }
       end
 
-      # Every node in the tree, depth-first, starting with +node+. A method definition is a
-      # leaf: its body is not walked, because a filter macro only registers when it runs in a
-      # class or included block, never inside a method body.
-      # :reek:FeatureEnvy -- walks the tree from the node it is given
+      # Filter macros in the tree. Method bodies are skipped: a filter macro only registers when
+      # it runs in a class or included block.
+      def filter_facts_in(root)
+        walk(root).select { |node| filter_macro?(node) }.flat_map { |node| filter_facts(node) }
+      end
+
+      # Every node in the tree, depth-first, starting with +node+, without method bodies.
       def walk(node)
-        return [] unless node
-        return [node] if node.is_a?(Prism::DefNode)
-
-        [node, *node.compact_child_nodes.flat_map { |child| walk(child) }]
+        children = node.compact_child_nodes.grep_v(Prism::DefNode)
+        [node, *children.flat_map { |child| walk(child) }]
       end
 
-      def node_facts(node)
-        if node.is_a?(Prism::DefNode)
-          def_facts(node)
-        elsif filter_macro?(node)
-          filter_facts(node)
-        else
-          []
+      # Instance method definitions, each tagged with the class or module that owns it. A
+      # method counts only when its direct enclosing scope is a class body, so a same-named
+      # method in a nested class, in +class << self+, or in a block is never reported for
+      # the outer class.
+      def method_facts(node, scope = [])
+        role = NODE_ROLES[node.class.name.demodulize]
+        return instance_method_facts(node, scope) if role == :def
+
+        inner = scope + [scope_entry(role, node)].compact
+        node.compact_child_nodes.flat_map { |child| method_facts(child, inner) }
+      end
+
+      # The scope a node opens for the definitions inside it, or nil when it opens none.
+      # :reek:UtilityFunction -- a pure mapping from the node's role to the scope it opens
+      def scope_entry(role, node)
+        case role
+        when :class, :module then [role, node.constant_path.slice]
+        when :singleton, :block then [role, nil]
         end
       end
 
-      # Instance methods only: a singleton method such as +def self.helper+ is not a strong-params candidate.
       # :reek:FeatureEnvy -- builds the fact from the method node it is given
-      # :reek:UtilityFunction -- a pure builder with no instance state
-      def def_facts(node)
-        return [] if node.receiver
+      # :reek:UtilityFunction -- a pure builder over the node and its scope
+      def instance_method_facts(node, scope)
+        return [] if node.receiver || scope.last&.first != :class
 
-        [{ kind: :def, name: node.name.to_s, line: node.location.start_line, provenance: :prism }]
+        owner = scope.filter_map { |kind, name| name if NAMESPACE_ROLES.include?(kind) }.join('::')
+        [{ kind: :def, name: node.name.to_s, owner: owner, line: node.location.start_line, provenance: :prism }]
       end
 
       # :reek:UtilityFunction -- a pure predicate on the node; the macro list is a constant
       def filter_macro?(node)
-        node.is_a?(Prism::CallNode) && !node.receiver && FILTER_MACROS.include?(node.name)
+        NODE_ROLES[node.class.name.demodulize] == :call && !node.receiver && FILTER_MACROS.include?(node.name)
       end
 
       # :reek:FeatureEnvy -- builds facts from the macro node it is given
       def filter_facts(node)
         Array(node.arguments&.arguments).grep(Prism::SymbolNode).map do |symbol|
-          {
-            kind: node.name,
-            name: symbol.unescaped,
-            line: node.location.start_line,
-            provenance: :prism
-          }
+          { kind: node.name, name: symbol.unescaped, line: node.location.start_line, provenance: :prism }
         end
       end
     end

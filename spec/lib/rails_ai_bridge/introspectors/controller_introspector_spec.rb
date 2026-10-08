@@ -250,7 +250,7 @@ RSpec.describe RailsAiBridge::Introspectors::ControllerIntrospector do
     end
 
     let(:tmp_dir) { Dir.mktmpdir('controller-prism') }
-    let(:ctrl) { Class.new(ApplicationController) }
+    let(:ctrl) { stub_const('ReportsController', Class.new(ApplicationController)) }
     let(:clean_source) do
       <<~RUBY
         class ReportsController < ApplicationController
@@ -311,6 +311,36 @@ RSpec.describe RailsAiBridge::Introspectors::ControllerIntrospector do
 
       details = introspector.send(:extract_controller_details, ctrl)
 
+      expect(details[:strong_params_provenance]).to eq(:regex)
+    end
+
+    it 'keeps regex provenance when the method is defined in a nested class' do
+      stub_source(<<~RUBY)
+        class ReportsController < ApplicationController
+          class Helper
+            def report_params; end
+          end
+        end
+      RUBY
+
+      details = introspector.send(:extract_controller_details, ctrl)
+
+      expect(details[:strong_params]).to eq(['report_params'])
+      expect(details[:strong_params_provenance]).to eq(:regex)
+    end
+
+    it 'keeps regex provenance when the method is defined in class << self' do
+      stub_source(<<~RUBY)
+        class ReportsController < ApplicationController
+          class << self
+            def report_params; end
+          end
+        end
+      RUBY
+
+      details = introspector.send(:extract_controller_details, ctrl)
+
+      expect(details[:strong_params]).to eq(['report_params'])
       expect(details[:strong_params_provenance]).to eq(:regex)
     end
 

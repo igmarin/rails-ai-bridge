@@ -122,7 +122,7 @@ module RailsAiBridge
         scanner = prism_scanner
         return :regex unless scanner
 
-        StrongParamsProvenance.new(scanner, source_path(ctrl)).call(strong_params)
+        StrongParamsProvenance.new(scanner, source_path(ctrl), ctrl.name).call(strong_params)
       end
 
       # One scanner per run, so +prism_max_files+ caps every controller scanned in that run.
