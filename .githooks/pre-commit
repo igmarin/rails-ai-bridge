@@ -1,0 +1,69 @@
+#!/bin/bash
+# AI review of the changes about to be committed, using ocr (open-code-review).
+# Blocks the commit only on critical/high findings. Anything else — no ocr, no
+# key, the LLM failing — warns and lets the commit through.
+#
+# Install once:   git config core.hooksPath .githooks   (also enables pre-push)
+# Skip one commit: git commit --no-verify
+# Model:          OCR_MODEL=gpt-6-luna git commit   (default: gpt-6-luna, medium effort)
+#
+# The key is read from the environment and handed to ocr as env vars, so it is
+# never written to ~/.opencodereview/config.json. It is still visible to the
+# ocr child process (and anything that can read its environment). OPENAI_API_KEY
+# is the key.
+set -uo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+ocr_bin="${OCR_BIN:-ocr}"
+key="${OPENAI_API_KEY:-}"
+
+skip() {
+    echo "ocr review skipped: $1"
+    exit 0
+}
+
+command -v "$ocr_bin" > /dev/null || skip "ocr not installed (npm i -g @alibaba-group/open-code-review)"
+[ -n "$key" ] || skip "set OPENAI_API_KEY"
+git diff --cached --quiet && skip "nothing staged"
+
+output="$(mktemp)"
+errlog="$(mktemp)"
+trap 'rm -f "$output" "$errlog"' EXIT
+
+echo "ocr review (git commit --no-verify to skip)..."
+OCR_LLM_URL="${OCR_LLM_URL:-https://api.openai.com/v1/responses}" \
+    OCR_LLM_TOKEN="$key" \
+    OCR_LLM_MODEL="${OCR_MODEL:-gpt-6-luna}" \
+    OCR_USE_ANTHROPIC=false \
+    OCR_LLM_PROTOCOL=openai-responses \
+    OCR_NO_UPDATE=1 \
+    "$ocr_bin" review --effort medium --format json --audience agent -o "$output" > /dev/null 2> "$errlog"
+rc=$?
+
+# Prints blocking findings and exits 1 if any; exits 2 if the review itself failed.
+python3 - "$output" << 'PY'
+import json, sys
+try:
+    data = json.load(open(sys.argv[1]))
+except (OSError, ValueError):
+    sys.exit(2)
+if data.get("status") == "failed":
+    sys.exit(2)
+blocking = [c for c in (data.get("comments") or [])
+            if str(c.get("severity", "")).lower() in ("critical", "high")]
+for c in blocking:
+    print(f"  [{c.get('severity')}] {c.get('path') or c.get('file', '?')}: {c.get('message') or c.get('content') or c.get('body', '')}")
+sys.exit(1 if blocking else 0)
+PY
+case $? in
+    0) echo "ocr review: no blocking findings." ;;
+    1)
+        echo
+        echo "Commit stopped: critical/high findings above. Fix them, or git commit --no-verify."
+        exit 1
+        ;;
+    *)
+        tail -5 "$errlog" | sed 's/^/    /'
+        skip "review failed (rc=$rc), see the error above"
+        ;;
+esac
