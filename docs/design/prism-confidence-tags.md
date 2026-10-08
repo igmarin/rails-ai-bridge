@@ -228,5 +228,5 @@ Created from the TDD plan once this doc is merged. One sub-issue per implementat
 2. `Config::StaticAnalysis` and its flat delegators (item 2). [#316](https://github.com/igmarin/rails-ai-bridge/issues/316)
 3. `StaticPrismScanner`, Prism-optional and error-safe (item 3). [#317](https://github.com/igmarin/rails-ai-bridge/issues/317)
 4. Provenance on the controller introspector (item 4). [#318](https://github.com/igmarin/rails-ai-bridge/issues/318)
-5. Tool rendering: controllers and views. Jobs were skipped because no tool renders job facts. [#319](https://github.com/igmarin/rails-ai-bridge/issues/319)
+5. Tool rendering: controllers, the controller section of full-detail `rails_get_context`, and views. Jobs were skipped because no tool renders job facts. [#319](https://github.com/igmarin/rails-ai-bridge/issues/319)
 6. Docs parity: README, GUIDE, CHANGELOG, ROADMAP (item 6). [#320](https://github.com/igmarin/rails-ai-bridge/issues/320)
