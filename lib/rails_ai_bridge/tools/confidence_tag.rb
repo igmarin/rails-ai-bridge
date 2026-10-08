@@ -29,6 +29,22 @@ module RailsAiBridge
       def tagged(text, source)
         "#{text} #{tag(source)}"
       end
+
+      # Summarizes how many facts came from each evidence source.
+      #
+      # @param counts [Hash{Symbol, String => Integer}] fact count per source, in display order
+      # @return [String, nil] e.g. +"Verification: [VERIFIED] reflection (3) · [INFERRED] regex (2)"+,
+      #   or +nil+ when no source has a positive count
+      def footer(counts)
+        parts = counts.filter_map do |source, count|
+          next unless count.to_i.positive?
+
+          "#{tag(source)} #{source} (#{count})"
+        end
+        return if parts.empty?
+
+        "Verification: #{parts.join(' · ')}"
+      end
     end
   end
 end
