@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed the unused `Services` layer (`AppIntrospectionService`, `ConfigurationService`,
   `ContextGenerationService`, `FileManagementService`). Nothing in the gem used them; they
   were only exercised by their own specs. `RailsAiBridge::Service` and `Service::Result` remain.
+- Removed the `rails_ai_bridge:check_zeitwerk` rake task (`lib/tasks/zeitwerk.rake`) and its
+  spec. It was not used by CI or docs. Zeitwerk autoloading is unchanged.
 
 ## [5.2.1] - 2026-09-23
 
