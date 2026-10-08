@@ -37,6 +37,10 @@ RSpec.describe RailsAiBridge::Introspectors::StaticPrismScanner do
           after_action :log_request
           helper_method :current_user
           def index; end
+
+          def show
+            before_action :not_a_filter
+          end
         end
       RUBY
     end
@@ -57,6 +61,29 @@ RSpec.describe RailsAiBridge::Introspectors::StaticPrismScanner do
       names = scanner.facts_for(controller_path)[:facts].pluck(:name)
 
       expect(names).not_to include('current_user')
+    end
+
+    it 'ignores filter macros inside method bodies' do
+      names = scanner.facts_for(controller_path)[:facts].pluck(:name)
+
+      expect(names).not_to include('not_a_filter')
+    end
+
+    it 'keeps filter macros registered in included blocks' do
+      concern_path = File.join(dir, 'auditable.rb')
+      File.write(concern_path, <<~RUBY)
+        module Auditable
+          extend ActiveSupport::Concern
+
+          included do
+            before_action :audit_request
+          end
+        end
+      RUBY
+
+      names = scanner.facts_for(concern_path)[:facts].pluck(:name)
+
+      expect(names).to include('audit_request')
     end
 
     it 'stops reading files once max_files have been scanned' do

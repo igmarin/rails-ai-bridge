@@ -60,11 +60,13 @@ module RailsAiBridge
         walk(result.value).select { |node| filter_macro?(node) }.flat_map { |node| filter_facts(node, path) }
       end
 
-      # Every node in the tree, depth-first, starting with +node+.
+      # Every node in the tree, depth-first, starting with +node+. Method bodies are
+      # skipped: a filter macro only registers when it runs in a class or included block.
       def walk(node)
         return [] unless node
 
-        [node, *node.compact_child_nodes.flat_map { |child| walk(child) }]
+        children = node.compact_child_nodes.grep_v(Prism::DefNode)
+        [node, *children.flat_map { |child| walk(child) }]
       end
 
       # :reek:UtilityFunction -- a pure predicate on the node; the macro list is a constant

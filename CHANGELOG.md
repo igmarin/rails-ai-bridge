@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RailsAiBridge::Tools::ConfidenceTag.footer` builds a one-line verification summary, such as
   `Verification: [VERIFIED] reflection (3) · [INFERRED] regex (2)`, from a per-source count hash.
   Sources with a zero count are left out, and the result is `nil` when none remain.
+- `RailsAiBridge::Introspectors::StaticPrismScanner` finds controller filter macros
+  (`before_action` and its variants) with the optional Prism parser and tags each fact
+  `provenance: :prism`. It returns an error hash, and never raises, when Prism is unavailable.
+  No tool output changes yet; the controller introspector wires it in a later step.
 
 ### Removed
 
