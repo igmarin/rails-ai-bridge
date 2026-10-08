@@ -190,9 +190,11 @@ RSpec.describe RailsAiBridge::Tools::GetContext do
           expect(standard).not_to include('Verification:')
           expect(summary).not_to include('Verification:')
           expect(standard).to include('`before_action` **set_user**')
-          expect(standard).not_to match(/`before_action` \*\*set_user\*\*[^\n]*\[(VERIFIED|INFERRED)\]/)
           expect(summary).to include('**UsersController**')
-          expect(summary).not_to match(/\*\*UsersController\*\*[^\n]*\[(VERIFIED|INFERRED)\]/)
+          standard_filter = standard.lines.find { |line| line.include?('**set_user**') }
+          summary_controller = summary.lines.find { |line| line.include?('**UsersController**') }
+          expect(standard_filter).not_to match(/\[(VERIFIED|INFERRED)\]/)
+          expect(summary_controller).not_to match(/\[(VERIFIED|INFERRED)\]/)
         end
       end
 

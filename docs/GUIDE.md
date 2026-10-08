@@ -888,7 +888,7 @@ sort then take), and `parallel_introspection` is **off**.
 
 ### Options reference
 
-The settings `confidence_tags_enabled`, `prism_enabled`, and `prism_max_files` work at the top level, such as `config.confidence_tags_enabled`, and on the sub-object, such as `config.static_analysis.confidence_tags_enabled`. Both paths write the same setting.
+The settings `confidence_tags_enabled`, `prism_enabled`, and `prism_max_files` work at the top level, such as `config.confidence_tags_enabled`, and on the sub-object, such as `config.static_analysis.confidence_tags_enabled`. Both paths write the same setting, so the last assignment wins.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|

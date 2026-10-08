@@ -138,7 +138,7 @@ directions; no file moves (no #250-style churn).
 
 - No new tool classes. `Server::TOOLS` unchanged; count parity specs unchanged. Existing tool output gains tags and footers instead.
 - `rails_get_schema`, `rails_get_model_details` keep current behavior (already tagged).
-- `rails_get_controllers` and `rails_get_view` gain footer/inline tags when
+- `rails_get_controllers`, `rails_get_view`, and the controller section of full-detail `rails_get_context` gain footer/inline tags when
   `confidence_tags_enabled`; all keep `detail:` (`summary`/`standard`/`full`), `format:`
   (`json`/`markdown`), and annotations `read_only_hint: true, destructive_hint: false,
   idempotent_hint: true, open_world_hint: false`.
