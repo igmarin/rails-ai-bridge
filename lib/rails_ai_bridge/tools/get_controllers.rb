@@ -115,7 +115,10 @@ module RailsAiBridge
             lines << "## #{name}"
             lines << "- Actions: #{info[:actions]&.join(', ')}" if info[:actions]&.any?
             lines << "- Filters: #{info[:filters].map { |f| format_listed_filter(f) }.join(', ')}" if info[:filters]&.any?
-            lines << @provenance.tag("- Strong params: #{info[:strong_params].join(', ')}", info[:strong_params_provenance]) if info[:strong_params]&.any?
+            if info[:strong_params]&.any?
+              strong_line = "- Strong params: #{info[:strong_params].join(', ')}"
+              lines << @provenance.tag(strong_line, info[:strong_params_provenance])
+            end
             lines << ''
           end
           lines.join("\n")
@@ -171,7 +174,8 @@ module RailsAiBridge
 
           if controller_info[:strong_params]&.any?
             lines << '' << '## Strong Params'
-            lines << controller_info[:strong_params].map { |p| @provenance.tag("- `#{p}`", controller_info[:strong_params_provenance]) }.join("\n")
+            provenance = controller_info[:strong_params_provenance]
+            lines << controller_info[:strong_params].map { |p| @provenance.tag("- `#{p}`", provenance) }.join("\n")
           end
 
           lines.join("\n")

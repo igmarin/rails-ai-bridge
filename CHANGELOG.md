@@ -33,7 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is on, which is the default. Filters come from Rails reflection and are `[VERIFIED]`. Strong
   params are regex-derived and are `[INFERRED]`. A verification footer summarizes both. Set
   `confidence_tags_enabled` to `false` for the previous output. Controller introspection facts gain
-  additive `provenance` keys.
+  additive `provenance` keys. Respond_to formats carry provenance in the payload only, because the
+  tool does not render them yet.
 - Refreshed the mutation testing lockfile (`Gemfile-mutation.lock`): `mcp` 1.6.0 → 1.7.0 and
   `railties` 8.1.3.1 → 8.1.4, with the matching Rails gems. Runtime dependency requirements
   are unchanged.
