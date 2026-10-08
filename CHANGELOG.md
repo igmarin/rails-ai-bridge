@@ -15,7 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RailsAiBridge::Introspectors::StaticPrismScanner` finds controller filter macros
   (`before_action` and its variants) with the optional Prism parser and tags each fact
   `provenance: :prism`. It returns an error hash, and never raises, when Prism is unavailable.
-  No tool output changes yet; the controller introspector wires it in a later step.
+  Nothing in the gem builds it yet, so no tool output uses it.
+- `Config::StaticAnalysis` adds `confidence_tags_enabled` (default `true`), `prism_enabled` (default `false`), and `prism_max_files` (default `500`). The Prism settings have no effect yet, because nothing runs the Prism pass.
 
 ### Removed
 

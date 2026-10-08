@@ -54,7 +54,7 @@ Epic [#259](https://github.com/igmarin/rails-ai-bridge/issues/259) — Growth & 
 
 | # | Epic | Description |
 |---|------|-------------|
-| #264 | Prism confidence tags | optional Prism static pass; `[VERIFIED]`/`[INFERRED]` tags per response section; design doc first |
+| #264 | Prism confidence tags | **Done.** `[VERIFIED]`/`[INFERRED]` tags on schema, model, controller, and full view output. The optional Prism static pass is not wired in yet. |
 | #265 | Dependency graph | introspector + `rails_get_dependency_graph` tool (woods-style edges); design doc first |
 | #266 | Multi-project | `switch_project`, version-manager-aware booting; config-server rework design doc first |
 

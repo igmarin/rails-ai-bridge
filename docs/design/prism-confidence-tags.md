@@ -223,9 +223,9 @@ Recorded 2026-10-08. These answer the three questions this section used to list.
 
 Created from the TDD plan once this doc is merged. One sub-issue per implementation step:
 
-1. `ConfidenceTag.footer` (TDD plan item 1).
-2. `Config::StaticAnalysis` and its flat delegators (item 2).
-3. `StaticPrismScanner`, Prism-optional and error-safe (item 3).
-4. Provenance on the controller introspector (item 4).
-5. Tool rendering: controllers, then jobs, then views (item 5).
-6. Docs parity: README, GUIDE, CHANGELOG, ROADMAP (item 6).
+1. `ConfidenceTag.footer` (TDD plan item 1). [#315](https://github.com/igmarin/rails-ai-bridge/issues/315)
+2. `Config::StaticAnalysis` and its flat delegators (item 2). [#316](https://github.com/igmarin/rails-ai-bridge/issues/316)
+3. `StaticPrismScanner`, Prism-optional and error-safe (item 3). [#317](https://github.com/igmarin/rails-ai-bridge/issues/317)
+4. Provenance on the controller introspector (item 4). [#318](https://github.com/igmarin/rails-ai-bridge/issues/318)
+5. Tool rendering: controllers and views. Jobs were skipped because no tool renders job facts (item 5). [#319](https://github.com/igmarin/rails-ai-bridge/issues/319)
+6. Docs parity: README, GUIDE, CHANGELOG, ROADMAP (item 6). [#320](https://github.com/igmarin/rails-ai-bridge/issues/320)

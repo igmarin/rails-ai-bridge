@@ -10,6 +10,7 @@ Commands, tools, config, and setup. For the short path, use the [README](../READ
 - [Context Modes](#context-modes)
 - [Generated Files](#generated-files)
 - [All Commands](#all-commands)
+- [Reading confidence tags](#reading-confidence-tags)
 - [MCP Tools — Full Reference](#mcp-tools--full-reference)
 - [MCP Resources](#mcp-resources)
 - [MCP Server Setup](#mcp-server-setup)
@@ -292,6 +293,27 @@ end
 ```
 
 ---
+
+## Reading confidence tags
+
+Some tools label each fact with the evidence behind it.
+
+| Tag | Meaning | Sources |
+|-----|---------|---------|
+| `[VERIFIED]` | Provable at runtime or from the AST | `reflection`, `rubydex`, `prism`, `live` |
+| `[INFERRED]` | Comes from a pattern or heuristic | `regex`, `heuristic`, and any source not listed above |
+| `[STATIC]` | Reserved for a future static tier. Not emitted in v6.0. | none |
+
+Tags appear in two forms:
+
+- **Inline tags** on a single line, such as ``- `name` [INFERRED]`` for a strong param found by regex.
+- **A footer** that counts facts by source, such as `Verification: [VERIFIED] reflection (3) · [INFERRED] regex (2)`. It appears in single-controller output and in full-detail output.
+
+The schema and model tools, the controller tool, and the full detail of `rails_get_view` tag facts. The matching sections of `rails_get_context` are tagged too. Other tools don't tag facts yet.
+
+To remove the controller and view tags, set `confidence_tags_enabled` to `false`. Schema and model tags stay on regardless, because they predate the setting.
+
+The Prism settings are reserved. `prism_enabled` and `prism_max_files` exist, but nothing in v6.0 runs the Prism static pass, so they change no output.
 
 ## MCP Tools — Full Reference
 
@@ -901,6 +923,9 @@ sort then take), and `parallel_introspection` is **off**.
 | `parallel_introspection` | Boolean | `false` | Run introspectors concurrently using a `Concurrent::FixedThreadPool`. Requires `concurrent-ruby` (already a Rails transitive dep). Automatically disabled when the ActiveRecord connection pool has only one slot. |
 | `parallel_pool_size` | Integer | `4` | Upper bound on pool threads. Actual size is `min(introspector_count, parallel_pool_size)` — no idle threads are created. Only relevant when `parallel_introspection` is `true`. |
 | `parallel_timeout_seconds` | Integer | `10` | Seconds each future may run before being cancelled. Timed-out introspectors return `{ error: "timed out after Ns" }`. Also used as the `wait_for_termination` grace period. Only relevant when `parallel_introspection` is `true`. |
+| `confidence_tags_enabled` | Boolean | `true` | Shows `[VERIFIED]` / `[INFERRED]` tags and footers on controller and `rails_get_view` full output. Schema and model tags are always on. |
+| `prism_enabled` | Boolean | `false` | Reserved. Nothing in v6.0 runs the Prism static pass, so this has no effect yet. |
+| `prism_max_files` | Integer | `500` | Reserved. Caps files parsed per Prism run once the pass is wired in. No effect yet. |
 
 ---
 
