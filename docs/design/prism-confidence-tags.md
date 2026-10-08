@@ -68,7 +68,8 @@ imports tools. `RubydexAdapter` use from introspectors is the existing pattern (
 
 **Which introspectors get tags first** (epic requirement): schema and models are done (#187). Order
 of the remaining rollout: controllers. Filters come from Rails reflection (`_process_action_callbacks`),
-so they are `[VERIFIED]`. Strong params and respond_to formats are regex-derived, so they are
+so they are `[VERIFIED]`, except filters whose `only:`/`except:` came from a string condition. Those
+are `[INFERRED]`. Strong params and respond_to formats are regex-derived, so they are
 `[INFERRED]`. The controllers tool does not render respond_to formats yet, so their provenance is in
 the payload only. Prism upgrades strong params to `[VERIFIED]` once the scanner reports their method
 definitions, a follow-up to the step-3 scanner, which currently reports filter macros only. Then

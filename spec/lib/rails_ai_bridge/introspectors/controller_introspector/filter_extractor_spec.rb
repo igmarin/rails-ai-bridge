@@ -65,7 +65,7 @@ RSpec.describe RailsAiBridge::Introspectors::ControllerIntrospector::FilterExtra
       expect(described_class.new(ctrl).call).to eq([{ name: 'keep', kind: 'before', provenance: :reflection }])
     end
 
-    it 'parses :only conditions from action_name equality checks' do
+    it 'marks :only conditions parsed from action_name strings as inferred' do
       ctrl = controller_with.call([
                                     callback.call(
                                       filter: :require_admin,
@@ -75,12 +75,12 @@ RSpec.describe RailsAiBridge::Introspectors::ControllerIntrospector::FilterExtra
                                   ])
 
       expect(described_class.new(ctrl).call).to eq([
-                                                     { name: 'require_admin', kind: 'before', provenance: :reflection,
+                                                     { name: 'require_admin', kind: 'before', provenance: :regex,
                                                        only: %w[edit update] }
                                                    ])
     end
 
-    it 'parses :except conditions from @unless' do
+    it 'marks :except conditions parsed from @unless strings as inferred' do
       ctrl = controller_with.call([
                                     callback.call(
                                       filter: :track,
@@ -90,7 +90,7 @@ RSpec.describe RailsAiBridge::Introspectors::ControllerIntrospector::FilterExtra
                                   ])
 
       expect(described_class.new(ctrl).call).to eq([
-                                                     { name: 'track', kind: 'before', provenance: :reflection,
+                                                     { name: 'track', kind: 'before', provenance: :regex,
                                                        except: %w[show] }
                                                    ])
     end
