@@ -17,7 +17,9 @@ group :development, :test do
   gem 'rubocop-rails', '~> 2.37'
   gem 'rubocop-rails-omakase', '~> 1.0'
   gem 'rubocop-rspec', '~> 3.10'
-  gem 'simplecov', '~> 1.2.0'
+  # simplecov 1.3+ requires Ruby >= 3.3; the gem still supports Ruby 3.2 (see gemspec).
+  simplecov_version = Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.3') ? '~> 1.3.2' : '~> 1.2.0'
+  gem 'simplecov', simplecov_version
   gem 'skunk', '~> 0.5'
   gem 'sqlite3', '~> 2.9', '>= 2.9.6'
 end
