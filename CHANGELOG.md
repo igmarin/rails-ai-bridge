@@ -15,8 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RailsAiBridge::Introspectors::StaticPrismScanner` finds controller filter macros
   (`before_action` and its variants) with the optional Prism parser and tags each fact
   `provenance: :prism`. It returns an error hash, and never raises, when Prism is unavailable.
-  The scanner is currently unused by tool output.
-- `Config::StaticAnalysis` adds `confidence_tags_enabled` (default `true`), `prism_enabled` (default `false`), and `prism_max_files` (default `500`). The Prism settings have no effect yet, because nothing runs the Prism pass.
+  The controller introspector uses it for strong params when `prism_enabled` is on.
+- `Config::StaticAnalysis` adds `confidence_tags_enabled` (default `true`), `prism_enabled` (default `false`), and `prism_max_files` (default `500`). `prism_enabled` turns on the Prism pass for controller strong params.
+- With `prism_enabled` on, strong params that Prism finds as methods in the controller source are tagged `[VERIFIED]` (source `prism`). Otherwise they stay `[INFERRED]`.
 
 ### Removed
 
@@ -33,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The controller tool (`rails_get_controllers`) shows confidence tags when `confidence_tags_enabled`
   is on, which is the default. Filters come from Rails reflection. The footer counts them as
   `[VERIFIED]`, except a filter whose `only:` or `except:` came from a string condition, which
-  counts as `[INFERRED]`. Filter lines get no per-line tag. Strong params are regex-derived, get an
+  counts as `[INFERRED]`. Filter lines get no per-line tag. Strong params are regex-derived unless Prism confirms them, so they get an
   `[INFERRED]` tag, and are counted as `[INFERRED]` in the footer. Set
   `confidence_tags_enabled` to `false` for the previous output. Controller introspection facts gain
   additive `provenance` keys. Respond_to formats carry provenance in the payload only, because the

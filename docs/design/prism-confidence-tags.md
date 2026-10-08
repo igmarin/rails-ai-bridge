@@ -72,7 +72,7 @@ so they are `[VERIFIED]`, except filters whose `only:`/`except:` came from a str
 are `[INFERRED]`. Strong params and respond_to formats are regex-derived, so they are
 `[INFERRED]`. The controllers tool does not render respond_to formats yet, so their provenance is in
 the payload only. Prism upgrades strong params to `[VERIFIED]` once the scanner reports their method
-definitions, a follow-up to the step-3 scanner, which currently reports filter macros only. Then
+definitions with `prism_enabled` on (#326). Then
 jobs (sidekiq/activejob class-level config), then views. Routes are runtime-extracted and stay
 implicitly `[VERIFIED]`.
 
@@ -228,5 +228,6 @@ Created from the TDD plan once this doc is merged. One sub-issue per implementat
 2. `Config::StaticAnalysis` and its flat delegators (item 2). [#316](https://github.com/igmarin/rails-ai-bridge/issues/316)
 3. `StaticPrismScanner`, Prism-optional and error-safe (item 3). [#317](https://github.com/igmarin/rails-ai-bridge/issues/317)
 4. Provenance on the controller introspector (item 4). [#318](https://github.com/igmarin/rails-ai-bridge/issues/318)
+4b. Prism upgrade of strong params via method definitions, opt-in through `prism_enabled`. [#326](https://github.com/igmarin/rails-ai-bridge/issues/326)
 5. Tool rendering: controllers, the controller section of full-detail `rails_get_context`, and views. Jobs were skipped because no tool renders job facts. [#319](https://github.com/igmarin/rails-ai-bridge/issues/319)
 6. Docs parity: README, GUIDE, CHANGELOG, ROADMAP (item 6). [#320](https://github.com/igmarin/rails-ai-bridge/issues/320)

@@ -300,7 +300,7 @@ Some tools label each fact with the evidence behind it.
 
 | Tag | Meaning | Sources |
 |-----|---------|---------|
-| `[VERIFIED]` | Provable at runtime or from the AST | `reflection`, `live`. `rubydex` and `prism` are recognized by the tag layer, but no v6.0 tool output uses them. |
+| `[VERIFIED]` | Provable at runtime or from the AST | `reflection`, `prism` (controller strong params, with `prism_enabled`), `live`. `rubydex` is recognized by the tag layer, but no tool emits it. |
 | `[INFERRED]` | Comes from a pattern or heuristic | `regex`, `heuristic`, schema file parses (the internal `static` source, not the `[STATIC]` tag), and any other source |
 | `[STATIC]` | Reserved for a future static tier. Not emitted in v6.0. | none |
 
@@ -313,7 +313,7 @@ Tagged output: single-controller output at any `detail` level, full-detail `rail
 
 To remove the controller and view tags, set `config.confidence_tags_enabled = false` in the `RailsAiBridge.configure` block. Schema and model tags stay on regardless, because they predate the setting.
 
-The Prism settings are reserved. `prism_enabled` and `prism_max_files` exist, but nothing in v6.0 runs the Prism static pass, so they change no output.
+`prism_enabled` turns on the Prism pass. It confirms controller strong params that Prism finds as methods in the controller source, and those render as `[VERIFIED]`. `prism_max_files` caps how many files the pass reads per run. Without Prism available, strong params stay `[INFERRED]`.
 
 ## MCP Tools — Full Reference
 
@@ -927,8 +927,8 @@ The settings `confidence_tags_enabled`, `prism_enabled`, and `prism_max_files` w
 | `parallel_timeout_seconds` | Integer | `10` | Seconds each future may run before being cancelled. Timed-out introspectors return `{ error: "timed out after Ns" }`. Also used as the `wait_for_termination` grace period. Only relevant when `parallel_introspection` is `true`. |
 | `static_analysis` | `RailsAiBridge::Config::StaticAnalysis` | built in | Sub-object for the confidence and Prism settings below, such as `config.static_analysis.confidence_tags_enabled` |
 | `confidence_tags_enabled` | Boolean | `true` | Adds tags and footers to single-controller output at any `detail` level, to full-detail `rails_get_controllers` output, to the controller section of full-detail `rails_get_context` output, and to full-detail `rails_get_view` output. Summary and standard list output (no `controller:` argument) has no tags or footers. Schema and model tags are always on. |
-| `prism_enabled` | Boolean | `false` | Reserved. Nothing in v6.0 runs the Prism static pass, so this has no effect yet. |
-| `prism_max_files` | Integer | `500` | Reserved. Caps files parsed per Prism run once the pass is wired in. No effect yet. |
+| `prism_enabled` | Boolean | `false` | Turns on the Prism pass. Strong params that Prism finds as methods in the controller source render as `[VERIFIED]`. Needs Prism, a default gem on Ruby 3.3+. |
+| `prism_max_files` | Integer | `500` | Caps the files the Prism pass reads per introspection run. |
 
 ---
 

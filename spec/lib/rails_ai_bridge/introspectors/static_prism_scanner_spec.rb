@@ -93,6 +93,34 @@ RSpec.describe RailsAiBridge::Introspectors::StaticPrismScanner do
       expect(capped.facts_for(controller_path)[:error]).to include('prism_max_files')
     end
 
+    it 'reports instance method definitions as prism-provenance facts' do
+      facts = scanner.facts_for(controller_path)[:facts]
+
+      expect(facts).to include(
+        hash_including(kind: :def, name: 'index', provenance: :prism, line: 5),
+        hash_including(kind: :def, name: 'show', provenance: :prism, line: 7)
+      )
+    end
+
+    it 'skips singleton methods and methods defined inside method bodies' do
+      nested_path = File.join(dir, 'nested_defs_controller.rb')
+      File.write(nested_path, <<~RUBY)
+        class NestedDefsController < ApplicationController
+          def self.helper_params; end
+
+          def index
+            def inner_params; end
+          end
+        end
+      RUBY
+
+      names = scanner.facts_for(nested_path)[:facts].pluck(:name)
+
+      expect(names).to include('index')
+      expect(names).not_to include('helper_params')
+      expect(names).not_to include('inner_params')
+    end
+
     it 'returns an error hash for a missing file instead of raising' do
       expect(scanner.facts_for(File.join(dir, 'missing.rb'))).to have_key(:error)
     end

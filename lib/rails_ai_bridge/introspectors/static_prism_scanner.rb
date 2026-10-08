@@ -2,7 +2,8 @@
 
 module RailsAiBridge
   module Introspectors
-    # Optional Prism AST pass that finds controller filter macros in source files.
+    # Optional Prism AST pass that finds controller filter macros and instance method
+    # definitions in source files.
     #
     # Facts found this way carry +provenance: :prism+, so the tools layer can
     # render them as +[VERIFIED]+. Prism is not a gem dependency. When it cannot
@@ -57,16 +58,37 @@ module RailsAiBridge
         result = Prism.parse(File.read(path))
         raise ArgumentError, 'file has syntax errors' unless result.success?
 
-        walk(result.value).select { |node| filter_macro?(node) }.flat_map { |node| filter_facts(node, path) }
+        walk(result.value).flat_map { |node| node_facts(node) }.map { |fact| fact.merge(file: path) }
       end
 
-      # Every node in the tree, depth-first, starting with +node+. Method bodies are
-      # skipped: a filter macro only registers when it runs in a class or included block.
+      # Every node in the tree, depth-first, starting with +node+. A method definition is a
+      # leaf: its body is not walked, because a filter macro only registers when it runs in a
+      # class or included block, never inside a method body.
+      # :reek:FeatureEnvy -- walks the tree from the node it is given
       def walk(node)
         return [] unless node
+        return [node] if node.is_a?(Prism::DefNode)
 
-        children = node.compact_child_nodes.grep_v(Prism::DefNode)
-        [node, *children.flat_map { |child| walk(child) }]
+        [node, *node.compact_child_nodes.flat_map { |child| walk(child) }]
+      end
+
+      def node_facts(node)
+        if node.is_a?(Prism::DefNode)
+          def_facts(node)
+        elsif filter_macro?(node)
+          filter_facts(node)
+        else
+          []
+        end
+      end
+
+      # Instance methods only: a singleton method such as +def self.helper+ is not a strong-params candidate.
+      # :reek:FeatureEnvy -- builds the fact from the method node it is given
+      # :reek:UtilityFunction -- a pure builder with no instance state
+      def def_facts(node)
+        return [] if node.receiver
+
+        [{ kind: :def, name: node.name.to_s, line: node.location.start_line, provenance: :prism }]
       end
 
       # :reek:UtilityFunction -- a pure predicate on the node; the macro list is a constant
@@ -75,12 +97,11 @@ module RailsAiBridge
       end
 
       # :reek:FeatureEnvy -- builds facts from the macro node it is given
-      def filter_facts(node, path)
+      def filter_facts(node)
         Array(node.arguments&.arguments).grep(Prism::SymbolNode).map do |symbol|
           {
             kind: node.name,
             name: symbol.unescaped,
-            file: path,
             line: node.location.start_line,
             provenance: :prism
           }

@@ -101,6 +101,16 @@ RSpec.describe RailsAiBridge::Tools::GetControllers do
       expect(text).not_to include('Verification:')
     end
 
+    it 'renders prism-confirmed strong params as verified, with a prism footer' do
+      allow(described_class).to receive(:cached_section).with(:controllers).and_return(
+        { controllers: { 'ReportsController' => { strong_params: %w[report_params], strong_params_provenance: :prism } } }
+      )
+
+      text = described_class.call(controller: 'ReportsController').content.first[:text]
+
+      expect(text).to include('- `report_params` [VERIFIED]', 'Verification: [VERIFIED] prism (1)')
+    end
+
     it 'renders no tags when confidence tags are disabled' do
       RailsAiBridge.configuration.confidence_tags_enabled = false
       text = described_class.call(controller: 'UsersController').content.first[:text]
