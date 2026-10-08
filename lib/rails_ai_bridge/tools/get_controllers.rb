@@ -42,10 +42,16 @@ module RailsAiBridge
       # @private
       # Formats +:controllers+ introspection for {GetControllers}.
       class ResponseFormatter
+        # Provenance missing from a payload falls back to the origin of its field: filters come from
+        # Rails reflection, strong params come from source regexes.
+        FILTER_FALLBACK = :reflection
+        STRONG_PARAMS_FALLBACK = :regex
+
         def initialize(controllers, controller:, detail:)
           @controllers = controllers
           @controller = controller
           @detail = detail
+          @provenance = ProvenanceLines.new(RailsAiBridge.configuration.confidence_tags_enabled)
         end
 
         def controller_not_found?
@@ -112,9 +118,14 @@ module RailsAiBridge
           @controllers.keys.sort.each do |name|
             info = @controllers[name]
             lines << "## #{name}"
+            footer = footer_for(info)
+            lines << '' << footer if footer
             lines << "- Actions: #{info[:actions]&.join(', ')}" if info[:actions]&.any?
             lines << "- Filters: #{info[:filters].map { |f| format_listed_filter(f) }.join(', ')}" if info[:filters]&.any?
-            lines << "- Strong params: #{info[:strong_params].join(', ')}" if info[:strong_params]&.any?
+            if info[:strong_params]&.any?
+              strong_line = "- Strong params: #{info[:strong_params].join(', ')}"
+              lines << @provenance.tag(strong_line, info[:strong_params_provenance] || STRONG_PARAMS_FALLBACK)
+            end
             lines << ''
           end
           lines.join("\n")
@@ -142,10 +153,21 @@ module RailsAiBridge
           "#{label} (#{filter[:source]})"
         end
 
+        # Summary line counting the filters and strong params this controller renders by provenance.
+        # @param info [Hash] one controller's introspection payload
+        # @return [String, nil] the footer, or +nil+ when tags are disabled or nothing is counted
+        def footer_for(info)
+          provenances = Array(info[:filters]).pluck(:provenance).map { |source| source || FILTER_FALLBACK }
+          provenances += [info[:strong_params_provenance] || STRONG_PARAMS_FALLBACK] * Array(info[:strong_params]).size
+          @provenance.footer(provenances)
+        end
+
         def format_single_controller
           lines = ["# #{controller_key}", '']
           lines << "**Parent:** `#{controller_info[:parent_class]}`" if controller_info[:parent_class]
           lines << '**API controller:** yes' if controller_info[:api_controller]
+          footer = footer_for(controller_info)
+          lines << '' << footer if footer
 
           if controller_info[:actions]&.any?
             lines << '' << '## Actions'
@@ -161,7 +183,8 @@ module RailsAiBridge
 
           if controller_info[:strong_params]&.any?
             lines << '' << '## Strong Params'
-            lines << controller_info[:strong_params].map { |p| "- `#{p}`" }.join("\n")
+            provenance = controller_info[:strong_params_provenance] || STRONG_PARAMS_FALLBACK
+            lines << controller_info[:strong_params].map { |p| @provenance.tag("- `#{p}`", provenance) }.join("\n")
           end
 
           lines.join("\n")

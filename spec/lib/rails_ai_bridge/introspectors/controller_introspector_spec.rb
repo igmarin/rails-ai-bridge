@@ -95,6 +95,20 @@ RSpec.describe RailsAiBridge::Introspectors::ControllerIntrospector do
       expect(formats).to contain_exactly('html', 'json')
     end
 
+    it 'tags every filter with reflection provenance' do
+      filters = result[:controllers]['PostsController'][:filters]
+
+      expect(filters).not_to be_empty
+      expect(filters).to all(include(provenance: :reflection))
+    end
+
+    it 'marks regex-derived strong params and respond_to formats with regex provenance' do
+      posts = result[:controllers]['PostsController']
+
+      expect(posts[:strong_params_provenance]).to eq(:regex)
+      expect(posts[:respond_to_formats_provenance]).to eq(:regex)
+    end
+
     it 'detects API controllers' do
       expect(result[:controllers]).to have_key('Api::V1::BaseController')
       api = result[:controllers]['Api::V1::BaseController']
@@ -225,6 +239,15 @@ RSpec.describe RailsAiBridge::Introspectors::ControllerIntrospector do
   end
 
   describe 'private methods' do
+    describe '#extract_controller_details' do
+      it 'omits the provenance keys when a controller has no strong params or respond_to formats' do
+        allow(introspector).to receive(:read_source).and_return('')
+        details = introspector.send(:extract_controller_details, Class.new(ApplicationController))
+
+        expect(details).not_to include(:strong_params_provenance, :respond_to_formats_provenance)
+      end
+    end
+
     describe '#extract_strong_params' do
       it 'returns empty array for nil source' do
         expect(introspector.send(:extract_strong_params, nil)).to eq([])

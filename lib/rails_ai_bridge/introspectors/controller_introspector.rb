@@ -61,6 +61,8 @@ module RailsAiBridge
 
       def extract_controller_details(ctrl)
         source = read_source(ctrl)
+        strong_params = extract_strong_params(source)
+        respond_to_formats = extract_respond_to(source)
 
         {
           parent_class: ctrl.superclass.name,
@@ -68,8 +70,10 @@ module RailsAiBridge
           actions: extract_actions(ctrl),
           filters: FilterExtractor.new(ctrl).call,
           concerns: extract_concerns(ctrl),
-          strong_params: extract_strong_params(source),
-          respond_to_formats: extract_respond_to(source)
+          strong_params: strong_params,
+          strong_params_provenance: (:regex if strong_params.any?),
+          respond_to_formats: respond_to_formats,
+          respond_to_formats_provenance: (:regex if respond_to_formats.any?)
         }.compact
       end
 

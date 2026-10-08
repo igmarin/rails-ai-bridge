@@ -28,7 +28,7 @@ module RailsAiBridge
         private
 
         def build_filter(callback)
-          filter = { name: callback.filter.to_s, kind: callback.kind.to_s }
+          filter = { name: callback.filter.to_s, kind: callback.kind.to_s, provenance: :reflection }
           source = source_class_name(callback)
           filter[:source] = source if source
           append_conditions(filter, callback)
@@ -148,6 +148,13 @@ module RailsAiBridge
           except = extract_action_conditions(callback.instance_variable_get(:@unless))
           filter[:only] = only if only.any?
           filter[:except] = except if except.any?
+          filter[:provenance] = :regex if inferred_conditions?(callback)
+        end
+
+        # ActionFilter conditions are reflected. Actions parsed from a string condition's source text are inferred.
+        def inferred_conditions?(callback)
+          conditions = [callback.instance_variable_get(:@if), callback.instance_variable_get(:@unless)].flatten.compact
+          conditions.any? { |condition| !action_filter_actions(condition) && parse_action_condition(condition) }
         end
 
         def extract_action_conditions(conditions)
