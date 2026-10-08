@@ -301,13 +301,13 @@ Some tools label each fact with the evidence behind it.
 | Tag | Meaning | Sources |
 |-----|---------|---------|
 | `[VERIFIED]` | Provable at runtime or from the AST | `reflection`, `live`. `rubydex` and `prism` are recognized, but no tool emits them in v6.0. |
-| `[INFERRED]` | Comes from a pattern or heuristic | `regex`, `heuristic`, `static` (schema file parses), and any other source |
+| `[INFERRED]` | Comes from a pattern or heuristic | `regex`, `heuristic`, schema file parses (the `static` source), and any other source |
 | `[STATIC]` | Reserved for a future static tier. Not emitted in v6.0. | none |
 
 Tags appear in two forms:
 
 - **Inline tags** on a single line, such as ``- `name` [INFERRED]`` for a strong param found by regex.
-- **A footer** that counts facts by source, such as `Verification: [VERIFIED] reflection (3) · [INFERRED] regex (2)`. Single-controller output (a request for one controller) gets one under the controller heading, including the controller section of `rails_get_context`. Full-detail output gets one per controller in `rails_get_controllers`, and one at the end of `rails_get_view`. Summary and standard lists have no footer.
+- **A footer** that counts facts by source, such as `Verification: [VERIFIED] reflection (3) · [INFERRED] regex (2)`. Single-controller output (a request for one controller) gets one under the controller heading at every `detail` level, including the controller section of `rails_get_context`. Full-detail output gets one per controller in `rails_get_controllers`, and one at the end of `rails_get_view`. Summary and standard lists have no footer.
 
 The schema and model tools, the controller tool, and the full-detail output of `rails_get_view` tags facts. The matching sections of `rails_get_context` are tagged too. Other tools don't tag facts yet.
 
@@ -888,7 +888,7 @@ sort then take), and `parallel_introspection` is **off**.
 
 ### Options reference
 
-All three confidence settings work at the top level, such as `config.confidence_tags_enabled`, and on the sub-object, such as `config.static_analysis.confidence_tags_enabled`. Both paths write the same setting.
+All three static-analysis settings work at the top level, such as `config.confidence_tags_enabled`, and on the sub-object, such as `config.static_analysis.confidence_tags_enabled`. Both paths write the same setting.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -925,7 +925,8 @@ All three confidence settings work at the top level, such as `config.confidence_
 | `parallel_introspection` | Boolean | `false` | Run introspectors concurrently using a `Concurrent::FixedThreadPool`. Requires `concurrent-ruby` (already a Rails transitive dep). Automatically disabled when the ActiveRecord connection pool has only one slot. |
 | `parallel_pool_size` | Integer | `4` | Upper bound on pool threads. Actual size is `min(introspector_count, parallel_pool_size)` — no idle threads are created. Only relevant when `parallel_introspection` is `true`. |
 | `parallel_timeout_seconds` | Integer | `10` | Seconds each future may run before being cancelled. Timed-out introspectors return `{ error: "timed out after Ns" }`. Also used as the `wait_for_termination` grace period. Only relevant when `parallel_introspection` is `true`. |
-| `confidence_tags_enabled` | Boolean | `true` | Adds tags and footers to single-controller and full-detail `rails_get_controllers` output, to the controller section of `rails_get_context`, and to full-detail `rails_get_view` output. Summary and standard lists have no footer. Schema and model tags are always on. |
+| `static_analysis` | Object | `Config::StaticAnalysis` | Sub-object for the confidence and Prism settings below, such as `config.static_analysis.confidence_tags_enabled` |
+| `confidence_tags_enabled` | Boolean | `true` | Adds tags and footers to single-controller output at any `detail` level, to full-detail `rails_get_controllers` output, to the controller section of `rails_get_context`, and to full-detail `rails_get_view` output. Summary and standard lists have no tags or footers. Schema and model tags are always on. |
 | `prism_enabled` | Boolean | `false` | Reserved. Nothing in v6.0 runs the Prism static pass, so this has no effect yet. |
 | `prism_max_files` | Integer | `500` | Reserved. Caps files parsed per Prism run once the pass is wired in. No effect yet. |
 

@@ -73,6 +73,14 @@ RSpec.describe RailsAiBridge::Tools::GetControllers do
       expect(text).to include('- `name` [INFERRED]', '- `email` [INFERRED]')
     end
 
+    it 'renders the footer for a single controller at every detail level' do
+      %w[summary standard full].each do |detail|
+        text = described_class.call(controller: 'UsersController', detail: detail).content.first[:text]
+
+        expect(text).to include('Verification: [VERIFIED] reflection (1) · [INFERRED] regex (2)')
+      end
+    end
+
     it 'renders no footer for a controller with no filters or strong params' do
       allow(described_class).to receive(:cached_section).with(:controllers).and_return(
         { controllers: { 'PingController' => { actions: %w[show] } } }

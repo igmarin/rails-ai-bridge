@@ -58,7 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `config.mcp.rate_limiter_key_prefix` now applies to `Mcp::CacheRateLimiter` when `key_prefix:`
   is omitted. The option was previously set but never read. An explicit `key_prefix:` still wins.
-- The README and GUIDE no longer say `rails_get_model_details` verifies facts with `rubydex`. Association facts are verified by reflection, and no tool emits `rubydex` yet. No tool output changed.
+- The README and GUIDE no longer say `rails_get_model_details` verifies facts with `rubydex`. Association facts are verified by reflection, and no tool emits `rubydex` yet. No `rails_get_model_details` output changed.
 
 ## [5.2.1] - 2026-09-23
 
