@@ -266,7 +266,7 @@ RSpec.describe RailsAiBridge::RubydexAdapter::IncrementalIndexer do
       result = described_class.call(:invalid, root: root)
 
       expect(result).to be_failure
-      expect(result.errors).to include('Unsupported operation: invalid')
+      expect(result.errors).to eq(['Unsupported operation: invalid'])
     end
   end
 
@@ -278,6 +278,27 @@ RSpec.describe RailsAiBridge::RubydexAdapter::IncrementalIndexer do
 
       expect(result).to be_failure
       expect(result.errors.first).to include('boom')
+    end
+
+    it 'maps a ServiceErrors error to a failure result with its raw message' do
+      allow(RailsAiBridge::RubydexAdapter::Indexer).to receive(:build_index)
+        .and_raise(RailsAiBridge::ServiceErrors::ValidationError, 'bad input')
+
+      result = described_class.call(:build, root: root)
+
+      expect(result).to be_failure
+      expect(result.errors).to eq(['bad input'])
+    end
+
+    it 'skips the generic logging path for ServiceErrors::BaseError' do
+      logger = instance_double(Logger, debug: nil, error: nil)
+      allow(Rails).to receive(:logger).and_return(logger)
+      allow(RailsAiBridge::RubydexAdapter::Indexer).to receive(:build_index)
+        .and_raise(RailsAiBridge::ServiceErrors::ValidationError, 'bad input')
+
+      described_class.call(:build, root: root)
+
+      expect(logger).not_to have_received(:error)
     end
   end
 
