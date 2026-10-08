@@ -238,6 +238,122 @@ RSpec.describe RailsAiBridge::Introspectors::ControllerIntrospector do
     end
   end
 
+  describe 'strong params provenance with Prism' do
+    around do |example|
+      original = RailsAiBridge.configuration.prism_enabled
+      RailsAiBridge.configuration.prism_enabled = true
+      begin
+        example.run
+      ensure
+        RailsAiBridge.configuration.prism_enabled = original
+      end
+    end
+
+    let(:tmp_dir) { Dir.mktmpdir('controller-prism') }
+    let(:ctrl) { stub_const('ReportsController', Class.new(ApplicationController)) }
+    let(:clean_source) do
+      <<~RUBY
+        class ReportsController < ApplicationController
+          def index; end
+
+          private
+
+          def report_params
+            params.require(:report).permit(:name)
+          end
+        end
+      RUBY
+    end
+
+    before do
+      require 'prism'
+    rescue LoadError
+      skip 'prism is not available on this Ruby'
+    end
+
+    after { FileUtils.rm_rf(tmp_dir) }
+
+    # Points the introspector at a controller source file written for this example.
+    def stub_source(content)
+      path = File.join(tmp_dir, 'reports_controller.rb')
+      File.write(path, content)
+      allow(introspector).to receive(:source_path).and_return(path)
+    end
+
+    it 'upgrades strong params to prism provenance when Prism finds every method as a def' do
+      stub_source(clean_source)
+
+      details = introspector.send(:extract_controller_details, ctrl)
+
+      expect(details[:strong_params]).to eq(['report_params'])
+      expect(details[:strong_params_provenance]).to eq(:prism)
+    end
+
+    it 'keeps regex provenance when a regex-found name is not a def, such as one in a comment' do
+      stub_source(<<~RUBY)
+        class ReportsController < ApplicationController
+          # def legacy_params; end
+          def report_params; end
+        end
+      RUBY
+
+      details = introspector.send(:extract_controller_details, ctrl)
+
+      expect(details[:strong_params]).to include('legacy_params')
+      expect(details[:strong_params_provenance]).to eq(:regex)
+    end
+
+    it 'keeps regex provenance when Prism cannot be loaded' do
+      allow(RailsAiBridge::Introspectors::StaticPrismScanner).to receive(:new).and_wrap_original do |original, **options|
+        original.call(**options, loader: -> { raise LoadError, 'cannot load such file -- prism' })
+      end
+      stub_source(clean_source)
+
+      details = introspector.send(:extract_controller_details, ctrl)
+
+      expect(details[:strong_params_provenance]).to eq(:regex)
+    end
+
+    it 'keeps regex provenance when the method is defined in a nested class' do
+      stub_source(<<~RUBY)
+        class ReportsController < ApplicationController
+          class Helper
+            def report_params; end
+          end
+        end
+      RUBY
+
+      details = introspector.send(:extract_controller_details, ctrl)
+
+      expect(details[:strong_params]).to eq(['report_params'])
+      expect(details[:strong_params_provenance]).to eq(:regex)
+    end
+
+    it 'keeps regex provenance when the method is defined in class << self' do
+      stub_source(<<~RUBY)
+        class ReportsController < ApplicationController
+          class << self
+            def report_params; end
+          end
+        end
+      RUBY
+
+      details = introspector.send(:extract_controller_details, ctrl)
+
+      expect(details[:strong_params]).to eq(['report_params'])
+      expect(details[:strong_params_provenance]).to eq(:regex)
+    end
+
+    it 'keeps regex provenance when prism_enabled is off' do
+      RailsAiBridge.configuration.prism_enabled = false
+      stub_source(clean_source)
+
+      details = introspector.send(:extract_controller_details, ctrl)
+
+      expect(details[:strong_params_provenance]).to eq(:regex)
+    end
+  end
+
   describe 'private methods' do
     describe '#extract_controller_details' do
       it 'omits the provenance keys when a controller has no strong params or respond_to formats' do

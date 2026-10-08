@@ -71,7 +71,7 @@ module RailsAiBridge
           filters: FilterExtractor.new(ctrl).call,
           concerns: extract_concerns(ctrl),
           strong_params: strong_params,
-          strong_params_provenance: (:regex if strong_params.any?),
+          strong_params_provenance: strong_params_provenance(ctrl, strong_params),
           respond_to_formats: respond_to_formats,
           respond_to_formats_provenance: (:regex if respond_to_formats.any?)
         }.compact
@@ -112,6 +112,26 @@ module RailsAiBridge
         return [] unless source.match?(/respond_to\s+do/)
 
         source.scan(/format\.(\w+)/).flatten.uniq.sort
+      end
+
+      # @return [Symbol, nil] +:prism+ when Prism confirms every strong-params method, +:regex+
+      #   when it does not, and nil when the controller has no strong-params methods
+      def strong_params_provenance(ctrl, strong_params)
+        return if strong_params.empty?
+
+        scanner = prism_scanner
+        return :regex unless scanner
+
+        StrongParamsProvenance.new(scanner, source_path(ctrl), ctrl.name).call(strong_params)
+      end
+
+      # One scanner per run, so +prism_max_files+ caps every controller scanned in that run.
+      #
+      # @return [StaticPrismScanner, nil] nil unless +prism_enabled+ is on
+      def prism_scanner
+        return unless config.prism_enabled
+
+        @prism_scanner ||= StaticPrismScanner.new(max_files: config.prism_max_files)
       end
 
       def read_source(ctrl)

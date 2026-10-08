@@ -610,8 +610,8 @@ The confidence and Prism settings also work on the `static_analysis` sub-object.
 | `parallel_timeout_seconds` | `10` | Per-introspector future timeout (seconds); timed-out introspectors return `{ error: "timed out after Ns" }` without blocking the others |
 | `static_analysis` | built in | Sub-object (`RailsAiBridge::Config::StaticAnalysis`) for the confidence and Prism settings below, such as `config.static_analysis.confidence_tags_enabled` |
 | `confidence_tags_enabled` | `true` | Adds tags and footers to single-controller output at any `detail` level, to full-detail `rails_get_controllers` output, to the controller section of full-detail `rails_get_context` output, and to full-detail `rails_get_view` output. Summary and standard list output (no `controller:` argument) has no tags or footers. Schema and model tags are always on. |
-| `prism_enabled` | `false` | Reserved. Nothing runs the Prism static pass yet, so this has no effect. |
-| `prism_max_files` | `500` | Reserved. Caps files parsed per Prism run once the pass is wired in. No effect yet. |
+| `prism_enabled` | `false` | Turns on the Prism pass. Strong params that Prism finds as methods in the controller source render as `[VERIFIED]`. Needs Prism, a default gem on Ruby 3.3+. |
+| `prism_max_files` | `500` | Caps the files the Prism pass reads per introspection run. |
 | `registry.registry_manifest_path` | `"config/rails_ai_bridge/registry.json"` | Path to the registry manifest JSON file for skill pack resolution |
 | `registry.skill_cache_dir` | `"~/.rails-ai-bridge/cache"` | Directory for caching git repositories containing skill packs |
 | `registry.skill_packs` | `nil` | Explicit pack names to load, or `nil` for auto-detection based on framework |

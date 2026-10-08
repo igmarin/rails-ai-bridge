@@ -54,7 +54,7 @@ Epic [#259](https://github.com/igmarin/rails-ai-bridge/issues/259) — Growth & 
 
 | # | Epic | Description |
 |---|------|-------------|
-| #264 | Prism confidence tags | **Done for the tag layer** (schema, model, controller, and full-view output, including the controller section of `rails_get_context`). Not yet: the Prism pass (not wired), `rails_get_test_info` (deferred), and the strong-params upgrade in #326. |
+| #264 | Prism confidence tags | **Done** for the tag layer (schema, model, controller, and full-view output, including the controller section of `rails_get_context`) and the opt-in Prism upgrade of strong params (#326). `rails_get_test_info` is deferred. |
 | #265 | Dependency graph | introspector + `rails_get_dependency_graph` tool (woods-style edges); design doc first |
 | #266 | Multi-project | `switch_project`, version-manager-aware booting; config-server rework design doc first |
 
