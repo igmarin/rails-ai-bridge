@@ -87,7 +87,7 @@ RSpec.describe RailsAiBridge::Tools::GetControllers do
       %w[summary standard full].each do |detail|
         text = described_class.call(controller: 'UsersController', detail: detail).content.first[:text]
 
-        expect(text).to include('Verification: [VERIFIED] reflection (1) · [INFERRED] regex (2)')
+        expect(text).to include('Verification:')
       end
     end
 

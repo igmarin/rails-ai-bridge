@@ -320,7 +320,7 @@ The gem exposes **22 built-in tool classes** via MCP — 20 registered by defaul
 
 All tools are **read-only** — they never modify your application or database.
 
-**Confidence tags legend.** Some tools label each fact with its evidence. `[VERIFIED]` means the fact is provable at runtime or from the AST. `[INFERRED]` means it comes from a pattern or heuristic. `[STATIC]` is reserved and never emitted. `rails_get_schema` and `rails_get_model_details` tag facts, as do `rails_get_controllers` and the full-detail output of `rails_get_view`. The matching sections of `rails_get_context` are tagged too. Set `config.confidence_tags_enabled = false` in the `RailsAiBridge.configure` block to remove the controller and view tags; schema and model tags stay on. The guide's [Reading confidence tags](docs/GUIDE.md#reading-confidence-tags) section explains the footer and the settings.
+**Confidence tags legend.** Some tools label each fact with its evidence. `[VERIFIED]` means the fact is provable at runtime or from the AST. `[INFERRED]` means it comes from a pattern or heuristic. `[STATIC]` is reserved and never emitted. `rails_get_schema` and `rails_get_model_details` tag facts, as do single-controller `rails_get_controllers` output at any detail level, full-detail `rails_get_controllers` lists, and full-detail `rails_get_view` output. The matching sections of `rails_get_context` are tagged too. Set `config.confidence_tags_enabled = false` in the `RailsAiBridge.configure` block to remove the controller and view tags; schema and model tags stay on. The guide's [Reading confidence tags](docs/GUIDE.md#reading-confidence-tags) section explains the footer and the settings.
 
 ### Smart Detail Levels
 
@@ -570,7 +570,7 @@ end
 <details>
 <summary><strong>All configuration options</strong></summary>
 
-The settings `confidence_tags_enabled`, `prism_enabled`, and `prism_max_files` work at the top level, such as `config.confidence_tags_enabled`, and on the sub-object, such as `config.static_analysis.confidence_tags_enabled`. Both paths write the same setting.
+The confidence and Prism settings also work on the `static_analysis` sub-object. See the [options reference in the guide](docs/GUIDE.md#options-reference) for both paths.
 
 | Option | Default | Description |
 |--------|---------|-------------|

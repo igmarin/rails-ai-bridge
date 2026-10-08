@@ -182,9 +182,11 @@ RSpec.describe RailsAiBridge::Tools::GetContext do
 
       it 'adds a controller footer at full detail only' do
         full = described_class.call(model: 'User', detail: 'full').content.first[:text]
+        standard = described_class.call(model: 'User', detail: 'standard').content.first[:text]
         summary = described_class.call(model: 'User', detail: 'summary').content.first[:text]
 
-        expect(full).to include('Verification:')
+        expect(full).to include('Verification:', '`user_params` [INFERRED]')
+        expect(standard).not_to include('Verification:')
         expect(summary).not_to include('Verification:')
       end
 
@@ -193,6 +195,7 @@ RSpec.describe RailsAiBridge::Tools::GetContext do
         text = described_class.call(model: 'User', detail: 'full').content.first[:text]
 
         expect(text).not_to include('Verification:')
+        expect(text).not_to include('`user_params` [INFERRED]')
         expect(text).to include('[VERIFIED]')
       end
     end
