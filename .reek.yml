@@ -74,6 +74,9 @@ detectors:
     - RailsAiBridge::Config::Server#http_port
     - RailsAiBridge::Config::Server#server_name
     - RailsAiBridge::Config::Server#server_version
+    - RailsAiBridge::Config::StaticAnalysis#confidence_tags_enabled
+    - RailsAiBridge::Config::StaticAnalysis#prism_enabled
+    - RailsAiBridge::Config::StaticAnalysis#prism_max_files
     - RailsAiBridge::Fingerprinter::CachedSnapshot#snapshot_ttl
     - RailsAiBridge::Tools::ExplainSymbol#explorer
     - RailsAiBridge#configuration

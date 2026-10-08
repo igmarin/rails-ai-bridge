@@ -19,6 +19,7 @@ module RailsAiBridge
   # @see Config::Output
   # @see Config::Mcp
   # @see Config::Registry
+  # @see Config::StaticAnalysis
   # @see RailsAiBridge.configure
   class Configuration
     extend Forwardable
@@ -61,6 +62,9 @@ module RailsAiBridge
     # @return [Config::ContextProviders]
     attr_reader :context_providers
 
+    # @return [Config::StaticAnalysis]
+    attr_reader :static_analysis
+
     def initialize
       @auth              = Config::Auth.new
       @server            = Config::Server.new
@@ -70,6 +74,7 @@ module RailsAiBridge
       @rubydex           = Config::Rubydex.new
       @registry          = Config::Registry.new
       @context_providers = Config::ContextProviders.new
+      @static_analysis   = Config::StaticAnalysis.new
     end
 
     # -- Config::Auth -----------------------------------------------------------
@@ -139,6 +144,12 @@ module RailsAiBridge
                    :semantic_context_depth, :semantic_context_depth=,
                    :rubydex_incremental_threshold, :rubydex_incremental_threshold=,
                    :rubydex_persist_index, :rubydex_persist_index=
+
+    # -- Config::StaticAnalysis -------------------------------------------------
+    def_delegators :@static_analysis,
+                   :confidence_tags_enabled, :confidence_tags_enabled=,
+                   :prism_enabled, :prism_enabled=,
+                   :prism_max_files, :prism_max_files=
 
     # Convenience predicate for checking if rubydex is available and enabled.
     #
