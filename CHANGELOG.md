@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refreshed the mutation testing lockfile (`Gemfile-mutation.lock`): `mcp` 1.6.0 → 1.7.0 and
   `railties` 8.1.3.1 → 8.1.4, with the matching Rails gems. Runtime dependency requirements
   are unchanged.
+- Bumped the `simplecov` development dependency from 1.2.0 to 1.3.2 (Gemfile constraint
+  `~> 1.3.2`). `reek` and `rubycritic` stay on their current versions.
 
 ### Fixed
 
