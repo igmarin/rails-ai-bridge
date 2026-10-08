@@ -205,8 +205,6 @@ Existing v4 installations make no outbound provider requests. Upgrading to v5 do
   context providers, the `AppScope` runtime seam, and production private-network
   guards.
 - `README.md` table-of-contents link to the v4.3.x → v5 upgrade guide.
-- `lib/tasks/zeitwerk.rake` with a `rails_ai_bridge:check_zeitwerk` task and regression specs.
-  The task only eager-loads the gem's own Zeitwerk loader, not host-app loaders.
 - Explicit v5 provider dependency floors documented in the gemspec:
   `mcp >= 1.3`, `faraday >= 2.0`, and `event_stream_parser >= 1.0`.
 - v5 adds optional outbound context providers — a way to read context from declared external MCP services. Provider traffic is disabled by default, limited to an explicit host allowlist, and allowed to call only remote tools that advertise read-only, non-destructive behavior. The local `rails_get_context` tool remains in-process and is not affected.
