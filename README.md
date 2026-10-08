@@ -296,7 +296,7 @@ The gem exposes **22 built-in tool classes** via MCP — 20 registered by defaul
 | Tool | What it returns |
 |------|----------------|
 | `rails_get_schema` | Tables, columns, indexes, foreign keys — tagged `[VERIFIED]` (live ActiveRecord) or `[INFERRED]` (static schema.rb / structure.sql parse) |
-| `rails_get_model_details` | Associations, validations, scopes, enums, callbacks, source macros, semantic tier, non-AR models (when enabled) — tagged `[VERIFIED]` (reflection / rubydex) or `[INFERRED]` (source regex) |
+| `rails_get_model_details` | Associations, validations, scopes, enums, callbacks, source macros, semantic tier, non-AR models (when enabled) — tagged `[VERIFIED]` (reflection) or `[INFERRED]` (source regex) |
 | `rails_get_context` | In-process composite for one model, controller, or feature: table + model + routes + controller actions + cheap related tests (no HTTP) |
 | `rails_get_routes` | HTTP verbs, paths, controller actions |
 | `rails_get_controllers` | Actions, inherited filters (source class at standard/full), strong params, concerns |
@@ -320,7 +320,7 @@ The gem exposes **22 built-in tool classes** via MCP — 20 registered by defaul
 
 All tools are **read-only** — they never modify your application or database.
 
-**Confidence tags legend.** Some tools label each fact with its evidence. `[VERIFIED]` means the fact is provable at runtime or from the AST. `[INFERRED]` means it comes from a pattern or heuristic. `[STATIC]` is reserved and never emitted. The schema and model tools, the controller tool, and the full detail of `rails_get_view` tag facts. The matching sections of `rails_get_context` are tagged too. Set `confidence_tags_enabled` to `false` to remove the controller and view tags; schema and model tags stay on. The guide's [Reading confidence tags](docs/GUIDE.md#reading-confidence-tags) section explains the footer and the settings.
+**Confidence tags legend.** Some tools label each fact with its evidence. `[VERIFIED]` means the fact is provable at runtime or from the AST. `[INFERRED]` means it comes from a pattern or heuristic. `[STATIC]` is reserved and never emitted. The schema and model tools, the controller tool, and the full detail of `rails_get_view` tag facts. The matching sections of `rails_get_context` are tagged too. Set `config.confidence_tags_enabled = false` in the `RailsAiBridge.configure` block to remove the controller and view tags; schema and model tags stay on. The guide's [Reading confidence tags](docs/GUIDE.md#reading-confidence-tags) section explains the footer and the settings.
 
 ### Smart Detail Levels
 

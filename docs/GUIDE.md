@@ -300,8 +300,8 @@ Some tools label each fact with the evidence behind it.
 
 | Tag | Meaning | Sources |
 |-----|---------|---------|
-| `[VERIFIED]` | Provable at runtime or from the AST | `reflection`, `rubydex`, `prism`, `live` |
-| `[INFERRED]` | Comes from a pattern or heuristic | `regex`, `heuristic`, and any source not listed above |
+| `[VERIFIED]` | Provable at runtime or from the AST | `reflection`, `live`. `rubydex` and `prism` are recognized, but no tool emits them in v6.0. |
+| `[INFERRED]` | Comes from a pattern or heuristic | `regex`, `heuristic`, `static` (schema file parses), and any other source |
 | `[STATIC]` | Reserved for a future static tier. Not emitted in v6.0. | none |
 
 Tags appear in two forms:
@@ -311,7 +311,7 @@ Tags appear in two forms:
 
 The schema and model tools, the controller tool, and the full detail of `rails_get_view` tag facts. The matching sections of `rails_get_context` are tagged too. Other tools don't tag facts yet.
 
-To remove the controller and view tags, set `confidence_tags_enabled` to `false`. Schema and model tags stay on regardless, because they predate the setting.
+To remove the controller and view tags, set `config.confidence_tags_enabled = false` in the `RailsAiBridge.configure` block. Schema and model tags stay on regardless, because they predate the setting.
 
 The Prism settings are reserved. `prism_enabled` and `prism_max_files` exist, but nothing in v6.0 runs the Prism static pass, so they change no output.
 
