@@ -170,6 +170,7 @@ module RailsAiBridge
                    :watcher_formats, :watcher_formats=,
                    :managed_region, :managed_region=,
                    :anti_hallucination_rules, :anti_hallucination_rules=,
+                   :legacy_agent_files, :legacy_agent_files=,
                    :output_dir_for
   end
 end

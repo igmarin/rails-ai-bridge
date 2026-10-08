@@ -38,6 +38,11 @@ module RailsAiBridge
       #   anti-hallucination rules. Defaults to +true+.
       attr_accessor :anti_hallucination_rules
 
+      # @return [Boolean] when +true+, also write the deprecated +.cursorrules+, +.devinrules+, and
+      #   +.codex/README.md+ files. Cursor reads +.cursor/rules/+ and +AGENTS.md+, Devin does not read
+      #   +.devinrules+, and Codex reads only +AGENTS.md+. Defaults to +false+; removal is planned for 6.0.
+      attr_accessor :legacy_agent_files
+
       def initialize
         @output_dir                     = nil
         @context_mode                   = :compact
@@ -49,6 +54,7 @@ module RailsAiBridge
         @watcher_formats                  = :all
         @managed_region                   = false
         @anti_hallucination_rules         = true
+        @legacy_agent_files               = false
       end
 
       # Resolve the effective output directory.

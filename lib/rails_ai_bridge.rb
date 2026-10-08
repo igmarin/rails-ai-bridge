@@ -50,7 +50,7 @@ module RailsAiBridge
       Introspector.new(app).call(only: only)
     end
 
-    # Generate context files (CLAUDE.md, .cursorrules, etc.)
+    # Generate context files (CLAUDE.md, AGENTS.md, GEMINI.md, etc.)
     #
     # @param app [Rails::Application, nil] app to introspect, defaults to Rails.application
     # @param options [Hash] keyword options
