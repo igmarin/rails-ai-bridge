@@ -37,6 +37,10 @@ RSpec.describe RailsAiBridge::Config::Output do
     expect(output.anti_hallucination_rules).to be(true)
   end
 
+  it 'defaults legacy_agent_files to false' do
+    expect(output.legacy_agent_files).to be(false)
+  end
+
   describe '#output_dir_for' do
     it 'returns output_dir when set' do
       output.output_dir = '/custom/path'

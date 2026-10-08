@@ -79,13 +79,13 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
       end
     end
 
-    it 'generates AGENTS.md and .codex support file when writing codex format' do
+    it 'generates AGENTS.md without a .codex support file when writing codex format' do
       Dir.mktmpdir do |dir|
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
         serializer = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :codex)
         result = serializer.call
         expect(result[:written].any? { |f| f.end_with?('AGENTS.md') }).to be true
-        expect(result[:written].any? { |f| f.include?('.codex/README.md') }).to be true
+        expect(result[:written].none? { |f| f.include?('.codex/README.md') }).to be true
       end
     end
 
@@ -101,21 +101,20 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
     it 'can skip split rule generation when split_rules is false' do
       Dir.mktmpdir do |dir|
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
-        serializer = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :cursor, split_rules: false)
+        serializer = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :claude, split_rules: false)
         result = serializer.call
-        expect(result[:written].none? { |f| f.include?('.cursor/rules/') }).to be true
+        expect(result[:written].none? { |f| f.include?('.claude/rules/') }).to be true
         expect(result[:written]).not_to be_empty
-        expect(result[:written].any? { |f| f.end_with?('.cursorrules') }).to be true
+        expect(result[:written].any? { |f| f.end_with?('CLAUDE.md') }).to be true
       end
     end
 
-    it 'dispatches cursor format to RulesSerializer' do
+    it 'writes only the .cursor/rules/ files for the cursor format by default' do
       Dir.mktmpdir do |dir|
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
-        serializer = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :cursor)
-        result = serializer.call
-        cursorrules_file = result[:written].find { |f| f.end_with?('.cursorrules') }
-        expect(File.read(cursorrules_file)).to include('Project Rules')
+        result = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :cursor).call
+        expect(result[:written]).not_to be_empty
+        expect(result[:written]).to all(include('.cursor/rules/'))
       end
     end
 
@@ -124,6 +123,64 @@ RSpec.describe RailsAiBridge::Serializers::ContextFileSerializer do
         allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
         serializer = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :bogus)
         expect { serializer.call }.to raise_error(ArgumentError, /Unknown format/)
+      end
+    end
+  end
+
+  describe 'deprecated legacy files' do
+    def written_names(dir)
+      allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
+      result = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :all).call
+      result[:written].map { |path| path.delete_prefix("#{dir}/") }
+    end
+
+    before { RailsAiBridge::Serializers::LegacyAgentFiles.reset_warning! }
+
+    it 'does not write .cursorrules, .devinrules, or .codex/README.md by default' do
+      Dir.mktmpdir do |dir|
+        names = written_names(dir)
+
+        expect(names).to include('AGENTS.md', 'CLAUDE.md', 'GEMINI.md')
+        expect(names).to include(a_string_starting_with('.cursor/rules/'), a_string_starting_with('.devin/rules/'))
+        expect(names).not_to include('.cursorrules')
+        expect(names).not_to include('.devinrules')
+        expect(names).not_to include('.codex/README.md')
+      end
+    end
+
+    it 'leaves the .codex/README.md pointer out of AGENTS.md by default' do
+      Dir.mktmpdir do |dir|
+        written_names(dir)
+
+        expect(File.read(File.join(dir, 'AGENTS.md'))).not_to include('.codex/README.md')
+      end
+    end
+
+    context 'when legacy_agent_files is on' do
+      before do
+        allow(RailsAiBridge.configuration).to receive(:legacy_agent_files).and_return(true)
+        allow(RailsAiBridge::Serializers::LegacyAgentFiles).to receive(:warn)
+      end
+
+      it 'writes the three deprecated files and points AGENTS.md at the Codex README' do
+        Dir.mktmpdir do |dir|
+          names = written_names(dir)
+
+          expect(names).to include('.cursorrules', '.devinrules', '.codex/README.md')
+          expect(File.read(File.join(dir, 'AGENTS.md'))).to include('.codex/README.md')
+        end
+      end
+
+      it 'prints the deprecation notice once per process' do
+        Dir.mktmpdir do |dir|
+          allow(RailsAiBridge.configuration).to receive(:output_dir_for).and_return(dir)
+          serializer = described_class.new(context, fingerprint: 'a1b2c3d4e5f6', format: :cursor)
+
+          2.times { serializer.call }
+
+          expect(RailsAiBridge::Serializers::LegacyAgentFiles).to have_received(:warn)
+            .with(RailsAiBridge::Serializers::LegacyAgentFiles::WARNING).once
+        end
       end
     end
   end

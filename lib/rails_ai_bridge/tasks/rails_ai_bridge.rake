@@ -7,9 +7,9 @@ unless defined?(ASSISTANT_TABLE)
     AI Assistant       Bridge File                           Command
     --                 --                                    --
     Claude Code        CLAUDE.md + .claude/rules/            rails ai:bridge:claude
-    OpenAI Codex       AGENTS.md + .codex/README.md          rails ai:bridge:codex
-    Cursor             .cursorrules + .cursor/rules/         rails ai:bridge:cursor
-    Devin              .devinrules + .devin/rules/            rails ai:bridge:devin
+    OpenAI Codex       AGENTS.md                             rails ai:bridge:codex
+    Cursor             .cursor/rules/                        rails ai:bridge:cursor
+    Devin              .devin/rules/                         rails ai:bridge:devin
     GitHub Copilot     .github/copilot-instructions.md       rails ai:bridge:copilot
     JSON (generic)     .ai-context.json                      rails ai:bridge:json
     Gemini             GEMINI.md                             rails ai:bridge:gemini
@@ -92,7 +92,7 @@ module RailsAiBridge
 end
 
 namespace :ai do
-  desc 'Generate AI bridge files (CLAUDE.md, .cursorrules, .devinrules, .github/copilot-instructions.md)'
+  desc 'Generate AI bridge files (CLAUDE.md, AGENTS.md, GEMINI.md, .cursor/rules/, .github/copilot-instructions.md)'
   task bridge: :environment do
     require 'rails_ai_bridge'
 
@@ -139,7 +139,7 @@ end
 
 namespace :ai do
   namespace :bridge do
-    { claude: 'CLAUDE.md', codex: 'AGENTS.md', cursor: '.cursorrules', devin: '.devinrules',
+    { claude: 'CLAUDE.md', codex: 'AGENTS.md', cursor: '.cursor/rules/', devin: '.devin/rules/',
       copilot: '.github/copilot-instructions.md', json: '.ai-context.json', gemini: 'GEMINI.md' }.each do |fmt, file|
       desc "Generate #{file} bridge file"
       task fmt => :environment do

@@ -33,7 +33,7 @@ bundle exec bin/rails generate rails_ai_bridge:install --profile=minimal
 bundle exec bin/rails ai:bridge
 ```
 
-Then open `CLAUDE.md`, `AGENTS.md`, `.cursorrules`, `.devinrules`,
+Then open `CLAUDE.md`, `AGENTS.md`,
 `.github/copilot-instructions.md`, `GEMINI.md`, and `.mcp.json` — all were
 generated from this 3-model app. The committed versions of those files are
 the real generator output, so you can read them without running anything.

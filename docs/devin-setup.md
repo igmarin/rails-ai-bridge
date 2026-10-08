@@ -19,14 +19,12 @@ Devin CLI reads the following files from your project root without any configura
 
 | File | Purpose |
 |------|---------|
-| `.devinrules` | Primary context file. Hard-capped at 5,800 characters (Devin enforces a 6K limit). Contains the most critical project overview. |
 | `.devin/rules/*.md` | Supplementary rule files. Devin reads all Markdown files in this directory. |
-| `AGENTS.md` | Codex-style instruction file. Devin reads this alongside `.devinrules`. |
+| `AGENTS.md` | Repo-level instructions. Devin reads this alongside the rules directory. |
 
 The rails-ai-bridge generator produces:
 
-- `.devinrules` — main context, truncated to stay within the 5,800-character cap
-- `.devin/rules/rails-context.md` — project overview content that overflows from `.devinrules`
+- `.devin/rules/rails-context.md` — project overview content
 - `.devin/rules/rails-mcp-tools.md` — MCP tool reference so Devin knows what tools are available
 - `AGENTS.md` — full project context and conventions in codex format
 
@@ -42,7 +40,7 @@ Run the Devin-specific generator:
 bundle exec rails ai:bridge:devin
 ```
 
-This writes `.devinrules`, `.devin/rules/rails-context.md`, `.devin/rules/rails-mcp-tools.md`, and `AGENTS.md`. Unchanged files are skipped (SHA256 fingerprinting prevents unnecessary writes).
+This writes `.devin/rules/rails-context.md`, `.devin/rules/rails-mcp-tools.md`, and `AGENTS.md`. Unchanged files are skipped (SHA256 fingerprinting prevents unnecessary writes).
 
 To generate context files for all supported AI tools at once:
 
@@ -132,13 +130,13 @@ If this command exits immediately with an error, the problem is in your Rails en
 
 Use the two layers for different purposes:
 
-**Static files for orientation** — at the start of a session, Devin reads `.devinrules` and `AGENTS.md` to understand the project structure, conventions, and domain. This costs no tool calls and happens automatically.
+**Static files for orientation** — at the start of a session, Devin reads `AGENTS.md` and `.devin/rules/` to understand the project structure, conventions, and domain. This costs no tool calls and happens automatically.
 
 **MCP tools for drill-down** — when Devin needs specific information (the associations on a particular model, the routes for a namespace, test coverage for a controller), it calls the appropriate MCP tool. This returns current data directly from your running application.
 
 A typical session looks like:
 
-1. Devin loads `.devinrules` and `AGENTS.md` — understands the project at a high level.
+1. Devin loads `AGENTS.md` and `.devin/rules/` — understands the project at a high level.
 2. Devin calls `rails_get_schema` to inspect the tables relevant to the task.
 3. Devin calls `rails_get_model_details` with `detail: full` for the specific model it is working on.
 4. Devin calls `rails_get_routes` to understand the routing structure.
@@ -257,7 +255,6 @@ Devin will call `rails_list_registry`, review the options, and call `rails_resol
 
 | File | Generator | Checked in? |
 |------|-----------|-------------|
-| `.devinrules` | `rails ai:bridge:devin` | Yes |
 | `.devin/rules/rails-context.md` | `rails ai:bridge:devin` | Yes |
 | `.devin/rules/rails-mcp-tools.md` | `rails ai:bridge:devin` | Yes |
 | `AGENTS.md` | `rails ai:bridge:devin` | Yes |

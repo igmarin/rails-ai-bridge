@@ -8,7 +8,6 @@ Serializers turn introspection hashes into assistant-specific files such as:
 
 - `CLAUDE.md`
 - `AGENTS.md`
-- `.cursorrules`
 - `.github/copilot-instructions.md`
 - split rule files under assistant-specific subfolders
 
