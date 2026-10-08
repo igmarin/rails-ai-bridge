@@ -64,6 +64,7 @@ RSpec.describe RailsAiBridge::Tools::GetControllers do
       text = described_class.call(controller: 'LegacyController').content.first[:text]
 
       expect(text).to include('Verification: [VERIFIED] reflection (1) · [INFERRED] regex (2)')
+      expect(text).to include('- `name` [INFERRED]', '- `email` [INFERRED]')
     end
 
     it 'renders no footer for a controller with no filters or strong params' do

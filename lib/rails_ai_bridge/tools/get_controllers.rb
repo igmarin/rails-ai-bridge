@@ -42,6 +42,9 @@ module RailsAiBridge
       # @private
       # Formats +:controllers+ introspection for {GetControllers}.
       class ResponseFormatter
+        # Strong params come from source regexes, so a payload without their provenance is labeled with it.
+        STRONG_PARAMS_FALLBACK = :regex
+
         def initialize(controllers, controller:, detail:)
           @controllers = controllers
           @controller = controller
@@ -117,7 +120,7 @@ module RailsAiBridge
             lines << "- Filters: #{info[:filters].map { |f| format_listed_filter(f) }.join(', ')}" if info[:filters]&.any?
             if info[:strong_params]&.any?
               strong_line = "- Strong params: #{info[:strong_params].join(', ')}"
-              lines << @provenance.tag(strong_line, info[:strong_params_provenance])
+              lines << @provenance.tag(strong_line, info[:strong_params_provenance] || STRONG_PARAMS_FALLBACK)
             end
             lines << ''
           end
@@ -151,7 +154,7 @@ module RailsAiBridge
         # strong params come from source regexes.
         def footer_for(info)
           provenances = Array(info[:filters]).pluck(:provenance).map { |source| source || :reflection }
-          provenances += [info[:strong_params_provenance] || :regex] * Array(info[:strong_params]).size
+          provenances += [info[:strong_params_provenance] || STRONG_PARAMS_FALLBACK] * Array(info[:strong_params]).size
           @provenance.footer(provenances)
         end
 
@@ -176,7 +179,7 @@ module RailsAiBridge
 
           if controller_info[:strong_params]&.any?
             lines << '' << '## Strong Params'
-            provenance = controller_info[:strong_params_provenance]
+            provenance = controller_info[:strong_params_provenance] || STRONG_PARAMS_FALLBACK
             lines << controller_info[:strong_params].map { |p| @provenance.tag("- `#{p}`", provenance) }.join("\n")
           end
 
