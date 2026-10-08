@@ -23,8 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `railties` 8.1.3.1 → 8.1.4, with the matching Rails gems. Runtime dependency requirements
   are unchanged.
 - Bumped the `simplecov` development dependency from 1.2.0 to 1.3.2 on Ruby 3.3 and newer.
-  Ruby 3.2 stays on 1.2.0, because simplecov 1.3 requires Ruby 3.3. `reek` and `rubycritic`
-  stay on their current versions.
+  The lockfile pins 1.3.2, and the Gemfile allows the 1.3.x line. Ruby 3.2 stays on 1.2.0,
+  because simplecov 1.3 requires Ruby 3.3. `reek` and `rubycritic` stay on their current versions.
 
 ### Fixed
 
