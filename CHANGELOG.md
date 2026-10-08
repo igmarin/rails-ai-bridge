@@ -25,6 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bumped the `simplecov` development dependency from 1.2.0 to 1.3.2 on Ruby 3.3 and newer.
   The lockfile pins 1.3.2, and the Gemfile allows the 1.3.x line. Ruby 3.2 stays on 1.2.0,
   because simplecov 1.3 requires Ruby 3.3. `reek` and `rubycritic` stay on their current versions.
+- Refreshed nine transitive development gems in `Gemfile-mutation.lock` (`date`, `net-http`,
+  `net-smtp`, `parallel`, `prettyprint`, `rdoc`, `regexp_parser`, `sorbet-runtime`, `uri`).
+  Their versions are newer; no gem moved down. `reek` and `rubycritic` stay on their current
+  versions, because `rubycritic` 4.12.0 requires `reek ~> 6.5.0`.
 
 ### Fixed
 
