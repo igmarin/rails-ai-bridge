@@ -192,11 +192,12 @@ RSpec.describe RailsAiBridge::Tools::GetContext do
 
       it 'removes the controller footer when confidence tags are disabled, and keeps model tags' do
         RailsAiBridge.configuration.confidence_tags_enabled = false
-        text = described_class.call(model: 'User', detail: 'full').content.first[:text]
+        full = described_class.call(model: 'User', detail: 'full').content.first[:text]
+        summary = described_class.call(model: 'User', detail: 'summary').content.first[:text]
 
-        expect(text).not_to include('Verification:')
-        expect(text).not_to include('`user_params` [INFERRED]')
-        expect(text).to include('[VERIFIED]')
+        expect(full).not_to include('Verification:')
+        expect(full).not_to include('`user_params` [INFERRED]')
+        expect(summary).to include('- `has_many` **posts** [VERIFIED]', '- `has_one` **profile** [INFERRED]')
       end
     end
 
