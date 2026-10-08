@@ -1,6 +1,6 @@
 # rails-ai-bridge — Roadmap
 
-Last updated: 2026-09-14
+Last updated: 2026-10-08
 
 ## Vision
 
@@ -50,11 +50,11 @@ Epic [#259](https://github.com/igmarin/rails-ai-bridge/issues/259) — Growth & 
 | #262 | Hosted docs | YARD to GitHub Pages on tag push with latest banner |
 | #263 | Positioning | docs/COMPARISON.md + README rewrite; factual, cited, no disparagement |
 
-## Phase 3 — v6.0 (milestone #9): design-doc epics (sub-issues created when phase starts)
+## Phase 3 — milestone #9: design-doc epics (#264 shipped in 5.3.0; #265 and #266 are next)
 
 | # | Epic | Description |
 |---|------|-------------|
-| #264 | Prism confidence tags | **Done** for the tag layer (schema, model, controller, and full-view output, including the controller section of `rails_get_context`) and the opt-in Prism upgrade of strong params (#326). `rails_get_test_info` is deferred. |
+| #264 | Prism confidence tags | **Done** in 5.3.0 for the tag layer (schema, model, controller, and full-view output, including the controller section of `rails_get_context`) and the opt-in Prism upgrade of strong params (#326). `rails_get_test_info` is deferred. |
 | #265 | Dependency graph | introspector + `rails_get_dependency_graph` tool (woods-style edges); design doc first |
 | #266 | Multi-project | `switch_project`, version-manager-aware booting; config-server rework design doc first |
 

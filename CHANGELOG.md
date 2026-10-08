@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.3.0] - 2026-10-08
+
+Confidence tags now reach controllers and the full view listing, and an opt-in Prism pass can upgrade
+controller strong params from `[INFERRED]` to `[VERIFIED]`. This release also removes the unused
+`Services` layer, makes `config.mcp.rate_limiter_key_prefix` take effect, and refreshes dependencies.
+Tool output changes by default because `confidence_tags_enabled` is on; see [UPGRADING.md](UPGRADING.md).
+
 ### Added
 
 - `RailsAiBridge::Tools::ConfidenceTag.footer` builds a one-line verification summary, such as
@@ -45,6 +52,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   counts the facts the full view renders. Summary and standard output are unchanged. The setting
   is on by default, so existing full-view output changes. Set `config.confidence_tags_enabled = false`
   to keep the previous output.
+
+### Fixed
+
+- `config.mcp.rate_limiter_key_prefix` now applies to `Mcp::CacheRateLimiter` when `key_prefix:`
+  is omitted. The option was previously set but never read. An explicit `key_prefix:` still wins.
+- The README no longer says `rails_get_model_details` verifies facts with `rubydex`. Association facts are verified by reflection, and no tool emits `rubydex` yet. No `rails_get_model_details` output changed.
+
+### Maintenance
+
 - Refreshed the mutation testing lockfile (`Gemfile-mutation.lock`): `mcp` 1.6.0 → 1.7.0 and
   `railties` 8.1.3.1 → 8.1.4, with the matching Rails gems. Runtime dependency requirements
   are unchanged.
@@ -55,12 +71,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `net-smtp`, `parallel`, `prettyprint`, `rdoc`, `regexp_parser`, `sorbet-runtime`, `uri`).
   Their versions are newer; no gem moved down. `reek` and `rubycritic` stay on their current
   versions, because `rubycritic` 4.12.0 requires `reek ~> 6.5.0`.
-
-### Fixed
-
-- `config.mcp.rate_limiter_key_prefix` now applies to `Mcp::CacheRateLimiter` when `key_prefix:`
-  is omitted. The option was previously set but never read. An explicit `key_prefix:` still wins.
-- The README no longer says `rails_get_model_details` verifies facts with `rubydex`. Association facts are verified by reflection, and no tool emits `rubydex` yet. No `rails_get_model_details` output changed.
 
 ## [5.2.1] - 2026-09-23
 

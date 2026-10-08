@@ -302,7 +302,7 @@ Some tools label each fact with the evidence behind it.
 |-----|---------|---------|
 | `[VERIFIED]` | Provable at runtime or from the AST | `reflection`, `prism` (controller strong params, with `prism_enabled`), `live`. `rubydex` is recognized by the tag layer, but no tool emits it. |
 | `[INFERRED]` | Comes from a pattern or heuristic | `regex`, `heuristic`, schema file parses (the internal `static` source, not the `[STATIC]` tag), and any other source |
-| `[STATIC]` | Reserved for a future static tier. Not emitted in v6.0. | none |
+| `[STATIC]` | Reserved for a future static tier. Not emitted yet. | none |
 
 Tags appear in two forms:
 

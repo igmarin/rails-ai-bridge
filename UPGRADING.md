@@ -1,5 +1,36 @@
 # Upgrading rails-ai-bridge
 
+## Upgrading from 5.2.x to 5.3.0
+
+**No action is required.** One default changes what tools print.
+
+- **Confidence tags are on by default.** `rails_get_controllers`, full-detail `rails_get_view`, and the
+  controller section of full-detail `rails_get_context` now mark facts `[VERIFIED]` or `[INFERRED]` and end
+  with a `Verification:` footer. To get the previous output, set
+  `config.confidence_tags_enabled = false`. See "Reading confidence tags" in [docs/GUIDE.md](docs/GUIDE.md).
+- **Prism verification is opt-in.** `config.prism_enabled = true` lets a Prism parse confirm controller
+  strong params, which then show `[VERIFIED]`. Prism is a default gem on Ruby 3.3 and newer. On Ruby 3.2,
+  add `gem 'prism'` to your Gemfile; without it the pass is skipped and strong params stay `[INFERRED]`.
+  `config.prism_max_files` (default `500`) caps how many files one run parses.
+- **`config.mcp.rate_limiter_key_prefix` now takes effect.** If you set it, `Mcp::CacheRateLimiter` uses it
+  when you do not pass `key_prefix:`, so existing counters start fresh once.
+- **The unused `Services` layer is removed** (`RailsAiBridge::Services::AppIntrospectionService`,
+  `ConfigurationService`, `ContextGenerationService`, `FileManagementService`). The gem never called them.
+  If your code referenced them, use `RailsAiBridge.introspect` and `RailsAiBridge.generate_context`.
+
+---
+
+## Upgrading from 5.1.x to 5.2.0
+
+**No action is required.**
+
+- Every generated context file now carries an `## Anti-hallucination rules` block. Set
+  `config.output.anti_hallucination_rules = false` to leave it out.
+- `rails_query` and `rails_read_logs` are new and stay off until you set `config.enable_data_tools = true`.
+  See [docs/mcp-security.md](docs/mcp-security.md) before enabling them.
+
+---
+
 ## Upgrading from 5.0.0 to 5.1.0
 
 **One action required if you are pinned to `rubydex` 0.3.x:**
