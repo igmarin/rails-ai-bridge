@@ -41,6 +41,7 @@ module RailsAiBridge
       # @return [Service::Result] result with +graph+ and +file_mtimes+ in data
       # @raise [ServiceErrors::BaseError] rescued and returned as a failure result with its message
       # @raise [StandardError] rescued and returned as failure result
+      # :reek:DuplicateMethodCall -- each rescue builds its own failure message from error.message
       def call(operation, root:, graph: nil, file_mtimes: {}, **options)
         threshold = options.fetch(:threshold, 0.3)
         persist = options.fetch(:persist, false)
