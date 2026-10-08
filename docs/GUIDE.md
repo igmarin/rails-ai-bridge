@@ -307,9 +307,9 @@ Some tools label each fact with the evidence behind it.
 Tags appear in two forms:
 
 - **Inline tags** on a single line, such as ``- `name` [INFERRED]`` for a strong param found by regex.
-- **A footer** that counts facts by source, such as `Verification: [VERIFIED] reflection (3) · [INFERRED] regex (2)`. Single-controller output gets one under the controller heading, including the controller section of `rails_get_context`. Full-detail output gets one per controller in `rails_get_controllers`, and one at the end of `rails_get_view`. Summary and standard lists have no footer.
+- **A footer** that counts facts by source, such as `Verification: [VERIFIED] reflection (3) · [INFERRED] regex (2)`. Single-controller output (a request for one controller) gets one under the controller heading, including the controller section of `rails_get_context`. Full-detail output gets one per controller in `rails_get_controllers`, and one at the end of `rails_get_view`. Summary and standard lists have no footer.
 
-The schema and model tools, the controller tool, and the full detail of `rails_get_view` tag facts. The matching sections of `rails_get_context` are tagged too. Other tools don't tag facts yet.
+The schema and model tools, the controller tool, and the full-detail output of `rails_get_view` tags facts. The matching sections of `rails_get_context` are tagged too. Other tools don't tag facts yet.
 
 To remove the controller and view tags, set `config.confidence_tags_enabled = false` in the `RailsAiBridge.configure` block. Schema and model tags stay on regardless, because they predate the setting.
 
@@ -888,7 +888,7 @@ sort then take), and `parallel_introspection` is **off**.
 
 ### Options reference
 
-The confidence settings work at the top level, such as `config.confidence_tags_enabled`, or on the sub-object, `config.static_analysis.confidence_tags_enabled`.
+All three confidence settings work at the top level, such as `config.confidence_tags_enabled`, and on the sub-object, such as `config.static_analysis.confidence_tags_enabled`. Both paths write the same setting.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
