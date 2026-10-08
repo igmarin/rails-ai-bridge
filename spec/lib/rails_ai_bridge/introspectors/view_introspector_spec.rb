@@ -85,6 +85,10 @@ RSpec.describe RailsAiBridge::Introspectors::ViewIntrospector do
       expect(result[:template_engines]).to include('erb')
     end
 
+    it 'attaches a provenance map to each listing' do
+      expect(result[:provenance]).to include(layouts: :live, templates: :live, helpers: :regex, template_engines: :heuristic)
+    end
+
     it 'returns view_components as empty when no components dir' do
       expect(result[:view_components]).to eq([])
     end
