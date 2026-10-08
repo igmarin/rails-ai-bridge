@@ -1,0 +1,60 @@
+name: ocr PR Review
+
+# Replaces rs-guard-review.yml. Reviews run on OPENAI_API_KEY; reviews post as
+# github-actions[bot] (no bot PAT needed).
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ocr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    # Dependabot and fork PRs do not receive repository secrets, so OPENAI_API_KEY
+    # is empty and the review cannot run. Only same-repo PRs are reviewed.
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.actor != 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      # The prompt comes from the base branch, not the PR head: a PR author
+      # must not be able to edit the review instructions in their own PR.
+      - name: Checkout base branch (for the review prompt)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
+      - name: Load review prompt
+        id: prompt
+        run: |
+          # Random delimiter, so no line in the prompt can close the heredoc early.
+          delim="OCR_PROMPT_$(openssl rand -hex 16)"
+          {
+            echo "text<<$delim"
+            cat .github/review-prompt.md
+            echo "$delim"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Run ocr review
+        uses: alibaba/open-code-review@fabbdb296b0d97e2140ada8d54ca7d6d6d1d7ad4 # v1.12.13
+        with:
+          # Pinned to the release verified on the runner. Bump deliberately.
+          ocr_version: '1.12.13'
+          llm_url: https://api.openai.com/v1/responses
+          llm_auth_token: ${{ secrets.OPENAI_API_KEY }}
+          llm_model: gpt-6-luna
+          # Responses API: gpt-6-luna rejects function tools on /v1/chat/completions.
+          llm_protocol: openai-responses
+          llm_use_anthropic: 'false'
+          llm_extra_body: '{}'
+          effort: medium
+          background: ${{ steps.prompt.outputs.text }}
