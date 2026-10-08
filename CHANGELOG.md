@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `railties` 8.1.3.1 → 8.1.4, with the matching Rails gems. Runtime dependency requirements
   are unchanged.
 
+### Fixed
+
+- `config.mcp.rate_limiter_key_prefix` now applies to `Mcp::CacheRateLimiter` when `key_prefix:`
+  is omitted. The option was previously set but never read. An explicit `key_prefix:` still wins.
+
 ## [5.2.1] - 2026-09-23
 
 ### Changed

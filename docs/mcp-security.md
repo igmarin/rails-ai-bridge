@@ -82,11 +82,12 @@ RailsAiBridge.configure do |config|
   config.mcp.rate_limiter = RailsAiBridge::Mcp::CacheRateLimiter.new(
     max_requests: 300,
     window_seconds: 60,
-    cache: Rails.cache,
-    key_prefix: "rab:rl"
+    cache: Rails.cache
   )
 end
 ```
+
+The cache key prefix comes from `config.mcp.rate_limiter_key_prefix` (default `"rab:rl"`). Set it to keep keys separate per app or environment.
 
 Alternatively, use `Rack::Attack` in front of the MCP endpoint for centralized, proxy-aware throttling:
 

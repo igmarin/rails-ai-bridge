@@ -48,6 +48,45 @@ RSpec.describe RailsAiBridge::Mcp::CacheRateLimiter do
       expect(cache.exist?('custom:1.2.3.4')).to be true
     end
 
+    describe 'key prefix from configuration' do
+      around do |example|
+        original = RailsAiBridge.configuration.mcp.rate_limiter_key_prefix
+        begin
+          example.run
+        ensure
+          RailsAiBridge.configuration.mcp.rate_limiter_key_prefix = original
+        end
+      end
+
+      it 'uses config.mcp.rate_limiter_key_prefix when key_prefix is omitted' do
+        RailsAiBridge.configuration.mcp.rate_limiter_key_prefix = 'my:prefix'
+        limiter = described_class.new(max_requests: 1, window_seconds: 60, cache: cache)
+
+        limiter.allow?('1.2.3.4')
+
+        expect(cache.exist?('my:prefix:1.2.3.4')).to be true
+      end
+
+      it 'prefers an explicit key_prefix over the configured one' do
+        RailsAiBridge.configuration.mcp.rate_limiter_key_prefix = 'my:prefix'
+        limiter = described_class.new(max_requests: 1, window_seconds: 60, cache: cache, key_prefix: 'explicit')
+
+        limiter.allow?('1.2.3.4')
+
+        expect(cache.exist?('explicit:1.2.3.4')).to be true
+        expect(cache.exist?('my:prefix:1.2.3.4')).to be false
+      end
+
+      it 'falls back to rab:rl when the configured prefix is nil' do
+        RailsAiBridge.configuration.mcp.rate_limiter_key_prefix = nil
+        limiter = described_class.new(max_requests: 1, window_seconds: 60, cache: cache)
+
+        limiter.allow?('1.2.3.4')
+
+        expect(cache.exist?('rab:rl:1.2.3.4')).to be true
+      end
+    end
+
     it 'uses unknown bucket for blank IP' do
       limiter = described_class.new(max_requests: 1, window_seconds: 60, cache: cache)
 

@@ -12,8 +12,9 @@ module RailsAiBridge
       # @param max_requests [Integer] allowed hits per window per client IP
       # @param window_seconds [Integer] TTL for each client's counter
       # @param cache [Object, nil] +ActiveSupport::Cache::Store+; defaults to +Rails.cache+
-      # @param key_prefix [String] prefix for cache keys
-      def initialize(max_requests:, window_seconds:, cache: nil, key_prefix: 'rab:rl')
+      # @param key_prefix [String] prefix for cache keys; defaults to +config.mcp.rate_limiter_key_prefix+
+      def initialize(max_requests:, window_seconds:, cache: nil,
+                     key_prefix: RailsAiBridge.configuration.mcp.rate_limiter_key_prefix || 'rab:rl')
         @max_requests = max_requests
         @window_seconds = window_seconds.to_i
         @cache = cache
