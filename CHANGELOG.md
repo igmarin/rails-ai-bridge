@@ -37,6 +37,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `confidence_tags_enabled` to `false` for the previous output. Controller introspection facts gain
   additive `provenance` keys. Respond_to formats carry provenance in the payload only, because the
   tool does not render them yet.
+- The full view of `rails_get_view` shows confidence tags when `confidence_tags_enabled` is
+  on. Helper methods are regex-derived, so they get an `[INFERRED]` tag. A verification footer
+  counts the facts the full view renders. Summary and standard output are unchanged, and
+  setting `confidence_tags_enabled` to `false` removes the tags and footer.
 - Refreshed the mutation testing lockfile (`Gemfile-mutation.lock`): `mcp` 1.6.0 → 1.7.0 and
   `railties` 8.1.3.1 → 8.1.4, with the matching Rails gems. Runtime dependency requirements
   are unchanged.
