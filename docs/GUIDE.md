@@ -888,7 +888,7 @@ sort then take), and `parallel_introspection` is **off**.
 
 ### Options reference
 
-The confidence settings are top-level delegators of `config.static_analysis`.
+The confidence settings work at the top level, such as `config.confidence_tags_enabled`, or on the sub-object, `config.static_analysis.confidence_tags_enabled`.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -925,7 +925,7 @@ The confidence settings are top-level delegators of `config.static_analysis`.
 | `parallel_introspection` | Boolean | `false` | Run introspectors concurrently using a `Concurrent::FixedThreadPool`. Requires `concurrent-ruby` (already a Rails transitive dep). Automatically disabled when the ActiveRecord connection pool has only one slot. |
 | `parallel_pool_size` | Integer | `4` | Upper bound on pool threads. Actual size is `min(introspector_count, parallel_pool_size)` — no idle threads are created. Only relevant when `parallel_introspection` is `true`. |
 | `parallel_timeout_seconds` | Integer | `10` | Seconds each future may run before being cancelled. Timed-out introspectors return `{ error: "timed out after Ns" }`. Also used as the `wait_for_termination` grace period. Only relevant when `parallel_introspection` is `true`. |
-| `confidence_tags_enabled` | Boolean | `true` | Adds tags and footers to single-controller and full-detail `rails_get_controllers` output, and to full-detail `rails_get_view` output. Summary and standard lists have no footer. Schema and model tags are always on. |
+| `confidence_tags_enabled` | Boolean | `true` | Adds tags and footers to single-controller and full-detail `rails_get_controllers` output, to the controller section of `rails_get_context`, and to full-detail `rails_get_view` output. Summary and standard lists have no footer. Schema and model tags are always on. |
 | `prism_enabled` | Boolean | `false` | Reserved. Nothing in v6.0 runs the Prism static pass, so this has no effect yet. |
 | `prism_max_files` | Integer | `500` | Reserved. Caps files parsed per Prism run once the pass is wired in. No effect yet. |
 
