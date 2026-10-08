@@ -41,7 +41,7 @@ Use the README as the shortest path to understanding and setup. Jump to deeper d
 | Check what the AI learns | [What Your AI Learns](#what-your-ai-learns) |
 | Choose `:standard`, `:full`, or opt-ins | [Pick the right preset for your app](#pick-the-right-preset-for-your-app) |
 | Use MCP safely | [HTTP transport](#http-transport-alternative-for-all-clients) and [mcp-security.md](docs/mcp-security.md) |
-| Upgrade from v4.3.x to v5 | [UPGRADING.md](UPGRADING.md#upgrading-from-430-to-500) |
+| Upgrade from an earlier version | [UPGRADING.md](UPGRADING.md) |
 | Improve day-to-day AI results | [Best Practices](docs/BEST_PRACTICES.md) |
 
 ## When this helps
@@ -76,7 +76,7 @@ flowchart LR
 
 1. **Introspect**: built-in scanners read your Rails app structure: schema, models, routes, controllers, gems, tests, conventions, and optional full-stack details.
 2. **Generate**: `rails ai:bridge` writes compact, assistant-specific files such as `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/`, and Copilot instructions.
-3. **Serve**: `rails ai:serve` exposes 22 read-only `rails_*` tools so an assistant can drill into exact details on demand.
+3. **Serve**: `rails ai:serve` exposes 22 read-only `rails_*` tools (20 registered by default; `enable_data_tools` adds the other 2) so an assistant can drill into exact details on demand.
 
 This creates two complementary layers:
 
@@ -112,7 +112,7 @@ RailsAiBridge.configure do |c|
 end
 ```
 
-1. Only remote tools advertising `read_only_hint: true` and `destructive_hint: false` are callable; reflected credentials in provider responses are redacted before they reach MCP clients.
+3. Only remote tools advertising `read_only_hint: true` and `destructive_hint: false` are callable; reflected credentials in provider responses are redacted before they reach MCP clients.
 
 See [docs/v5/context-providers-design.md](docs/v5/context-providers-design.md) for the design and security model, and [docs/mcp-security.md](docs/mcp-security.md) for SSRF controls and operator checklists.
 
@@ -914,7 +914,7 @@ The docs are layered so new users do not need to read everything at once.
 | A quick install and mental model | This README |
 | See it working on a tiny app | [docs/EXAMPLES.md](docs/EXAMPLES.md) and [examples/](examples/) |
 | MCP Registry listing steps | [docs/mcp-registry-submission.md](docs/mcp-registry-submission.md) |
-| Full API reference (YARD) | [https://igmarin.github.io/rails-ai-bridge/](https://igmarin.github.io/rails-ai-bridge/) — available after the first `v*` tag release |
+| Full API reference (YARD) | [https://igmarin.github.io/rails-ai-bridge/](https://igmarin.github.io/rails-ai-bridge/) — published on every `v*` tag release |
 | How to get better AI output day to day | [docs/BEST_PRACTICES.md](docs/BEST_PRACTICES.md) |
 | Every command, config option, generated file, and MCP parameter | [docs/GUIDE.md](docs/GUIDE.md) |
 | Complete Devin setup — MCP wiring, skills, troubleshooting | [docs/devin-setup.md](docs/devin-setup.md) |
@@ -953,7 +953,7 @@ Bug reports and pull requests: [github.com/igmarin/rails-ai-bridge/issues](https
 
 ## Acknowledgments & Origins
 
-This gem ships as **rails-ai-bridge** (Ruby **`RailsAiBridge`**, version **5.1.1**). Earlier iterations of the same codebase were distributed as `rails-ai-context`.
+This gem ships as **rails-ai-bridge** (Ruby **`RailsAiBridge`**). Earlier iterations of the same codebase were distributed as `rails-ai-context`.
 
 RailsMCP evolved from 
 [crisnahine/rails-ai-context](https://github.com/crisnahine/rails-ai-context),

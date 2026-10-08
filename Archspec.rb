@@ -68,7 +68,6 @@ component :host_integration, in: %w[
   lib/rails_ai_bridge/engine.rb
   lib/rails_ai_bridge/doctor.rb
   lib/rails_ai_bridge/doctor/**/*.rb
-  lib/rails_ai_bridge/services/**/*.rb
 ]
 
 # MCP tools — the 20 built-in tools exposed over the MCP protocol.

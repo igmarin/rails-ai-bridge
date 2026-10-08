@@ -1,6 +1,6 @@
-# Design: v6.0 Prism confidence tags (`[VERIFIED]` / `[INFERRED]`)
+# Design: Prism confidence tags (`[VERIFIED]` / `[INFERRED]`)
 
-Epic: [#264](https://github.com/igmarin/rails-ai-bridge/issues/264) — v6.0 Prism confidence tags (milestone #9, phase 3).
+Epic: [#264](https://github.com/igmarin/rails-ai-bridge/issues/264) — Prism confidence tags (shipped in 5.3.0; milestone #9, phase 3).
 
 ## Problem / Motivation
 
@@ -96,7 +96,7 @@ implicitly `[VERIFIED]`.
 |---|---|---|
 | `[VERIFIED]` | Provable at runtime or via AST | `reflection`, `rubydex`, `prism`, `live` |
 | `[INFERRED]` | Regex/heuristic or absent provenance | `regex`, `heuristic`, `nil` |
-| `[STATIC]` | Reserved — static-tier fallback | backlog, not emitted in v6.0 |
+| `[STATIC]` | Reserved — static-tier fallback | backlog, not emitted in 5.3.0 |
 
 Rendering rules (compact-by-default):
 
@@ -143,7 +143,7 @@ directions; no file moves (no #250-style churn).
   (`json`/`markdown`), and annotations `read_only_hint: true, destructive_hint: false,
   idempotent_hint: true, open_world_hint: false`.
 - Errors unchanged: unavailable sections return the existing "not available" message, never a tag.
-- Deferred: `rails_get_test_info` was in the first draft of this scope. No sub-issue covers it, so it stays untagged in v6.0.
+- Deferred: `rails_get_test_info` was in the first draft of this scope. No sub-issue covers it, so it stays untagged in 5.3.0.
 
 **Preset decision (explicit):** no preset changes. Tags ride existing introspectors; the optional
 `:static_analysis` introspector is **opt-in only** (host registers via
@@ -189,8 +189,8 @@ Implementation order: (1) `ConfidenceTag.footer` -> (2) `Config::StaticAnalysis`
 
 ## Rollout
 
-- Milestone #9 (phase 3, v6.0). Implementation sub-issues created from this doc per epic #264.
-- CHANGELOG 6.0.0 entry; README tool-table note ("confidence tags legend"); GUIDE section
+- Milestone #9 (phase 3). Implementation sub-issues created from this doc per epic #264.
+- CHANGELOG 5.3.0 entry; README tool-table note ("confidence tags legend"); GUIDE section
   "Reading confidence tags"; `docs/ROADMAP.md` backlog `[STATIC]` item stays reserved.
 - Deprecation/compat: none — additive keys and opt-in behavior; disabled path is byte-identical to
   today's output.

@@ -89,7 +89,6 @@ detectors:
     - RailsAiBridge::Serializers::ContextFileSerializer#initialize
     - RailsAiBridge::Serializers::SharedAssistantGuidance#compact_engineering_rules_footer_lines
     - RailsAiBridge::Serializers::SharedAssistantGuidance#cursor_engineering_mdc_body_lines
-    - RailsAiBridge::Services::FileManagementService#validate_path!
   ControlParameter:
     exclude:
     - RailsAiBridge::Registry::ContextProviderClient#probe
@@ -115,7 +114,6 @@ detectors:
     - RailsAiBridge::Serializers::SharedAssistantGuidance#compact_engineering_rules_footer_lines
     - RailsAiBridge::Serializers::SharedAssistantGuidance#cursor_engineering_mdc_body_lines
     - RailsAiBridge::Service::Result#initialize
-    - RailsAiBridge::Services::FileManagementService#validate_path!
     - RailsAiBridge::Tools::GetContext::Resolver#nothing_resolved_error
     - RailsAiBridge::Tools::GetView#self.build_formatter
     - RailsAiBridge::Tools::ResolveSkill#self.not_found_message
@@ -266,8 +264,6 @@ detectors:
     - RailsAiBridge::Serializers::Providers::DevinSerializer#render
     - RailsAiBridge::Serializers::SharedAssistantGuidance#resolved_assistant_overrides_path
     - RailsAiBridge::Server#run_rack_server
-    - RailsAiBridge::Services::ContextGenerationService#call
-    - RailsAiBridge::Services::FileManagementService#default_allowed_base_dir
     - RailsAiBridge::ToolResultCache#fetch_response
     - RailsAiBridge::ToolResultCache::CachedTool#detect_server_context_param
     - RailsAiBridge::Tools::BaseTool#text_response
@@ -432,8 +428,6 @@ detectors:
     - RailsAiBridge::Serializers::Providers::DevinSerializer#render
     - RailsAiBridge::Server#create_mcp_server
     - RailsAiBridge::Server#run_rack_server
-    - RailsAiBridge::Services::AppIntrospectionService#call
-    - RailsAiBridge::Services::FileManagementService#file_exists?
     - RailsAiBridge::Tools::GetContext::Composer#append_controller
     - RailsAiBridge::Tools::GetContext::Composer#append_model
     - RailsAiBridge::Tools::GetContext::Composer#append_routes
@@ -562,7 +556,6 @@ detectors:
     - RailsAiBridge::RubydexAdapter#constant_references
     - RailsAiBridge::RubydexAdapter#descendants
     - RailsAiBridge::RubydexAdapter#safe_count
-    - RailsAiBridge::Services::FileManagementService#default_allowed_base_dir
   MissingSafeMethod:
     exclude:
     - RailsAiBridge::AssistantFormatsPreference
@@ -577,7 +570,6 @@ detectors:
     - RailsAiBridge::Registry::ResolverCache
     - RailsAiBridge::Registry::DefaultGitRunner
     - RailsAiBridge::RubydexAdapter
-    - RailsAiBridge::Services::FileManagementService
     - RailsAiBridge::ToolResultCache
     - RailsAiBridge::Tools::BaseTool
     - RailsAiBridge::Tools::ExplainSymbol
@@ -662,7 +654,6 @@ detectors:
     - RailsAiBridge::Serializers::Providers::ClaudeRulesSerializer#append_tier_model_bullets
     - RailsAiBridge::Serializers::SharedAssistantGuidance#mergeable_override_content?
     - RailsAiBridge::Serializers::SharedAssistantGuidance#resolved_assistant_overrides_path
-    - RailsAiBridge::Services::FileManagementService#call
     - RailsAiBridge::Tools::ConfidenceTag#tag
     - RailsAiBridge::Tools::GetContext::Composer#append_controller
     - RailsAiBridge::Tools::GetContext::Composer#append_model
@@ -973,13 +964,6 @@ detectors:
     - RailsAiBridge::Serializers::SharedAssistantGuidance#read_assistant_overrides
     - RailsAiBridge::Serializers::SharedAssistantGuidance#resolved_assistant_overrides_path
     - RailsAiBridge::Server#start_http
-    - RailsAiBridge::Services::AppIntrospectionService#call
-    - RailsAiBridge::Services::ConfigurationService#call
-    - RailsAiBridge::Services::ContextGenerationService#call
-    - RailsAiBridge::Services::FileManagementService#call
-    - RailsAiBridge::Services::FileManagementService#file_exists?
-    - RailsAiBridge::Services::FileManagementService#validate_path!
-    - RailsAiBridge::Services::FileManagementService#write_file
     - RailsAiBridge::ToolResultCache#fetch_response
     - RailsAiBridge::ToolResultCache::CachedTool#detect_server_context_param
     - RailsAiBridge::Tools::BaseTool#text_response
@@ -1320,9 +1304,6 @@ detectors:
     - RailsAiBridge::Server#register_resources
     - RailsAiBridge::Server#tool_classes
     - RailsAiBridge::Server#validate_http_server_in_production
-    - RailsAiBridge::Services::ConfigurationService#call
-    - RailsAiBridge::Services::FileManagementService#default_allowed_base_dir
-    - RailsAiBridge::Services::FileManagementService#root_directory?
     - RailsAiBridge::ToolResultCache::CachedTool#detect_server_context_param
     - RailsAiBridge::Tools::ExplainSymbol::CliExplorer#failure_detail
     - RailsAiBridge::Tools::GetContext::RelatedTests#contained?
