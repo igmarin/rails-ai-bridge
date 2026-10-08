@@ -17,7 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `RubydexAdapter::IncrementalIndexer` raises `ServiceErrors::ValidationError` for an
   unsupported operation and rescues `ServiceErrors::BaseError` into a failure result with
-  the same message. The returned result is unchanged.
+  the same message. The returned result shape is unchanged. Errors that descend from
+  `ServiceErrors::BaseError` skip the generic `StandardError` logging path.
 
 ## [5.2.1] - 2026-09-23
 

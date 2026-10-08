@@ -39,8 +39,8 @@ module RailsAiBridge
       # @option options [Boolean] :persist whether to persist mtimes to disk, default +false+
       # @option options [String, nil] :index_path directory for the mtime JSON file, default +nil+
       # @return [Service::Result] result with +graph+ and +file_mtimes+ in data
-      # @raise [ServiceErrors::BaseError] rescued and returned as a failure result with its message
-      # @raise [StandardError] rescued and returned as failure result
+      # @note {ServiceErrors::BaseError} is rescued internally and returned as a failure result with its message.
+      # @note Other +StandardError+ subclasses are rescued internally and returned as a failure result.
       # :reek:DuplicateMethodCall -- each rescue builds its own failure message from error.message
       def call(operation, root:, graph: nil, file_mtimes: {}, **options)
         threshold = options.fetch(:threshold, 0.3)
