@@ -147,9 +147,11 @@ module RailsAiBridge
         end
 
         # Summary line counting the filters and strong params this controller renders by provenance.
+        # A missing provenance falls back to the field's origin: filters come from reflection and
+        # strong params come from source regexes.
         def footer_for(info)
-          provenances = Array(info[:filters]).pluck(:provenance)
-          provenances += [info[:strong_params_provenance]] * Array(info[:strong_params]).size
+          provenances = Array(info[:filters]).pluck(:provenance).map { |source| source || :reflection }
+          provenances += [info[:strong_params_provenance] || :regex] * Array(info[:strong_params]).size
           @provenance.footer(provenances)
         end
 

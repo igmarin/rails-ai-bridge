@@ -30,8 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the same message. The returned result shape is unchanged. Errors that descend from
   `ServiceErrors::BaseError` skip the generic `StandardError` logging path.
 - The controller tool (`rails_get_controllers`) shows confidence tags when `confidence_tags_enabled`
-  is on, which is the default. Filters come from Rails reflection and are `[VERIFIED]`. Strong
-  params are regex-derived and are `[INFERRED]`. A verification footer summarizes both. Set
+  is on, which is the default. Filters come from Rails reflection. The footer counts them as
+  `[VERIFIED]`, and their lines get no per-line tag. Strong params are regex-derived, get an
+  `[INFERRED]` tag, and are counted as `[INFERRED]` in the footer. Set
   `confidence_tags_enabled` to `false` for the previous output. Controller introspection facts gain
   additive `provenance` keys. Respond_to formats carry provenance in the payload only, because the
   tool does not render them yet.

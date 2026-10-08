@@ -49,6 +49,23 @@ RSpec.describe RailsAiBridge::Tools::GetControllers do
       expect(text).to include('- Strong params: name, email [INFERRED]')
     end
 
+    it 'keeps verified filter lines free of inline tags, since the footer counts them' do
+      text = described_class.call(controller: 'UsersController').content.first[:text]
+
+      expect(text).to include('- `before_action` **authenticate_user!**')
+      expect(text).not_to include('authenticate_user!** [VERIFIED]')
+    end
+
+    it 'counts payloads without provenance by the origin of each field' do
+      allow(described_class).to receive(:cached_section).with(:controllers).and_return(
+        { controllers: { 'LegacyController' => { filters: [{ kind: 'before_action', name: 'auth' }], strong_params: %w[name email] } } }
+      )
+
+      text = described_class.call(controller: 'LegacyController').content.first[:text]
+
+      expect(text).to include('Verification: [VERIFIED] reflection (1) · [INFERRED] regex (2)')
+    end
+
     it 'renders no footer for a controller with no filters or strong params' do
       allow(described_class).to receive(:cached_section).with(:controllers).and_return(
         { controllers: { 'PingController' => { actions: %w[show] } } }
