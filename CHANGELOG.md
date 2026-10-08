@@ -15,7 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RailsAiBridge::Introspectors::StaticPrismScanner` finds controller filter macros
   (`before_action` and its variants) with the optional Prism parser and tags each fact
   `provenance: :prism`. It returns an error hash, and never raises, when Prism is unavailable.
-  No tool output changes yet; the controller introspector wires it in a later step.
+  The scanner is currently unused by tool output.
+- `Config::StaticAnalysis` adds `confidence_tags_enabled` (default `true`), `prism_enabled` (default `false`), and `prism_max_files` (default `500`). The Prism settings have no effect yet, because nothing runs the Prism pass.
 
 ### Removed
 
@@ -37,6 +38,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `confidence_tags_enabled` to `false` for the previous output. Controller introspection facts gain
   additive `provenance` keys. Respond_to formats carry provenance in the payload only, because the
   tool does not render them yet.
+- The controller section of `rails_get_context` at `detail: full` shows the same tags and footer as the controller tool. That section is unchanged at summary and standard detail.
+- The full view of `rails_get_view` shows confidence tags when `confidence_tags_enabled` is
+  on. Helper methods are regex-derived, so they get an `[INFERRED]` tag. A verification footer
+  counts the facts the full view renders. Summary and standard output are unchanged. The setting
+  is on by default, so existing full-view output changes. Set `config.confidence_tags_enabled = false`
+  to keep the previous output.
 - Refreshed the mutation testing lockfile (`Gemfile-mutation.lock`): `mcp` 1.6.0 → 1.7.0 and
   `railties` 8.1.3.1 → 8.1.4, with the matching Rails gems. Runtime dependency requirements
   are unchanged.
@@ -52,6 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `config.mcp.rate_limiter_key_prefix` now applies to `Mcp::CacheRateLimiter` when `key_prefix:`
   is omitted. The option was previously set but never read. An explicit `key_prefix:` still wins.
+- The README no longer says `rails_get_model_details` verifies facts with `rubydex`. Association facts are verified by reflection, and no tool emits `rubydex` yet. No `rails_get_model_details` output changed.
 
 ## [5.2.1] - 2026-09-23
 

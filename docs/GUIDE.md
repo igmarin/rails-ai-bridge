@@ -10,6 +10,7 @@ Commands, tools, config, and setup. For the short path, use the [README](../READ
 - [Context Modes](#context-modes)
 - [Generated Files](#generated-files)
 - [All Commands](#all-commands)
+- [Reading confidence tags](#reading-confidence-tags)
 - [MCP Tools — Full Reference](#mcp-tools--full-reference)
 - [MCP Resources](#mcp-resources)
 - [MCP Server Setup](#mcp-server-setup)
@@ -292,6 +293,27 @@ end
 ```
 
 ---
+
+## Reading confidence tags
+
+Some tools label each fact with the evidence behind it.
+
+| Tag | Meaning | Sources |
+|-----|---------|---------|
+| `[VERIFIED]` | Provable at runtime or from the AST | `reflection`, `live`. `rubydex` and `prism` are recognized by the tag layer, but no v6.0 tool output uses them. |
+| `[INFERRED]` | Comes from a pattern or heuristic | `regex`, `heuristic`, schema file parses (the internal `static` source, not the `[STATIC]` tag), and any other source |
+| `[STATIC]` | Reserved for a future static tier. Not emitted in v6.0. | none |
+
+Tags appear in two forms:
+
+- **Inline tags** on a single line, such as ``- `name` [INFERRED]`` for a strong param found by regex.
+- **A footer** that counts facts by source, such as `Verification: [VERIFIED] reflection (3) · [INFERRED] regex (2)`. Single-controller output (a request for one controller) gets one under the controller heading at every `detail` level. The controller section of full-detail `rails_get_context` output gets one too. Full-detail output gets one per controller in `rails_get_controllers`, and one at the end of `rails_get_view`. Summary and standard lists have no footer.
+
+Tagged output: single-controller output at any `detail` level, full-detail `rails_get_controllers` output, the controller section of full-detail `rails_get_context` output, and full-detail `rails_get_view` output. The schema and model tools also tag facts. Controller and view list output at summary and standard detail has no tags or footers. Other tools don't tag facts yet.
+
+To remove the controller and view tags, set `config.confidence_tags_enabled = false` in the `RailsAiBridge.configure` block. Schema and model tags stay on regardless, because they predate the setting.
+
+The Prism settings are reserved. `prism_enabled` and `prism_max_files` exist, but nothing in v6.0 runs the Prism static pass, so they change no output.
 
 ## MCP Tools — Full Reference
 
@@ -866,6 +888,8 @@ sort then take), and `parallel_introspection` is **off**.
 
 ### Options reference
 
+The settings `confidence_tags_enabled`, `prism_enabled`, and `prism_max_files` work at the top level, such as `config.confidence_tags_enabled`, and on the sub-object, such as `config.static_analysis.confidence_tags_enabled`. Both paths write the same setting, so the last assignment wins.
+
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `preset` | Symbol | `:standard` | Introspector preset (`:standard` or `:full`) |
@@ -901,6 +925,10 @@ sort then take), and `parallel_introspection` is **off**.
 | `parallel_introspection` | Boolean | `false` | Run introspectors concurrently using a `Concurrent::FixedThreadPool`. Requires `concurrent-ruby` (already a Rails transitive dep). Automatically disabled when the ActiveRecord connection pool has only one slot. |
 | `parallel_pool_size` | Integer | `4` | Upper bound on pool threads. Actual size is `min(introspector_count, parallel_pool_size)` — no idle threads are created. Only relevant when `parallel_introspection` is `true`. |
 | `parallel_timeout_seconds` | Integer | `10` | Seconds each future may run before being cancelled. Timed-out introspectors return `{ error: "timed out after Ns" }`. Also used as the `wait_for_termination` grace period. Only relevant when `parallel_introspection` is `true`. |
+| `static_analysis` | `RailsAiBridge::Config::StaticAnalysis` | built in | Sub-object for the confidence and Prism settings below, such as `config.static_analysis.confidence_tags_enabled` |
+| `confidence_tags_enabled` | Boolean | `true` | Adds tags and footers to single-controller output at any `detail` level, to full-detail `rails_get_controllers` output, to the controller section of full-detail `rails_get_context` output, and to full-detail `rails_get_view` output. Summary and standard list output (no `controller:` argument) has no tags or footers. Schema and model tags are always on. |
+| `prism_enabled` | Boolean | `false` | Reserved. Nothing in v6.0 runs the Prism static pass, so this has no effect yet. |
+| `prism_max_files` | Integer | `500` | Reserved. Caps files parsed per Prism run once the pass is wired in. No effect yet. |
 
 ---
 

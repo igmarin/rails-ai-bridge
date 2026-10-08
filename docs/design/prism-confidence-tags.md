@@ -136,13 +136,14 @@ directions; no file moves (no #250-style churn).
 
 ### Tool / response surface
 
-- No new tools. `Server::TOOLS` unchanged; count parity specs unchanged.
+- No new tool classes. `Server::TOOLS` unchanged; count parity specs unchanged. Existing tool output gains tags and footers instead.
 - `rails_get_schema`, `rails_get_model_details` keep current behavior (already tagged).
-- `rails_get_controllers`, `rails_get_test_info`, `rails_get_view` gain footer/inline tags when
+- `rails_get_controllers`, `rails_get_view`, and the controller section of full-detail `rails_get_context` gain footer/inline tags when
   `confidence_tags_enabled`; all keep `detail:` (`summary`/`standard`/`full`), `format:`
   (`json`/`markdown`), and annotations `read_only_hint: true, destructive_hint: false,
   idempotent_hint: true, open_world_hint: false`.
 - Errors unchanged: unavailable sections return the existing "not available" message, never a tag.
+- Deferred: `rails_get_test_info` was in the first draft of this scope. No sub-issue covers it, so it stays untagged in v6.0.
 
 **Preset decision (explicit):** no preset changes. Tags ride existing introspectors; the optional
 `:static_analysis` introspector is **opt-in only** (host registers via
@@ -223,9 +224,9 @@ Recorded 2026-10-08. These answer the three questions this section used to list.
 
 Created from the TDD plan once this doc is merged. One sub-issue per implementation step:
 
-1. `ConfidenceTag.footer` (TDD plan item 1).
-2. `Config::StaticAnalysis` and its flat delegators (item 2).
-3. `StaticPrismScanner`, Prism-optional and error-safe (item 3).
-4. Provenance on the controller introspector (item 4).
-5. Tool rendering: controllers, then jobs, then views (item 5).
-6. Docs parity: README, GUIDE, CHANGELOG, ROADMAP (item 6).
+1. `ConfidenceTag.footer` (TDD plan item 1). [#315](https://github.com/igmarin/rails-ai-bridge/issues/315)
+2. `Config::StaticAnalysis` and its flat delegators (item 2). [#316](https://github.com/igmarin/rails-ai-bridge/issues/316)
+3. `StaticPrismScanner`, Prism-optional and error-safe (item 3). [#317](https://github.com/igmarin/rails-ai-bridge/issues/317)
+4. Provenance on the controller introspector (item 4). [#318](https://github.com/igmarin/rails-ai-bridge/issues/318)
+5. Tool rendering: controllers, the controller section of full-detail `rails_get_context`, and views. Jobs were skipped because no tool renders job facts. [#319](https://github.com/igmarin/rails-ai-bridge/issues/319)
+6. Docs parity: README, GUIDE, CHANGELOG, ROADMAP (item 6). [#320](https://github.com/igmarin/rails-ai-bridge/issues/320)

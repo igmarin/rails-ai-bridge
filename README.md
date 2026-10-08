@@ -296,7 +296,7 @@ The gem exposes **22 built-in tool classes** via MCP — 20 registered by defaul
 | Tool | What it returns |
 |------|----------------|
 | `rails_get_schema` | Tables, columns, indexes, foreign keys — tagged `[VERIFIED]` (live ActiveRecord) or `[INFERRED]` (static schema.rb / structure.sql parse) |
-| `rails_get_model_details` | Associations, validations, scopes, enums, callbacks, source macros, semantic tier, non-AR models (when enabled) — tagged `[VERIFIED]` (reflection / rubydex) or `[INFERRED]` (source regex) |
+| `rails_get_model_details` | Associations, validations, scopes, enums, callbacks, source macros, semantic tier, non-AR models (when enabled) — tagged `[VERIFIED]` (reflection) or `[INFERRED]` (source regex) |
 | `rails_get_context` | In-process composite for one model, controller, or feature: table + model + routes + controller actions + cheap related tests (no HTTP) |
 | `rails_get_routes` | HTTP verbs, paths, controller actions |
 | `rails_get_controllers` | Actions, inherited filters (source class at standard/full), strong params, concerns |
@@ -319,6 +319,8 @@ The gem exposes **22 built-in tool classes** via MCP — 20 registered by defaul
 | `rails_get_provider_context` | Fetches context from declared external MCP providers. Requires `context_providers.enabled = true` and an explicit host allowlist. Separate from `rails_get_context` (local in-process composite) |
 
 All tools are **read-only** — they never modify your application or database.
+
+**Confidence tags legend.** Some tools label each fact with its evidence. `[VERIFIED]` means the fact is provable at runtime or from the AST. `[INFERRED]` means it comes from a pattern, a heuristic, or a schema-file parse (the `static` source label). `[STATIC]` is reserved and never emitted. `rails_get_schema` and `rails_get_model_details` tag facts, as do single-controller `rails_get_controllers` output at any detail level, full-detail `rails_get_controllers` lists, and full-detail `rails_get_view` output. The schema and model sections of `rails_get_context` are tagged too, and its controller section is tagged at full detail. Set `config.confidence_tags_enabled = false` in the `RailsAiBridge.configure` block to remove the controller and view tags; schema and model tags stay on. The guide's [Reading confidence tags](docs/GUIDE.md#reading-confidence-tags) section explains the footer and the settings.
 
 ### Smart Detail Levels
 
@@ -568,6 +570,8 @@ end
 <details>
 <summary><strong>All configuration options</strong></summary>
 
+The confidence and Prism settings also work on the `static_analysis` sub-object. See the [options reference in the guide](docs/GUIDE.md#options-reference) for both paths.
+
 | Option | Default | Description |
 |--------|---------|-------------|
 | `preset` | `:standard` | Introspector preset (`:standard` or `:full`) |
@@ -604,6 +608,10 @@ end
 | `parallel_introspection` | `false` | Run introspectors concurrently (requires `concurrent-ruby`, which is already a Rails dependency) |
 | `parallel_pool_size` | `4` | Max threads in the parallel pool; capped at the number of active introspectors so no idle threads are created |
 | `parallel_timeout_seconds` | `10` | Per-introspector future timeout (seconds); timed-out introspectors return `{ error: "timed out after Ns" }` without blocking the others |
+| `static_analysis` | built in | Sub-object (`RailsAiBridge::Config::StaticAnalysis`) for the confidence and Prism settings below, such as `config.static_analysis.confidence_tags_enabled` |
+| `confidence_tags_enabled` | `true` | Adds tags and footers to single-controller output at any `detail` level, to full-detail `rails_get_controllers` output, to the controller section of full-detail `rails_get_context` output, and to full-detail `rails_get_view` output. Summary and standard list output (no `controller:` argument) has no tags or footers. Schema and model tags are always on. |
+| `prism_enabled` | `false` | Reserved. Nothing runs the Prism static pass yet, so this has no effect. |
+| `prism_max_files` | `500` | Reserved. Caps files parsed per Prism run once the pass is wired in. No effect yet. |
 | `registry.registry_manifest_path` | `"config/rails_ai_bridge/registry.json"` | Path to the registry manifest JSON file for skill pack resolution |
 | `registry.skill_cache_dir` | `"~/.rails-ai-bridge/cache"` | Directory for caching git repositories containing skill packs |
 | `registry.skill_packs` | `nil` | Explicit pack names to load, or `nil` for auto-detection based on framework |

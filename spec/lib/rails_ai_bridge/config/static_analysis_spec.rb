@@ -45,6 +45,11 @@ RSpec.describe RailsAiBridge::Configuration do
     expect(config.static_analysis.prism_enabled).to be(true)
   end
 
+  it 'reads a sub-object write through the top-level accessor' do
+    config.static_analysis.confidence_tags_enabled = false
+    expect(config.confidence_tags_enabled).to be(false)
+  end
+
   it 'delegates prism_max_files to the static_analysis sub-config' do
     config.prism_max_files = 10
     expect(config.static_analysis.prism_max_files).to eq(10)

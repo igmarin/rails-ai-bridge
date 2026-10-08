@@ -169,6 +169,57 @@ RSpec.describe RailsAiBridge::Tools::GetContext do
       end
     end
 
+    context 'with confidence tags around the controller section' do
+      context 'when confidence tags are enabled' do
+        around do |example|
+          original = RailsAiBridge.configuration.confidence_tags_enabled
+          RailsAiBridge.configuration.confidence_tags_enabled = true
+          begin
+            example.run
+          ensure
+            RailsAiBridge.configuration.confidence_tags_enabled = original
+          end
+        end
+
+        it 'adds a controller footer at full detail only' do
+          full = described_class.call(model: 'User', detail: 'full').content.first[:text]
+          standard = described_class.call(model: 'User', detail: 'standard').content.first[:text]
+          summary = described_class.call(model: 'User', detail: 'summary').content.first[:text]
+
+          expect(full).to include('Verification:', '`user_params` [INFERRED]')
+          expect(standard).not_to include('Verification:')
+          expect(summary).not_to include('Verification:')
+          expect(standard).to include('`before_action` **set_user**')
+          expect(summary).to include('**UsersController**')
+          standard_filter = standard.lines.find { |line| line.include?('**set_user**') }
+          summary_controller = summary.lines.find { |line| line.include?('**UsersController**') }
+          expect(standard_filter).not_to match(/\[(VERIFIED|INFERRED)\]/)
+          expect(summary_controller).not_to match(/\[(VERIFIED|INFERRED)\]/)
+        end
+      end
+
+      context 'when confidence tags are disabled' do
+        around do |example|
+          original = RailsAiBridge.configuration.confidence_tags_enabled
+          RailsAiBridge.configuration.confidence_tags_enabled = false
+          begin
+            example.run
+          ensure
+            RailsAiBridge.configuration.confidence_tags_enabled = original
+          end
+        end
+
+        it 'removes the controller footer and keeps model tags' do
+          full = described_class.call(model: 'User', detail: 'full').content.first[:text]
+          summary = described_class.call(model: 'User', detail: 'summary').content.first[:text]
+
+          expect(full).not_to include('Verification:')
+          expect(full).not_to include('`user_params` [INFERRED]')
+          expect(summary).to include('- `has_many` **posts** [VERIFIED]', '- `has_one` **profile** [INFERRED]')
+        end
+      end
+    end
+
     context 'with feature name resolution' do
       let(:params) { { feature: 'posts' } }
 
