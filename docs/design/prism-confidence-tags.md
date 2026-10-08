@@ -138,11 +138,12 @@ directions; no file moves (no #250-style churn).
 
 - No new tools. `Server::TOOLS` unchanged; count parity specs unchanged.
 - `rails_get_schema`, `rails_get_model_details` keep current behavior (already tagged).
-- `rails_get_controllers`, `rails_get_test_info`, `rails_get_view` gain footer/inline tags when
+- `rails_get_controllers` and `rails_get_view` gain footer/inline tags when
   `confidence_tags_enabled`; all keep `detail:` (`summary`/`standard`/`full`), `format:`
   (`json`/`markdown`), and annotations `read_only_hint: true, destructive_hint: false,
   idempotent_hint: true, open_world_hint: false`.
 - Errors unchanged: unavailable sections return the existing "not available" message, never a tag.
+- Deferred: `rails_get_test_info` was in the first draft of this scope. No sub-issue covers it, so it stays untagged in v6.0.
 
 **Preset decision (explicit):** no preset changes. Tags ride existing introspectors; the optional
 `:static_analysis` introspector is **opt-in only** (host registers via
