@@ -5,6 +5,17 @@ module RailsAiBridge
     # Scans view layer: layouts, templates, partials, helpers,
     # view components, and template engine detection.
     class ViewIntrospector
+      # Evidence origin of each listing. Files found on disk are observed live, helper methods are
+      # scanned with a regex, and template engines are inferred from file extensions.
+      PROVENANCE = {
+        layouts: :live,
+        templates: :live,
+        partials: :live,
+        helpers: :regex,
+        view_components: :live,
+        template_engines: :heuristic
+      }.freeze
+
       attr_reader :app
 
       # Accumulates renderable templates grouped by controller directory.
@@ -90,7 +101,7 @@ module RailsAiBridge
       # components, and template engines discovered through configured Rails
       # paths.
       #
-      # @return [Hash] view-layer metadata, or an +:error+ key when detection fails
+      # @return [Hash] view-layer metadata with a +:provenance+ map per listing, or an +:error+ key when detection fails
       def call
         {
           layouts: extract_layouts,
@@ -98,7 +109,8 @@ module RailsAiBridge
           partials: extract_partials,
           helpers: extract_helpers,
           view_components: extract_view_components,
-          template_engines: detect_template_engines
+          template_engines: detect_template_engines,
+          provenance: PROVENANCE
         }
       rescue StandardError => error
         { error: error.message }

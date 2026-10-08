@@ -137,4 +137,59 @@ RSpec.describe RailsAiBridge::Tools::GetView do
       expect(text).to include('not available')
     end
   end
+
+  describe 'confidence tags' do
+    let(:views) do
+      {
+        layouts: ['application.html.erb'],
+        template_engines: ['erb'],
+        templates: { 'users' => ['index.html.erb', 'show.html.erb'] },
+        partials: { shared: ['_flash.html.erb'], per_controller: { 'users' => ['_form.html.erb'] } },
+        helpers: [{ file: 'users_helper.rb', methods: %w[display_name status_badge] }],
+        view_components: ['button_component'],
+        provenance: {
+          layouts: :live, templates: :live, partials: :live,
+          helpers: :regex, view_components: :live, template_engines: :heuristic
+        }
+      }
+    end
+
+    before { allow(described_class).to receive(:cached_section).with(:views).and_return(views) }
+
+    around do |example|
+      original = RailsAiBridge.configuration.confidence_tags_enabled
+      begin
+        example.run
+      ensure
+        RailsAiBridge.configuration.confidence_tags_enabled = original
+      end
+    end
+
+    it 'tags regex-derived helper lines and counts every rendered fact in the full view footer' do
+      text = described_class.call(detail: 'full').content.first[:text]
+
+      expect(text).to include('- `users_helper.rb`: display_name, status_badge [INFERRED]')
+      expect(text).to include('Verification: [VERIFIED] live (6) · [INFERRED] regex (2) · [INFERRED] heuristic (1)')
+    end
+
+    it 'renders no tags or footer when confidence tags are disabled' do
+      RailsAiBridge.configuration.confidence_tags_enabled = false
+      text = described_class.call(detail: 'full').content.first[:text]
+
+      expect(text).to include("- `users_helper.rb`: display_name, status_badge\n")
+      expect(text).not_to match(/\[(VERIFIED|INFERRED)\]/)
+      expect(text).not_to include('Verification:')
+    end
+
+    it 'keeps summary and standard output free of tags and footers' do
+      RailsAiBridge.configuration.confidence_tags_enabled = true
+
+      %w[summary standard].each do |detail|
+        text = described_class.call(detail: detail).content.first[:text]
+
+        expect(text).not_to match(/\[(VERIFIED|INFERRED)\]/)
+        expect(text).not_to include('Verification:')
+      end
+    end
+  end
 end
