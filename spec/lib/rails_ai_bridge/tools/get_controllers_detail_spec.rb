@@ -49,6 +49,16 @@ RSpec.describe RailsAiBridge::Tools::GetControllers do
       expect(text).to include('- Strong params: name, email [INFERRED]')
     end
 
+    it 'renders no footer for a controller with no filters or strong params' do
+      allow(described_class).to receive(:cached_section).with(:controllers).and_return(
+        { controllers: { 'PingController' => { actions: %w[show] } } }
+      )
+
+      text = described_class.call(controller: 'PingController').content.first[:text]
+
+      expect(text).not_to include('Verification:')
+    end
+
     it 'renders no tags when confidence tags are disabled' do
       RailsAiBridge.configuration.confidence_tags_enabled = false
       text = described_class.call(controller: 'UsersController').content.first[:text]

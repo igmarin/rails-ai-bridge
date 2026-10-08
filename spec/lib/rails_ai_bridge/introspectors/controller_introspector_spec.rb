@@ -239,6 +239,15 @@ RSpec.describe RailsAiBridge::Introspectors::ControllerIntrospector do
   end
 
   describe 'private methods' do
+    describe '#extract_controller_details' do
+      it 'omits the provenance keys when a controller has no strong params or respond_to formats' do
+        allow(introspector).to receive(:read_source).and_return('')
+        details = introspector.send(:extract_controller_details, Class.new(ApplicationController))
+
+        expect(details).not_to include(:strong_params_provenance, :respond_to_formats_provenance)
+      end
+    end
+
     describe '#extract_strong_params' do
       it 'returns empty array for nil source' do
         expect(introspector.send(:extract_strong_params, nil)).to eq([])
