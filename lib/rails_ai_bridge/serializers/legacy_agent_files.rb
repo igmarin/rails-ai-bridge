@@ -11,9 +11,8 @@ module RailsAiBridge
       MAIN_FORMATS = %i[cursor devin].freeze
       SPLIT_FORMATS = %i[codex].freeze
       WARN_MUTEX = Mutex.new
-      WARNING = '[rails-ai-bridge] DEPRECATION: config.output.legacy_agent_files writes ' \
-                '.cursorrules, .devinrules, and .codex/README.md, which no assistant needs. ' \
-                'They will be removed in 6.0.'
+      WARNING = '[rails-ai-bridge] DEPRECATION: config.output.legacy_agent_files enables deprecated assistant files ' \
+                '(.cursorrules, .devinrules, and .codex/README.md), where selected. They will be removed in 6.0.'
 
       class << self
         # @param fmt [Symbol] format key
