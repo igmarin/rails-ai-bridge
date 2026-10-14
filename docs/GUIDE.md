@@ -80,7 +80,6 @@ rails ai:bridge
 ```
 
 - CLAUDE.md ≤150 lines
-- .devinrules ≤5,800 characters
 - copilot-instructions.md ≤500 lines
 - Files contain a project overview + MCP tool reference
 - AI uses MCP tools for detailed data on-demand
@@ -139,24 +138,30 @@ end
 | `.claude/rules/rails-models.md` | Model listing with associations | Includes `tier: …` per ActiveRecord model; adds **Non-ActiveRecord classes (POJO/Service)** for plain Ruby classes under `app/models`. |
 | `.claude/rules/rails-mcp-tools.md` | Full MCP tool reference | Parameters, detail levels, pagination, workflow guide. |
 
-### Cursor (6 files)
+### Cursor (5 files)
 
 | File | Purpose | Notes |
 |------|---------|-------|
-| `.cursorrules` | Legacy context file | Compact mode: engineering rules + stack + MCP (aligned with Copilot order). |
 | `.cursor/rules/rails-engineering.mdc` | Engineering essentials | `alwaysApply: true` — strong params, auth, N+1, security; points to overrides + full docs. |
 | `.cursor/rules/rails-project.mdc` | Project overview | `alwaysApply: true` — stack counts, endpoint focus, gems (capped), `routes_stack_line`. |
 | `.cursor/rules/rails-models.mdc` | Model reference | `globs: app/models/**/*.rb` — auto-attaches when editing models; rows are ordered by task relevance. |
 | `.cursor/rules/rails-controllers.mdc` | Controller reference | `globs: app/controllers/**/*.rb` — auto-attaches when editing controllers. |
 | `.cursor/rules/rails-mcp-tools.mdc` | MCP tool reference | `alwaysApply: true` — always available. |
 
-### Devin (3 files)
+### Devin (2 files)
 
 | File | Purpose | Notes |
 |------|---------|-------|
-| `.devinrules` | Main context file | Hard-capped at 5,800 chars (Devin's 6K limit). Truncated silently if exceeded. |
 | `.devin/rules/rails-context.md` | Project overview | New Devin rules format. |
 | `.devin/rules/rails-mcp-tools.md` | MCP tool reference | Compact — respects 6K per-file limit. |
+
+### Deprecated files
+
+`.cursorrules`, `.devinrules`, and `.codex/README.md` are no longer written by default. Cursor reads
+`.cursor/rules/` and `AGENTS.md`, Devin reads `AGENTS.md` and `.devin/rules/` (it does not read
+`.devinrules`), and Codex reads only `AGENTS.md`. Copies you already have stay in place; delete them when
+you are ready. Set `config.output.legacy_agent_files = true` to keep writing them until 6.0, which removes
+the option. The first run with the option on prints a deprecation notice.
 
 ### GitHub Copilot (4 files)
 
@@ -197,7 +202,7 @@ query the `rails_*` MCP tools for columns, associations, and routes; mark guesse
 `RailsAiBridge::Serializers::AntiHallucinationRules` — a single source of truth.
 
 The block is injected into all markdown outputs (main context files **and** the
-split-rules files under `.claude/rules/`, `.cursor/rules/`, `.devin/rules/`, `.codex/`,
+split-rules files under `.claude/rules/`, `.cursor/rules/`, `.devin/rules/`,
 `.github/instructions/`) near the top, so it survives compact-mode bottom-trimming and
 Devin's 5,800-character cap, and it is always inside the managed region when
 `config.output.managed_region` is enabled.
@@ -215,9 +220,9 @@ Disable with `config.output.anti_hallucination_rules = false` (default: `true`).
 | `rails ai:bridge` | compact | all | Generate all bridge files |
 | `rails ai:bridge:full` | full | all | Generate all files in full mode |
 | `rails ai:bridge:claude` | compact | Claude | CLAUDE.md + .claude/rules/ |
-| `rails ai:bridge:codex` | compact | Codex | AGENTS.md + .codex/README.md |
-| `rails ai:bridge:cursor` | compact | Cursor | .cursorrules + .cursor/rules/ |
-| `rails ai:bridge:devin` | compact | Devin | .devinrules + .devin/rules/ |
+| `rails ai:bridge:codex` | compact | Codex | AGENTS.md |
+| `rails ai:bridge:cursor` | compact | Cursor | .cursor/rules/ |
+| `rails ai:bridge:devin` | compact | Devin | .devin/rules/ |
 | `rails ai:bridge:copilot` | compact | Copilot | copilot-instructions.md + .github/instructions/ |
 | `rails ai:bridge:json` | — | JSON | .ai-context.json |
 | `CONTEXT_MODE=full rails ai:bridge:claude` | full | Claude | Full dump for Claude only |
@@ -286,7 +291,7 @@ RailsAiBridge.generate_context(
 ```ruby
 # config/initializers/rails_ai_bridge.rb
 RailsAiBridge.configure do |config|
-  # Regenerates CLAUDE.md + .claude/rules/* and .cursorrules + .cursor/rules/*
+  # Regenerates CLAUDE.md + .claude/rules/* and .cursor/rules/*
   # (split-rule directories are also churned when split_rules: true, the default)
   config.watcher_formats = %i[claude cursor]
 end
@@ -775,7 +780,7 @@ Set `config.require_http_auth = true` if the endpoint must not accept anonymous 
 
 ### Codex
 
-This fork adds Codex support through `AGENTS.md` and `.codex/README.md`.
+This fork adds Codex support through `AGENTS.md`.
 
 - Run `rails ai:bridge:codex` to regenerate Codex guidance.
 - Commit `AGENTS.md` for shared repository instructions.
@@ -811,6 +816,7 @@ RailsAiBridge.configure do |config|
 
   # Anti-hallucination rules block in every generated file (default: true)
   # config.output.anti_hallucination_rules = true
+  # config.output.legacy_agent_files = false   # true also writes deprecated .cursorrules, .devinrules, .codex/README.md
 
   # Formats regenerated by `rails ai:watch` (default: :all). Narrow to limit churn.
   # config.watcher_formats = %i[claude cursor]
@@ -823,7 +829,7 @@ RailsAiBridge.configure do |config|
   # Optional markdown merged into compact Copilot + Codex (default: config/rails_ai_bridge/overrides.md)
   # config.assistant_overrides_path = "config/rails_ai_bridge/overrides.md"
 
-  # Model names shown in compact copilot-instructions / AGENTS / .cursorrules (0 = MCP pointer only)
+  # Model names shown in compact copilot-instructions / AGENTS (0 = MCP pointer only)
   # config.copilot_compact_model_list_limit = 5
   # config.codex_compact_model_list_limit = 3
 
@@ -918,10 +924,11 @@ The settings `confidence_tags_enabled`, `prism_enabled`, and `prism_max_files` w
 | `http_log_json` | Boolean | `false` | Structured JSON log line per HTTP MCP response |
 | `server_name` | String | `"rails-ai-bridge"` | MCP server name |
 | `assistant_overrides_path` | String | `nil` → `config/rails_ai_bridge/overrides.md` | Markdown merged into compact Copilot + Codex |
-| `copilot_compact_model_list_limit` | Integer | `5` | Max model rows in copilot-instructions / `.cursorrules` (`0` = none) |
+| `copilot_compact_model_list_limit` | Integer | `5` | Max model rows in copilot-instructions (`0` = none) |
 | `codex_compact_model_list_limit` | Integer | `3` | Max model rows in `AGENTS.md` (`0` = none) |
 | `watcher_formats` | Symbol / Array | `:all` | Formats regenerated by `rails ai:watch`. Set to e.g. `%i[claude cursor]` to skip formats you don't use during active development. |
 | `anti_hallucination_rules` | Boolean | `true` | Include the shared `## Anti-hallucination rules` block in every generated context file (markdown near the top; `.ai-context.json` as an `anti_hallucination_rules` key) |
+| `legacy_agent_files` | Boolean | `false` | Also write the deprecated `.cursorrules`, `.devinrules`, and `.codex/README.md`. Removed in 6.0. |
 | `parallel_introspection` | Boolean | `false` | Run introspectors concurrently using a `Concurrent::FixedThreadPool`. Requires `concurrent-ruby` (already a Rails transitive dep). Automatically disabled when the ActiveRecord connection pool has only one slot. |
 | `parallel_pool_size` | Integer | `4` | Upper bound on pool threads. Actual size is `min(introspector_count, parallel_pool_size)` — no idle threads are created. Only relevant when `parallel_introspection` is `true`. |
 | `parallel_timeout_seconds` | Integer | `10` | Seconds each future may run before being cancelled. Timed-out introspectors return `{ error: "timed out after Ns" }`. Also used as the `wait_for_termination` grace period. Only relevant when `parallel_introspection` is `true`. |
@@ -1028,7 +1035,6 @@ rails ai:bridge          # all formats at once
 ### Cursor
 
 **Passive context (loaded automatically):**
-- `.cursorrules` — legacy compat file, loaded at session start
 - `.cursor/rules/*.mdc` — MDC rules with activation modes:
 
 | Rule file | Activation |
@@ -1072,7 +1078,7 @@ Then start your Rails server (`bin/rails server`) and point Cursor to `http://lo
 
 **Regenerate context:**
 ```bash
-rails ai:bridge:cursor   # .cursorrules + .cursor/rules/
+rails ai:bridge:cursor   # .cursor/rules/
 ```
 
 ---
@@ -1080,7 +1086,6 @@ rails ai:bridge:cursor   # .cursorrules + .cursor/rules/
 ### Devin
 
 **Passive context (loaded automatically):**
-- `.devinrules` — compact project overview, hard-capped at 5,800 chars (Devin's 6K limit)
 - `.devin/rules/rails-context.md` — project overview (full version, also capped at 5,800 chars)
 - `.devin/rules/rails-mcp-tools.md` — MCP tool reference
 - `AGENTS.md` — Devin also reads AGENTS.md as repo-level instructions
@@ -1089,7 +1094,7 @@ rails ai:bridge:cursor   # .cursorrules + .cursor/rules/
 
 **Step 1 — Generate the Devin context files:**
 ```bash
-rails ai:bridge:devin   # .devinrules + .devin/rules/
+rails ai:bridge:devin   # .devin/rules/
 rails ai:bridge:codex   # AGENTS.md (Devin also reads this)
 # or generate everything at once:
 rails ai:bridge
@@ -1166,13 +1171,12 @@ rails ai:bridge:copilot   # .github/copilot-instructions.md + .github/instructio
 
 **Passive context:**
 - `AGENTS.md` — primary context file, read by Codex at session start
-- `.codex/README.md` — local Codex setup notes generated by the install generator
 
-**MCP tools:** Configurable via `.codex/mcp_servers.json` or equivalent Codex MCP config. The generated `.codex/README.md` includes setup instructions.
+**MCP tools:** Configurable via `.codex/mcp_servers.json` or equivalent Codex MCP config.
 
 **Regenerate context:**
 ```bash
-rails ai:bridge:codex   # AGENTS.md + .codex/README.md
+rails ai:bridge:codex   # AGENTS.md
 ```
 
 ---

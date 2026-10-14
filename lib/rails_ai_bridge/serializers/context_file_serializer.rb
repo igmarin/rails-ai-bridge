@@ -74,7 +74,11 @@ module RailsAiBridge
 
         timestamp_now = Time.now.utc.iso8601
 
+        LegacyAgentFiles.warn_once(formats)
+
         formats.each do |fmt|
+          next if LegacyAgentFiles.skip_main?(fmt)
+
           process_format(fmt, output_dir, timestamp_now, @fingerprint, written, skipped)
         end
 
@@ -132,6 +136,8 @@ module RailsAiBridge
       # @return [void]
       def generate_split_rules(formats, output_dir, written, skipped)
         formats.each do |fmt|
+          next if LegacyAgentFiles.skip_split?(fmt)
+
           result = Providers::Factory.split_rules_for(fmt, context).call(output_dir)
           written.concat(result[:written])
           skipped.concat(result[:skipped])

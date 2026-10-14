@@ -95,4 +95,3 @@ _Regenerated files are snapshots. Re-merge team-specific performance, security, 
 
 ## Codex notes
 - This repository also includes `.mcp.json` for MCP client setup.
-- See `.codex/README.md` for optional local Codex setup guidance.

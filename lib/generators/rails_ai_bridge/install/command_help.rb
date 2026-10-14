@@ -35,9 +35,9 @@ module RailsAiBridge
         say ''
         say 'Bridge files per tool:', :yellow
         say '  Claude Code    → CLAUDE.md + .claude/rules/*.md'
-        say '  OpenAI Codex   → AGENTS.md + .codex/README.md'
-        say '  Cursor         → .cursorrules + .cursor/rules/*.mdc'
-        say '  Devin          → .devinrules + .devin/rules/*.md'
+        say '  OpenAI Codex   → AGENTS.md'
+        say '  Cursor         → .cursor/rules/*.mdc'
+        say '  Devin          → .devin/rules/*.md'
         say '  GitHub Copilot → .github/copilot-instructions.md + .github/instructions/*.md'
         say '  Gemini         → GEMINI.md'
         say ''

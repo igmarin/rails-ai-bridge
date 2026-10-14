@@ -1,5 +1,20 @@
 # Upgrading rails-ai-bridge
 
+## Upgrading from 5.3.x to the next release
+
+**One behavior change.** `rails ai:bridge` no longer writes `.cursorrules`, `.devinrules`, or
+`.codex/README.md`. No assistant needs them: Cursor reads `.cursor/rules/` and `AGENTS.md`, Devin does not
+read `.devinrules`, and Codex reads only `AGENTS.md`. Nothing else changes, and the gem never deletes your
+existing copies. Delete them when you are ready (and remove them from `.gitignore` or CI if you listed them).
+
+To keep writing them until 6.0 removes the option:
+
+```ruby
+RailsAiBridge.configure { |config| config.output.legacy_agent_files = true }
+```
+
+---
+
 ## Upgrading from 5.2.x to 5.3.0
 
 **No action is required.** One default changes what tools print.

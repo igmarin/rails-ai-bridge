@@ -392,8 +392,8 @@ module RailsAiBridge
       def collect_selected_formats
         format_prompts = {
           claude: 'Generate CLAUDE.md?',
-          cursor: 'Generate .cursorrules?',
-          devin: 'Generate .devinrules?',
+          cursor: 'Generate Cursor rules (.cursor/rules/)?',
+          devin: 'Generate Devin rules (.devin/rules/)?',
           copilot: 'Generate .github/copilot-instructions.md?',
           gemini: 'Generate GEMINI.md?',
           codex: 'Generate AGENTS.md?'

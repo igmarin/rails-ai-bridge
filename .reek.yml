@@ -49,6 +49,7 @@ detectors:
     - RailsAiBridge::Config::Output#codex_compact_model_list_limit
     - RailsAiBridge::Config::Output#context_mode
     - RailsAiBridge::Config::Output#copilot_compact_model_list_limit
+    - RailsAiBridge::Config::Output#legacy_agent_files
     - RailsAiBridge::Config::Output#managed_region
     - RailsAiBridge::Config::Output#max_tool_response_chars
     - RailsAiBridge::Config::Output#output_dir

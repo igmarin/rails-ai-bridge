@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Deprecated
+
+- `.cursorrules`, `.devinrules`, and `.codex/README.md` are no longer written by default. Cursor reads
+  `.cursor/rules/` and `AGENTS.md`, Devin does not read `.devinrules`, and Codex reads only `AGENTS.md`.
+  `.cursor/rules/`, `.devin/rules/`, and `AGENTS.md` are unchanged. Set
+  `config.output.legacy_agent_files = true` to keep writing the three files; the first run prints a
+  deprecation notice. The option and the files are removed in 6.0. Existing copies are never deleted.
+
 ## [5.3.0] - 2026-10-08
 
 Confidence tags now reach controllers and the full view listing, and an opt-in Prism pass can upgrade

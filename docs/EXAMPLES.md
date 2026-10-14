@@ -78,14 +78,11 @@ Captured output (abridged):
 📝 Writing bridge files...
   ✅ .../demo_app/CLAUDE.md
   ✅ .../demo_app/AGENTS.md
-  ✅ .../demo_app/.cursorrules
-  ✅ .../demo_app/.devinrules
   ✅ .../demo_app/.github/copilot-instructions.md
   ✅ .../demo_app/GEMINI.md
   ✅ .../demo_app/.claude/rules/rails-context.md
   ✅ .../demo_app/.claude/rules/rails-schema.md
   ✅ .../demo_app/.claude/rules/rails-models.md
-  ⏭️  .../demo_app/.codex/README.md (unchanged)
   ...
 
 Done! Your AI assistants now understand your Rails app.
@@ -97,9 +94,9 @@ One run writes context for all 7 assistant targets. The committed files in
 | Assistant target | File(s) | Size |
 |---|---|---|
 | Claude Code | `CLAUDE.md` + `.claude/rules/*.md` | 111 lines (compact) |
-| OpenAI Codex | `AGENTS.md` + `.codex/README.md` | 98 lines |
-| Cursor | `.cursorrules` + `.cursor/rules/*.mdc` | 108 lines |
-| Devin | `.devinrules` + `.devin/rules/*.md` | 53 lines (≤5,800 chars) |
+| OpenAI Codex | `AGENTS.md` | 98 lines |
+| Cursor | `.cursor/rules/*.mdc` | 108 lines |
+| Devin | `.devin/rules/*.md` | 53 lines |
 | GitHub Copilot | `.github/copilot-instructions.md` + `.github/instructions/*.md` | 136 lines |
 | Gemini | `GEMINI.md` | 111 lines |
 | JSON cache (not an assistant) | `.ai-context.json` (regenerable cache, not committed) | — |
