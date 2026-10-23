@@ -11,18 +11,32 @@ module RailsAiBridge
       def initialize(app)
         @app = app
         @path_resolver = PathResolver.new(app)
+        @timezone_introspector = Introspectors::TimezoneIntrospector.new(app)
       end
 
       # Builds a read-only summary of runtime configuration signals.
       #
       # @return [Hash] cache, session, middleware, initializer, and CurrentAttributes metadata
+      # @example With timezone
+      #   {
+      #     cache_store: "mem_cache_store",
+      #     session_store: "ActionDispatch::Session::CookieStore",
+      #     timezone: "UTC",
+      #     timezone_source: :config,
+      #     ...middleware_stack, :initializers, :current_attributes
+      #   }
       def call
+        tz = @timezone_introspector.call
+
         result = {
           cache_store: detect_cache_store,
           session_store: detect_session_store,
           queue_adapter: detect_queue_adapter,
           cable_adapter: detect_cable_adapter,
-          timezone: app.config.time_zone.to_s,
+          timezone: tz[:time_zone],
+          timezone_source: tz[:time_zone_source],
+          timezone_confirmed: tz[:time_zone_confirmed],
+          timezone_found: tz.key?(:time_zone),
           middleware_stack: extract_middleware,
           initializers: extract_initializers,
           current_attributes: detect_current_attributes
