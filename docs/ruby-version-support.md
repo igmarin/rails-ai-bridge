@@ -8,10 +8,10 @@ evaluated.
 
 | Ruby | Rails | CI status | Notes |
 |------|-------|-----------|-------|
-| 3.2  | 7.1, 7.2 | ✅ enabled | Minimum supported |
-| 3.3  | 7.1, 7.2, 8.0, 8.1 | ✅ enabled | Primary dev target |
-| 3.4  | 7.1–8.1 | ✅ enabled | Default in CI since 5.4 |
-| 3.5  | 7.1–8.1 | ✅ enabled | Added in 5.4, optional |
+| 3.2  | 7.1, 7.2 | ✅ blocking | Minimum supported |
+| 3.3  | 7.1, 7.2, 8.0, 8.1 | ✅ blocking | Primary dev target |
+| 3.4  | 7.1–8.1 | ✅ blocking | Default in CI |
+| 3.5  | 8.1 | ⚠️ canary | Preview release; `rubydex` native extension does not load on 3.5.0-preview1 yet — promoted to blocking once prebuilt binaries ship |
 | 4.0  | 8.1 | ⚠️ canary | Non-blocking; used to detect breaking changes |
 
 **Rails versions covered:** 7.1, 7.2, 8.0, 8.1, 8.2

@@ -10,7 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Ruby version support policy in `docs/ruby-version-support.md` (ticket #341).
-- CI matrix: Ruby 3.4 and 3.5 added; Ruby 4.0 marked as non-blocking canary.
+- CI matrix: Ruby 3.5 added as a non-blocking canary (alongside the existing Ruby 4.0 canary).
+  Ruby 3.5.0-preview1 cannot load `rubydex`'s native extension (`cannot load such file --
+  rubydex/rubydex`), so it stays a canary until prebuilt binaries ship.
 - README Requirements: Ruby >= 3.2, Rails >= 7.1, tested versions listed.
 - `RailsAiBridge::Introspectors::TimezoneIntrospector` reads `config.time_zone` and compares
   it with `Time.zone` (set by Rails at boot) to report `time_zone` and `time_zone_confirmed`
