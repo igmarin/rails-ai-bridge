@@ -455,9 +455,21 @@ Returns application configuration. No parameters.
 
 **Returns:** cache store, session store, timezone, middleware stack, initializers, credentials keys, current attributes.
 
-The timezone fact carries a `timezone_confirmed` flag in the raw introspection payload: `true` when the
-value came from a booted Rails runtime and `Time.zone` matches `config.time_zone`, `false` when the value
-came from a static parse (no boot) and cannot be confirmed. The rendered line is the same either way.
+### Timezone facts
+
+The raw `:config` payload includes `timezone` (the configured `config.time_zone`)
+and `timezone_confirmed`. Confirmation is `true` when the current thread's
+`Time.zone` and the configured zone resolve to the same IANA identifier. Rails
+names such as `Eastern Time (US & Canada)` and IANA names such as
+`America/New_York` are both supported.
+
+Confirmation is `false` when the runtime zone is unavailable or different, for
+example inside `Time.use_zone` with another zone. It describes the introspecting
+thread at the time of the read, not every request's timezone. `rails_get_config`
+and serializers retain their existing timezone rendering; the flag is raw
+metadata. Config introspection requires boot; static mode reports it as skipped
+and does not infer timezone settings from `db/schema.rb`. Broader timezone
+output and offline support remain tracked in #342.
 
 ```
 rails_get_config()

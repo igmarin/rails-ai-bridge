@@ -17,14 +17,9 @@ module RailsAiBridge
       # Builds a read-only summary of runtime configuration signals.
       #
       # @return [Hash] cache, session, middleware, initializer, and CurrentAttributes metadata
-      # @example With timezone
-      #   {
-      #     cache_store: "mem_cache_store",
-      #     session_store: "ActionDispatch::Session::CookieStore",
-      #     timezone: "UTC",
-      #     timezone_confirmed: true,
-      #     ...middleware_stack, :initializers, :current_attributes
-      #   }
+      # @example Timezone metadata within the returned config
+      #   introspector.call.slice(:timezone, :timezone_confirmed)
+      #   # => { timezone: "UTC", timezone_confirmed: true }
       def call
         timezone_facts = @timezone_introspector.call
         # Preserve the error contract: a failing timezone read must surface as

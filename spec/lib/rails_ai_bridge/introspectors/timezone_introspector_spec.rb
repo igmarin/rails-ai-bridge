@@ -10,7 +10,7 @@ RSpec.describe RailsAiBridge::Introspectors::TimezoneIntrospector do
 
   describe '#call' do
     context 'when the app is booted and Time.zone matches config.time_zone' do
-      before { allow(Time).to receive(:zone).and_return('UTC') }
+      before { allow(Time).to receive(:zone).and_return(ActiveSupport::TimeZone['UTC']) }
 
       it 'returns the configured timezone' do
         expect(result[:time_zone]).to eq('UTC')
@@ -25,9 +25,44 @@ RSpec.describe RailsAiBridge::Introspectors::TimezoneIntrospector do
       end
     end
 
+    ['Eastern Time (US & Canada)', 'America/New_York', 'Europe/London'].each do |zone_name|
+      context "when #{zone_name} matches the runtime zone" do
+        before do
+          allow(config).to receive(:time_zone).and_return(zone_name)
+          allow(Time).to receive(:zone).and_return(ActiveSupport::TimeZone[zone_name])
+        end
+
+        it 'confirms the configured zone using real ActiveSupport objects' do
+          expect(result).to eq(time_zone: zone_name, time_zone_confirmed: true)
+        end
+      end
+    end
+
+    context 'when Rails and IANA names identify the same runtime zone' do
+      before do
+        allow(config).to receive(:time_zone).and_return('Eastern Time (US & Canada)')
+        allow(Time).to receive(:zone).and_return(ActiveSupport::TimeZone['America/New_York'])
+      end
+
+      it 'confirms the timezone across name formats' do
+        expect(result[:time_zone_confirmed]).to be(true)
+      end
+    end
+
+    context 'when the configured timezone is unknown' do
+      before do
+        allow(config).to receive(:time_zone).and_return('Unknown/Zone')
+        allow(Time).to receive(:zone).and_return(ActiveSupport::TimeZone['UTC'])
+      end
+
+      it 'preserves the configured value without confirming it' do
+        expect(result).to eq(time_zone: 'Unknown/Zone', time_zone_confirmed: false)
+      end
+    end
+
     context 'when Time.zone differs from config.time_zone' do
       before do
-        allow(Time).to receive(:zone).and_return('UTC')
+        allow(Time).to receive(:zone).and_return(ActiveSupport::TimeZone['UTC'])
         allow(config).to receive(:time_zone).and_return('Eastern Time (US & Canada)')
       end
 
@@ -40,7 +75,7 @@ RSpec.describe RailsAiBridge::Introspectors::TimezoneIntrospector do
       end
     end
 
-    context 'when Rails was never booted (Time.zone is nil)' do
+    context 'when the runtime timezone is unavailable' do
       before { allow(Time).to receive(:zone).and_return(nil) }
 
       it 'still returns the configured timezone' do

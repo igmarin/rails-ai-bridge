@@ -29,6 +29,18 @@ RSpec.describe RailsAiBridge::Introspectors::ConfigIntrospector do
       expect(result[:timezone]).not_to be_empty
     end
 
+    it 'confirms timezone metadata from a real Rails runtime' do
+      Time.use_zone(Rails.application.config.time_zone) do
+        expect(result).to include(timezone: 'UTC', timezone_confirmed: true)
+      end
+    end
+
+    it 'leaves a different thread timezone unconfirmed' do
+      Time.use_zone('Eastern Time (US & Canada)') do
+        expect(result).to include(timezone: 'UTC', timezone_confirmed: false)
+      end
+    end
+
     it 'returns middleware stack as non-empty array of strings' do
       expect(result[:middleware_stack]).to be_an(Array)
       expect(result[:middleware_stack]).not_to be_empty
