@@ -455,6 +455,10 @@ Returns application configuration. No parameters.
 
 **Returns:** cache store, session store, timezone, middleware stack, initializers, credentials keys, current attributes.
 
+The timezone fact carries a `timezone_confirmed` flag in the raw introspection payload: `true` when the
+value came from a booted Rails runtime and `Time.zone` matches `config.time_zone`, `false` when the value
+came from a static parse (no boot) and cannot be confirmed. The rendered line is the same either way.
+
 ```
 rails_get_config()
   → Cache: redis_cache_store, Session: cookie_store, TZ: UTC, ...

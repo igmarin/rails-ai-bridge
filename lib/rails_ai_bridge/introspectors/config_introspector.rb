@@ -22,32 +22,39 @@ module RailsAiBridge
       #     cache_store: "mem_cache_store",
       #     session_store: "ActionDispatch::Session::CookieStore",
       #     timezone: "UTC",
-      #     timezone_source: :config,
+      #     timezone_confirmed: true,
       #     ...middleware_stack, :initializers, :current_attributes
       #   }
       def call
-        tz = @timezone_introspector.call
+        timezone_facts = @timezone_introspector.call
+        # Preserve the error contract: a failing timezone read must surface as
+        # { error: msg }, exactly as before this introspector was extracted.
+        return timezone_facts if timezone_facts[:error]
 
+        build_result(timezone_facts)
+      rescue StandardError => error
+        { error: error.message }
+      end
+
+      private
+
+      # @param timezone_facts [Hash] output of {TimezoneIntrospector#call}
+      # @return [Hash] the config section payload
+      def build_result(timezone_facts)
         result = {
           cache_store: detect_cache_store,
           session_store: detect_session_store,
           queue_adapter: detect_queue_adapter,
           cable_adapter: detect_cable_adapter,
-          timezone: tz[:time_zone],
-          timezone_source: tz[:time_zone_source],
-          timezone_confirmed: tz[:time_zone_confirmed],
-          timezone_found: tz.key?(:time_zone),
+          timezone: timezone_facts[:time_zone],
+          timezone_confirmed: timezone_facts[:time_zone_confirmed],
           middleware_stack: extract_middleware,
           initializers: extract_initializers,
           current_attributes: detect_current_attributes
         }
         result[:credentials_keys] = extract_credentials_keys if RailsAiBridge.configuration.expose_credentials_key_names
         result
-      rescue StandardError => error
-        { error: error.message }
       end
-
-      private
 
       def root
         app.root.to_s

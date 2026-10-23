@@ -2,90 +2,67 @@
 
 require 'spec_helper'
 
-module RailsAiBridge
-  module Introspectors
-    RSpec.describe TimezoneIntrospector do
-      let(:app) do
-        Object.new.tap do |a|
-          def a.config
-            @config ||= double('config', time_zone: 'UTC')
-          end
-        end
+RSpec.describe RailsAiBridge::Introspectors::TimezoneIntrospector do
+  subject(:result) { described_class.new(app).call }
+
+  let(:config) { double('config', time_zone: 'UTC') }
+  let(:app) { double('app', config: config) }
+
+  describe '#call' do
+    context 'when the app is booted and Time.zone matches config.time_zone' do
+      before { allow(Time).to receive(:zone).and_return('UTC') }
+
+      it 'returns the configured timezone' do
+        expect(result[:time_zone]).to eq('UTC')
       end
 
-      subject { described_class.new(app).call }
+      it 'confirms the timezone' do
+        expect(result[:time_zone_confirmed]).to be(true)
+      end
 
-      describe '#call' do
-        context 'when the app is booted and time_zone is set' do
-          before do
-            @config = double('config', time_zone: 'UTC')
-            allow(app).to receive(:config).and_return(@config)
-          end
+      it 'does not include an error key' do
+        expect(result).not_to have_key(:error)
+      end
+    end
 
-          it 'returns the timezone name' do
-            expect(subject[:time_zone]).to eq('UTC')
-          end
+    context 'when Time.zone differs from config.time_zone' do
+      before do
+        allow(Time).to receive(:zone).and_return('UTC')
+        allow(config).to receive(:time_zone).and_return('Eastern Time (US & Canada)')
+      end
 
-          it 'sets the timezone source to rails_config when equal to config' do
-            expect(subject[:time_zone_source]).to eq(:rails_config)
-          end
+      it 'returns the configured timezone' do
+        expect(result[:time_zone]).to eq('Eastern Time (US & Canada)')
+      end
 
-          it 'sets timezone_confirmed to true when Time.zone matches config and timezone is known' do
-            # ActiveSupport::TimeZone is not loaded in static parse environment.
-            # In a real Rails boot, it would be loaded and timezone_confirmed
-            # would be true. We test the timezone name and source here.
-            expect(subject[:time_zone]).to eq('UTC')
-            expect(subject[:time_zone_source]).to eq(:rails_config)
-          end
+      it 'does not confirm the timezone' do
+        expect(result[:time_zone_confirmed]).to be(false)
+      end
+    end
 
-          it 'includes an error key for backwards compatibility on failure' do
-            expect(subject).not_to have_key(:error)
-          end
-        end
+    context 'when Rails was never booted (Time.zone is nil)' do
+      before { allow(Time).to receive(:zone).and_return(nil) }
 
-        context 'when the app cannot be booted' do
-          before do
-            allow(app).to receive(:config).and_raise(StandardError, 'Boom')
-          end
+      it 'still returns the configured timezone' do
+        expect(result[:time_zone]).to eq('UTC')
+      end
 
-          it 'returns an error hash' do
-            expect(subject).to eq(error: 'Boom')
-          end
+      it 'marks the timezone as unconfirmed' do
+        expect(result[:time_zone_confirmed]).to be(false)
+      end
+    end
 
-          it 'never raises' do
-            expect { subject }.not_to raise_error
-          end
-        end
+    context 'when config.time_zone raises' do
+      before do
+        allow(config).to receive(:time_zone).and_raise(StandardError, 'tz boom')
+      end
 
-        context 'with an unknown timezone name' do
-          before do
-            @config = double('config', time_zone: 'Mars/UTC')
-            allow(app).to receive(:config).and_return(@config)
-          end
+      it 'returns an error hash' do
+        expect(result).to eq(error: 'tz boom')
+      end
 
-          it 'does not raise when ActiveSupport::TimeZone.find returns nil' do
-            expect { subject }.not_to raise_error
-          end
-
-          it 'sets timezone_confirmed to false' do
-            expect(subject[:time_zone_confirmed]).to be(false)
-          end
-        end
-
-        context 'with a non-UTC timezone' do
-          before do
-            @config = double('config', time_zone: 'Eastern Time (US & Canada)')
-            allow(app).to receive(:config).and_return(@config)
-          end
-
-          it 'returns the timezone name' do
-            expect(subject[:time_zone]).to eq('Eastern Time (US & Canada)')
-          end
-
-          it 'sets timezone_confirmed to false' do
-            expect(subject[:time_zone_confirmed]).to be(false)
-          end
-        end
+      it 'never raises' do
+        expect { result }.not_to raise_error
       end
     end
   end
