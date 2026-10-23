@@ -10,16 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Ruby version support policy in `docs/ruby-version-support.md` (ticket #341).
-- CI matrix: Ruby 3.5 added as a non-blocking canary (alongside the existing Ruby 4.0 canary).
-  Ruby 3.5.0-preview1 cannot load `rubydex`'s native extension (`cannot load such file --
-  rubydex/rubydex`), so it stays a canary until prebuilt binaries ship.
-- README Requirements: Ruby >= 3.2, Rails >= 7.1, tested versions listed.
-- `RailsAiBridge::Introspectors::TimezoneIntrospector` reads `config.time_zone` and compares
-  it with `Time.zone` (set by Rails at boot) to report `time_zone` and `time_zone_confirmed`
-  facts (ticket #342). `ConfigIntrospector` delegates to it, so the config section now carries
-  `timezone_confirmed: true/false`; `false` means the value came from a static parse without
-  a Rails boot and cannot be confirmed against the runtime. Tool output shape is unchanged
-  (`rails_get_config` still renders `- **Timezone:** UTC`).
+- README Requirements and Ruby policy distinguish blocking Ruby 3.2–3.4 coverage
+  from the existing non-blocking Ruby 4.0 / Rails 8.1 canary. The historical Ruby
+  3.5 preview is excluded from the matrix.
+- `RailsAiBridge::Introspectors::TimezoneIntrospector` adds runtime confirmation
+  metadata to the existing config section (part of #342). `timezone_confirmed`
+  compares the IANA identifiers of `config.time_zone` and the current thread's
+  `Time.zone`, supporting both Rails names and IANA identifiers. It is false
+  when the runtime zone is unavailable or different. Static config introspection
+  remains unavailable; tool and serializer rendering is unchanged.
+
+### Fixed
+
+- Disable the review CLI's background auto-updater in CI so the pinned executable
+  cannot be replaced during an automated review.
 
 ### Deprecated
 

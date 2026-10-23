@@ -27,12 +27,6 @@ jobs:
           - ruby: "3.2"
             rails: "8.1"
         include:
-          # Ruby 3.5 is a preview: rubydex's native extension does not load on
-          # 3.5.0-preview1 yet, so run it as a non-blocking canary until the
-          # ecosystem ships prebuilt binaries. See docs/ruby-version-support.md.
-          - ruby: "3.5"
-            rails: "8.1"
-            canary: true
           # Ruby 4.0 compatibility canary on newest Rails. Non-blocking.
           - ruby: "4.0"
             rails: "8.1"
