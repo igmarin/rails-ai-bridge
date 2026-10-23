@@ -62,22 +62,32 @@ module RailsAiBridge
         :rails_default
       end
 
-      # Whether +Time.zone+ is confirmed as equal to +config.time_zone+.
-      # A static parse (no Rails boot) cannot confirm this, so it returns false.
+      # Whether the timezone is confirmed (valid + Time.zone equals config).
       #
-      # @return [Boolean] true when +Time.zone+ equals +config.time_zone+
+      # Confirmation requires:
+      # 1. The timezone name is a known Rails timezone.
+      # 2. +Time.zone+ equals +config.time_zone+ (i.e., Rails was booted).
+      #
+      # @return [Boolean]
       def time_zone_confirmed?
+        return false unless active_support_time_zone
+
         time_zone == app.config.time_zone.to_s
       end
 
-      # Reads +ActiveSupport::TimeZone.find { |tz| tz.tzinfo.name == time_zone }+.
-      # Returns nil when the timezone is not a known ActiveSupport timezone.
+      # Reads +ActiveSupport::TimeZone.find { |tz| tz.tzinfo.name == time_zone }#+.
+      # Returns nil when the timezone is not a known ActiveSupport timezone or
+      # the constant is not loaded (e.g. in a static parse without Rails boot).
       #
       # @return [ActiveSupport::TimeZone, nil]
       def active_support_time_zone
         return nil unless time_zone.start_with?('UTC', 'Eastern', 'Central', 'Mountain', 'Pacific')
 
+        return nil unless defined?(ActiveSupport::TimeZone) && ActiveSupport::TimeZone.respond_to?(:find)
+
         ActiveSupport::TimeZone.find { |tz| tz.tzinfo.name == time_zone }
+      rescue NameError, NoMethodError
+        nil
       end
     end
   end
