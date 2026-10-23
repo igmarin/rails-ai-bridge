@@ -873,11 +873,16 @@ The gem parses `db/schema.rb` as text when no database is connected. Works in CI
 
 ## Requirements
 
-- Ruby >= 3.2, Rails >= 7.1
+- Ruby **>= 3.2** (tested on 3.2, 3.3, 3.4, 3.5; see `docs/ruby-version-support.md`)
+- Rails >= 7.1, < 10.0 (tested on 7.1, 7.2, 8.0, 8.1, 8.2)
 - [mcp](https://github.com/modelcontextprotocol/ruby-sdk) gem (installed automatically)
 - Optional: `listen` gem for watch mode, `ripgrep` for fast code search
 
 ---
+
+
+> **Ruby version support:** tested on Ruby 3.2–3.5, Rails 7.1–8.2. Ruby 4.0+ is used as a non-blocking canary in CI. See `docs/ruby-version-support.md` for the full policy and the version matrix.
+
 
 ## How it compares
 

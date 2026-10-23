@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: ["3.2", "3.3", "3.4"]
+        ruby: ["3.2", "3.3", "3.4", "3.5"]
         rails: ["7.1", "7.2", "8.0", "8.1"]
         exclude:
           - ruby: "3.2"

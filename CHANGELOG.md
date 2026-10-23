@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Ruby version support policy in `docs/ruby-version-support.md` (ticket #341).
+- CI matrix: Ruby 3.4 and 3.5 added; Ruby 4.0 marked as non-blocking canary.
+- README Requirements: Ruby >= 3.2, Rails >= 7.1, tested versions listed.
+
 ### Deprecated
 
 - `.cursorrules`, `.devinrules`, and `.codex/README.md` are no longer written by default. Cursor reads
