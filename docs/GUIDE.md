@@ -947,6 +947,15 @@ The settings `confidence_tags_enabled`, `prism_enabled`, and `prism_max_files` w
 | `rate_limit_max_requests` | Integer / nil | profile | Per-IP HTTP limit (`0` disables); not shared across workers |
 | `rate_limit_window_seconds` | Integer | `60` | Sliding window for rate limit |
 | `http_log_json` | Boolean | `false` | Structured JSON log line per HTTP MCP response |
+
+### Tool-call observability
+
+Every MCP invocation emits `rails_ai_bridge.tool.call` through
+`ActiveSupport::Notifications`. Its payload keeps `tool_name` and `arguments` and
+adds `success` plus `error_class`. `success` is false for an MCP error response or
+a raised exception; `error_class` is populated only for raised exceptions. Use the
+notification event's duration instead of adding timing labels, and avoid exporting
+raw `arguments` because they may contain application data.
 | `server_name` | String | `"rails-ai-bridge"` | MCP server name |
 | `assistant_overrides_path` | String | `nil` → `config/rails_ai_bridge/overrides.md` | Markdown merged into compact Copilot + Codex |
 | `copilot_compact_model_list_limit` | Integer | `5` | Max model rows in copilot-instructions (`0` = none) |
