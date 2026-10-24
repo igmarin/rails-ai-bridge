@@ -455,7 +455,7 @@ Returns application configuration. No parameters.
 
 **Returns:** cache store, session store, timezone, middleware stack, initializers, credentials keys, current attributes.
 
-### Timezone facts
+#### Timezone facts
 
 The raw `:config` payload includes `timezone` (the configured `config.time_zone`)
 and `timezone_confirmed`. Confirmation is `true` when the current thread's
