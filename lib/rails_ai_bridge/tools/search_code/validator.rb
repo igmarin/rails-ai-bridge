@@ -116,8 +116,7 @@ module RailsAiBridge
 
           real_search = File.realpath(search_path)
           real_root = File.realpath(@root)
-          return BaseTool.text_response("Path not allowed: #{@path}") unless within_root?(real_search, real_root)
-          return BaseTool.text_response("Path not allowed: #{@path}") if excluded_path?(real_search, real_root)
+          return path_not_allowed unless within_root?(real_search, real_root) && !excluded_path?(real_search, real_root)
 
           search_path
         rescue Errno::ENOENT
@@ -146,12 +145,18 @@ module RailsAiBridge
         # @param real_search [String] realpath of the search directory
         # @param real_root [String] realpath of the application root
         # @return [Boolean]
+        # :reek:UtilityFunction
         def excluded_path?(real_search, real_root)
           relative = real_search.delete_prefix("#{real_root}#{File::SEPARATOR}")
           RailsAiBridge.configuration.excluded_paths.any? do |excluded|
             normalized = excluded.to_s.delete_suffix(File::SEPARATOR)
             relative == normalized || relative.start_with?("#{normalized}#{File::SEPARATOR}")
           end
+        end
+
+        # @return [MCP::Tool::Response] path-not-allowed error response
+        def path_not_allowed
+          BaseTool.text_response("Path not allowed: #{@path}")
         end
 
         # Returns a path-not-found error response.
