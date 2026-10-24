@@ -115,6 +115,19 @@ RSpec.describe RailsAiBridge::Tools::SearchCode do
         expect(result.content.first[:text]).to include('No results found')
       end
 
+      it 'rejects a directory symlink that aliases an excluded path for either search engine' do
+        search_root.join('vendor').mkpath
+        search_root.join('vendor/private.rb').write("excluded_parent_marker\n")
+        File.symlink(search_root.join('vendor'), search_root.join('alias'))
+
+        [false, true].each do |ripgrep_available|
+          allow(described_class).to receive(:ripgrep_available?).and_return(ripgrep_available)
+          result = described_class.call(pattern: 'excluded_parent_marker', path: 'alias', file_type: 'rb')
+
+          expect(result.content.first[:text]).to include('Path not allowed')
+        end
+      end
+
       it 'does not load the remaining file lines after reaching the result limit' do
         search_root.join('large.rb').write("large_file_marker\n" * 50_000)
         described_class.call(pattern: 'large_file_marker', file_type: 'rb', max_results: 1)

@@ -535,7 +535,7 @@ rails_search_code(pattern: "def create", path: "app/controllers", file_type: "rb
   → First 50 matches under app/controllers
 ```
 
-**Security:** Uses `Open3.capture2` with array arguments (no shell injection). Validates `file_type`. Blocks path traversal. Both backends skip symlinked files. Respects `excluded_paths`. The Ruby fallback streams lines and stops when the result cap is reached. Optional wall-clock limit per call: `config.search_code_timeout_seconds` (default 5; set `0` to disable).
+**Security:** Uses `Open3.capture2` with array arguments (no shell injection). Validates `file_type`. Blocks path traversal. Both backends skip symlinked files and reject directory aliases into `excluded_paths`. The Ruby fallback streams lines and stops when the result cap is reached. Optional wall-clock limit per call: `config.search_code_timeout_seconds` (default 5; set `0` to disable).
 
 ### rails_search_semantic
 

@@ -117,6 +117,7 @@ module RailsAiBridge
           real_search = File.realpath(search_path)
           real_root = File.realpath(@root)
           return BaseTool.text_response("Path not allowed: #{@path}") unless within_root?(real_search, real_root)
+          return BaseTool.text_response("Path not allowed: #{@path}") if excluded_path?(real_search, real_root)
 
           search_path
         rescue Errno::ENOENT
@@ -138,6 +139,19 @@ module RailsAiBridge
         # :reek:UtilityFunction
         def within_root?(real_search, real_root)
           real_search == real_root || real_search.start_with?("#{real_root}#{File::SEPARATOR}")
+        end
+
+        # Checks the canonical path so a directory symlink cannot alias an excluded directory.
+        #
+        # @param real_search [String] realpath of the search directory
+        # @param real_root [String] realpath of the application root
+        # @return [Boolean]
+        def excluded_path?(real_search, real_root)
+          relative = real_search.delete_prefix("#{real_root}#{File::SEPARATOR}")
+          RailsAiBridge.configuration.excluded_paths.any? do |excluded|
+            normalized = excluded.to_s.delete_suffix(File::SEPARATOR)
+            relative == normalized || relative.start_with?("#{normalized}#{File::SEPARATOR}")
+          end
         end
 
         # Returns a path-not-found error response.
