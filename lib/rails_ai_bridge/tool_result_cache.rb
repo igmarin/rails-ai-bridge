@@ -6,7 +6,7 @@ require 'json'
 require 'mcp'
 
 module RailsAiBridge
-  # Caches MCP tool call results keyed by a stable fingerprint of the arguments.
+  # Caches MCP tool call results per application, tool, and argument fingerprint.
   #
   # The cache is in-memory, per-process, and TTL-based. It ignores +server_context+
   # when fingerprinting so identical client requests share the same cached response.
@@ -95,7 +95,7 @@ module RailsAiBridge
         return yield unless enabled?
 
         key = cache_key(tool_name, arguments)
-        fingerprint = key.split(':', 2).last
+        fingerprint = key.last
 
         mutex.synchronize do
           entry = cache[key]
@@ -129,7 +129,7 @@ module RailsAiBridge
       attr_reader :cache, :mutex
 
       def cache_key(tool_name, arguments)
-        "#{tool_name}:#{argument_fingerprint(arguments)}"
+        [AppScope.current_app, tool_name, argument_fingerprint(arguments)]
       end
 
       def argument_fingerprint(arguments)

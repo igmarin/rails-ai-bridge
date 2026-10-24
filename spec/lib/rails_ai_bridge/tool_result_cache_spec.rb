@@ -93,6 +93,28 @@ RSpec.describe RailsAiBridge::ToolResultCache do
       expect(calls).to eq(2)
     end
 
+    it 'keeps identical tool requests isolated between application scopes' do
+      RailsAiBridge.configuration.mcp.tool_result_cache_ttl = 30
+      first_app = double('First app')
+      second_app = double('Second app')
+      first_response = MCP::Tool::Response.new([{ type: 'text', text: 'first application' }])
+      second_response = MCP::Tool::Response.new([{ type: 'text', text: 'second application' }])
+
+      first = RailsAiBridge::AppScope.with_app(first_app) do
+        described_class.fetch_response('rails_test', {}) { first_response }
+      end
+      second = RailsAiBridge::AppScope.with_app(second_app) do
+        described_class.fetch_response('rails_test', {}) { second_response }
+      end
+      cached_first = RailsAiBridge::AppScope.with_app(first_app) do
+        described_class.fetch_response('rails_test', {}) { raise 'cache miss for first application' }
+      end
+
+      expect(first).to eq(first_response)
+      expect(second).to eq(second_response)
+      expect(cached_first).to eq(first_response)
+    end
+
     it 'expires entries after the configured ttl' do
       RailsAiBridge.configuration.mcp.tool_result_cache_ttl = 0.01
       calls = 0
