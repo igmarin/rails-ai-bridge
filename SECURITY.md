@@ -29,6 +29,9 @@ please report it responsibly:
 
 - All MCP tools are **read-only** and never modify your application or database.
 - Code search (`rails_search_code`) uses `Open3.capture2` with array arguments to prevent shell injection.
+  Both backends skip symlinked files and reject directory aliases into excluded paths;
+  the Ruby fallback opens files with `File::NOFOLLOW` and streams lines so reaching
+  the result cap does not load the rest of a file.
 - Symbol explanation (`rails_explain_symbol`) uses `Open3.capture3` with array arguments against a local `.codegraph/` index only (timeout enforced; never contacts a network service).
 - File paths are validated against path traversal attacks, and invalid regex input
   now returns a controlled tool response in the Ruby fallback path.

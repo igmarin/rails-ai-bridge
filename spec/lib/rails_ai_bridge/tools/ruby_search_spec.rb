@@ -120,9 +120,9 @@ RSpec.describe RailsAiBridge::Tools::SearchCode::RubySearch do
 
     it 'recovers gracefully from unreadable files' do
       path = write_file('app/models/user.rb', "class User; end\n")
-      allow(File).to receive(:readlines).with(path).and_raise(Errno::EACCES)
+      allow(File).to receive(:foreach).with(path, mode: File::RDONLY | File::NOFOLLOW).and_raise(Errno::EACCES)
       results = make_searcher(pattern: 'User').call
-      expect(results).to be_an(Array)
+      expect(results).to be_empty
     end
   end
 

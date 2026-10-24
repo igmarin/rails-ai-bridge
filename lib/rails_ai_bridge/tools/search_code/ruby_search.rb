@@ -31,7 +31,7 @@ module RailsAiBridge
             return if skip_file?(file)
 
             relative = file.sub("#{@root}/", '')
-            File.readlines(file).each_with_index do |line, idx|
+            File.foreach(file, mode: File::RDONLY | File::NOFOLLOW).with_index do |line, idx|
               next unless line.match?(@regex)
 
               @results << { file: relative, line_number: idx + 1, content: line }
