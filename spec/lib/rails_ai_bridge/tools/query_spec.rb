@@ -111,6 +111,43 @@ RSpec.describe RailsAiBridge::Tools::Query do
   end
 
   describe 'row cap' do
+    it 'bounds rows fetched from the database before rendering a large result' do
+      connection.execute <<~SQL.squish
+        WITH RECURSIVE rows(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM rows WHERE n < 10000)
+        INSERT INTO rb_query_things (name, password) SELECT 'row', 'value' FROM rows
+      SQL
+      fetched_sizes = []
+      allow(connection).to receive(:select_all).and_wrap_original do |original, *arguments|
+        original.call(*arguments).tap { |result| fetched_sizes << result.rows.size }
+      end
+
+      payload = JSON.parse(text_of(described_class.call(sql: 'SELECT name FROM rb_query_things', row_limit: 3)))
+
+      expect(fetched_sizes).to eq([4])
+      expect(payload).to include('row_count' => 3, 'truncated' => true)
+      expect(payload.fetch('rows').size).to eq(3)
+    end
+
+    it 'does not report truncation when the query returns exactly the requested limit' do
+      payload = JSON.parse(text_of(described_class.call(sql: 'SELECT name FROM rb_query_things', row_limit: 2)))
+
+      expect(payload).to include('row_count' => 2, 'truncated' => false)
+      expect(payload.fetch('rows').size).to eq(2)
+    end
+
+    it 'preserves an existing LIMIT, OFFSET, and a trailing semicolon' do
+      sql = 'SELECT name FROM rb_query_things ORDER BY id LIMIT 1 OFFSET 1;  '
+      payload = JSON.parse(text_of(described_class.call(sql: sql, row_limit: 1)))
+
+      expect(payload).to include('row_count' => 1, 'truncated' => false, 'rows' => [{ 'name' => 'beta' }])
+    end
+
+    it 'handles a trailing SQL line comment' do
+      payload = JSON.parse(text_of(described_class.call(sql: 'SELECT name FROM rb_query_things -- comment')))
+
+      expect(payload).to include('row_count' => 2, 'truncated' => false)
+    end
+
     it 'caps results at MAX_ROWS (100)' do
       120.times { connection.execute "INSERT INTO rb_query_things (name, password) VALUES ('row', 'v')" }
       payload = JSON.parse(text_of(described_class.call(sql: 'SELECT name FROM rb_query_things', detail: 'full')))
@@ -206,7 +243,23 @@ RSpec.describe RailsAiBridge::Tools::Query do
   end
 
   describe 'detail levels' do
-    it 'summary returns columns and row count only' do
+    it 'bounds summary queries and reports that the row count is truncated' do
+      connection.execute <<~SQL.squish
+        WITH RECURSIVE rows(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM rows WHERE n < 1000)
+        INSERT INTO rb_query_things (name, password) SELECT 'row', 'value' FROM rows
+      SQL
+      fetched_sizes = []
+      allow(connection).to receive(:select_all).and_wrap_original do |original, *arguments|
+        original.call(*arguments).tap { |result| fetched_sizes << result.rows.size }
+      end
+
+      payload = JSON.parse(text_of(described_class.call(sql: 'SELECT name FROM rb_query_things', detail: 'summary')))
+
+      expect(fetched_sizes).to eq([101])
+      expect(payload).to eq('columns' => ['name'], 'row_count' => 100, 'truncated' => true)
+    end
+
+    it 'summary returns columns and bounded row count without rows' do
       payload = JSON.parse(text_of(described_class.call(sql: 'SELECT name, password FROM rb_query_things', detail: 'summary')))
       expect(payload['rows']).to be_nil
       expect(payload['columns']).to match_array(%w[name password])
