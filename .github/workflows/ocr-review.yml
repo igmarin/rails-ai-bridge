@@ -46,7 +46,10 @@ jobs:
 
       - name: Run ocr review
         uses: alibaba/open-code-review@1672852136fc87748249d22bce0819f33419ea79 # v1.13.0
-        with:
+        env:
+          # Keep the npm launcher from replacing the pinned CLI during review.
+          OCR_NO_UPDATE: '1'
+         with:
           # Pinned to the release verified on the runner. Bump deliberately.
           ocr_version: '1.12.13'
           llm_url: https://api.openai.com/v1/responses
