@@ -25,6 +25,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Disable the review CLI's background auto-updater in CI so the pinned executable
   cannot be replaced during an automated review.
 
+### Security
+
+- Refresh locked dependencies to include `crass` 1.0.8, which fixes
+  GHSA-pq4g-8rxf-4g29 in the CSS sanitizer dependency chain (#343).
+
+### Maintenance
+
+- Refresh the mutation and demo-app lockfiles, including MCP 1.8.1, Rubydex
+  0.4.2, Rails 8.1.4, SQLite 2.10.1, Faraday 2.15.0, Mutant 0.17.1,
+  RuboCop 1.92.1, and compatible transitive updates (#343). Skunk remains on
+  0.5.4 because its 0.6 line conflicts with RubyCritic's `path_expander`
+  requirement; Reek remains on 6.5.x as required by RubyCritic 4.12.
+
 ### Deprecated
 
 - `.cursorrules`, `.devinrules`, and `.codex/README.md` are no longer written by default. Cursor reads

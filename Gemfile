@@ -10,7 +10,8 @@ group :development, :test do
   gem 'bundler-audit', '~> 0.9'
   gem 'combustion', '~> 1.3'
   gem 'rails', '~> 8.1'
-  gem 'reek', '~> 6.1'
+  # RubyCritic 4.12.0 requires Reek ~> 6.5.0, < 7.0.
+  gem 'reek', '~> 6.5.0'
   gem 'rspec', '~> 3.13'
   gem 'rubocop', '~> 1.65'
   gem 'rubocop-performance', '~> 1.27'
@@ -20,6 +21,7 @@ group :development, :test do
   # simplecov 1.3+ requires Ruby >= 3.3; the gem still supports Ruby 3.2 (see gemspec).
   simplecov_version = Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.3') ? '~> 1.3.2' : '~> 1.2.0'
   gem 'simplecov', simplecov_version
+  # Skunk 0.6 conflicts with RubyCritic's path_expander requirement; keep the newest compatible line.
   gem 'skunk', '~> 0.5'
   gem 'sqlite3', '~> 2.9', '>= 2.9.6'
 end
