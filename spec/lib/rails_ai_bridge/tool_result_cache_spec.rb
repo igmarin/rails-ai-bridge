@@ -132,6 +132,65 @@ RSpec.describe RailsAiBridge::ToolResultCache do
       expect(calls).to eq(2)
     end
 
+    it 'reclaims expired responses for arguments that are never requested again' do
+      RailsAiBridge.configuration.mcp.tool_result_cache_ttl = 30
+      allow(described_class).to receive(:monotonic_now).and_return(100.0)
+      1_000.times { |index| described_class.fetch_response('rails_test', { index: index }) { response } }
+
+      allow(described_class).to receive(:monotonic_now).and_return(131.0)
+      described_class.fetch_response('rails_test', { fresh: true }) { response }
+
+      expect(described_class.instance_variable_get(:@cache).size).to eq(1)
+    end
+
+    it 'reclaims older entries after overlapping misses refresh the same key' do
+      RailsAiBridge.configuration.mcp.tool_result_cache_ttl = 30
+      tick = [100.0]
+      allow(described_class).to receive(:monotonic_now) { tick.first }
+      entered = Queue.new
+      finish = Queue.new
+      pending = Thread.new do
+        described_class.fetch_response('rails_test', { key: 'refreshed' }) do
+          entered << true
+          finish.pop
+          response
+        end
+      end
+      entered.pop
+      described_class.fetch_response('rails_test', { key: 'refreshed' }) { response }
+      tick[0] = 101.0
+      described_class.fetch_response('rails_test', { key: 'older' }) { response }
+      tick[0] = 102.0
+      finish << true
+      pending.value
+      tick[0] = 131.5
+      described_class.fetch_response('rails_test', { key: 'fresh' }) { response }
+
+      expect(described_class.instance_variable_get(:@cache).size).to eq(2)
+      expect(described_class.fetch_response('rails_test', { key: 'refreshed' }) { :unexpected_miss }).to eq(response)
+    end
+
+    it 'expires a response when its age exactly reaches the ttl' do
+      RailsAiBridge.configuration.mcp.tool_result_cache_ttl = 30
+      allow(described_class).to receive(:monotonic_now).and_return(100.0)
+      described_class.fetch_response('rails_test', {}) { response }
+      allow(described_class).to receive(:monotonic_now).and_return(130.0)
+
+      expect(described_class.fetch_response('rails_test', {}) { :recomputed }).to eq(:recomputed)
+    end
+
+    it 'bounds live responses while preserving the newest cached request' do
+      RailsAiBridge.configuration.mcp.tool_result_cache_ttl = 30
+      1_001.times { |index| described_class.fetch_response('rails_test', { index: index }) { response } }
+
+      newest = described_class.fetch_response('rails_test', { index: 1_000 }) { raise 'newest response evicted' }
+      oldest = described_class.fetch_response('rails_test', { index: 0 }) { :recomputed }
+
+      expect(described_class.instance_variable_get(:@cache).size).to eq(1_000)
+      expect(newest).to eq(response)
+      expect(oldest).to eq(:recomputed)
+    end
+
     it 'emits a cache hit event for cached responses' do
       RailsAiBridge.configuration.mcp.tool_result_cache_ttl = 30
       events = []

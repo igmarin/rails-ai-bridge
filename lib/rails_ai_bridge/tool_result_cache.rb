@@ -11,8 +11,12 @@ module RailsAiBridge
   # The cache is in-memory, per-process, and TTL-based. It ignores +server_context+
   # when fingerprinting so identical client requests share the same cached response.
   #
+  # Keeps at most 1,000 responses, removing expired or oldest entries as needed.
   # Enable by setting +config.mcp.tool_result_cache_ttl+ to a positive number of seconds.
   class ToolResultCache
+    MAX_ENTRIES = 1_000
+    private_constant :MAX_ENTRIES
+
     @cache = {}
     @mutex = Mutex.new
 
@@ -98,6 +102,7 @@ module RailsAiBridge
         fingerprint = key.last
 
         mutex.synchronize do
+          prune_expired
           entry = cache[key]
           if entry && ttl_valid?(entry)
             Instrumentation.instrument('tool.result_cache_hit', tool_name: tool_name, fingerprint: fingerprint)
@@ -107,7 +112,7 @@ module RailsAiBridge
 
         Instrumentation.instrument('tool.result_cache_miss', tool_name: tool_name, fingerprint: fingerprint) do
           response = yield
-          mutex.synchronize { cache[key] = { response: response, fetched_at: monotonic_now } }
+          mutex.synchronize { store_response(key, response) }
           response
         end
       end
@@ -127,6 +132,21 @@ module RailsAiBridge
       private
 
       attr_reader :cache, :mutex
+
+      # Entries are kept in fetch-time order, so only the expired prefix is visited.
+      def prune_expired
+        while (oldest = cache.first)
+          break if ttl_valid?(oldest.last)
+
+          cache.shift
+        end
+      end
+
+      def store_response(key, response)
+        cache.delete(key)
+        cache.shift if cache.size >= MAX_ENTRIES
+        cache[key] = { response: response, fetched_at: monotonic_now }
+      end
 
       def cache_key(tool_name, arguments)
         [AppScope.current_app, tool_name, argument_fingerprint(arguments)]
