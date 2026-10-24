@@ -956,6 +956,23 @@ adds `success` plus `error_class`. `success` is false for an MCP error response 
 a raised exception; `error_class` is populated only for raised exceptions. Use the
 notification event's duration instead of adding timing labels, and avoid exporting
 raw `arguments` because they may contain application data.
+
+```ruby
+ActiveSupport::Notifications.subscribe("rails_ai_bridge.tool.call") do |*args|
+  event = ActiveSupport::Notifications::Event.new(*args)
+  payload = event.payload
+
+  Rails.logger.info(
+    event: event.name,
+    tool: payload[:tool_name],
+    success: payload[:success],
+    error_class: payload[:error_class],
+    duration_ms: event.duration.round(1)
+  )
+end
+```
+
+This example intentionally excludes `payload[:arguments]`.
 | `server_name` | String | `"rails-ai-bridge"` | MCP server name |
 | `assistant_overrides_path` | String | `nil` → `config/rails_ai_bridge/overrides.md` | Markdown merged into compact Copilot + Codex |
 | `copilot_compact_model_list_limit` | Integer | `5` | Max model rows in copilot-instructions (`0` = none) |
