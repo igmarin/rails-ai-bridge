@@ -11,7 +11,7 @@ group :development, :test do
   gem 'combustion', '~> 1.3'
   gem 'rails', '~> 8.1'
   # RubyCritic 4.12.0 requires Reek ~> 6.5.0, < 7.0.
-  gem 'reek', '~> 6.5.0'
+  gem 'reek', '~> 6.6.0'
   gem 'rspec', '~> 3.13'
   gem 'rubocop', '~> 1.65'
   gem 'rubocop-performance', '~> 1.27'
