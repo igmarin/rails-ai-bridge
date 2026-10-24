@@ -45,6 +45,9 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Run ocr review
+        env:
+          # Keep the npm launcher from replacing the pinned CLI during review.
+          OCR_NO_UPDATE: '1'
         uses: alibaba/open-code-review@fabbdb296b0d97e2140ada8d54ca7d6d6d1d7ad4 # v1.12.13
         with:
           # Pinned to the release verified on the runner. Bump deliberately.
