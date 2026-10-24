@@ -40,6 +40,63 @@ RSpec.describe RailsAiBridge::Mcp::HttpRateLimiter do
       expect(limiter.allow?('1.2.3.4')).to be true
     end
 
+    it 'reclaims expired clients that never request again' do
+      tick = [100.0]
+      limiter = described_class.new(max_requests: 2, window_seconds: 10, clock: -> { tick.first })
+      1_000.times { |index| limiter.allow?("client-#{index}") }
+
+      tick[0] = 111.0
+      limiter.allow?('fresh-client')
+
+      expect(limiter.instance_variable_get(:@hits).size).to eq(1)
+    end
+
+    it 'does not discard live counters when the client capacity is reached' do
+      tick = [100.0]
+      limiter = described_class.new(max_requests: 1, window_seconds: 10, clock: -> { tick.first })
+      10_000.times { |index| limiter.allow?("client-#{index}") }
+
+      expect(limiter.allow?('new-client')).to be(false)
+      expect(limiter.allow?('client-0')).to be(false)
+      expect(limiter.instance_variable_get(:@hits).size).to eq(10_000)
+    end
+
+    it 'admits new clients when a full set of counters expires' do
+      tick = [100.0]
+      limiter = described_class.new(max_requests: 1, window_seconds: 10, clock: -> { tick.first })
+      10_000.times { |index| limiter.allow?("client-#{index}") }
+      tick[0] = 111.0
+
+      expect(limiter.allow?('new-client')).to be(true)
+      expect(limiter.instance_variable_get(:@hits).size).to eq(1)
+    end
+
+    it 'reclaims idle clients while retaining a recently active counter' do
+      tick = [100.0]
+      limiter = described_class.new(max_requests: 2, window_seconds: 10, clock: -> { tick.first })
+      limiter.allow?('active')
+      tick[0] = 105.0
+      limiter.allow?('idle')
+      tick[0] = 108.0
+      limiter.allow?('active')
+      tick[0] = 111.0
+      limiter.allow?('other')
+      tick[0] = 116.0
+      limiter.allow?('other')
+
+      expect(limiter.instance_variable_get(:@hits).keys).to contain_exactly('active', 'other')
+    end
+
+    it 'keeps hits exactly on the window boundary until time advances past them' do
+      tick = [100.0]
+      limiter = described_class.new(max_requests: 1, window_seconds: 10, clock: -> { tick.first })
+      limiter.allow?('client')
+      tick[0] = 110.0
+      expect(limiter.allow?('client')).to be(false)
+      tick[0] = 110.001
+      expect(limiter.allow?('client')).to be(true)
+    end
+
     it 'uses unknown bucket for blank IP' do
       limiter = described_class.new(max_requests: 1, window_seconds: 60)
 

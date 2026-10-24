@@ -73,6 +73,12 @@ Built-in rate limiting keys off the Rack request IP. Behind reverse proxies, con
 
 The default in-memory limiter works for one Puma worker or a single-process server. Configure the ceiling and window via `config.mcp.rate_limit_max_requests` and `config.mcp.rate_limit_window_seconds`.
 
+The in-memory limiter retains at most 10,000 active client buckets. When full,
+requests from new clients are rejected until an existing bucket expires. Live
+counters are preserved so cycling client addresses cannot reset another client's
+quota. Expired buckets are reclaimed as requests arrive. Hits exactly on the
+start of the rate-limit window still count. Deployments needing more active clients can supply a custom or cache-backed limiter below.
+
 ### Multi-process or multi-host deployments
 
 The default in-memory limiter is not shared across Puma workers or hosts. For distributed deployments, plug in `RailsAiBridge::Mcp::CacheRateLimiter`, which uses `Rails.cache` (Redis, Memcached, etc.) as the shared counter backend:
@@ -98,6 +104,19 @@ class Rack::Attack
   end
 end
 ```
+
+## Tool response caching
+
+Tool response caching is disabled by default. With
+`config.mcp.tool_result_cache_ttl` set to a positive number of seconds, responses
+are isolated by application scope, tool name, and arguments. The cache holds at
+most 1,000 responses per process, reclaiming expired responses and evicting the
+oldest response when full. Responses expire when their age reaches the TTL.
+Eviction only causes a fresh tool call.
+
+Responses are still shared across clients within the same application;
+`server_context` is not an authorization-cache key. Custom tools returning
+client-specific data must not rely on this cache for authorization isolation.
 
 ## Optional authorization after auth
 
