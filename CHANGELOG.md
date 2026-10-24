@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `rails_ai_bridge.tool.call` notifications now include `success` and
+  `error_class`, while preserving the existing duration, tool name, and
+  arguments payload (#339).
 - Ruby version support policy in `docs/ruby-version-support.md` (ticket #341).
 - README Requirements and Ruby policy distinguish blocking Ruby 3.2–3.4 coverage
   from the existing non-blocking Ruby 4.0 / Rails 8.1 canary. The historical Ruby
