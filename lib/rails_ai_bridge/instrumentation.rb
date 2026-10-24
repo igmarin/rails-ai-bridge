@@ -38,11 +38,16 @@ module RailsAiBridge
       # @param server_context [Object, nil]
       # @param arguments [Hash]
       # @return [MCP::Tool::Response]
+      # :reek:TooManyStatements -- outcomes must be recorded before the notification completes.
       def call(server_context: nil, **arguments)
-        Instrumentation.instrument('tool.call', tool_name: @tool_class.tool_name, arguments: arguments) do
+        payload = { tool_name: @tool_class.tool_name, arguments: arguments, success: false, error_class: nil }
+        Instrumentation.instrument('tool.call', payload) do
           Registry.with_request_resolver do
-            invoke_tool(arguments, server_context)
+            invoke_tool(arguments, server_context).tap { |response| payload[:success] = !response.error? }
           end
+        rescue StandardError => error
+          payload[:error_class] = error.class.name
+          raise
         end
       end
 

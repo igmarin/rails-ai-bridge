@@ -962,6 +962,32 @@ The settings `confidence_tags_enabled`, `prism_enabled`, and `prism_max_files` w
 | `prism_enabled` | Boolean | `false` | Turns on the Prism pass. Strong params that Prism finds as methods in the controller source render as `[VERIFIED]`. Needs Prism, a default gem on Ruby 3.3+. |
 | `prism_max_files` | Integer | `500` | Caps the files the Prism pass reads per introspection run. |
 
+### Tool-call observability
+
+Every MCP invocation emits `rails_ai_bridge.tool.call` through
+`ActiveSupport::Notifications`. Its payload keeps `tool_name` and `arguments` and
+adds `success` plus `error_class`. `success` is false for an MCP error response or
+a raised exception; `error_class` is populated only for raised exceptions. Use the
+notification event's duration instead of adding timing labels, and avoid exporting
+raw `arguments` because they may contain application data.
+
+```ruby
+ActiveSupport::Notifications.subscribe("rails_ai_bridge.tool.call") do |*args|
+  event = ActiveSupport::Notifications::Event.new(*args)
+  payload = event.payload
+
+  Rails.logger.info(
+    event: event.name,
+    tool: payload[:tool_name],
+    success: payload[:success],
+    error_class: payload[:error_class],
+    duration_ms: event.duration.round(1)
+  )
+end
+```
+
+This example intentionally excludes `payload[:arguments]`.
+
 ---
 
 ## Introspectors — Full List
