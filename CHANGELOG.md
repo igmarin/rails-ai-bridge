@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.4.0] - 2026-10-23
+
 ### Added
 
 - `rails_ai_bridge.tool.call` notifications now include `success` and
@@ -23,13 +25,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   when the runtime zone is unavailable or different. Static config introspection
   remains unavailable; tool and serializer rendering is unchanged.
 
+### Changed
+
+- `rails_query` enforces its row limit in SQL and fetches one sentinel row
+  before ActiveRecord materializes results. Summary responses now report the
+  same bounded `row_count` and `truncated` semantics as other detail levels
+  (#350).
+
 ### Fixed
 
 - Disable the review CLI's background auto-updater in CI so the pinned executable
   cannot be replaced during an automated review.
+- Bound the in-process tool response cache to 1,000 entries and the HTTP rate
+  limiter to 10,000 active client buckets. Expired entries are reclaimed
+  incrementally, and new clients fail closed when the limiter is full (#349).
 
 ### Security
 
+- Code search now skips symlinked files, rejects directory aliases into excluded
+  paths, and streams Ruby fallback reads up to the requested result cap (#347).
+- Tool response cache keys now include the active Rails application, preventing
+  identical requests from reusing another application scope's response (#348).
 - Refresh locked dependencies to include `crass` 1.0.8, which fixes
   GHSA-pq4g-8rxf-4g29 in the CSS sanitizer dependency chain (#343).
 
