@@ -10,7 +10,7 @@ module RailsAiBridge
     # Security contract (strictly read-only):
     # - one statement per call, must start with SELECT (CTEs rejected in v1)
     # - INSERT/UPDATE/DELETE/ALTER/CREATE/PRAGMA/ATTACH and locking clauses rejected
-    # - hard row limit (MAX_ROWS) applied to returned rows
+    # - hard row limit (MAX_ROWS) enforced before result materialization
     # - wall-clock statement timeout
     # - values under credential-like columns redacted via Registry::MessageSanitizer
     # - runs on the app's existing connection; no new connections are opened
@@ -36,19 +36,19 @@ module RailsAiBridge
         properties: {
           sql: {
             type: 'string',
-            description: 'A single plain SELECT statement. Semicolons, CTEs (WITH), ' \
-                         'and mutating/locking clauses are rejected.'
+            description: 'A single plain SELECT statement; one trailing semicolon is allowed. ' \
+                         'Multiple statements, CTEs (WITH), and mutating/locking clauses are rejected.'
           },
           row_limit: {
             type: 'integer',
             description: "Max rows to return (hard cap #{MAX_ROWS}). Defaults to 20 " \
-                         'for standard detail and 100 for full detail.'
+                         'for standard detail and 100 for summary/full detail.'
           },
           detail: {
             type: 'string',
             enum: %w[summary standard full],
-            description: 'summary: columns + row count only. standard: JSON rows (default limit 20). ' \
-                         'full: JSON rows (limit up to 100).'
+            description: 'summary: columns + bounded row count + truncation flag. ' \
+                         'standard: JSON rows (default limit 20). full: JSON rows (limit up to 100).'
           }
         },
         required: ['sql']
@@ -78,7 +78,7 @@ module RailsAiBridge
       # @param detail [String] detail level
       # @return [MCP::Tool::Response] compact JSON payload or {"error": message}
       def self.execute_and_respond(sql, row_limit, detail)
-        result = run_with_timeout(sql)
+        result = run_with_timeout(sql, row_limit: row_limit, detail: detail)
         return result if result.is_a?(MCP::Tool::Response)
 
         text_response(PayloadFormatter.new(result, row_limit: row_limit, detail: detail).format.to_json)
@@ -90,12 +90,27 @@ module RailsAiBridge
       # error response.
       #
       # @param sql [String] validated SELECT statement
-      # @return [ActiveRecord::Result, MCP::Tool::Response] query result or timeout error
-      def self.run_with_timeout(sql)
-        with_timeout { ApplicationRecord.connection.select_all(sql.to_s) }
+      # @param row_limit [Integer, nil] requested row limit
+      # @param detail [String] detail level
+      # @return [ActiveRecord::Result, MCP::Tool::Response] bounded query result or timeout error
+      def self.run_with_timeout(sql, row_limit: nil, detail: 'standard')
+        with_timeout { ApplicationRecord.connection.select_all(bounded_sql(sql, row_limit, detail)) }
       rescue Timeout::Error, ActiveRecord::QueryCanceled
         timeout_error
       end
+
+      # Wraps the validated SELECT without altering its LIMIT/OFFSET or trailing comments.
+      #
+      # @param sql [String] validated SELECT statement
+      # @param row_limit [Integer, nil] requested row limit
+      # @param detail [String] detail level
+      # @return [String] query fetching at most the row limit plus one truncation sentinel
+      def self.bounded_sql(sql, row_limit, detail)
+        fetch_limit = PayloadFormatter.row_limit(row_limit, detail) + 1
+        statement = sql.to_s.strip.delete_suffix(';')
+        "SELECT * FROM (\n#{statement}\n) rails_ai_bridge_query LIMIT #{fetch_limit}"
+      end
+      private_class_method :bounded_sql
 
       # Executes the block under the statement timeout.
       #

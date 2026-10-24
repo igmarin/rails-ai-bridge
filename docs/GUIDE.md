@@ -572,13 +572,22 @@ Runs a single read-only SELECT statement on the app's established ActiveRecord c
 
 | Param | Type | Description |
 |-------|------|-------------|
-| `sql` | string | **Required.** A single plain SELECT statement. Semicolons, CTEs (`WITH`), and mutating/locking clauses are rejected. |
-| `row_limit` | integer | Max rows (hard cap 100). Defaults: 20 (standard), 100 (full). |
-| `detail` | string | `summary` (columns + row count), `standard` (default), `full`. |
+| `sql` | string | **Required.** A single plain SELECT statement; one trailing semicolon is allowed. Multiple statements, CTEs (`WITH`), and mutating/locking clauses are rejected. |
+| `row_limit` | integer | Max rows (hard cap 100). Defaults: 20 (standard), 100 (summary/full). |
+| `detail` | string | `summary` (columns + bounded row count + truncation flag), `standard` (default), `full`. |
 
 **Opt-in:** registered only when `config.enable_data_tools = true` (default `false`).
 
 **Security:** SELECT-only allowlist (CTEs rejected in v1 — mutating CTEs allow writes inside `WITH`); `FOR UPDATE`/`FOR SHARE`/`LOCK IN SHARE MODE` and `SELECT ... INTO` (including `INTO OUTFILE`) rejected. On PostgreSQL the statement runs inside a `READ ONLY` transaction with `statement_timeout`; on other adapters the keyword guard is best-effort. Hard 100-row cap, 5s statement timeout. Credential-like columns (`password`, `token`, `secret`, `api_key`, `auth`, `password_digest`, `secret_access_key`, …) are replaced with `[redacted]` — best-effort: column aliases can bypass the match. Runs on the app's existing connection, so introspection exclusions (`excluded_models`/`excluded_tables`) do not restrict it.
+
+The row cap is enforced in SQL before ActiveRecord materializes the result, fetching
+at most `row_limit + 1` rows (maximum 101) to detect truncation. Existing SQL
+`LIMIT`/`OFFSET` clauses are preserved. Use unique column aliases for portable
+queries, because the SELECT runs as a derived table. `row_count` is the bounded count, not the
+query's unrestricted total: it is exact when `truncated` is `false`; when `true`,
+more rows matched than the reported count. Summary uses the same bound and
+includes `truncated`, but omits `rows`. The cap bounds result materialization;
+sorting, aggregation, and other database work remain subject to the timeout.
 
 ### rails_read_logs
 

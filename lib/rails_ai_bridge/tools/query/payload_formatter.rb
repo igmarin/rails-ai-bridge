@@ -7,7 +7,7 @@ module RailsAiBridge
       # detail level and the hard row cap.
       class PayloadFormatter
         # Row limits by detail level (summary never returns rows).
-        LIMITS_BY_DETAIL = { 'summary' => 0, 'standard' => 20, 'full' => Query::MAX_ROWS }.freeze
+        LIMITS_BY_DETAIL = { 'summary' => Query::MAX_ROWS, 'standard' => 20, 'full' => Query::MAX_ROWS }.freeze
 
         # Fallback row limit for an unrecognized detail level.
         DEFAULT_ROWS = 20
@@ -18,7 +18,7 @@ module RailsAiBridge
         def initialize(result, row_limit:, detail:)
           @columns = result.columns
           @rows = Query.redact_columns(@columns, result.to_a)
-          @row_limit = row_limit
+          @limit = self.class.row_limit(row_limit, detail)
           @detail = detail
         end
 
@@ -28,21 +28,21 @@ module RailsAiBridge
         # @return [Hash] compact payload
         def format
           total = @rows.size
-          payload = { columns: @columns, row_count: total }
+          payload = { columns: @columns, row_count: [total, @limit].min, truncated: total > @limit }
           return payload if @detail == 'summary'
 
-          payload.merge(truncated: total > limit, rows: @rows.first(limit))
+          payload.merge(rows: @rows.first(@limit))
         end
-
-        private
 
         # Effective row limit: client request clamped to 1..MAX_ROWS, or the
         # detail-level default when no (or an invalid) limit was given.
         #
+        # @param row_limit [Integer, nil] requested row limit
+        # @param detail [String] detail level
         # @return [Integer]
-        def limit
-          requested = @row_limit.to_i
-          requested = LIMITS_BY_DETAIL.fetch(@detail, DEFAULT_ROWS) if requested < 1
+        def self.row_limit(row_limit, detail)
+          requested = row_limit.to_i
+          requested = LIMITS_BY_DETAIL.fetch(detail, DEFAULT_ROWS) if requested < 1
           requested.clamp(1, Query::MAX_ROWS)
         end
       end
