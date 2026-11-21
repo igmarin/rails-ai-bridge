@@ -10,7 +10,8 @@ module RailsAiBridge
     def initialize(app)
       @app = app
       @transport = nil
-      @mutex = Mutex.new
+      @rack_app = nil
+      @monitor = Monitor.new
     end
 
     def call(env)
@@ -32,7 +33,7 @@ module RailsAiBridge
     # the scope before starting the server, so the first resolution is correct
     # for the process lifetime.
     def transport
-      @mutex.synchronize do
+      @monitor.synchronize do
         @transport ||= begin
           server = Server.new(AppScope.current_app, transport: :http).build
           MCP::Server::Transports::StreamableHTTPTransport.new(server)
@@ -40,8 +41,13 @@ module RailsAiBridge
       end
     end
 
+    # Built under the same (reentrant) monitor as +transport+ — the builder
+    # itself resolves the transport — so concurrent first requests cannot
+    # create two apps (and two rate limiters) with one discarded.
     def rack_app
-      @rack_app ||= HttpTransportApp.build(transport: transport, path: RailsAiBridge.configuration.http_path)
+      @monitor.synchronize do
+        @rack_app ||= HttpTransportApp.build(transport: transport, path: RailsAiBridge.configuration.http_path)
+      end
     end
   end
 end

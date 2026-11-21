@@ -56,6 +56,7 @@ module RailsAiBridge
           Formatters::Sections::EnginesFormatter,
           Formatters::Sections::MultiDatabaseFormatter,
           Formatters::Sections::SemanticFormatter,
+          Formatters::Sections::CodeIntelligenceFormatter,
           @footer_class
         ]
       end

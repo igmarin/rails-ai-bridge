@@ -233,6 +233,7 @@ treat the MCP endpoint with production-grade authentication when the flag is on.
 | Existing connection only | Queries run on the app's established `ApplicationRecord` connection; the bridge never opens its own database connection. |
 | Error contract | Failures return `{"error": message}`; messages are sanitized so raw SQL fragments or driver errors do not leak connection details. |
 | Server-side file reads (PostgreSQL) | The keyword guard cannot block functions: `SELECT pg_read_file(...)`, `pg_ls_dir`, or `lo_export` pass the SELECT-only check. These require superuser or `pg_read_server_files`/`pg_write_server_files`/`pg_execute_server_program` role membership, so the mitigation is operational — run the app on a least-privilege database role, which production apps should already do. |
+| Function side effects | The guard blocks statement types, not function calls: mutating SQL functions pass the SELECT-only check (e.g. `SELECT setval(...)` advances a PostgreSQL sequence). This is accepted for 5.5; the defense is the same as for file reads — expose data tools only over a read-only database role. |
 
 ### rails_read_logs — log tail with path allowlist
 
@@ -258,7 +259,7 @@ Use this before exposing HTTP MCP beyond a single-developer machine:
 | Risk | Default | Mitigation |
 |------|---------|------------|
 | Unauthenticated HTTP when no token/resolver/JWT is configured | Open access (local DX) | Set `RAILS_AI_BRIDGE_MCP_TOKEN` or `config.http_mcp_token`, and/or `config.require_http_auth = true` |
-| `cors_origins` includes `*` | CORS disabled unless configured | Prefer exact origins; never combine `*` with browsers on untrusted networks |
+| `cors_origins` includes `*` | CORS disabled unless configured | `*` mode sends the literal wildcard `Access-Control-Allow-Origin: *`; browsers never treat it as allowlisting an arbitrary origin. Still prefer exact origins for credentialed requests (browsers reject `*` with credentials), and never combine `*` with browsers on untrusted networks |
 | In-memory rate limit | Per-process only | Use `config.mcp.rate_limiter` / reverse proxy / WAF for multi-worker or multi-host |
 | Information disclosure via tools | Read-only tools still reveal schema/routes/code | Prefer stdio; bind HTTP to `127.0.0.1`; use exclusions/presets for regulated data |
 | `rails_query` / `rails_read_logs` read live data and bypass introspection exclusions | Opt-in, disabled by default | Keep `config.enable_data_tools = false` unless needed; when enabled, use a least-privilege DB user and production authentication |

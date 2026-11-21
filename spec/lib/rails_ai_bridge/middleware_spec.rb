@@ -69,6 +69,33 @@ RSpec.describe RailsAiBridge::Middleware do
         expect(status).to eq(200)
         expect(fake_transport).to have_received(:handle_request)
       end
+
+      it 'builds the rack app exactly once under concurrent first requests' do
+        fake_transport = instance_double(MCP::Server::Transports::StreamableHTTPTransport)
+        entered_build = Queue.new
+        release = Queue.new
+        build_count = 0
+        allow(RailsAiBridge::HttpTransportApp).to receive(:build) do
+          entered_build.push(:entered)
+          release.pop
+          build_count += 1
+          ->(_env) { [200, { 'Content-Type' => 'text/plain' }, ['OK']] }
+        end
+
+        mw = described_class.new(inner_app)
+        allow(mw).to receive(:transport).and_return(fake_transport)
+        env = Rack::MockRequest.env_for('/mcp', method: 'POST', input: '{}')
+
+        first = Thread.new { mw.call(env) }
+        entered_build.pop # first request is mid-build
+        second = Thread.new { mw.call(env) }
+        sleep(0.05) # let the second request reach the memoization check
+        release.push(:go)
+        first.join
+        second.join
+
+        expect(build_count).to eq(1)
+      end
     end
   end
 end

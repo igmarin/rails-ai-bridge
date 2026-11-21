@@ -18,15 +18,19 @@ module RailsAiBridge
       class ExploreError < StandardError; end
 
       INDEX_DIR_NAME = '.codegraph'
+      GRAPHIFY_INDEX_PATH = File.join('graphify-out', 'graph.json').freeze
       SETUP_HINT = 'Generate a local index with `codegraph init` or `codegraph index` ' \
-                   '(no network required), then retry.'
-      MISSING_INDEX_MESSAGE = "No local CodeGraph index found at `#{INDEX_DIR_NAME}/`. #{SETUP_HINT}".freeze
+                   '(no network required), or a Graphify index with `graphify extract .`, ' \
+                   'then retry.'
+      MISSING_INDEX_MESSAGE = "No local code intelligence index found at `#{INDEX_DIR_NAME}/` " \
+                              "or `#{GRAPHIFY_INDEX_PATH}`. #{SETUP_HINT}".freeze
       BLANK_QUERY_MESSAGE = 'Provide a `symbol` or `query` string (for example `User` or `User#save`).'
 
       tool_name 'rails_explain_symbol'
-      description 'Explain a Ruby/Rails symbol from the local CodeGraph index (.codegraph/). ' \
+      description 'Explain a Ruby/Rails symbol from a local code intelligence index ' \
+                  '(.codegraph/ or graphify-out/graph.json). ' \
                   'Accepts `symbol` or `query`. Returns markdown with source and call paths. ' \
-                  'If the index is missing, returns setup instructions. Never contacts the network.'
+                  'If no index is found, returns setup instructions. Never contacts the network.'
 
       input_schema(
         properties: {
@@ -68,7 +72,7 @@ module RailsAiBridge
 
         # @return [#explore] explorer responding to +explore(query)+
         def explorer
-          @explorer ||= CliExplorer.new(root: rails_root)
+          @explorer ||= build_explorer
         end
 
         # Clears a stubbed explorer so the next call builds the default.
@@ -78,12 +82,36 @@ module RailsAiBridge
           @explorer = nil
         end
 
-        # @return [Boolean] whether +.codegraph/+ exists under the application root
+        # @return [Boolean] whether a code intelligence index exists under the
+        #   application root (+.codegraph/+ directory or a Graphify +graph.json+)
         def index_present?
-          Dir.exist?(File.join(rails_root, INDEX_DIR_NAME))
+          codegraph_present? || graphify_present?
         end
 
         private
+
+        # CodeGraph first (richer source + call paths), then the Graphify
+        # knowledge-graph fallback. Both raise ExploreError on CLI failure, so
+        # a stale index degrades to the setup message.
+        # @return [#explore]
+        def build_explorer
+          common = { root: rails_root }
+          if codegraph_present?
+            CliExplorer.new(**common)
+          else
+            GraphifyExplorer.new(**common)
+          end
+        end
+
+        # @return [Boolean] whether +.codegraph/+ exists under the application root
+        def codegraph_present?
+          Dir.exist?(File.join(rails_root, INDEX_DIR_NAME))
+        end
+
+        # @return [Boolean] whether +graphify-out/graph.json+ exists under the application root
+        def graphify_present?
+          File.exist?(File.join(rails_root, GRAPHIFY_INDEX_PATH))
+        end
 
         # @param symbol [String, nil]
         # @param query [String, nil]

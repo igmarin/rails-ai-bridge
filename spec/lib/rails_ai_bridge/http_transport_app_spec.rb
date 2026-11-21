@@ -331,5 +331,22 @@ RSpec.describe RailsAiBridge::HttpTransportApp do
 
       expect(headers).not_to have_key('Access-Control-Allow-Origin')
     end
+
+    it 'returns a literal wildcard for any origin under wildcard config' do
+      RailsAiBridge.configuration.mcp.cors_origins = ['*']
+      allow(transport).to receive(:handle_request).and_return([200, {}, ['OK']])
+      app = described_class.build(transport: transport, path: '/mcp')
+
+      env = Rack::MockRequest.env_for(
+        '/mcp',
+        method: 'POST',
+        'HTTP_AUTHORIZATION' => 'Bearer secret',
+        'HTTP_ORIGIN' => 'https://evil.example'
+      )
+
+      _status, headers, = app.call(env)
+
+      expect(headers['Access-Control-Allow-Origin']).to eq('*')
+    end
   end
 end

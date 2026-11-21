@@ -10,7 +10,7 @@ RSpec runs with SimpleCov. Focused specs do not enforce the global floor because
 COVERAGE=1 bundle exec rspec
 ```
 
-The v5 release floor is **90% line coverage and 90% branch coverage**. The first quality-gate change uses the current branch baseline as a temporary floor while the debt-burning work raises it.
+The v5 release floor is **90% line coverage and 90% branch coverage**. Both floors are enforced in CI via SimpleCov (`spec/spec_helper.rb`) on every full-suite run.
 
 ## RuboCop
 

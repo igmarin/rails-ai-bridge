@@ -195,10 +195,6 @@ module RailsAiBridge
             expect(render(described_class, ctx)).to include('Internationalization (I18n)')
           end
         end
-
-        # ---------------------------------------------------------------------------
-        # ConfigFormatter
-        # ---------------------------------------------------------------------------
         describe ConfigFormatter do
           it('returns nil when absent') { expect(render(described_class, {})).to be_nil }
           it('returns nil on error')    { expect(render(described_class, { config: { error: 'x' } })).to be_nil }

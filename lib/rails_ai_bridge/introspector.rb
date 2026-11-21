@@ -59,7 +59,7 @@ module RailsAiBridge
 
     # Registry of all built-in introspector classes, keyed by symbolic name.
     #
-    # The +:standard+ preset uses 9 of these; the +:full+ preset uses 27
+    # The +:standard+ preset uses 9 of these; the +:full+ preset uses 28
     # (+:full+ already includes +:non_ar_models+). Opt-in-only keys
     # (e.g. +:database_stats+, +:semantic+) are present here but excluded from
     # both presets by default.
@@ -94,7 +94,8 @@ module RailsAiBridge
       middleware: Introspectors::MiddlewareIntrospector,
       engines: Introspectors::EngineIntrospector,
       multi_database: Introspectors::MultiDatabaseIntrospector,
-      semantic: Introspectors::SemanticIntrospector
+      semantic: Introspectors::SemanticIntrospector,
+      code_intelligence: Introspectors::CodeIntelligenceIntrospector
     }.freeze
 
     # Returns the application name derived from the Rails application class.

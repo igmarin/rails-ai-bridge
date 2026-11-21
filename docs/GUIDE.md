@@ -16,6 +16,10 @@ Commands, tools, config, and setup. For the short path, use the [README](../READ
 - [MCP Server Setup](#mcp-server-setup)
 - [Configuration — All Options](#configuration--all-options)
 - [Introspectors — Full List](#introspectors--full-list)
+- [Keeping your own notes in `CLAUDE.md`](#keeping-your-own-notes-in-claudemd)
+- [Extending the built-ins](#extending-the-built-ins)
+- [Rubydex Integration](#rubydex-integration-semantic-code-analysis)
+- [Skill Packs](#skill-packs)
 - [AI Assistant Setup](#ai-assistant-setup)
 - [Stack Compatibility](#stack-compatibility)
 - [Diagnostics](#diagnostics)
@@ -607,7 +611,15 @@ Returns a redacted tail of a log file under the app's `log/` directory as compac
 
 ### rails_explain_symbol
 
-Explains a Ruby/Rails symbol from a **local** CodeGraph index (`.codegraph/` under `Rails.root`). Runs `codegraph explore` in-process with a timeout. Never contacts a network service.
+Explains a Ruby/Rails symbol from a **local code intelligence index**. Runs the matching CLI in-process with a timeout. Never contacts a network service.
+
+**Index selection (fallback order):**
+
+1. `.codegraph/` exists under `Rails.root` → runs `codegraph explore --path <root> -- <query>` (richer source + call paths).
+2. Otherwise `graphify-out/graph.json` exists → runs `graphify query "<query>" --graph graphify-out/graph.json --budget 2000`.
+3. Neither exists → returns setup instructions (`codegraph init` / `codegraph index`, or `graphify extract .`).
+
+A CLI failure (missing binary, timeout, non-zero exit) also degrades to the setup message instead of raising.
 
 **Parameters:**
 
@@ -616,7 +628,19 @@ Explains a Ruby/Rails symbol from a **local** CodeGraph index (`.codegraph/` und
 | `query` | string | Symbol or natural-language question (e.g. `User`, `User#save`). Preferred when both are sent. |
 | `symbol` | string | Alias for `query`. |
 
-If `.codegraph/` is missing or `codegraph` fails, the tool returns setup instructions (`codegraph init` / `codegraph index`) instead of raising.
+### Code intelligence indexes
+
+The `:code_intelligence` introspector (in the `:full` preset, or add `config.introspectors << :code_intelligence`) reports the local index state in the `## Code Intelligence Indexes` context section and via `rails_get_context`:
+
+| Field | Meaning |
+|-------|---------|
+| `codegraph.present` / `index_path` / `indexed_at` | Whether `.codegraph/codegraph.db` exists and when it was last modified |
+| `graphify.present` / `graph_path` / `generated_at` | Whether `graphify-out/graph.json` exists and when it was last modified |
+| `graphify.graph_commit` | Commit SHA parsed from `graphify-out/GRAPH_REPORT.md` ("Built from commit: ...") |
+| `graphify.head_commit` | Current `git rev-parse HEAD` (nil outside a git repo) |
+| `graphify.stale` | `true` when the graph predates HEAD, `false` when current, `nil` when either commit is unknown |
+
+Stale or missing indexes do not break anything: `rails_explain_symbol` falls back to the setup message, and the context section simply reports what the assistant can (and cannot) rely on.
 
 ### Rubydex configuration reference
 

@@ -24,7 +24,7 @@ RSpec.describe RailsAiBridge::Generators::InstallGenerator do
       content = File.read(File.join(destination_root, 'config/initializers/rails_ai_bridge.rb'))
 
       expect(content).to include(':standard (default) — 9 core introspectors')
-      expect(content).to include(':full — all 27 introspectors')
+      expect(content).to include(':full — all 28 introspectors')
     end
 
     it 'documents the :regulated preset' do

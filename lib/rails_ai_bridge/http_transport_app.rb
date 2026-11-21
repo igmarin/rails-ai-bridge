@@ -92,6 +92,10 @@ module RailsAiBridge
 
       # Builds CORS response headers when the request origin is allowed.
       #
+      # With a wildcard configuration the literal +*+ is returned rather than
+      # echoing the request's arbitrary Origin back, so browsers never accept
+      # unlisted origins as if they were allowlisted.
+      #
       # @param origin [String, nil] value of the Origin header
       # @param cors_origins [Array<String>] configured allowed origins
       # @return [Hash{String => String}, nil] headers to add, or +nil+ when CORS is disabled/unmatched
@@ -100,8 +104,10 @@ module RailsAiBridge
         return nil if origin.blank?
         return nil unless cors_origins.include?('*') || cors_origins.include?(origin)
 
+        allowed_origin = cors_origins.include?('*') ? '*' : origin
+
         {
-          'Access-Control-Allow-Origin' => origin,
+          'Access-Control-Allow-Origin' => allowed_origin,
           'Access-Control-Allow-Methods' => 'GET, POST, OPTIONS',
           'Access-Control-Allow-Headers' => 'Authorization, Content-Type'
         }

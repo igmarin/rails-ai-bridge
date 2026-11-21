@@ -7,6 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.5.0] - 2026-11-20
+
+### Added
+
+- `rails_explain_symbol` now falls back to a local Graphify index: when
+  `.codegraph/` is absent but `graphify-out/graph.json` exists, the tool runs
+  `graphify query` against the project's graph. Shared CLI execution moved to
+  `ExplainSymbol::CliRunner`; the missing-index message and tool description
+  name both index types.
+- `CodeIntelligenceIntrospector` (`:code_intelligence`, included in the
+  `:full` preset — 28 introspectors) reports whether local CodeGraph and
+  Graphify indexes exist, when they were last generated, and whether the
+  Graphify graph is stale relative to `git HEAD`. Rendered as a new
+  `## Code Intelligence Indexes` section in markdown output.
+- Dependency refresh: archspec dev-dependency raised to `~> 1.2.0`
+  (Dependabot #359).
+
+### Changed
+
+- README restructured: install-profile detail, per-client setup walkthroughs,
+  managed regions, Rubydex, extending the built-ins, and skill packs moved to
+  `docs/GUIDE.md`, which becomes the single source for the full configuration
+  tables.
+- Refreshed `docs/COMPARISON.md` against live sources (2026-11-20): the
+  read-only SQL/data-access row now reflects the shipped `rails_query` and
+  `rails_read_logs`, tool and introspector counts updated, download counts
+  re-verified.
+
+### Fixed
+
+- HTTP MCP CORS: when `cors_origins` includes `'*'`, the response now sends
+  the literal `Access-Control-Allow-Origin: *` instead of echoing the
+  request's arbitrary `Origin` header back.
+- Rack middleware: the HTTP transport app is built inside the same reentrant
+  monitor as the transport, so concurrent first requests can no longer build
+  two apps (and two rate limiters) with one discarded.
+
+### Security
+
+- Documented two accepted limits in `docs/mcp-security.md`: `rails_query`
+  blocks statement types, not SQL function side effects (e.g. `SELECT
+  setval(...)` on PostgreSQL) — use a read-only database role when exposing
+  data tools; and CORS `'*'` mode is wildcard-allow — prefer exact origins.
+
+### Maintenance
+
+- Refresh the mutation and demo-app lockfiles and the local lockfile, including
+  MCP 1.11.0, Rubydex 0.4.4, Combustion 1.7.0, Faraday 2.15.1, RuboCop 1.92.3,
+  Zeitwerk 2.8.3, WEBrick 1.9.2, and YARD 0.9.45. Skunk remains on 0.5.4 and
+  Reek on 6.5.x: RubyCritic pins `reek (~> 6.5.0, < 7.0)` in both 4.12.0 and
+  5.0.0, and Skunk requires `rubycritic < 5.0`, so Dependabot PR #358 (reek
+  6.6) was rejected.
+- Added focused specs for five previously unspec'd serializer collaborators
+  (`RulesArchitectureBuilder`, `RulesStackOverviewBuilder`,
+  `RulesKeyConsiderationsBuilder`, `RulesDocumentBuilder`, `LineEnforcer`);
+  refreshed `docs/COVERAGE.md` to state the shipped 90/90 coverage floor.
+
 ## [5.4.0] - 2026-10-23
 
 ### Added

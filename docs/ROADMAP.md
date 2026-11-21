@@ -1,6 +1,6 @@
 # rails-ai-bridge — Roadmap
 
-Last updated: 2026-10-08
+Last updated: 2026-11-20
 
 ## Vision
 

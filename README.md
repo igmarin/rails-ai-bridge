@@ -33,16 +33,13 @@ Use the README as the shortest path to understanding and setup. Jump to deeper d
 
 | You want to... | Read this first |
 |---|---|
-| Understand the idea in 3 minutes | [How it works](#how-it-works) |
 | Install and generate files | [Quick start](#quick-start) |
-| Connect Claude Code or Cursor | [Connect your AI client — Claude Code](#claude-code) |
-| Connect Devin | [Connect your AI client — Devin](#devin) and [docs/devin-setup.md](docs/devin-setup.md) |
-| Connect Copilot / Codex / Gemini | [Connect your AI client](#connect-your-ai-client) |
-| Check what the AI learns | [What Your AI Learns](#what-your-ai-learns) |
-| Choose `:standard`, `:full`, or opt-ins | [Pick the right preset for your app](#pick-the-right-preset-for-your-app) |
-| Use MCP safely | [HTTP transport](#http-transport-alternative-for-all-clients) and [mcp-security.md](docs/mcp-security.md) |
+| Connect Claude Code or Cursor | [Connect your AI client](#connect-your-ai-client) |
+| Connect Devin | [docs/devin-setup.md](docs/devin-setup.md) |
+| See every tool, command, and config option | [docs/GUIDE.md](docs/GUIDE.md) |
+| Use MCP safely | [docs/mcp-security.md](docs/mcp-security.md) |
 | Upgrade from an earlier version | [UPGRADING.md](UPGRADING.md) |
-| Improve day-to-day AI results | [Best Practices](docs/BEST_PRACTICES.md) |
+| Improve day-to-day AI results | [docs/BEST_PRACTICES.md](docs/BEST_PRACTICES.md) |
 
 ## When this helps
 
@@ -144,96 +141,32 @@ Then `bundle install` and run the generator as above.
 
 The install generator creates **`.mcp.json`** (MCP auto-discovery), sets up `config/initializers/rails_ai_bridge.rb`, and **interactively guides you through generating your first bridge files**.
 
-### Install profiles
+Optional: `gem install rails-ai-bridge` installs the gem into your Ruby environment; you still add it to the app's `Gemfile` for a Rails project.
 
-The generator prompts you to pick a profile (or pass `--profile` to skip the prompt):
+After installing:
 
-| Profile | What it generates | Split rule dirs |
-|---------|-------------------|-----------------|
-| `custom` *(default)* | Per-format prompts — pick exactly what you need | Yes |
-| `minimal` | Claude, Cursor, Devin, Copilot, Gemini shims | No |
-| `full` | Every format | Yes |
-| `mcp` | Only `.mcp.json` — generate files later with `rails ai:bridge` | — |
+1. **Verify the bundle is complete** — `bundle exec rails -T` and `rails ai:serve` only work after `bundle install` finishes cleanly.
+2. **Regenerate in one shot** — run `rails ai:bridge` (not a single format) so summaries stay consistent across all generated files.
+3. **Keep team-specific rules** — use `config/rails_ai_bridge/overrides.md` instead of hand-editing generated files (see `overrides.md.example`).
+4. **Check your readiness** — `rails ai:doctor` prints a 0–100 score and flags anything missing after first install.
 
-```bash
-# Non-interactive — select profile upfront
-rails generate rails_ai_bridge:install --profile=minimal
-
-# CI/CD — skip file generation entirely
-rails generate rails_ai_bridge:install --skip-context
-rails ai:bridge   # generate later
-```
-
-Optional: `gem install rails-ai-bridge` installs the gem into your Ruby environment; you still add it to the app’s `Gemfile` for a Rails project.
-
-### Verify the integration in *your* Rails app
-
-1. **`bundle install` must finish cleanly** — until it does, `bundle exec rails -T` and `rails ai:serve` (from `.mcp.json`) cannot be verified. Merging this gem to `main` does not fix a broken or incomplete bundle on the host app.
-2. **Regenerate in one shot** — run `rails ai:bridge` (not only a single format) so route/controller summaries and relevance ordering stay consistent across `CLAUDE.md`, `.cursor/rules/`, and `.github/instructions/`.
-3. **Keep team-specific rules** — generated files are snapshots. Use **`config/rails_ai_bridge/overrides.md`** for org-specific constraints (merged only after you **delete the first-line** `<!-- rails-ai-bridge:omit-merge -->` stub). Until then, the gem does not inject placeholder text into Copilot/Codex. See **`overrides.md.example`** for an outline. Alternatively re-merge into generated files after each `rails ai:bridge` (see `.codex/README.md`).
-4. **Tune list sizes** — `RailsAiBridge.configure { |c| c.copilot_compact_model_list_limit = 5 }` (and `codex_compact_model_list_limit`); set `0` to list no model names and point only to MCP.
-5. **Check your readiness** — `rails ai:doctor` prints a 0–100 score and flags anything missing after first install.
-
----
-
-## Compared with writing the files yourself, or rails-mcp-server
-
-| | **rails-ai-bridge** | **[rails-mcp-server](https://github.com/maquina-app/rails-mcp-server)** | **Hand-written notes** |
-| --- | --- | --- | --- |
-| Setup | Railtie and an install generator | Per-project `projects.yml` | You write everything |
-| Files in git | Assistant files committed in the app | Configured projects only | Whatever you remember to commit |
-| Read-only | Inspects structure; does not write or mutate | Yes | Yes |
-| Presets | `:standard`, `:full`, and `:regulated` | No | No |
-
-*Checked against rails-mcp-server README and typical manual-context workflows on 2026-08-15.
-This table lists durable product differences, not tool or introspector counts that change release to release.*
+Install profiles and per-profile details: [docs/GUIDE.md — Installation](docs/GUIDE.md#installation).
 
 ---
 
 ## What `rails ai:bridge` writes
 
-It writes one set of files per assistant. Compact files stay near 150 lines. Split rules live next to the tool that reads them:
+It writes one set of files per assistant. Compact files stay near 150 lines. Split rules live next to the tool that reads them — the full tree with per-file annotations is in [docs/GUIDE.md — Generated Files](docs/GUIDE.md#generated-files).
 
-```text
-your-rails-app/
-│
-├── 🟣 Claude Code
-│   ├── CLAUDE.md                                         ≤150 lines (compact)
-│   └── .claude/rules/
-│       ├── rails-context.md                              semantic layer (compact: capped per tier + MCP hint)
-│       ├── rails-schema.md                               table listing
-│       ├── rails-models.md                               model listing (includes semantic tier)
-│       └── rails-mcp-tools.md                            full tool reference
-│
-├── 🟡 OpenAI Codex
-│   └── AGENTS.md                                         project instructions for Codex
-│
-├── 🟢 Cursor
-│   └── .cursor/rules/
-│       ├── rails-engineering.mdc                         alwaysApply: true (rules first)
-│       ├── rails-project.mdc                             alwaysApply: true
-│       ├── rails-models.mdc                              globs: app/models/**
-│       ├── rails-controllers.mdc                         globs: app/controllers/**
-│       └── rails-mcp-tools.mdc                           alwaysApply: true
-│
-├── 🔵 Devin
-│   └── .devin/rules/
-│       ├── rails-context.md                              project overview
-│       └── rails-mcp-tools.md                            tool reference
-│
-├── 🟠 GitHub Copilot
-│   ├── .github/copilot-instructions.md                   ≤500 lines (compact)
-│   └── .github/instructions/
-│       ├── rails-models.instructions.md                  applyTo: app/models/**
-│       ├── rails-controllers.instructions.md             applyTo: app/controllers/**
-│       └── rails-mcp-tools.instructions.md               applyTo: **/*
-│
-├── 🔴 Gemini
-│   └── GEMINI.md                                         directive briefing + MCP guide
-│
-├── 📋 .ai-context.json                                   full JSON (programmatic)
-└── .mcp.json                                             MCP auto-discovery
-```
+| Assistant | Files |
+|---|---|
+| Claude Code | `CLAUDE.md` + `.claude/rules/*.md` |
+| Codex | `AGENTS.md` |
+| Cursor | `.cursor/rules/*.mdc` |
+| Devin | `.devin/rules/*.md` |
+| GitHub Copilot | `.github/copilot-instructions.md` + `.github/instructions/*.instructions.md` |
+| Gemini | `GEMINI.md` |
+| Programmatic | `.ai-context.json`, `.mcp.json` |
 
 Each file respects the AI tool's format and size limits. **Commit these files** so the same project guidance is available to your whole team.
 
@@ -260,6 +193,7 @@ Each file respects the AI tool's format and size limits. **Commit these files** 
 | **Config** | Cache store, session store, middleware, initializers, timezone, CurrentAttributes from configured model paths |
 | **DevOps** | Puma, Procfile, Docker, deployment tools, asset pipeline |
 | **Architecture** | Service objects, STI, polymorphism, state machines, multi-tenancy, engines |
+| **Code intelligence** | Detects local CodeGraph (`.codegraph/`) and Graphify (`graphify-out/graph.json`) indexes and reports their freshness to the AI |
 
 The `:full` preset runs 27 introspectors. The `:standard` preset runs 9 core ones by default.
 
@@ -272,22 +206,6 @@ This keeps context focused and avoids unnecessary token usage while still allowi
 ## MCP Tools
 
 The gem exposes **22 built-in tool classes** via MCP — 20 registered by default, 2 data-access tools behind `config.enable_data_tools` (hosts can append more via `config.additional_tools`):
-
-> **Operator callout — data-access tools are opt-in.** `rails_query` and
-> `rails_read_logs` are **disabled by default** (`config.enable_data_tools = false`)
-> because they read live application data: `rails_query` runs on the app's database
-> connection, so it can read rows from tables that MCP introspection excludes
-> (`config.excluded_models` / `excluded_tables` do not restrict it), and
-> `rails_read_logs` returns raw log contents. Enable them deliberately with
->
-> ```ruby
-> # config/initializers/rails_ai_bridge.rb
-> RailsAiBridge.configure { |config| config.enable_data_tools = true }
-> ```
->
-> and keep the exposure controls from [docs/mcp-security.md](docs/mcp-security.md)
-> in place (authentication, loopback binding, redaction). To disable them again,
-> remove the flag (or set it to `false`) and restart.
 
 | Tool | What it returns |
 |------|----------------|
@@ -305,7 +223,7 @@ The gem exposes **22 built-in tool classes** via MCP — 20 registered by defaul
 | `rails_search_semantic` | Semantic code search using rubydex — find declarations by name with types, locations, and relationships |
 | `rails_query` | Opt-in. Run a single read-only SELECT statement on the app database: SELECT-only allowlist (no `INTO`/locking clauses), read-only transaction on PostgreSQL, 100-row cap, 5s timeout, credential-like columns redacted |
 | `rails_read_logs` | Opt-in. Redacted tail of a log file under `log/`: traversal-safe path allowlist, line/byte caps, credential redaction |
-| `rails_explain_symbol` | Local CodeGraph explanation for a `symbol` or `query` when `.codegraph/` exists; otherwise setup instructions |
+| `rails_explain_symbol` | Local code-intelligence explanation for a `symbol` or `query` (CodeGraph `.codegraph/` first, then Graphify `graphify-out/graph.json`); setup instructions when neither exists |
 | `rails_get_stimulus` | Stimulus controllers: targets, values, actions, outlets (requires `:stimulus` introspector) |
 | `rails_list_registry` | Skill pack catalog — list skills, agents, or active packs; requires `config/rails_ai_bridge/registry.json` |
 | `rails_resolve_skill` | Full content of a named skill or agent from the registry (priority ordering + deprecation redirects); optional `pack=` pin and `type=agent` |
@@ -316,50 +234,15 @@ The gem exposes **22 built-in tool classes** via MCP — 20 registered by defaul
 
 All tools are **read-only** — they never modify your application or database.
 
-**Confidence tags legend.** Some tools label each fact with its evidence. `[VERIFIED]` means the fact is provable at runtime or from the AST. `[INFERRED]` means it comes from a pattern, a heuristic, or a schema-file parse (the `static` source label). `[STATIC]` is reserved and never emitted. `rails_get_schema` and `rails_get_model_details` tag facts, as do single-controller `rails_get_controllers` output at any detail level, full-detail `rails_get_controllers` lists, and full-detail `rails_get_view` output. The schema and model sections of `rails_get_context` are tagged too, and its controller section is tagged at full detail. Set `config.confidence_tags_enabled = false` in the `RailsAiBridge.configure` block to remove the controller and view tags; schema and model tags stay on. The guide's [Reading confidence tags](docs/GUIDE.md#reading-confidence-tags) section explains the footer and the settings.
+**Confidence tags legend.** Some tools label each fact with its evidence. `[VERIFIED]` means the fact is provable at runtime or from the AST. `[INFERRED]` means it comes from a pattern, a heuristic, or a schema-file parse (the `static` source label). `[STATIC]` is reserved and never emitted. `rails_get_schema` and `rails_get_model_details` tag facts, as do single-controller `rails_get_controllers` output at any detail level, full-detail `rails_get_controllers` lists, and full-detail `rails_get_view` output. The schema and model sections of `rails_get_context` are tagged too, and its controller section is tagged at full detail. Set `config.confidence_tags_enabled = false` in the `RailsAiBridge.configure` block to remove the controller and view tags; schema and model tags are always on.
 
-### Smart Detail Levels
+Tools accept a `detail` parameter (`summary` / `standard` (default) / `full`) — the level table and recommended workflow are in [docs/GUIDE.md — Detail Level Summary](docs/GUIDE.md#detail-level-summary). A safety net (`max_tool_response_chars`, default 120K) truncates oversized responses with hints to use filters.
 
-Schema, routes, models, and controllers tools support a `detail` parameter — critical for large apps:
-
-| Level      | Returns                                | Default limit |
-| ------------| ----------------------------------------| ---------------|
-| `summary`  | Names + counts                         | 50            |
-| `standard` | Names + key details *(default)*        | 15            |
-| `full`     | Everything (indexes, FKs, constraints) | 5             |
-
-```ruby
-# Start broad
-rails_get_schema(detail: "summary")           # → all tables with column counts
-
-# Drill into specifics
-rails_get_schema(table: "users")              # → full detail for one table
-
-# Paginate large schemas
-rails_get_schema(detail: "summary", limit: 20, offset: 40)
-
-# Filter routes by controller
-rails_get_routes(controller: "users")
-
-# Get one model's full details
-rails_get_model_details(model: "User")
-```
-
-A safety net (`max_tool_response_chars`, default 120K) truncates oversized responses with hints to use filters.
-
-### Early real-world observations
-
-Early project-level trials suggest the biggest improvement is not always dramatic token reduction by itself. In several runs, `rails-ai-bridge` led to faster, more focused responses even when total token usage only dropped modestly.
-
-This makes sense: compact assistant-specific files and the summary-first MCP workflow help the model find relevant code faster and start with better context.
-
-Observed benefits so far:
-- Less exploratory reading before the assistant reaches the relevant files
-- Faster first useful response in Cursor and Devin trials
-- Similar or slightly better answer quality with clearer project grounding
-- More predictable drill-down via `detail:"summary"` first, then focused lookups
-
-Results will vary by client, model, project size, and task type. More formal benchmarks are still in progress.
+> **Operator callout — data-access tools are opt-in.** `rails_query` and
+> `rails_read_logs` are **disabled by default** (`config.enable_data_tools = false`)
+> because they read live application data. Enable them deliberately with
+> `RailsAiBridge.configure { |config| config.enable_data_tools = true }` and keep the
+> exposure controls from [docs/mcp-security.md](docs/mcp-security.md) in place.
 
 ---
 
@@ -376,64 +259,7 @@ rails-ai-bridge gives every client two things: **static context files** loaded a
 | **Codex** | `AGENTS.md` | Via `.codex/mcp_servers.json` |
 | **Gemini** | `GEMINI.md` | Via Gemini CLI config |
 
-### Claude Code
-
-No MCP setup needed. Claude Code auto-detects `.mcp.json` at the project root and spawns `bundle exec rails ai:serve` automatically. Ask Claude "What rails_* MCP tools do you have?" to confirm — it should list `rails_get_schema`, `rails_get_routes`, and the rest.
-
-If the connection fails: verify `.mcp.json` exists and that `bundle exec rails ai:serve` runs cleanly in your terminal.
-
-### Cursor
-
-No MCP setup needed. Cursor auto-detects `.mcp.json`. If it does not pick it up, open **Settings > MCP** and add the server manually with `BUNDLE_GEMFILE: "${workspaceFolder}/Gemfile"` in the `env` block.
-
-**Ruby version manager issue (rbenv/rvm):** Cursor may not inherit your shell environment when launching sub-processes. Fix: enable the HTTP transport instead.
-
-```ruby
-# config/initializers/rails_ai_bridge.rb
-RailsAiBridge.configure do |config|
-  config.auto_mount = true
-  config.http_path  = "/mcp"
-  config.http_bind  = "127.0.0.1"
-end
-```
-
-Start your Rails server and point Cursor to `http://localhost:3000/mcp` (type: SSE) in Settings > MCP.
-
-### Devin
-
-Devin reads `.devin/rules/*.md` and `AGENTS.md` automatically. MCP requires one manual step.
-
-**Step 1 — generate files:**
-```bash
-rails ai:bridge    # all formats, including .devin/rules/ and AGENTS.md
-```
-
-**Step 2 — create `.devin/mcp.json`:**
-```json
-{
-  "mcpServers": {
-    "rails-ai-bridge": {
-      "command": "bundle",
-      "args": ["exec", "rails", "ai:serve"],
-      "cwd": "/absolute/path/to/your/rails/app"
-    }
-  }
-}
-```
-
-Use the absolute path in `cwd` — Devin does not inherit your terminal's working directory. Commit this file so your team gets the same setup.
-
-**Step 3 — verify:** In a Devin session ask "What MCP tools do you have available?" — it should list the `rails-ai-bridge` server and all `rails_*` tools.
-
-**Ruby version manager issue:** If `bundle` is not on `PATH`, use the absolute shim path (e.g. `/Users/you/.rbenv/shims/bundle`) or switch to the HTTP transport. See [docs/devin-setup.md](docs/devin-setup.md) for the full guide including HTTP transport, skills, and troubleshooting.
-
-### GitHub Copilot
-
-MCP is not natively supported in the Copilot VS Code extension. The static files (`CLAUDE.md`, `.github/copilot-instructions.md`, path-scoped `.github/instructions/`) give Copilot project grounding, and the MCP tools are documented in the generated files so Copilot knows what to ask — but it cannot call them automatically. For tasks that need live schema or route lookups, use Claude Code or Cursor.
-
-### Codex
-
-Codex reads `AGENTS.md` at the repository root. MCP can be configured in `.codex/mcp_servers.json`. Run `rails ai:bridge:codex` to regenerate `AGENTS.md`.
+Per-client setup details, troubleshooting, and the Claude Desktop config live in [docs/GUIDE.md — AI Assistant Setup](docs/GUIDE.md#ai-assistant-setup) and [docs/devin-setup.md](docs/devin-setup.md).
 
 ### HTTP transport (alternative for all clients)
 
@@ -460,22 +286,6 @@ end
 ```
 
 Point your AI client to `http://127.0.0.1:3000/mcp` (or whichever port your Rails server uses) using transport type `SSE`. See [docs/mcp-security.md](docs/mcp-security.md) and [SECURITY.md](SECURITY.md) for production hardening.
-
-### Claude Desktop (standalone app)
-
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS):
-
-```json
-{
-  "mcpServers": {
-    "rails-ai-bridge": {
-      "command": "bundle",
-      "args": ["exec", "rails", "ai:serve"],
-      "env": { "BUNDLE_GEMFILE": "/absolute/path/to/your/rails/app/Gemfile" }
-    }
-  }
-}
-```
 
 ---
 
@@ -527,286 +337,9 @@ rails ai:doctor
 
 Prints a 0–100 AI readiness score and flags anything missing: `.mcp.json`, generated context files, MCP token in production, and more. Run it after initial setup and after major configuration changes.
 
----
+Configuration basics (preset, exclusions, cache TTL) live in your initializer; the full option-by-option reference is [docs/GUIDE.md — Configuration — All Options](docs/GUIDE.md#configuration--all-options). Managed regions (keeping hand-written notes in `CLAUDE.md`), Rubydex semantic analysis, and skill packs are documented there too.
 
-## Configuration
-
-```ruby
-# config/initializers/rails_ai_bridge.rb
-RailsAiBridge.configure do |config|
   # Presets: :standard (9 introspectors, default) or :full (27). Add opt-in extras as needed.
-  config.preset = :standard
-
-  # Cherry-pick on top of a preset
-  # config.introspectors += %i[non_ar_models views turbo auth api database_stats]
-
-  # Context mode: :compact (≤150 lines, default) or :full (dump everything)
-  # config.context_mode = :compact
-
-  # Exclude models from introspection
-  config.excluded_models += %w[AdminUser InternalAuditLog]
-
-  # Tag primary domain models as core_entity (semantic context for AI + Claude rules)
-  # config.core_models += %w[User Order Project]
-
-  # Exclude paths from code search
-  config.excluded_paths += %w[vendor/bundle]
-
-  # Cache TTL for MCP tool responses (seconds)
-  config.cache_ttl = 30
-
-  # Fingerprint / section snapshot TTL (default 5s). Raise for HTTP MCP only.
-  # config.snapshot_ttl = 30
-
-  # Cap Introspectors::PathResolver glob/file listings (default 2000, sorted then taken).
-  # config.max_files_per_path = 2000
-end
-```
-
-<details>
-<summary><strong>All configuration options</strong></summary>
-
-The confidence and Prism settings also work on the `static_analysis` sub-object. See the [options reference in the guide](docs/GUIDE.md#options-reference) for both paths.
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `preset` | `:standard` | Introspector preset (`:standard` or `:full`) |
-| `introspectors` | 9 core | Array of introspector symbols |
-| `context_mode` | `:compact` | `:compact` (≤150 lines) or `:full` (dump everything) |
-| `claude_max_lines` | `150` | Max lines for CLAUDE.md in compact mode |
-| `max_tool_response_chars` | `120_000` | Safety cap for MCP tool responses |
-| `excluded_models` | internal Rails models | Models to skip during introspection |
-| `core_models` | `[]` | Model names tagged as `core_entity` in introspection and `.claude/rules/` |
-| `excluded_paths` | `node_modules tmp log vendor .git` | Paths excluded from code search |
-| `auto_mount` | `false` | Auto-mount HTTP MCP endpoint |
-| `enable_data_tools` | `false` | Register `rails_query` and `rails_read_logs` (live database/log access; bypasses introspection exclusions) |
-| `allow_auto_mount_in_production` | `false` | Allow `auto_mount` in production (requires MCP token) |
-| `http_mcp_token` | `nil` | Bearer token for HTTP MCP; `ENV["RAILS_AI_BRIDGE_MCP_TOKEN"]` overrides when set |
-| `search_code_allowed_file_types` | `[]` | Extra extensions allowed for `rails_search_code` `file_type` |
-| `search_code_pattern_max_bytes` | `2048` | Maximum `pattern` size (bytes) for `rails_search_code` |
-| `search_code_timeout_seconds` | `5.0` | Wall-clock limit per search (`0` disables); mitigates runaway regex / CPU |
-| `require_http_auth` | `false` | When `true`, HTTP MCP returns `401` if no Bearer/JWT/static auth is configured |
-| `rate_limit_max_requests` | `nil` (profile default) | Per-IP sliding window ceiling (`0` disables); not shared across workers |
-| `rate_limit_window_seconds` | `60` | Sliding window length for HTTP rate limiting |
-| `http_log_json` | `false` | One JSON log line per HTTP MCP response when enabled |
-| `expose_credentials_key_names` | `false` | Include `credentials_keys` in config introspection / `rails://config` |
-| `additional_introspectors` | `{}` | Optional custom introspector classes keyed by symbol |
-| `additional_tools` | `[]` | Optional MCP tool classes appended to the built-in toolset |
-| `additional_resources` | `{}` | Optional MCP resources merged with the built-in `rails://...` resources |
-| `http_path` | `"/mcp"` | HTTP endpoint path |
-| `http_port` | `6029` | HTTP server port |
-| `cache_ttl` | `30` | Cache TTL in seconds for introspection results |
-| `snapshot_ttl` | `5` | Fingerprint / section snapshot TTL (seconds); raise for HTTP MCP |
-| `max_files_per_path` | `2000` | Max paths from `Introspectors::PathResolver#glob_for` / `#files_for` (sorted, then taken) |
-| `watcher_formats` | `:all` | Formats regenerated by `rails ai:watch` (e.g. `%i[claude cursor]` to limit churn) |
-| `managed_region` | `false` | Confine generated output to a marked block so hand-authored content in `CLAUDE.md` & co. survives regeneration |
-| `anti_hallucination_rules` | `true` | Include the shared verify-before-write block in every generated context file (markdown near the top, `.ai-context.json` as an `anti_hallucination_rules` key) |
-| `legacy_agent_files` | `false` | Also write the deprecated `.cursorrules`, `.devinrules`, and `.codex/README.md`. Cursor reads `.cursor/rules/` and `AGENTS.md`, Devin does not read `.devinrules`, and Codex reads only `AGENTS.md`. Removed in 6.0 |
-| `parallel_introspection` | `false` | Run introspectors concurrently (requires `concurrent-ruby`, which is already a Rails dependency) |
-| `parallel_pool_size` | `4` | Max threads in the parallel pool; capped at the number of active introspectors so no idle threads are created |
-| `parallel_timeout_seconds` | `10` | Per-introspector future timeout (seconds); timed-out introspectors return `{ error: "timed out after Ns" }` without blocking the others |
-| `static_analysis` | built in | Sub-object (`RailsAiBridge::Config::StaticAnalysis`) for the confidence and Prism settings below, such as `config.static_analysis.confidence_tags_enabled` |
-| `confidence_tags_enabled` | `true` | Adds tags and footers to single-controller output at any `detail` level, to full-detail `rails_get_controllers` output, to the controller section of full-detail `rails_get_context` output, and to full-detail `rails_get_view` output. Summary and standard list output (no `controller:` argument) has no tags or footers. Schema and model tags are always on. |
-| `prism_enabled` | `false` | Turns on the Prism pass. Strong params that Prism finds as methods in the controller source render as `[VERIFIED]`. Needs Prism, a default gem on Ruby 3.3+. |
-| `prism_max_files` | `500` | Caps the files the Prism pass reads per introspection run. |
-| `registry.registry_manifest_path` | `"config/rails_ai_bridge/registry.json"` | Path to the registry manifest JSON file for skill pack resolution |
-| `registry.skill_cache_dir` | `"~/.rails-ai-bridge/cache"` | Directory for caching git repositories containing skill packs |
-| `registry.skill_packs` | `nil` | Explicit pack names to load, or `nil` for auto-detection based on framework |
-| `registry.local_registry_paths` | `[]` | Local directory paths (must contain `directory.json`) loaded at priority 0 |
-| `registry.resolver_ttl` | `1800` | Seconds to cache the wired resolver in memory; `0` disables caching |
-| `registry.git_pull_ttl` | `86400` | Seconds between `git pull` refreshes per cached pack (24 h default). Set to `0` to pull on every resolver rebuild |
-| `registry.git_timeout` | `30` | Seconds before a git operation (clone, pull, checkout) is forcibly interrupted |
-| `registry.auto_load_dependencies` | `false` | Load declared `depends_on` packs transitively; circular chains warn but still load |
-| `context_providers.enabled` | `false` | Master switch for outbound context-provider traffic; must be explicitly enabled |
-| `context_providers.allowed_hosts` | `[]` | Exact hostnames allowed for provider endpoints (no wildcards or suffixes) |
-| `context_providers.allowed_loopback_ports` | `[3000, 9292]` | Allowed loopback ports for local development endpoints |
-| `context_providers.allow_private_networks` | `false` | Allow RFC1918/ULA private destinations (development only); link-local and cloud-metadata addresses remain blocked |
-| `context_providers.timeout_seconds` | `10` | Per-tool connect/read timeout in seconds |
-| `context_providers.aggregation_budget_seconds` | `30` | Total budget across all providers in one tool call |
-| `context_providers.max_response_bytes` | `1_048_576` | Maximum provider response body size in bytes before normalization |
-| `context_providers.max_providers` | `8` | Maximum providers to call in one invocation |
-| `context_providers.max_tools_per_provider` | `16` | Maximum tools to call per provider |
-| `context_providers.max_resolved_addresses` | `8` | Maximum number of addresses accepted from DNS per provider endpoint |
-| `context_providers.auth_resolver` | `nil` | Optional `->(endpoint, canonical_uri) { headers_hash }` for downstream auth; called with the raw manifest endpoint and the canonical, allowlisted URI |
-
-Other HTTP MCP knobs live only on the nested object, for example `RailsAiBridge.configuration.mcp.authorize`, `mcp.mode`, `mcp.security_profile`, and `mcp.require_auth_in_production` — see [docs/GUIDE.md](docs/GUIDE.md) and [docs/mcp-security.md](docs/mcp-security.md).
-</details>
-
-### Keeping your own notes in `CLAUDE.md`
-
-By default every `rails ai:bridge` run rewrites each provider file in full, so hand-authored
-guidance is lost. Opt into **managed regions** to keep it:
-
-```ruby
-RailsAiBridge.configure do |config|
-  config.output.managed_region = true
-end
-```
-
-or per run: `MERGE=1 rails ai:bridge` (and `MERGE=0` to force a full rewrite).
-
-Generated content is then confined to a marked block, and anything you write around it is
-left alone:
-
-```markdown
-# House rules
-
-Always run `bin/rubocop` before committing.
-
-<!-- BEGIN rails-ai-bridge: generated. Edits inside this block are overwritten on `rails ai:bridge`. -->
-…generated context…
-<!-- END rails-ai-bridge -->
-```
-
-- **No file yet** → the marked block is written on its own.
-- **Markers present** → only the block is replaced; content above and below is untouched.
-- **Existing file, no markers** → the block is **appended**; your file is not clobbered.
-- **Existing file that this gem generated** (its first line is the `<!-- Generated at: … -->`
-  header) → replaced, not appended, so turning the flag on doesn't leave a stale second
-  copy of the context above the block. If you had appended prose to that generated file,
-  wrap the generated part in the markers by hand before your first run to keep it.
-
-Markdown provider files only (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`,
-`.github/copilot-instructions.md`). `.ai-context.json` never
-receives markers. Freshness skipping and `ai:doctor` staleness both read through the region,
-so unchanged runs are still no-ops.
-
-**Caveats:**
-
-- Avoid writing marker-shaped lines (`<!-- BEGIN rails-ai-bridge: … -->` or
-  `<!-- END rails-ai-bridge -->`) in your own prose — the first BEGIN and the first
-  following END delimit the managed region, so a stray marker in hand-authored content
-  would truncate or misidentify the block.
-- If you delete both markers from a file, the old generated content is treated as your
-  own prose on the next run and a new block is appended. Re-add markers around the
-  generated part before your next run, or delete it manually.
-
-### Anti-hallucination rules
-
-Every generated context file carries a short verify-before-write block so AI assistants
-query the live app (via the `rails_*` MCP tools) instead of inventing structure:
-
-- Markdown files (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.github/copilot-instructions.md`,
-  and the split-rules files under `.claude/rules/`, `.cursor/rules/`, `.devin/rules/`,
-  `.github/instructions/`) open with a
-  `## Anti-hallucination rules` section near the top — after the freshness header, before
-  content sections — so it survives compact-mode trimming and stays inside the managed
-  region on regeneration.
-- `.ai-context.json` carries the same rules as an `anti_hallucination_rules` array key.
-
-The block lives in one place (`RailsAiBridge::Serializers::AntiHallucinationRules`), so the
-wording is identical across assistants. Disable it with:
-
-```ruby
-RailsAiBridge.configure do |config|
-  config.output.anti_hallucination_rules = false
-end
-```
-
-### Extending the built-ins
-
-If you need host-app or companion-gem extensions, register them explicitly in the initializer:
-
-```ruby
-RailsAiBridge.configure do |config|
-  config.additional_introspectors[:billing] = MyCompany::BillingIntrospector
-  config.introspectors << :billing
-
-  config.additional_tools << MyCompany::Tools::GetBillingContext
-
-  config.additional_resources["rails://billing"] = {
-    name: "Billing",
-    description: "Billing-specific AI context",
-    mime_type: "application/json",
-    key: :billing
-  }
-end
-```
-
-Built-in MCP tools and resources now read through a shared runtime context provider, so tool calls and `rails://...` resource reads stay aligned to the same cached snapshot.
-
-### Rubydex Integration (Semantic Code Analysis)
-
-[Rubydex](https://github.com/Shopify/rubydex) is Shopify's high-performance Ruby static analysis toolkit. rails-ai-bridge uses rubydex out-of-the-box for semantic code understanding.
-
-**Setup:**
-
-Rubydex is installed automatically as a core dependency and is enabled by default.
-
-To customize it in your initializer (`config/initializers/rails_ai_bridge.rb`):
-
-   ```ruby
-   RailsAiBridge.configure do |config|
-     # config.rubydex_enabled = false # Set to false to disable semantic analysis
-
-     # Optional: enable the semantic introspector (adds :semantic to introspectors)
-     config.semantic_introspector_enabled = true
-     config.introspectors += %i[semantic]
-
-     # Optional: control semantic context depth in generated files
-     # config.semantic_context_depth = :standard  # :summary, :standard, or :full
-
-     # Optional: incremental re-indexing (skip unchanged files on subsequent runs)
-     # config.rubydex_incremental_threshold = 0.3  # full rebuild if >30% of files changed
-     # config.rubydex_persist_index = true          # survive process restarts
-   end
-   ```
-
-**What you get:**
-
-| Feature | Description |
-|---------|-------------|
-| `rails_search_semantic` MCP tool | Fuzzy search for classes, modules, methods, and constants with type info and locations |
-| Enhanced model introspection | Semantic summaries, similar model discovery, and complexity scores for each model |
-| Semantic introspector | Codebase-wide pattern detection, inheritance analysis, and complexity hotspots |
-| `rails://semantic/analysis` resource | Full semantic analysis accessible via MCP resource read |
-| Context file enrichment | Semantic insights automatically included in generated AI context files |
-| Incremental re-indexing | Only changed files are re-parsed on subsequent calls; unchanged files are skipped |
-
-**Internal architecture:** The `RubydexAdapter` wraps the rubydex API as a thin coordinator delegating to three single-responsibility collaborators: `Serializer` (hash conversion), `Indexer` (graph construction + source file scanning), and `MethodCounter` (flat method-counting pipeline). Incremental re-indexing is handled by the `IncrementalIndexer` service, which tracks file mtimes and triggers a full rebuild when the changed-file ratio exceeds `rubydex_incremental_threshold`. See [CONTRIBUTING.md](CONTRIBUTING.md#project-structure) for the full project layout.
-
-**Configuration options:**
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `rubydex_enabled` | `true` | Enable rubydex integration |
-| `rubydex_index_path` | `"tmp/rubydex_index"` | Path for the rubydex index (must stay within `Rails.root`) |
-| `semantic_introspector_enabled` | `false` | Enable the dedicated semantic introspector |
-| `semantic_context_depth` | `:standard` | Depth of semantic context in generated files (`:summary`, `:standard`, `:full`) |
-| `rubydex_incremental_threshold` | `0.3` | Fraction of changed files (0.0–1.0) above which a full rebuild replaces incremental patching |
-| `rubydex_persist_index` | `false` | Persist the mtime snapshot to disk so incremental re-indexing survives process restarts |
-
-**Performance considerations:** Rubydex indexes your Ruby source files at startup. For large codebases, the initial indexing may take a few seconds. Subsequent calls re-use the in-memory index and only re-parse changed files, keeping re-indexing overhead proportional to churn rather than codebase size.
-
----
-
-### Skill Packs
-
-rails-ai-bridge can load **skill packs** — shared collections of agent instructions — from versioned git repositories and surface them through `rails_list_registry` and rake tasks.
-
-```ruby
-config.registry.registry_manifest_path = "config/rails_ai_bridge/registry.json"
-```
-
-Quick example manifest (`config/rails_ai_bridge/registry.json`):
-
-```json
-{
-  "version": "1.0.0",
-  "packs": {
-    "rails": { "source": "igmarin/rails-agent-skills" },
-    "core":  { "source": "igmarin/ruby-core-skills", "always_loaded": true }
-  },
-  "default_stack": ["core"]
-}
-```
-
-Pack sources accept local paths, HTTPS URLs (`https://`), SSH URLs (`git@`), or `owner/repo` GitHub shorthands. Plain `http://` URLs are rejected. Packs can be pinned to a specific version with `"ref": "v1.2.0"`.
-
-To prevent network timeouts from blocking your server, set `config.registry.git_timeout` (default: 30 s). To control how often cached packs are refreshed, set `config.registry.git_pull_ttl` (default: 24 h; `0` to always pull).
-
-See [docs/skill-registry-guide.md](docs/skill-registry-guide.md) for the full setup guide.
-
 ---
 
 ## Stack Compatibility
@@ -816,10 +349,10 @@ Works with every Rails architecture — auto-detects what's relevant:
 | Setup | Coverage | Notes |
 |-------|----------|-------|
 | Rails full-stack (ERB + Hotwire) | 27/27 | All introspectors relevant |
-| Rails + Inertia.js (React/Vue) | ~22/27 | Views/Turbo partially useful, backend fully covered |
-| Rails API + React/Next.js SPA | ~20/27 | Schema, models, routes, API, auth, jobs — all covered |
-| Rails API + mobile app | ~20/27 | Same as SPA — backend introspection is identical |
-| Rails engine (mountable gem) | ~15/27 | Core introspectors (schema, models, routes, gems) work |
+| Rails + Inertia.js (React/Vue) | ~22/28 | Views/Turbo partially useful, backend fully covered |
+| Rails API + React/Next.js SPA | ~20/28 | Schema, models, routes, API, auth, jobs — all covered |
+| Rails API + mobile app | ~20/28 | Same as SPA — backend introspection is identical |
+| Rails engine (mountable gem) | ~15/28 | Core introspectors (schema, models, routes, gems) work |
 
 Frontend introspectors (views, Turbo, Stimulus, assets) degrade gracefully — they report nothing when those features aren't present.
 
@@ -889,8 +422,8 @@ persistent dependency-graph analysis, and rails-hyperdrive on a
 companion-gem content ecosystem. rails-ai-bridge focuses on compact
 per-assistant context files for 7 targets, SHA256 diff-aware regeneration,
 strict read-only tools, and outbound provider federation with SSRF
-controls — and does not yet ship a dependency graph, SQL read path, CLI
-mode, or multi-project support. See [docs/COMPARISON.md](docs/COMPARISON.md)
+controls — and does not yet ship a dependency graph, CLI mode, or
+multi-project support. See [docs/COMPARISON.md](docs/COMPARISON.md)
 for the full feature table with sources and download counts.
 
 ## vs. Other Ruby MCP Projects
