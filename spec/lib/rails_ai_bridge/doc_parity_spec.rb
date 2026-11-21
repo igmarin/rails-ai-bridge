@@ -63,7 +63,7 @@ RSpec.describe 'documentation parity with source constants' do
   describe ':full preset introspector count' do
     it 'matches the count documented in AGENTS.md and CLAUDE.md' do
       actual_count = RailsAiBridge::Configuration::PRESETS[:full].size
-      expected_count = 27
+      expected_count = 28
 
       expect(actual_count).to eq(expected_count),
                               'RailsAiBridge::Configuration::PRESETS[:full] has ' \

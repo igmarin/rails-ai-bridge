@@ -71,6 +71,36 @@ rails ai:doctor
 4. Adds `.ai-context.json` to `.gitignore` (JSON cache — markdown files should be committed)
 5. Generates all bridge files
 
+### Install profiles
+
+The generator prompts you to pick a profile (or pass `--profile` to skip the prompt):
+
+| Profile | What it generates | Split rule dirs |
+|---------|-------------------|-----------------|
+| `custom` *(default)* | Per-format prompts — pick exactly what you need | Yes |
+| `minimal` | Claude, Cursor, Devin, Copilot, Gemini shims | No |
+| `full` | Every format | Yes |
+| `mcp` | Only `.mcp.json` — generate files later with `rails ai:bridge` | — |
+
+```bash
+# Non-interactive — select profile upfront
+rails generate rails_ai_bridge:install --profile=minimal
+
+# CI/CD — skip file generation entirely
+rails generate rails_ai_bridge:install --skip-context
+rails ai:bridge   # generate later
+```
+
+Optional: `gem install rails-ai-bridge` installs the gem into your Ruby environment; you still add it to the app’s `Gemfile` for a Rails project.
+
+### Verify the integration in *your* Rails app
+
+1. **`bundle install` must finish cleanly** — until it does, `bundle exec rails -T` and `rails ai:serve` (from `.mcp.json`) cannot be verified. Merging this gem to `main` does not fix a broken or incomplete bundle on the host app.
+2. **Regenerate in one shot** — run `rails ai:bridge` (not only a single format) so route/controller summaries and relevance ordering stay consistent across `CLAUDE.md`, `.cursor/rules/`, and `.github/instructions/`.
+3. **Keep team-specific rules** — generated files are snapshots. Use **`config/rails_ai_bridge/overrides.md`** for org-specific constraints (merged only after you **delete the first-line** `<!-- rails-ai-bridge:omit-merge -->` stub). Until then, the gem does not inject placeholder text into Copilot/Codex. See **`overrides.md.example`** for an outline. Alternatively re-merge into generated files after each `rails ai:bridge` (see `.codex/README.md`).
+4. **Tune list sizes** — `RailsAiBridge.configure { |c| c.copilot_compact_model_list_limit = 5 }` (and `codex_compact_model_list_limit`); set `0` to list no model names and point only to MCP.
+5. **Check your readiness** — `rails ai:doctor` prints a 0–100 score and flags anything missing after first install.
+
 ---
 
 ## Context Modes
@@ -846,7 +876,7 @@ Both transports are **read-only** — they expose the same built-in tools (plus 
 RailsAiBridge.configure do |config|
   # --- Introspectors ---
 
-  # Presets: :standard (9 core, default) or :full (all 27)
+  # Presets: :standard (9 core, default) or :full (all 28)
   config.preset = :standard
 
   # Cherry-pick on top of a preset
@@ -1034,7 +1064,7 @@ These run by default. Fast and cover core Rails structure.
 
 **Standard opt-in:** `non_ar_models` — Ruby classes under the configured logical `app/models` Rails path that are not subclasses of `ActiveRecord::Base`, tagged **`[POJO/Service]`** in `rails_get_model_details` listings and Claude `rails-models.md`. Included in `:full`; add it manually when staying on `:standard`. Uses `Object.const_source_location` after eager load and reports stable logical paths instead of absolute custom directories.
 
-### Full preset (27 introspectors)
+### Full preset (28 introspectors)
 
 Includes all standard introspectors plus:
 
@@ -1075,6 +1105,162 @@ config.introspectors += %i[views turbo auth api stimulus]
 # Or build from scratch
 config.introspectors = %i[schema models routes gems auth api]
 ```
+
+
+### Keeping your own notes in `CLAUDE.md`
+
+By default every `rails ai:bridge` run rewrites each provider file in full, so hand-authored
+guidance is lost. Opt into **managed regions** to keep it:
+
+```ruby
+RailsAiBridge.configure do |config|
+  config.output.managed_region = true
+end
+```
+
+or per run: `MERGE=1 rails ai:bridge` (and `MERGE=0` to force a full rewrite).
+
+Generated content is then confined to a marked block, and anything you write around it is
+left alone:
+
+```markdown
+# House rules
+
+Always run `bin/rubocop` before committing.
+
+<!-- BEGIN rails-ai-bridge: generated. Edits inside this block are overwritten on `rails ai:bridge`. -->
+…generated context…
+<!-- END rails-ai-bridge -->
+```
+
+- **No file yet** → the marked block is written on its own.
+- **Markers present** → only the block is replaced; content above and below is untouched.
+- **Existing file, no markers** → the block is **appended**; your file is not clobbered.
+- **Existing file that this gem generated** (its first line is the `<!-- Generated at: … -->`
+  header) → replaced, not appended, so turning the flag on doesn't leave a stale second
+  copy of the context above the block. If you had appended prose to that generated file,
+  wrap the generated part in the markers by hand before your first run to keep it.
+
+Markdown provider files only (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`,
+`.github/copilot-instructions.md`). `.ai-context.json` never
+receives markers. Freshness skipping and `ai:doctor` staleness both read through the region,
+so unchanged runs are still no-ops.
+
+**Caveats:**
+
+- Avoid writing marker-shaped lines (`<!-- BEGIN rails-ai-bridge: … -->` or
+  `<!-- END rails-ai-bridge -->`) in your own prose — the first BEGIN and the first
+  following END delimit the managed region, so a stray marker in hand-authored content
+  would truncate or misidentify the block.
+- If you delete both markers from a file, the old generated content is treated as your
+  own prose on the next run and a new block is appended. Re-add markers around the
+  generated part before your next run, or delete it manually.
+
+---
+
+### Extending the built-ins
+
+If you need host-app or companion-gem extensions, register them explicitly in the initializer:
+
+```ruby
+RailsAiBridge.configure do |config|
+  config.additional_introspectors[:billing] = MyCompany::BillingIntrospector
+  config.introspectors << :billing
+
+  config.additional_tools << MyCompany::Tools::GetBillingContext
+
+  config.additional_resources["rails://billing"] = {
+    name: "Billing",
+    description: "Billing-specific AI context",
+    mime_type: "application/json",
+    key: :billing
+  }
+end
+```
+
+Built-in MCP tools and resources now read through a shared runtime context provider, so tool calls and `rails://...` resource reads stay aligned to the same cached snapshot.
+
+### Rubydex Integration (Semantic Code Analysis)
+
+[Rubydex](https://github.com/Shopify/rubydex) is Shopify's high-performance Ruby static analysis toolkit. rails-ai-bridge uses rubydex out-of-the-box for semantic code understanding.
+
+**Setup:**
+
+Rubydex is installed automatically as a core dependency and is enabled by default.
+
+To customize it in your initializer (`config/initializers/rails_ai_bridge.rb`):
+
+   ```ruby
+   RailsAiBridge.configure do |config|
+     # config.rubydex_enabled = false # Set to false to disable semantic analysis
+
+     # Optional: enable the semantic introspector (adds :semantic to introspectors)
+     config.semantic_introspector_enabled = true
+     config.introspectors += %i[semantic]
+
+     # Optional: control semantic context depth in generated files
+     # config.semantic_context_depth = :standard  # :summary, :standard, or :full
+
+     # Optional: incremental re-indexing (skip unchanged files on subsequent runs)
+     # config.rubydex_incremental_threshold = 0.3  # full rebuild if >30% of files changed
+     # config.rubydex_persist_index = true          # survive process restarts
+   end
+   ```
+
+**What you get:**
+
+| Feature | Description |
+|---------|-------------|
+| `rails_search_semantic` MCP tool | Fuzzy search for classes, modules, methods, and constants with type info and locations |
+| Enhanced model introspection | Semantic summaries, similar model discovery, and complexity scores for each model |
+| Semantic introspector | Codebase-wide pattern detection, inheritance analysis, and complexity hotspots |
+| `rails://semantic/analysis` resource | Full semantic analysis accessible via MCP resource read |
+| Context file enrichment | Semantic insights automatically included in generated AI context files |
+| Incremental re-indexing | Only changed files are re-parsed on subsequent calls; unchanged files are skipped |
+
+**Internal architecture:** The `RubydexAdapter` wraps the rubydex API as a thin coordinator delegating to three single-responsibility collaborators: `Serializer` (hash conversion), `Indexer` (graph construction + source file scanning), and `MethodCounter` (flat method-counting pipeline). Incremental re-indexing is handled by the `IncrementalIndexer` service, which tracks file mtimes and triggers a full rebuild when the changed-file ratio exceeds `rubydex_incremental_threshold`. See [CONTRIBUTING.md](CONTRIBUTING.md#project-structure) for the full project layout.
+
+**Configuration options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `rubydex_enabled` | `true` | Enable rubydex integration |
+| `rubydex_index_path` | `"tmp/rubydex_index"` | Path for the rubydex index (must stay within `Rails.root`) |
+| `semantic_introspector_enabled` | `false` | Enable the dedicated semantic introspector |
+| `semantic_context_depth` | `:standard` | Depth of semantic context in generated files (`:summary`, `:standard`, `:full`) |
+| `rubydex_incremental_threshold` | `0.3` | Fraction of changed files (0.0–1.0) above which a full rebuild replaces incremental patching |
+| `rubydex_persist_index` | `false` | Persist the mtime snapshot to disk so incremental re-indexing survives process restarts |
+
+**Performance considerations:** Rubydex indexes your Ruby source files at startup. For large codebases, the initial indexing may take a few seconds. Subsequent calls re-use the in-memory index and only re-parse changed files, keeping re-indexing overhead proportional to churn rather than codebase size.
+
+---
+
+### Skill Packs
+
+rails-ai-bridge can load **skill packs** — shared collections of agent instructions — from versioned git repositories and surface them through `rails_list_registry` and rake tasks.
+
+```ruby
+config.registry.registry_manifest_path = "config/rails_ai_bridge/registry.json"
+```
+
+Quick example manifest (`config/rails_ai_bridge/registry.json`):
+
+```json
+{
+  "version": "1.0.0",
+  "packs": {
+    "rails": { "source": "igmarin/rails-agent-skills" },
+    "core":  { "source": "igmarin/ruby-core-skills", "always_loaded": true }
+  },
+  "default_stack": ["core"]
+}
+```
+
+Pack sources accept local paths, HTTPS URLs (`https://`), SSH URLs (`git@`), or `owner/repo` GitHub shorthands. Plain `http://` URLs are rejected. Packs can be pinned to a specific version with `"ref": "v1.2.0"`.
+
+To prevent network timeouts from blocking your server, set `config.registry.git_timeout` (default: 30 s). To control how often cached packs are refreshed, set `config.registry.git_pull_ttl` (default: 24 h; `0` to always pull).
+
+See [docs/skill-registry-guide.md](docs/skill-registry-guide.md) for the full setup guide.
 
 ---
 
@@ -1274,11 +1460,11 @@ rails ai:bridge:gemini   # GEMINI.md
 
 | Setup | Coverage | Notes |
 |-------|----------|-------|
-| Rails full-stack (ERB + Hotwire) | 27/27 | All introspectors relevant |
-| Rails + Inertia.js (React/Vue) | ~22/27 | Views/Turbo partially useful, backend fully covered |
-| Rails API + React/Next.js SPA | ~20/27 | Schema, models, routes, API, auth, jobs — all covered |
-| Rails API + mobile app | ~20/27 | Same as SPA — backend introspection is identical |
-| Rails engine (mountable gem) | ~15/27 | Core introspectors (schema, models, routes, gems) work |
+| Rails full-stack (ERB + Hotwire) | 28/28 | All introspectors relevant |
+| Rails + Inertia.js (React/Vue) | ~22/28 | Views/Turbo partially useful, backend fully covered |
+| Rails API + React/Next.js SPA | ~20/28 | Schema, models, routes, API, auth, jobs — all covered |
+| Rails API + mobile app | ~20/28 | Same as SPA — backend introspection is identical |
+| Rails engine (mountable gem) | ~15/28 | Core introspectors (schema, models, routes, gems) work |
 
 Frontend introspectors (views, Turbo, Stimulus, assets) degrade gracefully — they report nothing when those features aren't present.
 

@@ -195,7 +195,7 @@ Each file respects the AI tool's format and size limits. **Commit these files** 
 | **Architecture** | Service objects, STI, polymorphism, state machines, multi-tenancy, engines |
 | **Code intelligence** | Detects local CodeGraph (`.codegraph/`) and Graphify (`graphify-out/graph.json`) indexes and reports their freshness to the AI |
 
-The `:full` preset runs 27 introspectors. The `:standard` preset runs 9 core ones by default.
+The `:full` preset runs 28 introspectors. The `:standard` preset runs 9 core ones by default.
 
 Start with `:standard` for most apps, then selectively enable additional introspectors (like `:database_stats`) as your use case requires. Use `config.core_models` to tell the generator which models are primary domain entities.
 
@@ -312,7 +312,7 @@ For the full guide to client compatibility, token usage, overrides, staleness, a
 | Preset | Introspectors | Best for |
 |--------|--------------|---------|
 | `:standard` (default) | 9 core | Most apps — schema, models, routes, jobs, gems, conventions |
-| `:full` | 27 | Full-stack apps where frontend, auth, API, and DevOps context matter |
+| `:full` | 28 | Full-stack apps where frontend, auth, API, and DevOps context matter |
 
 Add individual introspectors on top of a preset for targeted additions:
 
@@ -339,7 +339,6 @@ Prints a 0–100 AI readiness score and flags anything missing: `.mcp.json`, gen
 
 Configuration basics (preset, exclusions, cache TTL) live in your initializer; the full option-by-option reference is [docs/GUIDE.md — Configuration — All Options](docs/GUIDE.md#configuration--all-options). Managed regions (keeping hand-written notes in `CLAUDE.md`), Rubydex semantic analysis, and skill packs are documented there too.
 
-  # Presets: :standard (9 introspectors, default) or :full (27). Add opt-in extras as needed.
 ---
 
 ## Stack Compatibility
@@ -348,7 +347,7 @@ Works with every Rails architecture — auto-detects what's relevant:
 
 | Setup | Coverage | Notes |
 |-------|----------|-------|
-| Rails full-stack (ERB + Hotwire) | 27/27 | All introspectors relevant |
+| Rails full-stack (ERB + Hotwire) | 28/28 | All introspectors relevant |
 | Rails + Inertia.js (React/Vue) | ~22/28 | Views/Turbo partially useful, backend fully covered |
 | Rails API + React/Next.js SPA | ~20/28 | Schema, models, routes, API, auth, jobs — all covered |
 | Rails API + mobile app | ~20/28 | Same as SPA — backend introspection is identical |

@@ -74,7 +74,7 @@ Full analysis lands in docs/COMPARISON.md via [#263](https://github.com/igmarin/
 
 | Gem | Notable | Source |
 |-----|---------|--------|
-| rails-ai-context v5.26.0 | 45 tools, Prism confidence tags, static tier, ~43.6k downloads | https://rubygems.org/gems/rails-ai-context |
-| rails-mcp-server | multi-project, progressive discovery, ~259k downloads | https://github.com/maquina-app/rails-mcp-server |
+| rails-ai-context v5.26.0 | 45 tools, Prism confidence tags, static tier, ~82.5k downloads | https://rubygems.org/gems/rails-ai-context |
+| rails-mcp-server | multi-project, progressive discovery, ~272.6k downloads | https://github.com/maquina-app/rails-mcp-server |
 | woods | dependency graph intelligence | https://rubygems.org/gems/woods |
 | rails-hyperdrive | companion-gem content model | https://rubygems.org/gems/rails-hyperdrive |

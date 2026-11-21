@@ -93,6 +93,7 @@ detectors:
   ControlParameter:
     exclude:
     - RailsAiBridge::Registry::ContextProviderClient#probe
+    - RailsAiBridge::Serializers::Formatters::Sections::CodeIntelligenceFormatter#staleness_label
     - RailsAiBridge::ContextProvider#rebuild
     - RailsAiBridge::Doctor::Checkers::RegistryChecker#call
     - RailsAiBridge::Doctor::Checkers::BaseChecker#check
@@ -470,6 +471,9 @@ detectors:
     - RailsAiBridge::Tools::ModelDetails::SingleModelFormatter#format_macro_list
     - RailsAiBridge::Tools::ModelDetails::StandardFormatter#call
     - RailsAiBridge::Tools::Schema::TableFormatter#call
+    - RailsAiBridge::Serializers::Formatters::Sections::CodeIntelligenceFormatter#codegraph_lines
+    - RailsAiBridge::Serializers::Formatters::Sections::CodeIntelligenceFormatter#graphify_lines
+    - RailsAiBridge::Serializers::Formatters::Sections::CodeIntelligenceFormatter#render
   InstanceVariableAssumption:
     exclude:
     - RailsAiBridge::Generators::InstallGenerator
@@ -1045,6 +1049,8 @@ detectors:
     - RailsAiBridge::Watcher#handle_change
     - RailsAiBridge::Watcher#start
     - RailsAiBridge#validate_auto_mount_configuration!
+    - RailsAiBridge::Serializers::Formatters::Sections::CodeIntelligenceFormatter#graphify_lines
+    - RailsAiBridge::Serializers::Formatters::Sections::CodeIntelligenceFormatter#render
   UncommunicativeVariableName:
     exclude:
     - RailsAiBridge::AssistantFormatsPreference#formats_for_default_bridge_task
@@ -1323,3 +1329,4 @@ detectors:
     - RailsAiBridge::Tools::ModelDetails::SingleModelFormatter#macro_present?
     - RailsAiBridge::Tools::Schema::StandardFormatter#partition_note
     - RailsAiBridge::Tools::SearchCode::Formatter#call
+    - RailsAiBridge::Serializers::Formatters::Sections::CodeIntelligenceFormatter#format_time

@@ -71,14 +71,14 @@ RSpec.describe RailsAiBridge::Configuration do
 
     it 'sets introspectors to full preset' do
       config.preset = :full
-      expect(config.introspectors.size).to eq(27)
+      expect(config.introspectors.size).to eq(28)
       expect(config.introspectors).to include(:stimulus, :views, :turbo, :auth, :api, :devops, :migrations, :seeds,
                                               :middleware, :engines, :multi_database, :non_ar_models)
     end
 
     it 'accepts string preset names' do
       config.preset = 'full'
-      expect(config.introspectors.size).to eq(27)
+      expect(config.introspectors.size).to eq(28)
     end
 
     it 'accepts string :standard' do
