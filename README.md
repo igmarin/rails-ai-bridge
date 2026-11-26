@@ -17,8 +17,7 @@ The install generator writes compact context files and starts a read-only MCP se
 
 ## What this gem does
 
-AI coding tools are much better when they know your Rails app before they start editing. Without that context, they guess table names, miss routes, ignore conventions, and spend tokens rediscovering structure your app already has.
-
+AI assistants lack project-specific context, leading to guessed table names, missed routes, and wasted tokens.
 rails-ai-bridge turns a Rails app into an AI-readable project map:
 
 - **Static context files** give assistants an immediate overview of your app, conventions, schema shape, routes, and important models.
@@ -29,7 +28,6 @@ The point is that generated code should match this app, not a generic Rails tuto
 
 ## Start here
 
-Use the README as the shortest path to understanding and setup. Jump to deeper docs only when you need details.
 
 | You want to... | Read this first |
 |---|---|
@@ -43,7 +41,7 @@ Use the README as the shortest path to understanding and setup. Jump to deeper d
 
 ## When this helps
 
-This is useful when you want an AI assistant to work inside a real Rails codebase, especially if the app has:
+Targeted at professional Rails codebases with:
 
 - More than a few models or routes
 - Existing conventions that new code should follow

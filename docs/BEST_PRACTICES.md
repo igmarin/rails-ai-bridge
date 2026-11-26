@@ -3,7 +3,7 @@
 > For installation and a quick overview, see the [README](../README.md).
 > For the full command and configuration reference, see the [Guide](GUIDE.md).
 
-This document consolidates the patterns that consistently produce the best results when using rails-ai-bridge across Cursor, Devin, Copilot, Codex, and Claude Code — informed by real-world usage and feedback from multiple AI assistants evaluating the gem.
+Patterns for optimal results across Cursor, Devin, Copilot, Codex, and Claude Code.
 
 ---
 
@@ -24,7 +24,7 @@ This document consolidates the patterns that consistently produce the best resul
 
 ## The Two-Layer System
 
-rails-ai-bridge works best as **two complementary layers**, not just one:
+Optimal setup uses **two complementary layers**:
 
 | Layer | Mechanism | What it provides |
 |-------|-----------|-----------------|
@@ -39,7 +39,7 @@ Neither layer alone is optimal:
 | MCP only | Accurate live data — no passive grounding; assistant starts cold |
 | **Both (recommended)** | Passive overview + on-demand depth = best coverage |
 
-**Why it matters:** the static file gives the AI the "gut feel" and architectural intuition a human developer builds over days — in a single pass. The MCP layer makes it precise: instead of guessing a column name or route path, the AI calls a tool and gets the current truth.
+**Technical laesons:** Static files provide architectural grounding in a single pass. The MCP layer provides precise, live data (columns, routes) to eliminate guesswork.
 
 ---
 

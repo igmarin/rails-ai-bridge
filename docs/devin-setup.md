@@ -1,7 +1,6 @@
 # Devin CLI Setup Guide — rails-ai-bridge
 
-This guide walks through setting up rails-ai-bridge for use with Devin CLI. By the end, Devin will have static context about your Rails application loaded at session start, and live MCP tools available for on-demand drill-down.
-
+Setup rails-ai-bridge for Devin CLI to provide static context at session start and live MCP tools for on-demand drill-down.
 ## Overview
 
 rails-ai-bridge gives Devin two complementary layers:
